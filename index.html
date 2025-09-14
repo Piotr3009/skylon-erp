@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skylon Joinery - Production Manager</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="app-title">Skylon Joinery - Production Manager</div>
+            <div class="navigation-links">
+                <a href="pipeline.html" class="nav-link nav-link-pipeline">📄 Pipeline</a>
+            </div>
+            <div class="phases-legend" id="phasesLegend">
+                <!-- Phases will be added here -->
+            </div>
+            <button class="add-phase-btn" onclick="openPhaseManager()">+ Manage Phases</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="toolbar-btn primary" onclick="addProject()" id="addProjectBtn">+ Add Project</button>
+            <button class="toolbar-btn" onclick="openTeamModal()">👥 Team</button>
+            <button class="toolbar-btn" onclick="openDaysOffModal()">📅 Days Off</button>
+            <button class="toolbar-btn success" onclick="openMoveToArchiveModal()">📦 Move to Archive</button>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀️ Light</button>
+            <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
+            <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
+            
+            <div class="export-dropdown">
+                <button class="toolbar-btn">Export ▼</button>
+                <div class="export-menu">
+                    <button onclick="exportJSON()">Export JSON</button>
+                    <button onclick="exportCSV()">Export CSV</button>
+                    <button onclick="importJSON()">Import JSON</button>
+                </div>
+            </div>
+
+            <button class="toolbar-btn danger" onclick="clearAll()">Clear All</button>
+            
+            <div style="margin-left: auto; font-size: 11px; color: #9e9e9e;">
+                Double-click phase = edit | Drag = move | Drag handles = resize
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-wrapper">
+            <div class="chart-header">
+                <div class="project-header">
+                    <div class="header-column header-number">No.</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-type">Type</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-name">Project</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-deadline">Deadline</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-actions">Actions</div>
+                </div>
+                <div class="timeline-header" id="timelineHeader">
+                    <!-- Timeline will be generated here -->
+                </div>
+            </div>
+            <div class="chart-body" id="chartBody">
+                <!-- Projects will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Project Modal -->
+    <div class="modal" id="projectModal">
+        <div class="modal-content">
+            <div class="modal-header" id="projectModalTitle">Add Project</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Project Number</label>
+                    <input type="text" id="projectNumber" placeholder="e.g. 001/2025">
+                </div>
+                
+                <div class="form-group">
+                    <label>Project Type</label>
+                    <div class="type-selector">
+                        <div class="type-option" data-type="sash" onclick="selectProjectType('sash')">
+                            <div class="type-icon">🔲</div>
+                            <div class="type-name">Sash Window</div>
+                        </div>
+                        <div class="type-option" data-type="casement" onclick="selectProjectType('casement')">
+                            <div class="type-icon">🔳</div>
+                            <div class="type-name">Casement</div>
+                        </div>
+                        <div class="type-option" data-type="kitchen" onclick="selectProjectType('kitchen')">
+                            <div class="type-icon">🍳</div>
+                            <div class="type-name">Kitchen</div>
+                        </div>
+                        <div class="type-option" data-type="wardrobe" onclick="selectProjectType('wardrobe')">
+                            <div class="type-icon">🗄️</div>
+                            <div class="type-name">Wardrobe</div>
+                        </div>
+                        <div class="type-option" data-type="partition" onclick="selectProjectType('partition')">
+                            <div class="type-icon">🗃️</div>
+                            <div class="type-name">Partition Wall</div>
+                        </div>
+                        <div class="type-option" data-type="externalSpray" onclick="selectProjectType('externalSpray')">
+                            <div class="type-icon">🎨</div>
+                            <div class="type-name">External Spray</div>
+                        </div>
+                        <div class="type-option" data-type="internalDoors" onclick="selectProjectType('internalDoors')">
+                            <div class="type-icon">🚪</div>
+                            <div class="type-name">Internal Doors</div>
+                        </div>
+                        <div class="type-option selected" data-type="other" onclick="selectProjectType('other')">
+                            <div class="type-icon">📦</div>
+                            <div class="type-name">Other</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Project Name</label>
+                    <input type="text" id="projectName" placeholder="e.g. 4x Sash Windows">
+                </div>
+                
+                <div class="form-group">
+                    <label>Client (optional - for internal use)</label>
+                    <input type="text" id="projectClient" placeholder="e.g. Client Name">
+                </div>
+                
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="projectStartDate">
+                </div>
+                
+                <div class="form-group">
+                    <label>Deadline (optional - for production scheduling)</label>
+                    <input type="date" id="projectDeadline">
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Phases (uncheck unwanted phases)</label>
+                    <div class="phase-list" id="phasesList">
+                        <!-- Phase checkboxes will be added here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('projectModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveProject()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase Edit Modal -->
+    <div class="modal" id="phaseEditModal">
+        <div class="modal-content">
+            <div class="modal-header" id="phaseEditTitle">Edit Phase</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Phase Status</label>
+                    <select id="phaseStatus">
+                        <option value="notStarted">⏸️ Not Started</option>
+                        <option value="inProgress">▶️ In Progress</option>
+                        <option value="completed">✅ Completed</option>
+                        <option value="problem">⚠️ Problem/Delayed</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Duration (work days, excluding Sundays)</label>
+                    <input type="number" id="phaseDuration" min="1" value="3">
+                </div>
+                
+                <div class="form-group" id="assignSection" style="display: none;">
+                    <label>Assign Team Member</label>
+                    <select id="phaseAssignSelect">
+                        <option value="">None</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="phaseNotes" placeholder="Add any notes about this phase..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn danger" id="deletePhaseBtn" onclick="deleteCurrentPhase()" style="margin-right: auto;">Delete Phase</button>
+                <button class="modal-btn" onclick="closeModal('phaseEditModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="savePhaseChanges()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Materials Modal -->
+    <div class="modal" id="orderMaterialsModal">
+        <div class="modal-content">
+            <div class="modal-header">Order Materials</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Duration (work days, excluding Sundays)</label>
+                    <input type="number" id="orderDuration" min="1" value="3" oninput="saveOrderDuration()">
+                </div>
+                
+                <div class="order-status-display" id="orderStatusText">
+                    <!-- Status will be displayed here -->
+                </div>
+                
+                <div class="form-group">
+                    <label>Materials Checklist (* = required)</label>
+                    <div class="materials-list" id="materialsList">
+                        <!-- Materials will be listed here -->
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Add Custom Material</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newMaterialName" placeholder="Material name" style="flex: 1;">
+                        <button class="modal-btn primary" onclick="addCustomMaterial()">Add</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn danger" onclick="deleteOrderPhase()" style="margin-right: auto;">Delete Phase</button>
+                <button class="modal-btn" onclick="closeModal('orderMaterialsModal')">Close</button>
+                <button class="modal-btn success" onclick="confirmOrderComplete()">Confirm Order Complete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Spray Materials Modal -->
+    <div class="modal" id="orderSprayModal">
+        <div class="modal-content">
+            <div class="modal-header">Order Spray Materials</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Duration (work days, excluding Sundays)</label>
+                    <input type="number" id="sprayOrderDuration" min="1" value="2" oninput="saveSprayOrderDuration()">
+                </div>
+                
+                <div class="order-status-display" id="sprayOrderStatusText">
+                    <!-- Status will be displayed here -->
+                </div>
+                
+                <div class="form-group">
+                    <label>Spray Materials Checklist</label>
+                    <div class="materials-list" id="sprayMaterialsList">
+                        <!-- Spray materials will be listed here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn danger" onclick="deleteOrderSprayPhase()" style="margin-right: auto;">Delete Phase</button>
+                <button class="modal-btn" onclick="closeModal('orderSprayModal')">Close</button>
+                <button class="modal-btn success" onclick="confirmSprayOrderComplete()">Confirm Order Complete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Glazing Modal -->
+    <div class="modal" id="orderGlazingModal">
+        <div class="modal-content">
+            <div class="modal-header">Order Glazing</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Duration (work days, excluding Sundays)</label>
+                    <input type="number" id="glazingOrderDuration" min="1" value="2" oninput="saveGlazingOrderDuration()">
+                </div>
+                
+                <div class="order-status-display" id="glazingOrderStatusText">
+                    <!-- Status will be displayed here -->
+                </div>
+                
+                <div class="form-group">
+                    <label>Glazing Materials Checklist</label>
+                    <div class="materials-list" id="glazingMaterialsList">
+                        <!-- Glazing materials will be listed here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn danger" onclick="deleteOrderGlazingPhase()" style="margin-right: auto;">Delete Phase</button>
+                <button class="modal-btn" onclick="closeModal('orderGlazingModal')">Close</button>
+                <button class="modal-btn success" onclick="confirmGlazingOrderComplete()">Confirm Order Complete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Days Off Modal -->
+    <div class="modal" id="daysOffModal">
+        <div class="modal-content">
+            <div class="modal-header">Days Off Management</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Mark Day Off</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="daysOffMemberSelect" style="flex: 1;">
+                            <option value="">Select member...</option>
+                        </select>
+                        <input type="date" id="daysOffDateInput">
+                        <button class="modal-btn primary" onclick="markDayOffFromModal()">Add</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>All Days Off</label>
+                    <div class="days-off-container" style="max-height: 400px; overflow-y: auto;">
+                        <div id="daysOffListModal">
+                            <!-- Days off list will be here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal('daysOffModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase Manager Modal -->
+    <div class="modal" id="phaseModal">
+        <div class="modal-content">
+            <div class="modal-header">Manage Phases</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add Custom Phase</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newPhaseName" placeholder="Phase name">
+                        <input type="color" id="newPhaseColor" value="#4a90e2">
+                        <button class="modal-btn primary" onclick="addCustomPhase()">Add</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Available Phases</label>
+                    <div id="availablePhases" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Phases list will be shown here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal('phaseModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Management Modal -->
+    <div class="modal" id="teamModal">
+        <div class="modal-content">
+            <div class="modal-header">Team Management</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add Team Member</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newMemberName" placeholder="Member name">
+                        <input type="color" id="newMemberColor" value="#ff6b6b">
+                        <button class="modal-btn primary" onclick="addTeamMember()">Add</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Team Members</label>
+                    <div id="teamMembersList" style="max-height: 200px; overflow-y: auto; border: 1px solid #3e3e42; border-radius: 3px; padding: 5px;">
+                        <!-- Team members list -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal('teamModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Move to Archive Modal -->
+    <div class="modal" id="moveToArchiveModal">
+        <div class="modal-content">
+            <div class="modal-header">Move to Archive</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Completed Project to Archive</label>
+                    <select id="completedProjectSelect" style="width: 100%; padding: 8px;">
+                        <option value="">Select project...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Archive Reason</label>
+                    <select id="archiveReason" style="width: 100%; padding: 8px;">
+                        <option value="completed">✅ Project Completed Successfully</option>
+                        <option value="cancelled">❌ Project Cancelled</option>
+                        <option value="onHold">⏸️ Project On Hold</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Additional Notes (optional)</label>
+                    <textarea id="archiveNotes" placeholder="Any additional notes about archiving this project..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('moveToArchiveModal')">Cancel</button>
+                <button class="modal-btn success" onclick="confirmMoveToArchive()">Move to Archive</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <!-- Scripts in correct order -->
+    <script src="js/utils.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/team.js"></script>
+    <script src="js/projects.js"></script>
+    <script src="js/phases.js"></script>
+    <script src="js/drag.js"></script>
+    <script src="js/gantt.js"></script>
+    <script src="js/modals.js"></script>
+    <script src="js/order-duration-fixes.js"></script> 
+    <script src="js/sticky-fix.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

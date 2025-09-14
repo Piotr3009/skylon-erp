@@ -1,0 +1,633 @@
+// Minimal CSS injection for dual-overlay
+(function ensureDualOverlayCSS(){
+    if (document.getElementById('dual-overlay-style')) return;
+    const style = document.createElement('style');
+    style.id = 'dual-overlay-style';
+    style.textContent = `
+        .phase-container{position:absolute}
+        .phase-container .dual-overlay{pointer-events:none}
+        .timeline-header {
+            overflow: visible !important;
+            min-width: max-content !important;
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+
+// ========== RENDERING ==========
+function render() {
+    renderTimeline();
+    renderProjects();
+    renderGridPattern();
+    renderTodayLine();
+}
+
+function renderTimeline() {
+    const header = document.getElementById('timelineHeader');
+    if (!header) {
+        console.error('Timeline header not found!');
+        return;
+    }
+    
+    // Clear header
+    header.innerHTML = '';
+    
+    const grid = document.createElement('div');
+    grid.className = 'timeline-grid';
+    grid.style.cssText = `
+        display: flex;
+        height: 100%;
+        position: relative;
+        width: ${daysToShow * dayWidth}px;
+        min-width: ${daysToShow * dayWidth}px;
+    `;
+    
+    for (let i = 0; i < daysToShow; i++) {
+        const date = new Date(visibleStartDate);
+        date.setDate(date.getDate() + i);
+        
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        
+        // Basic styles for each cell
+        cell.style.cssText = `
+            width: ${dayWidth}px;
+            min-width: ${dayWidth}px;
+            max-width: ${dayWidth}px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 1px solid #3e3e42;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        `;
+        
+        // SUNDAY - add class
+        if (date.getDay() === 0) {
+            cell.className += ' day-cell-sunday';
+        }
+        
+        // Day number
+        const dayNumber = document.createElement('div');
+        dayNumber.style.cssText = `
+            font-size: 14px;
+            font-weight: ${date.getDay() === 0 ? 'bold' : 'normal'};
+        `;
+        dayNumber.textContent = date.getDate();
+        
+        // Month
+        const dayMonth = document.createElement('div');
+        dayMonth.style.cssText = `
+            font-size: 10px;
+            color: #9e9e9e;
+        `;
+        dayMonth.textContent = date.toLocaleDateString('en', {month: 'short'});
+        
+        cell.appendChild(dayNumber);
+        cell.appendChild(dayMonth);
+        grid.appendChild(cell);
+    }
+    
+    header.appendChild(grid);
+    
+    // Sync width with timeline cells
+    const timelineCells = document.querySelectorAll('.timeline-cell');
+    timelineCells.forEach(cell => {
+        cell.style.width = (daysToShow * dayWidth) + 'px';
+        cell.style.minWidth = (daysToShow * dayWidth) + 'px';
+    });
+}
+
+// Grid pattern and green stripes for Sundays
+function renderGridPattern() {
+    document.querySelectorAll('.grid-line').forEach(el => el.remove());
+    document.querySelectorAll('.sunday-stripe').forEach(el => el.remove());
+    
+    // Vertical grid lines
+    for (let i = 0; i <= daysToShow; i++) {
+        const line = document.createElement('div');
+        line.className = 'grid-line';
+        line.style.cssText = `
+            position: absolute;
+            left: ${400 + i * dayWidth}px;
+            top: 50px;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255,255,255,0.03);
+            pointer-events: none;
+            z-index: 0;
+        `;
+        document.querySelector('.chart-wrapper').appendChild(line);
+    }
+    
+    // GREEN STRIPES FOR SUNDAYS
+    for (let i = 0; i < daysToShow; i++) {
+        const date = new Date(visibleStartDate);
+        date.setDate(date.getDate() + i);
+        
+        if (date.getDay() === 0) {  // Sunday
+            const stripe = document.createElement('div');
+            stripe.className = 'sunday-stripe';
+            stripe.style.cssText = `
+                position: absolute;
+                left: ${400 + i * dayWidth}px;
+                top: 45px;
+                bottom: 0;
+                width: ${dayWidth}px;
+                background: rgba(0, 255, 0, 0.08);
+                pointer-events: none;
+                z-index: 1;
+                border-left: 1px solid rgba(0, 255, 0, 0.2);
+                border-right: 1px solid rgba(0, 255, 0, 0.2);
+            `;
+            document.querySelector('.chart-wrapper').appendChild(stripe);
+        }
+    }
+}
+
+function renderProjects() {
+    const body = document.getElementById('chartBody');
+    body.innerHTML = '';
+    
+    projects.forEach((project, index) => {
+        const row = document.createElement('div');
+        row.className = 'project-row';
+        
+        const projectCell = document.createElement('div');
+        projectCell.className = 'project-cell';
+        
+        const projectType = projectTypes[project.type] || projectTypes.other;
+        
+        projectCell.innerHTML = `
+            <div class="project-column project-number" onclick="editProjectNumber(${index})" title="Click to edit number">
+                ${project.projectNumber || '---'}
+            </div>
+            <div class="project-column-divider"></div>
+            <div class="project-column project-type" title="${projectType.name}">
+                ${projectType.icon}
+            </div>
+            <div class="project-column-divider"></div>
+            <div class="project-column project-name" title="${project.name}">
+                ${project.name}
+            </div>
+            <div class="project-column-divider"></div>
+            <div class="project-column project-deadline" onclick="editProjectDeadline(${index})" title="Click to edit deadline">
+                ${project.deadline ? formatDateShort(project.deadline) : '---'}
+            </div>
+            <div class="project-column-divider"></div>
+            <div class="project-column project-actions">
+                <button class="action-btn" onclick="editProject(${index})" title="Edit">✏️</button>
+                <button class="action-btn delete" onclick="deleteProject(${index})" title="Delete">✕</button>
+            </div>
+        `;
+        
+        const timelineCell = document.createElement('div');
+        timelineCell.className = 'timeline-cell';
+        timelineCell.style.width = (daysToShow * dayWidth) + 'px';
+        timelineCell.style.minWidth = (daysToShow * dayWidth) + 'px';
+        
+        if (project.phases) {
+            const sortedPhases = [...project.phases].sort((a, b) => {
+                return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+            });
+            
+            const overlaps = detectPhaseOverlaps(sortedPhases);
+            
+            sortedPhases.forEach((phase, sortedIndex) => {
+                const originalIndex = project.phases.findIndex(p => p === phase);
+                const phaseBar = createPhaseBar(phase, project, index, originalIndex, overlaps);
+                if (phaseBar) timelineCell.appendChild(phaseBar);
+            });
+        }
+        
+        // Renderuj deadline
+        if (project.deadline) {
+            renderDeadlineCell(project, timelineCell);
+        }
+
+        row.appendChild(projectCell);
+        row.appendChild(timelineCell);
+        body.appendChild(row);
+    });
+}
+
+function detectPhaseOverlaps(phases) {
+    const overlaps = [];
+    if (!Array.isArray(phases) || phases.length < 2) return overlaps;
+
+    const norm = phases.map((p, idx) => ({
+        idx,
+        key: p.key,
+        start: new Date(p.start),
+        end: new Date(p.adjustedEnd || p.end)
+    })).sort((a,b) => a.start - b.start);
+
+    for (let i = 0; i < norm.length; i++) {
+        for (let j = i + 1; j < norm.length; j++) {
+            const A = norm[i], B = norm[j];
+            if (B.start >= A.end) break;
+            const overlapStart = new Date(Math.max(A.start, B.start));
+            const overlapEnd = new Date(Math.min(A.end, B.end));
+            if (overlapEnd > overlapStart) {
+                overlaps.push({ 
+                    phase1Key: phases[A.idx].key, 
+                    phase2Key: phases[B.idx].key, 
+                    phase1Idx: A.idx,
+                    phase2Idx: B.idx,
+                    overlapStart, overlapEnd 
+                });
+            }
+        }
+    }
+    return overlaps;
+}
+
+function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
+    const container = document.createElement('div');
+    const phaseConfig = productionPhases[phase.key];
+    if (!phaseConfig) return null;
+    
+    const teamMember = phase.assignedTo ? 
+        teamMembers.find(m => m.id === phase.assignedTo) : null;
+    
+    container.className = 'phase-container';
+    
+    // Check if should flash
+    if ((phase.key === 'order' || phase.key === 'orderSpray' || phase.key === 'orderGlazing') && !phase.orderConfirmed) {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const phaseEnd = new Date(phase.end);
+        const daysDiff = Math.round((phaseEnd - today) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff <= 1 && daysDiff >= 0) {
+            container.classList.add('flashing');
+        }
+    }
+    
+    const start = new Date(phase.start);
+    
+    // NEW - use computeEnd instead of phase.end
+    const end = computeEnd(phase);
+    
+    let adjustedEnd = new Date(end);
+    if (teamMember) {
+        const daysOffCount = countDaysOffBetween(teamMember.name, start, end);
+        if (daysOffCount > 0) {
+            adjustedEnd.setDate(adjustedEnd.getDate() + daysOffCount);
+            phase.adjustedEnd = formatDate(adjustedEnd);
+        }
+    }
+    
+    const daysDiff = Math.round((start - visibleStartDate) / (1000 * 60 * 60 * 24));
+    const duration = Math.round((adjustedEnd - start) / (1000 * 60 * 60 * 24)) + 1;
+    
+    // NEW - calculate WORKING days for display
+    const workDays = phase.workDays || workingDaysBetween(start, adjustedEnd);
+    const displayDays = workDays; // Display WORKING days, not calendar days
+    
+    container.style.left = (daysDiff * dayWidth) + 'px';
+    container.style.width = (duration * dayWidth) + 'px';
+    container.style.borderColor = phaseConfig.color;
+    
+    // Top part - colored
+    const topDiv = document.createElement('div');
+    topDiv.className = 'phase-top';
+    
+    const overlap = overlaps.find(o => 
+        o.phase1Key === phase.key || o.phase2Key === phase.key
+    );
+    
+    if (overlap) {
+        const sPhase = new Date(phase.start);
+        const ePhase = new Date(phase.adjustedEnd || phase.end);
+        const sOverlap = overlap.overlapStart;
+        const eOverlap = overlap.overlapEnd;
+
+        const dayMs = 1000 * 60 * 60 * 24;
+        const widthPx = parseInt(container.style.width);
+
+        const fromStartDays = Math.max(0, Math.round((sOverlap - sPhase) / dayMs));
+        const overlapDays = Math.max(0, Math.round((eOverlap - sOverlap) / dayMs) + 1);
+
+        const overlayLeft = Math.min(widthPx, fromStartDays * dayWidth);
+        const overlayWidth = Math.max(0, Math.min(widthPx - overlayLeft, overlapDays * dayWidth));
+
+        topDiv.style.background = phaseConfig.color;
+
+        if (overlayWidth > 0) {
+            const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
+            const otherColor = productionPhases[otherKey]?.color || '#888';
+            const overlay = document.createElement('div');
+            overlay.className = 'dual-overlay';
+            overlay.style.left = overlayLeft + 'px';
+            overlay.style.width = overlayWidth + 'px';
+            overlay.style.background = `linear-gradient(90deg, ${phaseConfig.color} 0 50%, ${otherColor} 50% 100%)`;
+            container.appendChild(overlay);
+        }
+    } else if (teamMember) {
+        topDiv.classList.add('has-team');
+        topDiv.style.background = `linear-gradient(to bottom, ${phaseConfig.color} 50%, ${teamMember.color} 50%)`;
+    } else {
+        topDiv.style.background = phaseConfig.color;
+    }
+    
+    topDiv.innerHTML = `<span>${phaseConfig.name}</span>`;
+    
+    // Bottom part
+    const bottomDiv = document.createElement('div');
+    bottomDiv.className = 'phase-bottom';
+    
+    const status = phaseStatuses[phase.status || 'notStarted'];
+    let bottomContent = `<span class="phase-status-icon" title="${status.name}">${status.icon}</span>`;
+    bottomContent += `<span class="phase-days-info">(${displayDays} days)</span>`;
+    
+    // ADD CARPENTER NAME
+    if (teamMember) {
+        bottomContent += `<span style="font-size: 9px; color: ${teamMember.color}; margin-left: 4px;">${teamMember.name}</span>`;
+    }
+    
+    if (phase.notes) {
+        bottomContent += `<span class="phase-note-icon" title="Has notes">📝</span>`;
+    }
+    
+    if (phase.key === 'order' || phase.key === 'orderSpray' || phase.key === 'orderGlazing') {
+        if (phase.orderConfirmed) {
+            bottomContent += '<span class="phase-order-icon" title="Order confirmed">📦✅</span>';
+        } else if (phase.orderComplete) {
+            bottomContent += '<span class="phase-order-icon" title="Order complete, not confirmed">📦⚠️</span>';
+        } else {
+            bottomContent += '<span class="phase-order-icon" title="Order incomplete">📦❌</span>';
+        }
+    }
+    
+    bottomDiv.innerHTML = bottomContent;
+    
+    container.appendChild(topDiv);
+    container.appendChild(bottomDiv);
+    
+    container.dataset.projectIndex = projectIndex;
+    container.dataset.phaseIndex = phaseIndex;
+    
+    if (teamMember) {
+        renderDaysOffOnBar(container, teamMember.name, start, adjustedEnd);
+    }
+    
+    const endDateStr = phase.adjustedEnd || formatDate(end);
+    let tooltipText = `${phaseConfig.name}: ${phase.start} to ${endDateStr} (${displayDays} work days)`;
+    tooltipText += `\nStatus: ${status.name}`;
+    if (teamMember) tooltipText += `\nAssigned to: ${teamMember.name}`;
+    if (phase.notes) tooltipText += `\nNotes: ${phase.notes.substring(0, 50)}...`;
+    if (overlap) {
+        const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
+        tooltipText += `\n⚠️ Overlapping with ${productionPhases[otherKey]?.name || 'phase'}`;
+    }
+    
+    container.title = tooltipText;
+    
+    container.ondblclick = (e) => {
+        e.stopPropagation();
+        openPhaseEditModal(projectIndex, phaseIndex);
+    };
+    
+    const leftHandle = document.createElement('div');
+    leftHandle.className = 'resize-handle resize-handle-left';
+    leftHandle.onmousedown = (e) => startResize(e, container, phase, 'left');
+    
+    const rightHandle = document.createElement('div');
+    rightHandle.className = 'resize-handle resize-handle-right';
+    rightHandle.onmousedown = (e) => startResize(e, container, phase, 'right');
+    
+    container.appendChild(leftHandle);
+    container.appendChild(rightHandle);
+    
+    container.onmousedown = (e) => {
+        if (e.target.classList.contains('resize-handle')) return;
+        if (e.target.classList.contains('phase-status-icon')) return;
+        if (e.target.classList.contains('phase-note-icon')) return;
+        if (e.target.classList.contains('phase-order-icon')) return;
+        startDrag(e, container, phase, projectIndex, phaseIndex);
+    };
+    
+    return container;
+}
+
+function renderDaysOffOnBar(bar, memberName, startDate, endDate) {
+    const markersContainer = document.createElement('div');
+    markersContainer.className = 'days-off-markers';
+    
+    daysOff.forEach(dayOff => {
+        if (dayOff.member !== memberName) return;
+        
+        const offDate = new Date(dayOff.date);
+        if (offDate >= startDate && offDate <= endDate) {
+            const daysDiff = Math.round((offDate - startDate) / (1000 * 60 * 60 * 24));
+            const xPosition = daysDiff * dayWidth;
+            
+            const marker = document.createElement('div');
+            marker.className = 'day-off-x';
+            marker.style.left = xPosition + 'px';
+            marker.innerHTML = '✕';
+            marker.title = `${memberName} - Day off ${dayOff.date}`;
+            
+            markersContainer.appendChild(marker);
+        }
+    });
+    
+    bar.appendChild(markersContainer);
+}
+
+function renderTodayLine() {
+    const existing = document.querySelector('.today-line');
+    if (existing) existing.remove();
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const daysDiff = Math.round((today - visibleStartDate) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff >= 0 && daysDiff < daysToShow) {
+        const line = document.createElement('div');
+        line.className = 'today-line';
+        line.style.cssText = `
+            position: absolute;
+            left: ${400 + daysDiff * dayWidth}px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #007acc;
+            pointer-events: none;
+            z-index: 5;
+        `;
+        document.querySelector('.chart-wrapper').appendChild(line);
+    }
+}
+
+function editProjectNumber(index) {
+    const project = projects[index];
+    const currentNumber = project.projectNumber || '';
+    const newNumber = prompt('Edit project number:', currentNumber);
+    
+    if (newNumber !== null && newNumber !== currentNumber) {
+        project.projectNumber = newNumber;
+        saveData();
+        render();
+    }
+}
+
+function editProjectDeadline(index) {
+    const project = projects[index];
+    
+    // Utwórz tymczasowy modal dla deadline
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content" style="width: 300px;">
+            <div class="modal-header">Set Project Deadline</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Deadline Date</label>
+                    <input type="date" id="tempDeadlineInput" value="${project.deadline || ''}" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="this.closest('.modal').remove()">Cancel</button>
+                <button class="modal-btn primary" onclick="saveDeadlineFromModal(${index})">Save</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus na input
+    setTimeout(() => {
+        document.getElementById('tempDeadlineInput').focus();
+    }, 100);
+}
+
+function saveDeadlineFromModal(index) {
+    const newDeadline = document.getElementById('tempDeadlineInput').value;
+    const modal = document.querySelector('.modal.active');
+    
+    if (newDeadline) {
+        const project = projects[index];
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const deadlineDate = new Date(newDeadline);
+        
+        // Sprawdź czy deadline nie jest w przeszłości
+        if (deadlineDate < today) {
+            alert('Deadline cannot be in the past!');
+            return;
+        }
+        
+        // Oblicz dostępne dni robocze
+        const availableWorkDays = workingDaysBetween(today, deadlineDate);
+        const phasesCount = project.phases ? project.phases.length : 0;
+        
+        // Sprawdź minimalne wymagania
+        if (phasesCount > 0 && availableWorkDays < phasesCount) {
+            alert(`Deadline too short! Need at least ${phasesCount} working days for ${phasesCount} phases.`);
+            return;
+        }
+        
+        // Zapisz deadline
+        project.deadline = newDeadline;
+        
+        // Auto-dopasuj fazy jeśli są
+        if (phasesCount > 0) {
+            autoAdjustPhasesToDeadline(project, today, deadlineDate);
+        }
+        
+        saveData();
+        render();
+    }
+    
+    modal.remove();
+}
+
+function autoAdjustPhasesToDeadline(project, startDate, deadlineDate) {
+    if (!project.phases || project.phases.length === 0) return;
+    
+    // Oblicz dostępne dni robocze
+    const availableWorkDays = workingDaysBetween(startDate, deadlineDate);
+    const phasesCount = project.phases.length;
+    
+    // Rozłóż dni równomiernie
+    const baseDaysPerPhase = Math.floor(availableWorkDays / phasesCount);
+    const extraDays = availableWorkDays % phasesCount;
+    
+    // Sortuj fazy według kolejności
+    project.phases.sort((a, b) => {
+        return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+    });
+    
+    let currentStart = new Date(startDate);
+    
+    // Pomiń niedzielę jeśli startujemy w niedzielę
+    while (isWeekend(currentStart)) {
+        currentStart.setDate(currentStart.getDate() + 1);
+    }
+    
+    // Przypisz dni każdej fazie
+    project.phases.forEach((phase, index) => {
+        // Oblicz dni dla tej fazy (niektóre dostaną +1 dzień)
+        const phaseDays = baseDaysPerPhase + (index < extraDays ? 1 : 0);
+        
+        // Ustaw start fazy
+        phase.start = formatDate(currentStart);
+        
+        // Ustaw workDays
+        phase.workDays = Math.max(1, phaseDays);
+        
+        // Oblicz koniec fazy
+        const phaseEnd = phaseDays <= 1 ? 
+            new Date(currentStart) : 
+            addWorkingDays(currentStart, phaseDays - 1);
+        
+        // Następna faza zaczyna się dzień po końcu tej
+        currentStart = new Date(phaseEnd);
+        currentStart.setDate(currentStart.getDate() + 1);
+        
+        // Pomiń niedziele
+        while (isWeekend(currentStart)) {
+            currentStart.setDate(currentStart.getDate() + 1);
+        }
+    });
+}
+
+function renderDeadlineCell(project, timelineCell) {
+    if (!project.deadline) return;
+    
+    const deadlineDate = new Date(project.deadline);
+    const daysDiff = Math.round((deadlineDate - visibleStartDate) / (1000 * 60 * 60 * 24));
+    
+    // Tylko jeśli deadline jest w widocznym zakresie
+    if (daysDiff >= 0 && daysDiff < daysToShow) {
+        const deadlineCell = document.createElement('div');
+        deadlineCell.className = 'deadline-cell';
+        deadlineCell.style.cssText = `
+            position: absolute;
+            left: ${daysDiff * dayWidth}px;
+            top: 2px;
+            width: ${dayWidth}px;
+            height: 50px;
+            background: #8B0000;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 3px;
+            z-index: 4;
+            cursor: pointer;
+            border: 1px solid #5B0000;
+        `;
+        deadlineCell.innerHTML = 'DL';
+        deadlineCell.title = `Deadline: ${project.deadline}`;
+        
+        timelineCell.appendChild(deadlineCell);
+    }
+}

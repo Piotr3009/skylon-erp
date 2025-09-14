@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skylon Joinery - Pipeline Manager</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="pipeline-theme">
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="app-title">Skylon Joinery - Pipeline Manager</div>
+            <div class="navigation-links">
+                <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
+            </div>
+            <div class="phases-legend" id="phasesLegend">
+                <!-- Phases will be added here -->
+            </div>
+            <button class="add-phase-btn" onclick="openPhaseManager()">+ Manage Phases</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="toolbar-btn primary" onclick="addPipelineProject()">+ Add Pipeline Project</button>
+            <button class="toolbar-btn" onclick="openTeamModal()">👥 Team</button>
+            <button class="toolbar-btn" onclick="openDaysOffModal()">📅 Days Off</button>
+            <button class="toolbar-btn success" onclick="openPipelineFinishedModal()">✅ Pipeline Finished</button>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">☀️ Light</button>
+            <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
+            <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
+            
+            <div class="export-dropdown">
+                <button class="toolbar-btn">Export ▼</button>
+                <div class="export-menu">
+                    <button onclick="exportPipelineJSON()">Export JSON</button>
+                    <button onclick="exportPipelineCSV()">Export CSV</button>
+                    <button onclick="importPipelineJSON()">Import JSON</button>
+                </div>
+            </div>
+
+            <button class="toolbar-btn danger" onclick="clearAllPipeline()">Clear All</button>
+            
+            <div style="margin-left: auto; font-size: 11px; color: #9e9e9e;">
+                Double-click phase = edit | Drag = move | Drag handles = resize
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-wrapper">
+            <div class="chart-header">
+                <div class="project-header">
+                    <div class="header-column header-number">No.</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-type">Type</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-name">Project</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-actions">Actions</div>
+                </div>
+                <div class="timeline-header" id="timelineHeader">
+                    <!-- Timeline will be generated here -->
+                </div>
+            </div>
+            <div class="chart-body" id="chartBody">
+                <!-- Projects will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Pipeline Project Modal -->
+    <div class="modal" id="projectModal">
+        <div class="modal-content">
+            <div class="modal-header" id="projectModalTitle">Add Pipeline Project</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Pipeline Number</label>
+                    <input type="text" id="projectNumber" placeholder="e.g. PL001/2025">
+                </div>
+                
+                <div class="form-group">
+                    <label>Project Type</label>
+                    <div class="type-selector">
+                        <div class="type-option" data-type="sash" onclick="selectProjectType('sash')">
+                            <div class="type-icon">🔲</div>
+                            <div class="type-name">Sash Window</div>
+                        </div>
+                        <div class="type-option" data-type="casement" onclick="selectProjectType('casement')">
+                            <div class="type-icon">🔳</div>
+                            <div class="type-name">Casement</div>
+                        </div>
+                        <div class="type-option" data-type="kitchen" onclick="selectProjectType('kitchen')">
+                            <div class="type-icon">🍳</div>
+                            <div class="type-name">Kitchen</div>
+                        </div>
+                        <div class="type-option" data-type="wardrobe" onclick="selectProjectType('wardrobe')">
+                            <div class="type-icon">🗄️</div>
+                            <div class="type-name">Wardrobe</div>
+                        </div>
+                        <div class="type-option" data-type="partition" onclick="selectProjectType('partition')">
+                            <div class="type-icon">🗃️</div>
+                            <div class="type-name">Partition Wall</div>
+                        </div>
+                        <div class="type-option" data-type="externalSpray" onclick="selectProjectType('externalSpray')">
+                            <div class="type-icon">🎨</div>
+                            <div class="type-name">External Spray</div>
+                        </div>
+                        <div class="type-option" data-type="internalDoors" onclick="selectProjectType('internalDoors')">
+                            <div class="type-icon">🚪</div>
+                            <div class="type-name">Internal Doors</div>
+                        </div>
+                        <div class="type-option selected" data-type="other" onclick="selectProjectType('other')">
+                            <div class="type-icon">📦</div>
+                            <div class="type-name">Other</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Project Name</label>
+                    <input type="text" id="projectName" placeholder="e.g. 4x Sash Windows">
+                </div>
+                
+                <div class="form-group">
+                    <label>Client</label>
+                    <input type="text" id="projectClient" placeholder="e.g. Client Name">
+                </div>
+                
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="projectStartDate">
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Pipeline Phases (uncheck unwanted phases)</label>
+                    <div class="phase-list" id="phasesList">
+                        <!-- Phase checkboxes will be added here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('projectModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="savePipelineProject()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline Finished Modal -->
+    <div class="modal" id="pipelineFinishedModal">
+        <div class="modal-content">
+            <div class="modal-header">Pipeline Finished</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Pipeline Project to Finish</label>
+                    <select id="pipelineProjectSelect" style="width: 100%; padding: 8px;">
+                        <option value="">Select project...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Production Deadline (from contract)</label>
+                    <input type="date" id="productionDeadline" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                </div>
+                <div class="form-group">
+                    <label>Project Status</label>
+                    <div class="pipeline-status-options">
+                        <button class="status-btn success" onclick="convertToProduction()">
+                            ✅ Convert to Production
+                        </button>
+                        <button class="status-btn danger" onclick="archiveAsFailed()">
+                            📦 Archive as Failed
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('pipelineFinishedModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other modals (copy from index.html) -->
+    <!-- Phase Edit Modal -->
+    <div class="modal" id="phaseEditModal">
+        <div class="modal-content">
+            <div class="modal-header" id="phaseEditTitle">Edit Phase</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Phase Status</label>
+                    <select id="phaseStatus">
+                        <option value="notStarted">⏸️ Not Started</option>
+                        <option value="inProgress">▶️ In Progress</option>
+                        <option value="completed">✅ Completed</option>
+                        <option value="problem">⚠️ Problem/Delayed</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Duration (work days, excluding Sundays)</label>
+                    <input type="number" id="phaseDuration" min="1" value="3">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="phaseNotes" placeholder="Add any notes about this phase..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn danger" id="deletePhaseBtn" onclick="deleteCurrentPhase()" style="margin-right: auto;">Delete Phase</button>
+                <button class="modal-btn" onclick="closeModal('phaseEditModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="savePhaseChanges()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Days Off Modal -->
+    <div class="modal" id="daysOffModal">
+        <div class="modal-content">
+            <div class="modal-header">Days Off Management</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Mark Day Off</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="daysOffMemberSelect" style="flex: 1;">
+                            <option value="">Select member...</option>
+                        </select>
+                        <input type="date" id="daysOffDateInput">
+                        <button class="modal-btn primary" onclick="markDayOffFromModal()">Add</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>All Days Off</label>
+                    <div class="days-off-container" style="max-height: 400px; overflow-y: auto;">
+                        <div id="daysOffListModal">
+                            <!-- Days off list will be here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal('daysOffModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase Manager Modal -->
+    <div class="modal" id="phaseModal">
+        <div class="modal-content">
+            <div class="modal-header">Manage Phases</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add Custom Phase</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newPhaseName" placeholder="Phase name">
+                        <input type="color" id="newPhaseColor" value="#4a90e2">
+                        <button class="modal-btn primary" onclick="addCustomPhase()">Add</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Available Phases</label>
+                    <div id="availablePhases" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Phases list will be shown here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal('phaseModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Management Modal -->
+    <div class="modal" id="teamModal">
+        <div class="modal-content">
+            <div class="modal-header">Team Management</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add Team Member</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newMemberName" placeholder="Member name">
+                        <input type="color" id="newMemberColor" value="#ff6b6b">
+                        <button class="modal-btn primary" onclick="addTeamMember()">Add</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Team Members</label>
+                    <div id="teamMembersList" style="max-height: 200px; overflow-y: auto; border: 1px solid #3e3e42; border-radius: 3px; padding: 5px;">
+                        <!-- Team members list -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal('teamModal')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <!-- Scripts in correct order - PIPELINE używa drag-pipeline.js -->
+    <script src="js/utils.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/team.js"></script>
+    <script src="js/pipeline-projects.js"></script>
+    <script src="js/phases.js"></script>
+    <script src="js/drag-pipeline.js"></script>
+    <script src="js/pipeline-gantt.js"></script>
+    <script src="js/modals.js"></script>
+    <script src="js/sticky-fix.js"></script>
+    <script src="js/pipeline-app.js"></script>
+</body>
+</html>
