@@ -159,8 +159,29 @@ function saveProject() {
     closeModal('projectModal');
 }
 
-function deleteProject(index) {
+async function deleteProject(index) {
     if (confirm('Delete project "' + projects[index].name + '"?')) {
+        const projectNumber = projects[index].projectNumber;
+        
+        // Usuń z Supabase jeśli jest połączenie
+        if (projectNumber && typeof supabaseClient !== 'undefined') {
+            try {
+                const { error } = await supabaseClient
+                    .from('projects')
+                    .delete()
+                    .eq('project_number', projectNumber);
+                    
+                if (error) {
+                    console.error('Błąd usuwania z DB:', error);
+                } else {
+                    console.log('✅ Usunięte z bazy');
+                }
+            } catch (err) {
+                console.log('Brak połączenia z DB, usuwam tylko lokalnie');
+            }
+        }
+        
+        // Usuń lokalnie
         projects.splice(index, 1);
         saveData();
         render();

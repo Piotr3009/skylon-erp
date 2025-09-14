@@ -1,10 +1,35 @@
 // ========== PIPELINE PROJECT MANAGEMENT ==========
+
+// Load clients for dropdown
+async function loadClientsDropdown() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('clients')
+            .select('id, client_number, company_name, contact_person')
+            .order('company_name');
+        
+        const select = document.getElementById('projectClient');
+        select.innerHTML = '<option value="">-- Wybierz klienta z bazy --</option>';
+        
+        data?.forEach(client => {
+            const option = document.createElement('option');
+            option.value = client.id;
+            option.textContent = `${client.client_number} - ${client.company_name || client.contact_person}`;
+            select.appendChild(option);
+        });
+    } catch (err) {
+        console.error('Błąd ładowania klientów:', err);
+    }
+}
+
 function addPipelineProject() {
     currentEditProject = null;
     document.getElementById('projectModalTitle').textContent = 'Add Pipeline Project';
     document.getElementById('projectName').value = '';
-    document.getElementById('projectClient').value = '';
     document.getElementById('projectStartDate').value = formatDate(new Date());
+    
+    // Load clients dropdown
+    loadClientsDropdown();
     
     // Generate new pipeline number
     document.getElementById('projectNumber').value = getNextPipelineNumber();
@@ -24,9 +49,15 @@ function editPipelineProject(index) {
     
     document.getElementById('projectModalTitle').textContent = 'Edit Pipeline Project';
     document.getElementById('projectName').value = project.name;
-    document.getElementById('projectClient').value = project.client || '';
     document.getElementById('projectStartDate').value = project.phases[0]?.start || formatDate(new Date());
     document.getElementById('projectNumber').value = project.projectNumber || '';
+    
+    // Load clients and select current one
+    loadClientsDropdown().then(() => {
+        if (project.client_id) {
+            document.getElementById('projectClient').value = project.client_id;
+        }
+    });
     
     // Set selected type
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
@@ -37,9 +68,10 @@ function editPipelineProject(index) {
     openModal('projectModal');
 }
 
-function savePipelineProject() {
+// UPDATED WITH SUPABASE SAVE AND CLIENT_ID
+async function savePipelineProject() {
     const name = document.getElementById('projectName').value.trim();
-    const client = document.getElementById('projectClient').value.trim();
+    const clientId = document.getElementById('projectClient').value; // Changed from client text to client ID
     const startDate = document.getElementById('projectStartDate').value;
     const projectNumber = document.getElementById('projectNumber').value.trim();
     
@@ -54,6 +86,11 @@ function savePipelineProject() {
     
     if (!projectNumber) {
         alert('Please enter a pipeline number');
+        return;
+    }
+    
+    if (!clientId) {
+        alert('Please select a client from database!');
         return;
     }
     
@@ -115,7 +152,7 @@ function savePipelineProject() {
         projectNumber,
         type: projectType,
         name,
-        client,
+        client_id: clientId,  // Store client ID instead of text
         phases: selectedPhases
     };
     
@@ -125,13 +162,98 @@ function savePipelineProject() {
         pipelineProjects.push(projectData);
     }
     
+    // ========== SAVE TO SUPABASE WITH CLIENT_ID ==========
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const pipelineForDB = {
+                project_number: projectData.projectNumber,
+                name: projectData.name,
+                type: projectData.type,
+                client_id: projectData.client_id,  // Save client_id to DB
+                estimated_value: 0,
+                status: 'active',
+                notes: null
+            };
+            
+            const { error } = await supabaseClient
+                .from('pipeline_projects')
+                .upsert(pipelineForDB, { onConflict: 'project_number' });
+                
+            if (!error) {
+                console.log('✅ Pipeline zapisany w Supabase z klientem');
+                
+                // Update client's project count
+                await updateClientProjectCount(clientId);
+            } else {
+                console.error('❌ Błąd zapisu pipeline:', error);
+            }
+        } catch (err) {
+            console.log('⚠️ Pipeline tylko lokalnie:', err);
+        }
+    }
+    
     saveData();
     renderPipeline();
     closeModal('projectModal');
 }
 
-function deletePipelineProject(index) {
+// Update client project count
+async function updateClientProjectCount(clientId) {
+    if (!clientId) return;
+    
+    try {
+        // Count all projects for this client (pipeline + production)
+        const { count: pipelineCount } = await supabaseClient
+            .from('pipeline_projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('client_id', clientId);
+            
+        const { count: productionCount } = await supabaseClient
+            .from('projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('client_id', clientId);
+        
+        const totalProjects = (pipelineCount || 0) + (productionCount || 0);
+        
+        // Update client record
+        await supabaseClient
+            .from('clients')
+            .update({ total_projects: totalProjects })
+            .eq('id', clientId);
+            
+    } catch (err) {
+        console.error('Error updating client stats:', err);
+    }
+}
+
+// UPDATED WITH SUPABASE DELETE
+async function deletePipelineProject(index) {
     if (confirm('Delete pipeline project "' + pipelineProjects[index].name + '"?')) {
+        const projectNumber = pipelineProjects[index].projectNumber;
+        const clientId = pipelineProjects[index].client_id;
+        
+        // Delete from Supabase if connected
+        if (projectNumber && typeof supabaseClient !== 'undefined') {
+            try {
+                const { error } = await supabaseClient
+                    .from('pipeline_projects')
+                    .delete()
+                    .eq('project_number', projectNumber);
+                    
+                if (error) {
+                    console.error('❌ Błąd usuwania pipeline z DB:', error);
+                } else {
+                    console.log('✅ Pipeline usunięty z bazy');
+                    
+                    // Update client project count
+                    await updateClientProjectCount(clientId);
+                }
+            } catch (err) {
+                console.log('⚠️ Brak połączenia z DB, usuwam tylko lokalnie');
+            }
+        }
+        
+        // Delete locally
         pipelineProjects.splice(index, 1);
         saveData();
         renderPipeline();
@@ -171,7 +293,7 @@ function updatePipelinePhasesList(projectPhases = [], checkAll = false) {
     });
 }
 
-// Handle type selection - ADDED
+// Handle type selection
 function selectProjectType(type) {
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
     event.currentTarget.classList.add('selected');
@@ -205,7 +327,7 @@ function updatePipelineProjectSelect() {
     });
 }
 
-// FIXED convertToProduction function with deadline
+// Convert pipeline to production with CLIENT_ID
 function convertToProduction() {
     const selectedIndex = document.getElementById('pipelineProjectSelect').value;
     const deadline = document.getElementById('productionDeadline').value;
@@ -256,8 +378,8 @@ function convertToProduction() {
         projectNumber: productionProjectNumber,
         type: pipelineProject.type,
         name: pipelineProject.name,
-        client: pipelineProject.client,
-        deadline: deadline,  // ADD DEADLINE
+        client_id: pipelineProject.client_id,  // Transfer client_id
+        deadline: deadline,
         phases: phases
     };
     
@@ -269,93 +391,46 @@ function convertToProduction() {
     productionProjects.push(productionProject);
     localStorage.setItem('joineryProjects', JSON.stringify(productionProjects));
     
+    // Save to production DB with client_id
+    if (typeof supabaseClient !== 'undefined') {
+        supabaseClient
+            .from('projects')
+            .insert([{
+                project_number: productionProject.projectNumber,
+                type: productionProject.type,
+                name: productionProject.name,
+                client_id: productionProject.client_id,  // Save client_id
+                deadline: productionProject.deadline,
+                status: 'active',
+                notes: null,
+                contract_value: 0
+            }])
+            .then(() => {
+                console.log('✅ Production project saved to DB with client');
+                updateClientProjectCount(productionProject.client_id);
+            });
+    }
+    
     // Remove from pipeline
     pipelineProjects.splice(parseInt(selectedIndex), 1);
     localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
     
+    // Delete from pipeline DB
+    if (typeof supabaseClient !== 'undefined') {
+        supabaseClient
+            .from('pipeline_projects')
+            .delete()
+            .eq('project_number', pipelineProject.projectNumber)
+            .then(() => console.log('✅ Removed from pipeline DB'));
+    }
+    
     renderPipeline();
     closeModal('pipelineFinishedModal');
     
-    alert(`Project converted to production: ${productionProject.projectNumber}\nDeadline: ${deadline}\nPhases auto-adjusted to fit deadline.\nPlease go to Production page to see it.`);
+    alert(`Project converted to production: ${productionProject.projectNumber}\nDeadline: ${deadline}\nClient transferred.\nPlease go to Production page to see it.`);
 }
 
-// Auto-adjust phases to fit deadline (copy from projects.js)
-function autoAdjustPhasesToDeadline(project, startDate, deadlineDate) {
-    if (!project.phases || project.phases.length === 0) return;
-    
-    // Calculate available working days
-    const availableWorkDays = workingDaysBetween(startDate, deadlineDate);
-    const phasesCount = project.phases.length;
-    
-    // Distribute days evenly
-    const baseDaysPerPhase = Math.floor(availableWorkDays / phasesCount);
-    const extraDays = availableWorkDays % phasesCount;
-    
-    // Sort phases by order
-    project.phases.sort((a, b) => {
-        return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
-    });
-    
-    let currentStart = new Date(startDate);
-    
-    // Skip Sunday if starting on Sunday
-    while (currentStart.getDay() === 0) {
-        currentStart.setDate(currentStart.getDate() + 1);
-    }
-    
-    // Assign days to each phase
-    project.phases.forEach((phase, index) => {
-        // Calculate days for this phase (some get +1 day)
-        const phaseDays = baseDaysPerPhase + (index < extraDays ? 1 : 0);
-        
-        // Set phase start
-        phase.start = formatDate(currentStart);
-        
-        // Set workDays
-        phase.workDays = Math.max(1, phaseDays);
-        
-        // Calculate phase end
-        const phaseEnd = phaseDays <= 1 ? 
-            new Date(currentStart) : 
-            addWorkingDays(currentStart, phaseDays - 1);
-        
-        // Next phase starts day after this ends
-        currentStart = new Date(phaseEnd);
-        currentStart.setDate(currentStart.getDate() + 1);
-        
-        // Skip Sundays
-        while (currentStart.getDay() === 0) {
-            currentStart.setDate(currentStart.getDate() + 1);
-        }
-    });
-}
-
-// Helper function for working days calculation
-function workingDaysBetween(startDate, endDate) {
-    let count = 0;
-    let current = new Date(startDate);
-    while (current <= endDate) {
-        if (current.getDay() !== 0) { // not Sunday
-            count++;
-        }
-        current.setDate(current.getDate() + 1);
-    }
-    return count;
-}
-
-// Helper function to add working days
-function addWorkingDays(startDate, days) {
-    let result = new Date(startDate);
-    let added = 0;
-    while (added < days) {
-        result.setDate(result.getDate() + 1);
-        if (result.getDay() !== 0) { // not Sunday
-            added++;
-        }
-    }
-    return result;
-}
-
+// Archive as failed
 function archiveAsFailed() {
     const selectedIndex = document.getElementById('pipelineProjectSelect').value;
     
@@ -381,7 +456,7 @@ function archiveAsFailed() {
     alert(`Project archived as failed: ${pipelineProject.projectNumber}`);
 }
 
-// FIXED createProductionPhases without dependencies
+// Create production phases
 function createProductionPhases(startDate) {
     const phases = [];
     let currentDate = new Date(startDate);
@@ -395,7 +470,7 @@ function createProductionPhases(startDate) {
         const phaseStart = new Date(currentDate);
         
         // Snap to Monday if Sunday
-        while (phaseStart.getDay() === 0) { // Simple Sunday check
+        while (phaseStart.getDay() === 0) {
             phaseStart.setDate(phaseStart.getDate() + 1);
         }
         
@@ -421,10 +496,72 @@ function createProductionPhases(startDate) {
     return phases;
 }
 
-// Helper function if missing
+// Helper functions
 function formatDate(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+function workingDaysBetween(startDate, endDate) {
+    let count = 0;
+    let current = new Date(startDate);
+    while (current <= endDate) {
+        if (current.getDay() !== 0) { // not Sunday
+            count++;
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    return count;
+}
+
+function addWorkingDays(startDate, days) {
+    let result = new Date(startDate);
+    let added = 0;
+    while (added < days) {
+        result.setDate(result.getDate() + 1);
+        if (result.getDay() !== 0) { // not Sunday
+            added++;
+        }
+    }
+    return result;
+}
+
+function autoAdjustPhasesToDeadline(project, startDate, deadlineDate) {
+    if (!project.phases || project.phases.length === 0) return;
+    
+    const availableWorkDays = workingDaysBetween(startDate, deadlineDate);
+    const phasesCount = project.phases.length;
+    
+    const baseDaysPerPhase = Math.floor(availableWorkDays / phasesCount);
+    const extraDays = availableWorkDays % phasesCount;
+    
+    project.phases.sort((a, b) => {
+        return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+    });
+    
+    let currentStart = new Date(startDate);
+    
+    while (currentStart.getDay() === 0) {
+        currentStart.setDate(currentStart.getDate() + 1);
+    }
+    
+    project.phases.forEach((phase, index) => {
+        const phaseDays = baseDaysPerPhase + (index < extraDays ? 1 : 0);
+        
+        phase.start = formatDate(currentStart);
+        phase.workDays = Math.max(1, phaseDays);
+        
+        const phaseEnd = phaseDays <= 1 ? 
+            new Date(currentStart) : 
+            addWorkingDays(currentStart, phaseDays - 1);
+        
+        currentStart = new Date(phaseEnd);
+        currentStart.setDate(currentStart.getDate() + 1);
+        
+        while (currentStart.getDay() === 0) {
+            currentStart.setDate(currentStart.getDate() + 1);
+        }
+    });
 }

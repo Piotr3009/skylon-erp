@@ -253,17 +253,62 @@ function loadData() {
     visibleStartDate.setHours(0,0,0,0);
 }
 
-function saveData() {
-    localStorage.setItem('joineryProjects', JSON.stringify(projects));
-    localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
-    localStorage.setItem('joineryFailedArchive', JSON.stringify(failedArchive));
-    localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));
-    localStorage.setItem('joineryPhases', JSON.stringify(phases));
-    localStorage.setItem('joineryTeam', JSON.stringify(teamMembers));
-    localStorage.setItem('joineryDaysOff', JSON.stringify(daysOff));
-    localStorage.setItem('joineryLastProjectNumber', lastProjectNumber);
-    localStorage.setItem('joineryLastPipelineNumber', lastPipelineNumber);
-    localStorage.setItem('joineryCurrentView', currentView);
+// ========== UPDATED SAVE FUNCTION WITH SUPABASE ==========
+async function saveData() {
+    // Save projects to Supabase
+    try {
+        if (projects.length > 0) {
+            // Prepare data for Supabase (rename fields to match DB schema)
+            const projectsForDB = projects.map(p => ({
+                project_number: p.projectNumber,
+                type: p.type,
+                name: p.name,
+                deadline: p.deadline || null,
+                status: 'active',
+                notes: p.client || null,
+                contract_value: 0
+            }));
+            
+            // Save to projects table
+            const { data, error } = await supabaseClient
+                .from('projects')
+                .upsert(projectsForDB, { onConflict: 'project_number' });
+                
+            if (error) {
+                console.error('Error saving to Supabase:', error);
+                // If error - save locally as fallback
+                localStorage.setItem('joineryProjects', JSON.stringify(projects));
+            } else {
+                console.log('✅ Projects saved to Supabase!');
+            }
+        }
+        
+        // For now, keep other data in localStorage
+        localStorage.setItem('joineryProjects', JSON.stringify(projects)); // backup
+        localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
+        localStorage.setItem('joineryFailedArchive', JSON.stringify(failedArchive));
+        localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));
+        localStorage.setItem('joineryPhases', JSON.stringify(phases));
+        localStorage.setItem('joineryTeam', JSON.stringify(teamMembers));
+        localStorage.setItem('joineryDaysOff', JSON.stringify(daysOff));
+        localStorage.setItem('joineryLastProjectNumber', lastProjectNumber);
+        localStorage.setItem('joineryLastPipelineNumber', lastPipelineNumber);
+        localStorage.setItem('joineryCurrentView', currentView);
+        
+    } catch (err) {
+        console.error('General error:', err);
+        // Fallback - save everything locally
+        localStorage.setItem('joineryProjects', JSON.stringify(projects));
+        localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
+        localStorage.setItem('joineryFailedArchive', JSON.stringify(failedArchive));
+        localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));
+        localStorage.setItem('joineryPhases', JSON.stringify(phases));
+        localStorage.setItem('joineryTeam', JSON.stringify(teamMembers));
+        localStorage.setItem('joineryDaysOff', JSON.stringify(daysOff));
+        localStorage.setItem('joineryLastProjectNumber', lastProjectNumber);
+        localStorage.setItem('joineryLastPipelineNumber', lastPipelineNumber);
+        localStorage.setItem('joineryCurrentView', currentView);
+    }
 }
 
 function getNextProjectNumber() {
