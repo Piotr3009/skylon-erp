@@ -189,8 +189,213 @@ let lastProjectNumber = 0;
 let lastPipelineNumber = 0;
 let currentView = 'production';
 
+// Auto-save variables
+let hasUnsavedChanges = false;
+let autoSaveInterval = null;
+
 // ========== DATA MANAGEMENT ==========
+
+// Load projects from Supabase + merge with localStorage phases
+async function loadProjectsFromSupabase() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('projects')
+            .select('*')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('Error loading from Supabase:', error);
+            return false;
+        }
+        
+        if (data && data.length > 0) {
+            console.log('✅ Loaded', data.length, 'projects from Supabase');
+            
+            // Load phases from Supabase
+            const projectIds = data.map(p => p.id);
+            const { data: phasesData } = await supabaseClient
+                .from('project_phases')
+                .select('*')
+                .in('project_id', projectIds)
+                .order('order_position');
+            
+            // Merge projects with phases
+            projects = data.map(dbProject => {
+                const projectPhases = phasesData?.filter(p => p.project_id === dbProject.id) || [];
+                
+                return {
+                    projectNumber: dbProject.project_number,
+                    type: dbProject.type,
+                    name: dbProject.name,
+                    client_id: dbProject.client_id,
+                    deadline: dbProject.deadline,
+                    phases: projectPhases.map(phase => ({
+                        key: phase.phase_key,
+                        start: phase.start_date,
+                        end: phase.end_date,
+                        workDays: phase.work_days,
+                        status: phase.status,
+                        assignedTo: phase.assigned_to,
+                        notes: phase.notes,
+                        materials: phase.materials,
+                        orderConfirmed: phase.order_confirmed
+                    }))
+                };
+            });
+            
+            return true;
+        }
+        
+        return false;
+    } catch (err) {
+        console.error('Failed to load from Supabase:', err);
+        return false;
+    }
+}
+
+async function loadPipelineFromSupabase() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('pipeline_projects')
+            .select('*')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('Error loading pipeline:', error);
+            return false;
+        }
+        
+        if (data && data.length > 0) {
+            console.log('✅ Loaded', data.length, 'pipeline projects from Supabase');
+            
+            // Load phases from Supabase
+            const projectIds = data.map(p => p.id);
+            const { data: phasesData } = await supabaseClient
+                .from('pipeline_phases')
+                .select('*')
+                .in('pipeline_project_id', projectIds)
+                .order('order_position');
+            
+            // Merge projects with phases
+            pipelineProjects = data.map(dbProject => {
+                const projectPhases = phasesData?.filter(p => p.pipeline_project_id === dbProject.id) || [];
+                
+                return {
+                    projectNumber: dbProject.project_number,
+                    type: dbProject.type,
+                    name: dbProject.name,
+                    client_id: dbProject.client_id,
+                    phases: projectPhases.map(phase => ({
+                        key: phase.phase_key,
+                        start: phase.start_date,
+                        end: phase.end_date,
+                        workDays: phase.work_days,
+                        status: phase.status,
+                        notes: phase.notes
+                    }))
+                };
+            });
+            
+            return true;
+        }
+        
+        return false;
+    } catch (err) {
+        console.error('Failed to load pipeline:', err);
+        return false;
+    }
+}
+
 function loadData() {
+    // Najpierw próbuj z Supabase
+    if (typeof supabaseClient !== 'undefined') {
+        Promise.all([
+            loadProjectsFromSupabase(),
+            loadPipelineFromSupabase()
+        ]).then(([prodLoaded, pipeLoaded]) => {
+            // Jeśli Supabase pusty, użyj localStorage
+            if (!prodLoaded) {
+                const saved = localStorage.getItem('joineryProjects');
+                if (saved) {
+                    projects = JSON.parse(saved);
+                    projects.forEach(project => {
+                        if (project.phases) {
+                            project.phases.forEach(phase => {
+                                if (!phase.status) {
+                                    phase.status = 'notStarted';
+                                }
+                                if (!phase.workDays && phase.start && phase.end) {
+                                    phase.workDays = workingDaysBetween(
+                                        new Date(phase.start), 
+                                        new Date(phase.end)
+                                    );
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+            
+            if (!pipeLoaded) {
+                const savedPipeline = localStorage.getItem('joineryPipelineProjects');
+                if (savedPipeline) {
+                    pipelineProjects = JSON.parse(savedPipeline);
+                }
+            }
+            
+            // Załaduj resztę danych (always from localStorage)
+            const savedFailedArchive = localStorage.getItem('joineryFailedArchive');
+            if (savedFailedArchive) {
+                failedArchive = JSON.parse(savedFailedArchive);
+            }
+            
+            const savedCompletedArchive = localStorage.getItem('joineryCompletedArchive');
+            if (savedCompletedArchive) {
+                completedArchive = JSON.parse(savedCompletedArchive);
+            }
+            
+            const savedPhases = localStorage.getItem('joineryPhases');
+            if (savedPhases) {
+                const loadedPhases = JSON.parse(savedPhases);
+                phases = { ...phases, ...loadedPhases };
+            }
+
+            const savedTeam = localStorage.getItem('joineryTeam');
+            if (savedTeam) teamMembers = JSON.parse(savedTeam);
+
+            const savedDaysOff = localStorage.getItem('joineryDaysOff');
+            if (savedDaysOff) daysOff = JSON.parse(savedDaysOff);
+            
+            const savedLastNumber = localStorage.getItem('joineryLastProjectNumber');
+            if (savedLastNumber) lastProjectNumber = parseInt(savedLastNumber);
+            
+            const savedLastPipelineNumber = localStorage.getItem('joineryLastPipelineNumber');
+            if (savedLastPipelineNumber) lastPipelineNumber = parseInt(savedLastPipelineNumber);
+            
+            const savedCurrentView = localStorage.getItem('joineryCurrentView');
+            if (savedCurrentView) currentView = savedCurrentView;
+
+            const today = new Date();
+            visibleStartDate = new Date(today);
+            visibleStartDate.setDate(today.getDate() - today.getDay());
+            visibleStartDate.setHours(0,0,0,0);
+            
+            // Start auto-save
+            startAutoSave();
+            
+            // Renderuj po załadowaniu
+            if (typeof render === 'function') render();
+            if (typeof renderPipeline === 'function') renderPipeline();
+        });
+    } else {
+        // Brak Supabase - użyj tylko localStorage
+        loadFromLocalStorage();
+    }
+}
+
+function loadFromLocalStorage() {
     const saved = localStorage.getItem('joineryProjects');
     if (saved) {
         projects = JSON.parse(saved);
@@ -253,6 +458,140 @@ function loadData() {
     visibleStartDate.setHours(0,0,0,0);
 }
 
+// ========== ZAPISYWANIE FAZ DO SUPABASE ==========
+
+async function savePhasesToSupabase(projectId, phases, isProduction = true) {
+    try {
+        const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
+        const projectIdField = isProduction ? 'project_id' : 'pipeline_project_id';
+        
+        // 1. USUŃ STARE FAZY (żeby nie było duplikatów)
+        const { error: deleteError } = await supabaseClient
+            .from(tableName)
+            .delete()
+            .eq(projectIdField, projectId);
+            
+        if (deleteError) {
+            console.error('Error deleting old phases:', deleteError);
+            return false;
+        }
+        
+        // 2. PRZYGOTUJ NOWE FAZY
+        const phasesForDB = phases.map((phase, index) => ({
+            [projectIdField]: projectId,
+            phase_key: phase.key,
+            start_date: phase.start,
+            end_date: phase.end || null,
+            work_days: phase.workDays || 4,
+            status: phase.status || 'notStarted',
+            notes: phase.notes || null,
+            order_position: index,
+            // Tylko dla production:
+            ...(isProduction && {
+                assigned_to: phase.assignedTo || null,
+                materials: phase.materials || null,
+                order_confirmed: phase.orderConfirmed || false
+            })
+        }));
+        
+        // 3. WSTAW NOWE FAZY
+        if (phasesForDB.length > 0) {
+            const { data, error } = await supabaseClient
+                .from(tableName)
+                .insert(phasesForDB);
+                
+            if (error) {
+                console.error('Error saving phases:', error);
+                return false;
+            }
+        }
+        
+        console.log(`✅ Saved ${phases.length} phases to ${tableName}`);
+        return true;
+        
+    } catch (err) {
+        console.error('Failed to save phases:', err);
+        return false;
+    }
+}
+
+// ========== ZAPISZ WSZYSTKIE PROJEKTY Z FAZAMI ==========
+
+async function saveAllProjectsWithPhases() {
+    let savedCount = 0;
+    
+    // PRODUCTION PROJECTS
+    for (const project of projects) {
+        if (project.phases && project.phases.length > 0) {
+            // Znajdź project ID w bazie
+            const { data: projectData } = await supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single();
+                
+            if (projectData) {
+                const success = await savePhasesToSupabase(
+                    projectData.id, 
+                    project.phases, 
+                    true
+                );
+                if (success) savedCount++;
+            }
+        }
+    }
+    
+    // PIPELINE PROJECTS
+    for (const project of pipelineProjects) {
+        if (project.phases && project.phases.length > 0) {
+            const { data: projectData } = await supabaseClient
+                .from('pipeline_projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single();
+                
+            if (projectData) {
+                const success = await savePhasesToSupabase(
+                    projectData.id, 
+                    project.phases, 
+                    false
+                );
+                if (success) savedCount++;
+            }
+        }
+    }
+    
+    console.log(`✅ Total saved: ${savedCount} projects with phases`);
+}
+
+// ========== AUTO-SAVE FUNCTIONS ==========
+
+function startAutoSave() {
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
+    
+    autoSaveInterval = setInterval(() => {
+        if (hasUnsavedChanges) {
+            console.log('🔄 Auto-saving...');
+            saveData();
+            hasUnsavedChanges = false;
+            document.title = "Skylon Joinery - Production Manager";
+        }
+    }, 10000); // CO 10 SEKUND
+}
+
+function markAsChanged() {
+    hasUnsavedChanges = true;
+    document.title = "* Skylon Joinery - Unsaved Changes";
+}
+
+// Save on page close
+window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+        saveData();
+        e.returnValue = 'You have unsaved changes!';
+    }
+});
+
 // ========== UPDATED SAVE FUNCTION WITH SUPABASE ==========
 async function saveData() {
     // Save projects to Supabase
@@ -266,7 +605,8 @@ async function saveData() {
                 deadline: p.deadline || null,
                 status: 'active',
                 notes: p.client || null,
-                contract_value: 0
+                contract_value: 0,
+                client_id: p.client_id || null
             }));
             
             // Save to projects table
@@ -276,15 +616,16 @@ async function saveData() {
                 
             if (error) {
                 console.error('Error saving to Supabase:', error);
-                // If error - save locally as fallback
-                localStorage.setItem('joineryProjects', JSON.stringify(projects));
             } else {
                 console.log('✅ Projects saved to Supabase!');
+                
+                // ZAPISZ FAZY DO BAZY
+                await saveAllProjectsWithPhases();
             }
         }
         
-        // For now, keep other data in localStorage
-        localStorage.setItem('joineryProjects', JSON.stringify(projects)); // backup
+        // Save to localStorage as backup
+        localStorage.setItem('joineryProjects', JSON.stringify(projects));
         localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
         localStorage.setItem('joineryFailedArchive', JSON.stringify(failedArchive));
         localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));

@@ -144,7 +144,7 @@ function importPipelineJSON() {
 }
 
 // Save pipeline phase changes (modified for pipeline projects)
-function savePipelinePhaseChanges() {
+async function savePipelinePhaseChanges() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -183,6 +183,28 @@ function savePipelinePhaseChanges() {
         autoArrangeFromPhase(projectIndex, 0);
     }
     
+    // Mark as changed for auto-save
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
+    // Save phases to database if online
+    if (typeof supabaseClient !== 'undefined') {
+        const { data: projectData } = await supabaseClient
+            .from('pipeline_projects')
+            .select('id')
+            .eq('project_number', project.projectNumber)
+            .single();
+            
+        if (projectData) {
+            await savePhasesToSupabase(
+                projectData.id,
+                project.phases,
+                false  // false = pipeline
+            );
+        }
+    }
+    
     saveData();
     renderPipeline();
     closeModal('phaseEditModal');
@@ -193,7 +215,7 @@ function savePipelinePhaseChanges() {
 window.savePhaseChanges = savePipelinePhaseChanges;
 
 // Delete current pipeline phase
-function deletePipelineCurrentPhase() {
+async function deletePipelineCurrentPhase() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -208,6 +230,28 @@ function deletePipelineCurrentPhase() {
         // Auto-arrange remaining phases
         if (typeof autoArrangeFromPhase === 'function') {
             autoArrangeFromPhase(projectIndex, 0);
+        }
+        
+        // Mark as changed for auto-save
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
+        }
+        
+        // Save to database if online
+        if (typeof supabaseClient !== 'undefined') {
+            const { data: projectData } = await supabaseClient
+                .from('pipeline_projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single();
+                
+            if (projectData) {
+                await savePhasesToSupabase(
+                    projectData.id,
+                    project.phases,
+                    false  // false = pipeline
+                );
+            }
         }
         
         saveData();

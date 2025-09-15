@@ -31,6 +31,11 @@ function shiftSuccessors(projectIndex, phaseIndex, deltaDays) {
             phase.adjustedEnd = formatDate(newAdjustedEnd);
         }
     }
+    
+    // Mark as changed for auto-save
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
 }
 
 // NOWA FUNKCJA - automatyczne układanie od danej fazy
@@ -66,6 +71,11 @@ function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
             // workDays pozostaje bez zmian - to ważne!
             // Nie zmieniamy czasu trwania, tylko pozycję
         }
+    }
+    
+    // Mark as changed for auto-save
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
     }
 }
 
@@ -226,6 +236,11 @@ function stopDrag(e) {
                 dragMode = null;
                 return;
             }
+        }
+        
+        // Mark as changed for auto-save
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
         }
         
         saveData();

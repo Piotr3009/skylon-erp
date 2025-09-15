@@ -42,6 +42,11 @@ function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
             // workDays remains unchanged
         }
     }
+    
+    // Mark as changed for auto-save
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
 }
 
 function startDrag(e, bar, phase, projectIndex, phaseIndex) {
@@ -154,6 +159,11 @@ function stopDrag(e) {
         
         // ALWAYS auto-arrange phases in Pipeline to prevent overlaps
         autoArrangeFromPhase(projectIndex, 0);
+        
+        // Mark as changed for auto-save
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
+        }
         
         saveData();
         renderPipeline(); // Use pipeline render

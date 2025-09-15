@@ -130,6 +130,11 @@ function deleteCurrentPhase() {
             autoArrangeFromPhase(projectIndex, 0);
         }
         
+        // MARK AS CHANGED
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
+        }
+        
         saveData();
         render();
         closeModal('phaseEditModal');
@@ -150,6 +155,11 @@ function deleteOrderPhase() {
         
         if (typeof autoArrangeFromPhase === 'function') {
             autoArrangeFromPhase(projectIndex, 0);
+        }
+        
+        // MARK AS CHANGED
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
         }
         
         saveData();
@@ -173,6 +183,11 @@ function deleteOrderSprayPhase() {
             autoArrangeFromPhase(projectIndex, 0);
         }
         
+        // MARK AS CHANGED
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
+        }
+        
         saveData();
         render();
         closeModal('orderSprayModal');
@@ -194,6 +209,11 @@ function deleteOrderGlazingPhase() {
             autoArrangeFromPhase(projectIndex, 0);
         }
         
+        // MARK AS CHANGED
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
+        }
+        
         saveData();
         render();
         closeModal('orderGlazingModal');
@@ -202,7 +222,7 @@ function deleteOrderGlazingPhase() {
 }
 
 // Save phase changes - FIXED WITH workDays
-function savePhaseChanges() {
+async function savePhaseChanges() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -316,6 +336,28 @@ function savePhaseChanges() {
         }
     }
     
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
+    // Save phases to database if online
+    if (typeof supabaseClient !== 'undefined') {
+        const { data: projectData } = await supabaseClient
+            .from('projects')
+            .select('id')
+            .eq('project_number', project.projectNumber)
+            .single();
+            
+        if (projectData) {
+            await savePhasesToSupabase(
+                projectData.id,
+                project.phases,
+                true  // true = production
+            );
+        }
+    }
+    
     saveData();
     render();
     closeModal('phaseEditModal');
@@ -414,6 +456,11 @@ function saveGlazingOrderDuration() {
         autoArrangeFromPhase(projectIndex, phaseIndex);
     }
     
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     render();
 }
@@ -426,6 +473,12 @@ function updateGlazingStatus(projectIndex, phaseIndex, materialIndex) {
     
     phase.glazingMaterials[materialIndex].ordered = checkbox.checked;
     updateGlazingOrderStatus(projectIndex, phaseIndex);
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
 }
 
@@ -435,6 +488,12 @@ function updateGlazingSize(projectIndex, phaseIndex, materialIndex, size) {
     const phase = project.phases[phaseIndex];
     
     phase.glazingMaterials[materialIndex].size = size;
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
 }
 
@@ -489,6 +548,11 @@ function confirmGlazingOrderComplete() {
     
     phase.orderConfirmed = true;
     phase.status = 'completed';
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
     
     saveData();
     render();
@@ -689,6 +753,11 @@ function saveOrderDuration() {
         autoArrangeFromPhase(projectIndex, phaseIndex);
     }
     
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     render();
 }
@@ -745,6 +814,11 @@ function saveSprayOrderDuration() {
         autoArrangeFromPhase(projectIndex, phaseIndex);
     }
     
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     render();
 }
@@ -757,6 +831,12 @@ function updateSprayStatus(projectIndex, phaseIndex, materialIndex) {
     
     phase.sprayMaterials[materialIndex].ordered = checkbox.checked;
     updateSprayOrderStatus(projectIndex, phaseIndex);
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
 }
 
@@ -766,6 +846,12 @@ function updateSprayColor(projectIndex, phaseIndex, materialIndex, color) {
     const phase = project.phases[phaseIndex];
     
     phase.sprayMaterials[materialIndex].color = color;
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
 }
 
@@ -822,6 +908,11 @@ function confirmSprayOrderComplete() {
     phase.orderConfirmed = true;
     phase.status = 'completed';
     
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     render();
     closeModal('orderSprayModal');
@@ -835,6 +926,12 @@ function updateMaterialStatus(projectIndex, phaseIndex, materialIndex) {
     
     phase.materials[materialIndex].ordered = checkbox.checked;
     updateOrderStatus(projectIndex, phaseIndex);
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
 }
 
@@ -844,6 +941,12 @@ function updateMaterialNote(projectIndex, phaseIndex, materialIndex, note) {
     const phase = project.phases[phaseIndex];
     
     phase.materials[materialIndex].notes = note;
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
 }
 
@@ -855,6 +958,12 @@ function updateCustomMaterialStatus(projectIndex, phaseIndex, materialIndex) {
     
     phase.customMaterials[materialIndex].ordered = checkbox.checked;
     updateOrderStatus(projectIndex, phaseIndex);
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
 }
 
@@ -883,6 +992,12 @@ function addCustomMaterial() {
     });
     
     document.getElementById('newMaterialName').value = '';
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     openOrderMaterialsModal(projectIndex, phaseIndex);
 }
@@ -893,6 +1008,12 @@ function removeCustomMaterial(projectIndex, phaseIndex, materialIndex) {
     const phase = project.phases[phaseIndex];
     
     phase.customMaterials.splice(materialIndex, 1);
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     openOrderMaterialsModal(projectIndex, phaseIndex);
 }
@@ -930,6 +1051,11 @@ function confirmOrderComplete() {
     
     phase.orderConfirmed = true;
     phase.status = 'completed';
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
     
     saveData();
     render();
@@ -973,6 +1099,12 @@ function markDayOffFromModal() {
     }
     
     daysOff.push({ member, date });
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     updateDaysOffList();
     render();
@@ -1026,6 +1158,12 @@ function updateDaysOffList() {
 // Remove day off
 function removeDayOff(date, member) {
     daysOff = daysOff.filter(d => !(d.date === date && d.member === member));
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
     saveData();
     updateDaysOffList();
     render();
@@ -1109,6 +1247,11 @@ function confirmMoveToArchive() {
     
     // Remove from active projects
     projects.splice(projectIndex, 1);
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
     
     saveData();
     render();

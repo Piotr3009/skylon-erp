@@ -68,10 +68,10 @@ function editPipelineProject(index) {
     openModal('projectModal');
 }
 
-// UPDATED WITH SUPABASE SAVE AND CLIENT_ID
+// UPDATED WITH SUPABASE SAVE AND CLIENT_ID + PHASES
 async function savePipelineProject() {
     const name = document.getElementById('projectName').value.trim();
-    const clientId = document.getElementById('projectClient').value; // Changed from client text to client ID
+    const clientId = document.getElementById('projectClient').value;
     const startDate = document.getElementById('projectStartDate').value;
     const projectNumber = document.getElementById('projectNumber').value.trim();
     
@@ -106,7 +106,7 @@ async function savePipelineProject() {
     
     sortedCheckboxes.forEach(cb => {
         const phaseKey = cb.value;
-        const phaseDuration = parseInt(cb.dataset.duration) || 3; // Default 3 days for pipeline
+        const phaseDuration = parseInt(cb.dataset.duration) || 3;
         
         const phaseStart = new Date(currentDate);
         
@@ -152,7 +152,7 @@ async function savePipelineProject() {
         projectNumber,
         type: projectType,
         name,
-        client_id: clientId,  // Store client ID instead of text
+        client_id: clientId,
         phases: selectedPhases
     };
     
@@ -162,25 +162,36 @@ async function savePipelineProject() {
         pipelineProjects.push(projectData);
     }
     
-    // ========== SAVE TO SUPABASE WITH CLIENT_ID ==========
+    // ========== SAVE TO SUPABASE WITH PHASES ==========
     if (typeof supabaseClient !== 'undefined') {
         try {
             const pipelineForDB = {
                 project_number: projectData.projectNumber,
                 name: projectData.name,
                 type: projectData.type,
-                client_id: projectData.client_id,  // Save client_id to DB
+                client_id: projectData.client_id,
                 estimated_value: 0,
                 status: 'active',
                 notes: null
             };
             
-            const { error } = await supabaseClient
+            const { data: savedProject, error } = await supabaseClient
                 .from('pipeline_projects')
-                .upsert(pipelineForDB, { onConflict: 'project_number' });
+                .upsert(pipelineForDB, { onConflict: 'project_number' })
+                .select()
+                .single();
                 
-            if (!error) {
-                console.log('✅ Pipeline zapisany w Supabase z klientem');
+            if (!error && savedProject) {
+                console.log('✅ Pipeline zapisany w Supabase');
+                
+                // SAVE PHASES TO DATABASE
+                if (projectData.phases && projectData.phases.length > 0) {
+                    await savePhasesToSupabase(
+                        savedProject.id,
+                        projectData.phases,
+                        false  // false = pipeline
+                    );
+                }
                 
                 // Update client's project count
                 await updateClientProjectCount(clientId);
@@ -190,6 +201,11 @@ async function savePipelineProject() {
         } catch (err) {
             console.log('⚠️ Pipeline tylko lokalnie:', err);
         }
+    }
+    
+    // Mark as changed for auto-save
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
     }
     
     saveData();
@@ -235,18 +251,33 @@ async function deletePipelineProject(index) {
         // Delete from Supabase if connected
         if (projectNumber && typeof supabaseClient !== 'undefined') {
             try {
-                const { error } = await supabaseClient
+                const { data: project } = await supabaseClient
                     .from('pipeline_projects')
-                    .delete()
-                    .eq('project_number', projectNumber);
+                    .select('id')
+                    .eq('project_number', projectNumber)
+                    .single();
+                
+                if (project) {
+                    // Delete phases first
+                    await supabaseClient
+                        .from('pipeline_phases')
+                        .delete()
+                        .eq('pipeline_project_id', project.id);
                     
-                if (error) {
-                    console.error('❌ Błąd usuwania pipeline z DB:', error);
-                } else {
-                    console.log('✅ Pipeline usunięty z bazy');
-                    
-                    // Update client project count
-                    await updateClientProjectCount(clientId);
+                    // Delete project
+                    const { error } = await supabaseClient
+                        .from('pipeline_projects')
+                        .delete()
+                        .eq('project_number', projectNumber);
+                        
+                    if (error) {
+                        console.error('❌ Błąd usuwania pipeline z DB:', error);
+                    } else {
+                        console.log('✅ Pipeline usunięty z bazy');
+                        
+                        // Update client project count
+                        await updateClientProjectCount(clientId);
+                    }
                 }
             } catch (err) {
                 console.log('⚠️ Brak połączenia z DB, usuwam tylko lokalnie');
@@ -255,6 +286,12 @@ async function deletePipelineProject(index) {
         
         // Delete locally
         pipelineProjects.splice(index, 1);
+        
+        // Mark as changed for auto-save
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
+        }
+        
         saveData();
         renderPipeline();
     }
@@ -327,8 +364,8 @@ function updatePipelineProjectSelect() {
     });
 }
 
-// Convert pipeline to production with CLIENT_ID
-function convertToProduction() {
+// Convert pipeline to production with CLIENT_ID and PHASES
+async function convertToProduction() {
     const selectedIndex = document.getElementById('pipelineProjectSelect').value;
     const deadline = document.getElementById('productionDeadline').value;
     
@@ -378,7 +415,7 @@ function convertToProduction() {
         projectNumber: productionProjectNumber,
         type: pipelineProject.type,
         name: pipelineProject.name,
-        client_id: pipelineProject.client_id,  // Transfer client_id
+        client_id: pipelineProject.client_id,
         deadline: deadline,
         phases: phases
     };
@@ -391,24 +428,39 @@ function convertToProduction() {
     productionProjects.push(productionProject);
     localStorage.setItem('joineryProjects', JSON.stringify(productionProjects));
     
-    // Save to production DB with client_id
+    // Save to production DB with client_id and phases
     if (typeof supabaseClient !== 'undefined') {
-        supabaseClient
-            .from('projects')
-            .insert([{
-                project_number: productionProject.projectNumber,
-                type: productionProject.type,
-                name: productionProject.name,
-                client_id: productionProject.client_id,  // Save client_id
-                deadline: productionProject.deadline,
-                status: 'active',
-                notes: null,
-                contract_value: 0
-            }])
-            .then(() => {
+        try {
+            const { data: savedProject, error } = await supabaseClient
+                .from('projects')
+                .insert([{
+                    project_number: productionProject.projectNumber,
+                    type: productionProject.type,
+                    name: productionProject.name,
+                    client_id: productionProject.client_id,
+                    deadline: productionProject.deadline,
+                    status: 'active',
+                    notes: null,
+                    contract_value: 0
+                }])
+                .select()
+                .single();
+            
+            if (!error && savedProject) {
                 console.log('✅ Production project saved to DB with client');
-                updateClientProjectCount(productionProject.client_id);
-            });
+                
+                // Save production phases
+                await savePhasesToSupabase(
+                    savedProject.id,
+                    productionProject.phases,
+                    true  // true = production
+                );
+                
+                await updateClientProjectCount(productionProject.client_id);
+            }
+        } catch (err) {
+            console.error('Error saving production project:', err);
+        }
     }
     
     // Remove from pipeline
@@ -417,11 +469,27 @@ function convertToProduction() {
     
     // Delete from pipeline DB
     if (typeof supabaseClient !== 'undefined') {
-        supabaseClient
+        const { data: project } = await supabaseClient
             .from('pipeline_projects')
-            .delete()
+            .select('id')
             .eq('project_number', pipelineProject.projectNumber)
-            .then(() => console.log('✅ Removed from pipeline DB'));
+            .single();
+        
+        if (project) {
+            // Delete pipeline phases
+            await supabaseClient
+                .from('pipeline_phases')
+                .delete()
+                .eq('pipeline_project_id', project.id);
+            
+            // Delete pipeline project
+            await supabaseClient
+                .from('pipeline_projects')
+                .delete()
+                .eq('project_number', pipelineProject.projectNumber);
+                
+            console.log('✅ Removed from pipeline DB');
+        }
     }
     
     renderPipeline();
@@ -448,6 +516,11 @@ function archiveAsFailed() {
     
     // Remove from pipeline
     pipelineProjects.splice(parseInt(selectedIndex), 1);
+    
+    // Mark as changed for auto-save
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
     
     saveData();
     renderPipeline();

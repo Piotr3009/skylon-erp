@@ -1,11 +1,36 @@
 // ========== PROJECT MANAGEMENT ==========
+
+// Load clients for dropdown
+async function loadClientsDropdown() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('clients')
+            .select('id, client_number, company_name, contact_person')
+            .order('company_name');
+        
+        const select = document.getElementById('projectClient');
+        select.innerHTML = '<option value="">-- Wybierz klienta z bazy --</option>';
+        
+        data?.forEach(client => {
+            const option = document.createElement('option');
+            option.value = client.id;
+            option.textContent = `${client.client_number} - ${client.company_name || client.contact_person}`;
+            select.appendChild(option);
+        });
+    } catch (err) {
+        console.error('Błąd ładowania klientów:', err);
+    }
+}
+
 function addProject() {
     currentEditProject = null;
     document.getElementById('projectModalTitle').textContent = 'Add Project';
     document.getElementById('projectName').value = '';
-    document.getElementById('projectClient').value = '';
     document.getElementById('projectStartDate').value = formatDate(new Date());
     document.getElementById('projectDeadline').value = '';
+    
+    // Load clients dropdown
+    loadClientsDropdown();
     
     // Generate new project number
     document.getElementById('projectNumber').value = getNextProjectNumber();
@@ -25,10 +50,16 @@ function editProject(index) {
     
     document.getElementById('projectModalTitle').textContent = 'Edit Project';
     document.getElementById('projectName').value = project.name;
-    document.getElementById('projectClient').value = project.client || '';
     document.getElementById('projectStartDate').value = project.phases[0]?.start || formatDate(new Date());
     document.getElementById('projectNumber').value = project.projectNumber || '';
     document.getElementById('projectDeadline').value = project.deadline || '';
+    
+    // Load clients and select current one
+    loadClientsDropdown().then(() => {
+        if (project.client_id) {
+            document.getElementById('projectClient').value = project.client_id;
+        }
+    });
     
     // Set selected type
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
@@ -39,9 +70,9 @@ function editProject(index) {
     openModal('projectModal');
 }
 
-function saveProject() {
+async function saveProject() {
     const name = document.getElementById('projectName').value.trim();
-    const client = document.getElementById('projectClient').value.trim();
+    const clientId = document.getElementById('projectClient').value;
     const startDate = document.getElementById('projectStartDate').value;
     const projectNumber = document.getElementById('projectNumber').value.trim();
     const deadline = document.getElementById('projectDeadline').value;
@@ -57,6 +88,11 @@ function saveProject() {
     
     if (!projectNumber) {
         alert('Please enter a project number');
+        return;
+    }
+    
+    if (!clientId) {
+        alert('Please select a client from database!');
         return;
     }
     
@@ -125,7 +161,7 @@ function saveProject() {
         projectNumber,
         type: projectType,
         name,
-        client,
+        client_id: clientId,  // Store client ID
         deadline: deadline || null,
         phases: selectedPhases
     };
@@ -154,14 +190,75 @@ function saveProject() {
         projects.push(projectData);
     }
     
+    // Save to Supabase
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const projectForDB = {
+                project_number: projectData.projectNumber,
+                type: projectData.type,
+                name: projectData.name,
+                client_id: projectData.client_id,
+                deadline: projectData.deadline,
+                status: 'active',
+                notes: null,
+                contract_value: 0
+            };
+            
+            const { error } = await supabaseClient
+                .from('projects')
+                .upsert(projectForDB, { onConflict: 'project_number' });
+                
+            if (!error) {
+                console.log('✅ Project saved to Supabase with client');
+                
+                // Update client project count
+                await updateClientProjectCount(clientId);
+            } else {
+                console.error('❌ Error saving project:', error);
+            }
+        } catch (err) {
+            console.log('⚠️ Project saved locally only:', err);
+        }
+    }
+    
     saveData();
     render();
     closeModal('projectModal');
 }
 
+// Update client project count
+async function updateClientProjectCount(clientId) {
+    if (!clientId) return;
+    
+    try {
+        // Count all projects for this client
+        const { count: productionCount } = await supabaseClient
+            .from('projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('client_id', clientId);
+            
+        const { count: pipelineCount } = await supabaseClient
+            .from('pipeline_projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('client_id', clientId);
+        
+        const totalProjects = (productionCount || 0) + (pipelineCount || 0);
+        
+        // Update client record
+        await supabaseClient
+            .from('clients')
+            .update({ total_projects: totalProjects })
+            .eq('id', clientId);
+            
+    } catch (err) {
+        console.error('Error updating client stats:', err);
+    }
+}
+
 async function deleteProject(index) {
     if (confirm('Delete project "' + projects[index].name + '"?')) {
         const projectNumber = projects[index].projectNumber;
+        const clientId = projects[index].client_id;
         
         // Usuń z Supabase jeśli jest połączenie
         if (projectNumber && typeof supabaseClient !== 'undefined') {
@@ -175,6 +272,9 @@ async function deleteProject(index) {
                     console.error('Błąd usuwania z DB:', error);
                 } else {
                     console.log('✅ Usunięte z bazy');
+                    
+                    // Update client project count
+                    await updateClientProjectCount(clientId);
                 }
             } catch (err) {
                 console.log('Brak połączenia z DB, usuwam tylko lokalnie');
