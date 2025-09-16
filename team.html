@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skylon Joinery - Team Management</title>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <script>
+        const SUPABASE_URL = 'https://iszkquzpoktokmkjmuuq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzemtxdXpwb2t0b2tta2ptdXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0Mzg3NTksImV4cCI6MjA2ODAxNDc1OX0.hijtNZIitJkc3BIQsYUkUTi3_l8OlCGSiJZdM9G3ywA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase ready:', supabaseClient);
+    </script>
+    
+    <style>
+        /* Team specific styles */
+        .team-container {
+            padding: 20px;
+            overflow-y: auto;
+            height: calc(100vh - 120px);
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2d2d30;
+            border-radius: 5px;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            padding: 10px;
+            background: #3e3e42;
+            border: 1px solid #555;
+            color: #e8e2d5;
+            border-radius: 3px;
+        }
+        
+        .team-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #2d2d30;
+        }
+        
+        .team-table th {
+            background: #252526;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #FFA500;
+        }
+        
+        .team-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .team-table tr:hover {
+            background: #3e3e42;
+        }
+        
+        .department-badge {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .dept-admin { background: #4a90e2; }
+        .dept-production { background: #547d56; }
+        .dept-spray { background: #e99f62; }
+        .dept-installation { background: #7a5195; }
+        .dept-drivers { background: #d35400; }
+        .dept-management { background: #c0392b; }
+        .dept-warehouse { background: #16a085; }
+        
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .status-active { background: #4caf50; }
+        .status-probation { background: #ff9800; }
+        .status-holiday { background: #2196f3; }
+        .status-sick { background: #f44336; }
+        .status-inactive { background: #666; }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #2d2d30;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FFA500;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #9e9e9e;
+            margin-top: 5px;
+        }
+        
+        .color-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid #555;
+        }
+        
+        .holiday-bar {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .holiday-progress {
+            width: 60px;
+            height: 8px;
+            background: #3e3e42;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .holiday-fill {
+            height: 100%;
+            background: #4caf50;
+        }
+        
+        /* Detail panel styles */
+        .detail-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: #2d2d30;
+            border-left: 1px solid #555;
+            transition: right 0.3s;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        
+        .detail-panel.active {
+            right: 0;
+        }
+        
+        .detail-header {
+            padding: 20px;
+            background: #252526;
+            border-bottom: 2px solid #FFA500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .detail-body {
+            padding: 20px;
+        }
+        
+        .detail-section {
+            margin-bottom: 30px;
+        }
+        
+        .detail-section h3 {
+            color: #FFA500;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="app-title">Skylon Joinery - Team Management</div>
+            <div class="navigation-links">
+                <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
+                <a href="pipeline.html" class="nav-link nav-link-pipeline">📄 Pipeline</a>
+                <a href="clients.html" class="nav-link" style="background: #a8d5e8; color: #1a4a5a;">👤 Clients</a>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="toolbar-btn primary" onclick="openAddEmployeeModal()">+ Add Employee</button>
+            <button class="toolbar-btn" onclick="loadTeam()">🔄 Refresh</button>
+            <button class="toolbar-btn" onclick="openPaymentsModal()">💰 Payments</button>
+            <button class="toolbar-btn" onclick="openHolidaysModal()">🏖️ Holidays</button>
+            <div class="export-dropdown">
+                <button class="toolbar-btn">Export ▼</button>
+                <div class="export-menu">
+                    <button onclick="exportTeamCSV()">Export CSV</button>
+                    <button onclick="exportTeamJSON()">Export JSON</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="team-container">
+            <!-- Statistics -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalEmployees">0</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeEmployees">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="onHoliday">0</div>
+                    <div class="stat-label">On Holiday</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="weeklyCost">£0</div>
+                    <div class="stat-label">Weekly Cost</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="holidayDays">0</div>
+                    <div class="stat-label">Days Available</div>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="🔍 Search by name, email, role..." onkeyup="searchTeam()">
+                <select id="filterDepartment" onchange="filterTeam()">
+                    <option value="">All Departments</option>
+                    <option value="admin">Admin</option>
+                    <option value="production">Production</option>
+                    <option value="spray">Spray</option>
+                    <option value="installation">Installation</option>
+                    <option value="drivers">Drivers</option>
+                    <option value="management">Management</option>
+                    <option value="warehouse">Warehouse</option>
+                </select>
+                <select id="filterStatus" onchange="filterTeam()">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="probation">Probation</option>
+                    <option value="holiday">Holiday</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                
+            </div>
+
+            <!-- Team Table -->
+            <table class="team-table" id="teamTable">
+                <thead>
+                    <tr>
+                        <th>Color</th>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Role</th>
+                        <th>Contract</th>
+                        <th>Status</th>
+                        <th>Holidays</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="teamTableBody">
+                    <!-- Team members will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add/Edit Employee Modal -->
+    <div class="modal" id="employeeModal">
+        <div class="modal-content" style="width: 700px;">
+            <div class="modal-header" id="employeeModalTitle">Add Employee</div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Left Column -->
+                    <div>
+                        <h4 style="color: #FFA500; margin-bottom: 15px;">Basic Information</h4>
+                        
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="empName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="empEmail">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="empPhone">
+                        </div>
+                        
+                        <h4 style="color: #FFA500; margin: 20px 0 15px;">Emergency Contact</h4>
+                        
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <input type="text" id="emergencyName">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Contact Phone</label>
+                            <input type="tel" id="emergencyPhone">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Relation</label>
+                            <input type="text" id="emergencyRelation" placeholder="e.g. Wife, Parent">
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column -->
+                    <div>
+                        <h4 style="color: #FFA500; margin-bottom: 15px;">Employment Details</h4>
+                        
+                        <div class="form-group">
+                            <label>Employee Number</label>
+                            <input type="text" id="empNumber" placeholder="EMP001">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Department *</label>
+                            <select id="empDepartment">
+                                <option value="management">Management</option>
+                                 <option value="admin">Admin</option>
+                                <option value="production">Production</option>
+                                <option value="spray">Spray</option>
+                                <option value="installation">Installation</option>
+                                <option value="drivers">Drivers</option>
+
+                                
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Role/Position</label>
+                            <input type="text" id="empRole" placeholder="e.g. Senior Carpenter">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Contract Type</label>
+                            <select id="empContract">
+                              
+                                <option value="contract">Contract</option>
+                                <option value="b2b">B2B</option>
+                                <option value="apprentice">Apprentice</option>
+                            </select>
+                        </div>
+                        
+                        <h4 style="color: #FFA500; margin: 20px 0 15px;">Salary & Dates</h4>
+                        
+                        <div class="form-group">
+                            <label>Salary Type</label>
+                            <select id="salaryType">
+                                <option value="hourly">Hourly</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Rate (£)</label>
+                            <input type="number" id="salaryRate" step="0.01" placeholder="25.00">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="empStartDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Gantt Color</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="color" id="empColor" value="#FFA500">
+                                <input type="text" id="empColorHex" value="#FFA500" readonly style="flex: 1;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Notes</label>
+                    <textarea id="empNotes" rows="3" placeholder="Any additional information..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('employeeModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveEmployee()">Save Employee</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payments Modal -->
+    <div class="modal" id="paymentsModal">
+        <div class="modal-content" style="width: 800px;">
+            <div class="modal-header">Payments Management</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add Payment</label>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 10px;">
+                        <select id="paymentEmployee">
+                            <option value="">Select Employee...</option>
+                        </select>
+                        <input type="date" id="paymentDate">
+                        <input type="number" id="paymentBase" placeholder="Base £" step="0.01">
+                        <input type="number" id="paymentBonus" placeholder="Bonus £" step="0.01">
+                        <button class="modal-btn primary" onclick="addPayment()">Add</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Recent Payments</label>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="team-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Employee</th>
+                                    <th>Period</th>
+                                    <th>Base</th>
+                                    <th>Bonus</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTableBody">
+                                <!-- Payments will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="exportPaymentsCSV()">Export CSV</button>
+                <button class="modal-btn primary" onclick="closeModal('paymentsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Holidays Modal -->
+    <div class="modal" id="holidaysModal">
+        <div class="modal-content" style="width: 700px;">
+            <div class="modal-header">Holiday Management</div>
+            <div class="modal-body">
+                <div class="stats-cards" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalHolidayDays">0</div>
+                        <div class="stat-label">Total Days</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="usedHolidayDays">0</div>
+                        <div class="stat-label">Used Days</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="remainingHolidayDays">0</div>
+                        <div class="stat-label">Remaining</div>
+                    </div>
+                </div>
+                
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="team-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Allowance</th>
+                                <th>Used</th>
+                                <th>Remaining</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holidaysTableBody">
+                            <!-- Holiday data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal('holidaysModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <h2 id="detailName">Employee Details</h2>
+            <button class="action-btn" onclick="closeDetailPanel()">✕</button>
+        </div>
+        <div class="detail-body" id="detailBody">
+            <!-- Details will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+   <script src="js/team-management.js"></script>
+
+
+    <script>
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTeam();
+        });
+
+        // Color picker sync
+        document.getElementById('empColor').addEventListener('change', (e) => {
+            document.getElementById('empColorHex').value = e.target.value;
+        });
+    </script>
+</body>
+</html>
