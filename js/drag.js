@@ -1,4 +1,4 @@
-// ========== DRAG & RESIZE ==========
+// ========== DRAG & RESIZE - NAPRAWIONA WERSJA ==========
 // Helper
 function daysInclusive(startStr, endStr){const s=new Date(startStr+'T00:00:00');const e=new Date(endStr+'T00:00:00');return Math.max(1,Math.round((e-s)/(1000*60*60*24))+1);}
 let dragOriginalDurationDays=null;
@@ -38,7 +38,7 @@ function shiftSuccessors(projectIndex, phaseIndex, deltaDays) {
     }
 }
 
-// NOWA FUNKCJA - automatyczne układanie od danej fazy
+// NAPRAWIONA FUNKCJA - automatyczne układanie od danej fazy
 function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
     const project = projects[projectIndex];
     const phases = project.phases;
@@ -46,12 +46,12 @@ function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
     // Sortuj fazy według kolejności
     phases.sort((a, b) => phaseOrder.indexOf(a.key) - phaseOrder.indexOf(b.key));
     
-    // Układaj każdą fazę po poprzedniej
+    // WAŻNE - układaj wszystkie fazy od początku dla pewności
     for (let i = 1; i < phases.length; i++) {
         const prevPhase = phases[i - 1];
         const currPhase = phases[i];
         
-        // Oblicz koniec poprzedniej fazy
+        // Oblicz koniec poprzedniej fazy używając computeEnd
         const prevEnd = computeEnd(prevPhase);
         const currStart = new Date(currPhase.start);
         
@@ -67,9 +67,7 @@ function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
             }
             
             currPhase.start = formatDate(nextDay);
-            
-            // workDays pozostaje bez zmian - to ważne!
-            // Nie zmieniamy czasu trwania, tylko pozycję
+            // workDays pozostaje bez zmian!
         }
     }
     
@@ -145,7 +143,8 @@ function stopDrag(e) {
         const project = projects[projectIndex];
         const phase = project.phases[phaseIndex];
         
-        // Zapisz stare wartości na wypadek cofnięcia
+        // Zapisz WSZYSTKIE stare fazy przed jakimikolwiek zmianami
+        const oldPhases = JSON.parse(JSON.stringify(project.phases));
         const oldStart = phase.start;
         const oldWorkDays = phase.workDays;
         
@@ -184,60 +183,53 @@ function stopDrag(e) {
             phase.workDays = Math.max(1, newWorkDays);
         }
         
-        // SPRAWDŹ CZY NIE PRZEKRACZA DEADLINE
-        if (project.deadline) {
-            const deadlineDate = new Date(project.deadline);
-            const phaseEnd = computeEnd(phase);
-            
-            if (phaseEnd > deadlineDate) {
-                alert('Cannot move/resize phase beyond project deadline!');
-                // Przywróć stare wartości
-                phase.start = oldStart;
-                phase.workDays = oldWorkDays;
-                // Nie zapisuj i odśwież
-                render();
-                document.removeEventListener('mousemove', handleDrag);
-                document.removeEventListener('mouseup', stopDrag);
-                draggedElement = null;
-                draggedPhase = null;
-                dragMode = null;
-                return;
-            }
-        }
-        
         // Usuń stare adjustedEnd
         delete phase.adjustedEnd;
         
-        // Automatycznie układaj kolejne fazy
+        // KROK 1: Układaj wszystkie fazy żeby nie było nakładania
         autoArrangeFromPhase(projectIndex, 0);
         
-        // SPRAWDŹ CZY PO AUTO-ARRANGE FAZY NIE PRZEKRACZAJĄ DEADLINE
+        // KROK 2: Sprawdź czy cokolwiek przekracza deadline
+        let exceedsDeadline = false;
         if (project.deadline) {
             const deadlineDate = new Date(project.deadline);
-            let anyPhaseExceedsDeadline = false;
             
             project.phases.forEach(p => {
                 const pEnd = computeEnd(p);
                 if (pEnd > deadlineDate) {
-                    anyPhaseExceedsDeadline = true;
+                    exceedsDeadline = true;
                 }
             });
-            
-            if (anyPhaseExceedsDeadline) {
-                alert('Auto-arrange would push phases beyond deadline! Reverting changes.');
-                // Przywróć stare wartości
-                phase.start = oldStart;
-                phase.workDays = oldWorkDays;
-                render();
-                document.removeEventListener('mousemove', handleDrag);
-                document.removeEventListener('mouseup', stopDrag);
-                draggedElement = null;
-                draggedPhase = null;
-                dragMode = null;
-                return;
-            }
         }
         
+        // KROK 3: Jeśli przekracza deadline, cofnij WSZYSTKO
+        if (exceedsDeadline) {
+            // Różne komunikaty dla różnych sytuacji
+            const phaseEnd = computeEnd(phase);
+            const deadlineDate = new Date(project.deadline);
+            
+            if (phaseEnd > deadlineDate) {
+                alert('Cannot move/resize phase beyond project deadline!');
+            } else {
+                alert('This change would push other phases beyond the deadline!');
+            }
+            
+            // Przywróć WSZYSTKIE oryginalne fazy
+            project.phases = oldPhases;
+            
+            // Czyść handlery
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            draggedElement = null;
+            draggedPhase = null;
+            dragMode = null;
+            
+            // Odśwież
+            render();
+            return;
+        }
+        
+        // KROK 4: Jeśli wszystko OK, zapisz
         // Mark as changed for auto-save
         if (typeof markAsChanged === 'function') {
             markAsChanged();
@@ -247,6 +239,7 @@ function stopDrag(e) {
         render();
     }
     
+    // Czyść handlery na końcu
     document.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', stopDrag);
     draggedElement = null;
