@@ -638,7 +638,7 @@ function startAutoSave() {
             hasUnsavedChanges = false;
             document.title = "Skylon Joinery - Production Manager";
         }
-    }, 10000); // CO 10 SEKUND
+    }, 5000); // CO 10 SEKUND
 }
 
 function markAsChanged() {

@@ -1169,40 +1169,7 @@ function removeDayOff(date, member) {
     render();
 }
 
-// Toggle theme
-function toggleTheme() {
-    const body = document.body;
-    const isLight = body.classList.contains('light-theme');
-    
-    if (isLight) {
-        body.classList.remove('light-theme');
-        localStorage.setItem('joineryTheme', 'dark');
-    } else {
-        body.classList.add('light-theme');
-        localStorage.setItem('joineryTheme', 'light');
-    }
-    
-    updateThemeButton();
-}
 
-// Update theme button text
-function updateThemeButton() {
-    const btn = document.getElementById('themeToggle');
-    const isLight = document.body.classList.contains('light-theme');
-    btn.textContent = isLight ? '🌙 Dark' : '☀️ Light';
-}
-
-// Load saved theme
-function loadTheme() {
-    const savedTheme = localStorage.getItem('joineryTheme');
-    if (savedTheme === 'light') {
-        document.body.classList.add('light-theme');
-    }
-    updateThemeButton();
-}
-
-// Initialize theme on load
-document.addEventListener('DOMContentLoaded', loadTheme);
 
 // Open Move to Archive Modal
 function openMoveToArchiveModal() {
