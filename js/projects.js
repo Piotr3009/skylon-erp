@@ -1,36 +1,54 @@
 // ========== PROJECT MANAGEMENT ==========
 
-// Load clients for dropdown
+// Load clients for dropdown - TYLKO JEDNA DEFINICJA
 async function loadClientsDropdown() {
     try {
+        if (!supabaseClient) {
+            console.error('Supabase not initialized');
+            return;
+        }
+        
         const { data, error } = await supabaseClient
             .from('clients')
             .select('id, client_number, company_name, contact_person')
             .order('company_name');
         
+        if (error) {
+            console.error('Error loading clients:', error);
+            return;
+        }
+        
         const select = document.getElementById('projectClient');
+        if (!select) {
+            console.error('Client select not found');
+            return;
+        }
+        
         select.innerHTML = '<option value="">-- Wybierz klienta z bazy --</option>';
         
-        data?.forEach(client => {
-            const option = document.createElement('option');
-            option.value = client.id;
-            option.textContent = `${client.client_number} - ${client.company_name || client.contact_person}`;
-            select.appendChild(option);
-        });
+        if (data && data.length > 0) {
+            data.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = `${client.client_number} - ${client.company_name || client.contact_person}`;
+                select.appendChild(option);
+            });
+            console.log('✅ Loaded', data.length, 'clients');
+        } else {
+            console.log('No clients in database');
+        }
     } catch (err) {
         console.error('Błąd ładowania klientów:', err);
     }
 }
 
+// NAPRAWIONA funkcja addProject z async/await
 function addProject() {
     currentEditProject = null;
     document.getElementById('projectModalTitle').textContent = 'Add Project';
     document.getElementById('projectName').value = '';
     document.getElementById('projectStartDate').value = formatDate(new Date());
     document.getElementById('projectDeadline').value = '';
-    
-    // Load clients dropdown
-    loadClientsDropdown();
     
     // Generate new project number
     document.getElementById('projectNumber').value = getNextProjectNumber();
@@ -41,9 +59,19 @@ function addProject() {
     
     // For new project all phases are checked by default
     updatePhasesList(null, true);
+    
+    // WAŻNE: Najpierw otwórz modal
     openModal('projectModal');
+    
+    // WAŻNE: Potem załaduj klientów BEZ await - użyjemy then()
+    loadClientsDropdown().then(() => {
+        console.log('Clients loaded');
+    }).catch(err => {
+        console.error('Error loading clients:', err);
+    });
 }
 
+// NAPRAWIONA funkcja editProject z then() zamiast await
 function editProject(index) {
     currentEditProject = index;
     const project = projects[index];
@@ -54,20 +82,25 @@ function editProject(index) {
     document.getElementById('projectNumber').value = project.projectNumber || '';
     document.getElementById('projectDeadline').value = project.deadline || '';
     
-    // Load clients and select current one
-    loadClientsDropdown().then(() => {
-        if (project.client_id) {
-            document.getElementById('projectClient').value = project.client_id;
-        }
-    });
-    
     // Set selected type
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
     const selectedType = project.type || 'other';
     document.querySelector(`.type-option[data-type="${selectedType}"]`).classList.add('selected');
     
     updatePhasesList(project.phases, false);
+    
+    // WAŻNE: Najpierw otwórz modal
     openModal('projectModal');
+    
+    // WAŻNE: Potem załaduj klientów i ustaw aktualnego
+    loadClientsDropdown().then(() => {
+        // Ustaw aktualnego klienta PO załadowaniu listy
+        if (project.client_id) {
+            document.getElementById('projectClient').value = project.client_id;
+        }
+    }).catch(err => {
+        console.error('Error loading clients:', err);
+    });
 }
 
 async function saveProject() {

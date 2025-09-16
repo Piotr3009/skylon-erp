@@ -1,5 +1,10 @@
 // ========== PIPELINE INITIALIZATION - NAPRAWIONE ==========
+let isInitialized = false; // Zapobiegaj wielokrotnemu uruchomieniu
+
 window.addEventListener('DOMContentLoaded', async () => {
+    if (isInitialized) return;
+    isInitialized = true;
+    
     // Sprawdź autoryzację NAJPIERW
     if (typeof supabaseClient !== 'undefined') {
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -19,15 +24,21 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         // Ukryj elementy na podstawie roli
         if (profile && profile.role === 'viewer') {
-            document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
+            // Ukryj TYLKO przyciski danger i delete
+            document.querySelectorAll('.toolbar-btn.danger').forEach(btn => {
                 btn.style.display = 'none';
             });
+            document.querySelectorAll('.action-btn.delete').forEach(btn => {
+                btn.style.display = 'none';
+            });
+            // NIE UKRYWAJ Add Pipeline Project!
         }
         
-        // Dodaj logout
-        const header = document.querySelector('.header');
-        if (header && profile) {
+        // Dodaj logout TYLKO jeśli go nie ma
+        const toolbar = document.querySelector('.toolbar');
+        if (toolbar && !document.getElementById('logoutBtn') && profile) {
             const logoutBtn = document.createElement('button');
+            logoutBtn.id = 'logoutBtn'; // Dodaj ID
             logoutBtn.className = 'toolbar-btn';
             logoutBtn.innerHTML = '🚪 Logout (' + (profile.full_name || profile.email) + ')';
             logoutBtn.onclick = () => {
@@ -38,7 +49,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 }
             };
             logoutBtn.style.marginLeft = 'auto';
-            header.appendChild(logoutBtn);
+            toolbar.appendChild(logoutBtn);
         }
     }
     

@@ -1,5 +1,10 @@
 // ========== INITIALIZATION WITH AUTH FIX ==========
+let isInitialized = false; // Zapobiegaj wielokrotnemu uruchomieniu
+
 window.addEventListener('DOMContentLoaded', async () => {
+    if (isInitialized) return;
+    isInitialized = true;
+    
     // NAJPIERW sprawdź autoryzację
     if (typeof supabaseClient !== 'undefined') {
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -21,13 +26,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         // Ukryj elementy na podstawie roli
         if (profile && profile.role === 'viewer') {
-            // Ukryj przyciski edycji ALE NIE UKRYWAJ ADD PROJECT!
-            document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
-                // Sprawdź czy to nie jest Add Project
-                if (btn.id !== 'addProjectBtn') {
-                    btn.style.display = 'none';
-                }
+            // Ukryj TYLKO przyciski danger i delete
+            document.querySelectorAll('.toolbar-btn.danger').forEach(btn => {
+                btn.style.display = 'none';
             });
+            document.querySelectorAll('.action-btn.delete').forEach(btn => {
+                btn.style.display = 'none';
+            });
+            // NIE UKRYWAJ Add Project!
         }
         
         if (profile && profile.role === 'worker') {
@@ -37,15 +43,16 @@ window.addEventListener('DOMContentLoaded', async () => {
             });
         }
         
-        // Dodaj przycisk logout
-        const header = document.querySelector('.header');
-        if (header && profile) {
+        // Dodaj przycisk logout TYLKO jeśli go nie ma
+        const toolbar = document.querySelector('.toolbar');
+        if (toolbar && !document.getElementById('logoutBtn') && profile) {
             const logoutBtn = document.createElement('button');
+            logoutBtn.id = 'logoutBtn'; // Dodaj ID żeby sprawdzić czy istnieje
             logoutBtn.className = 'toolbar-btn';
             logoutBtn.innerHTML = '🚪 Logout (' + (profile.full_name || profile.email) + ')';
             logoutBtn.onclick = logout;
             logoutBtn.style.marginLeft = 'auto';
-            header.appendChild(logoutBtn);
+            toolbar.appendChild(logoutBtn);
         }
     }
     

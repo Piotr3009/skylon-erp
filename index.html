@@ -14,67 +14,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log('Supabase ready:', supabaseClient);
         
-        // AUTH CHECK
-        window.addEventListener('DOMContentLoaded', async () => {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (!session) {
-                // Nie zalogowany - przekieruj
-                window.location.href = 'login.html';
-                return;
-            }
-            
-            // Pobierz profil użytkownika
-            const { data: profile } = await supabaseClient
-                .from('user_profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-            
-            window.currentUser = profile;
-            
-          
-            // Ukryj elementy na podstawie roli
-if (profile && profile.role === 'viewer') {
-    // Ukryj przyciski edycji TYLKO DLA VIEWER
-    document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
-        btn.style.display = 'none';
-    });
-} else if (!profile || profile.role === 'admin' || profile.role === 'manager') {
-    // DLA ADMIN/MANAGER - POKAŻ WSZYSTKO
-    document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
-        btn.style.display = 'block';
-    });
-}
-
-            
-            if (profile && profile.role === 'worker') {
-                // Ukryj klientów
-                document.querySelectorAll('[href="clients.html"]').forEach(link => {
-                    link.style.display = 'none';
-                });
-            }
-            
-            // Dodaj przycisk logout
-            const header = document.querySelector('.header');
-            if (header && profile) {
-                const logoutBtn = document.createElement('button');
-                logoutBtn.className = 'toolbar-btn';
-                logoutBtn.innerHTML = '🚪 Logout (' + (profile.full_name || profile.email) + ')';
-                logoutBtn.onclick = logout;
-                logoutBtn.style.marginLeft = 'auto';
-                header.appendChild(logoutBtn);
-            }
-        });
-        
-        // LOGOUT
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                supabaseClient.auth.signOut().then(() => {
-                    window.location.href = 'login.html';
-                });
-            }
-        }
+       
     </script>
 </head>
 <body>
