@@ -33,13 +33,20 @@
             
             window.currentUser = profile;
             
+          
             // Ukryj elementy na podstawie roli
-            if (profile && profile.role === 'viewer') {
-                // Ukryj przyciski edycji
-                document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
-                    btn.style.display = 'none';
-                });
-            }
+if (profile && profile.role === 'viewer') {
+    // Ukryj przyciski edycji TYLKO DLA VIEWER
+    document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
+        btn.style.display = 'none';
+    });
+} else if (!profile || profile.role === 'admin' || profile.role === 'manager') {
+    // DLA ADMIN/MANAGER - POKAŻ WSZYSTKO
+    document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
+        btn.style.display = 'block';
+    });
+}
+
             
             if (profile && profile.role === 'worker') {
                 // Ukryj klientów
