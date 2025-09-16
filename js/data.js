@@ -308,13 +308,16 @@ async function loadPipelineFromSupabase() {
     }
 }
 
-function loadData() {
+// NAPRAWIONA funkcja loadData bez duplikowania render()
+async function loadData() {
     // Najpierw próbuj z Supabase
     if (typeof supabaseClient !== 'undefined') {
-        Promise.all([
-            loadProjectsFromSupabase(),
-            loadPipelineFromSupabase()
-        ]).then(([prodLoaded, pipeLoaded]) => {
+        try {
+            const [prodLoaded, pipeLoaded] = await Promise.all([
+                loadProjectsFromSupabase(),
+                loadPipelineFromSupabase()
+            ]);
+            
             // Jeśli Supabase pusty, użyj localStorage
             if (!prodLoaded) {
                 const saved = localStorage.getItem('joineryProjects');
@@ -345,54 +348,55 @@ function loadData() {
                 }
             }
             
-            // Załaduj resztę danych (always from localStorage)
-            const savedFailedArchive = localStorage.getItem('joineryFailedArchive');
-            if (savedFailedArchive) {
-                failedArchive = JSON.parse(savedFailedArchive);
-            }
-            
-            const savedCompletedArchive = localStorage.getItem('joineryCompletedArchive');
-            if (savedCompletedArchive) {
-                completedArchive = JSON.parse(savedCompletedArchive);
-            }
-            
-            const savedPhases = localStorage.getItem('joineryPhases');
-            if (savedPhases) {
-                const loadedPhases = JSON.parse(savedPhases);
-                phases = { ...phases, ...loadedPhases };
-            }
-
-            const savedTeam = localStorage.getItem('joineryTeam');
-            if (savedTeam) teamMembers = JSON.parse(savedTeam);
-
-            const savedDaysOff = localStorage.getItem('joineryDaysOff');
-            if (savedDaysOff) daysOff = JSON.parse(savedDaysOff);
-            
-            const savedLastNumber = localStorage.getItem('joineryLastProjectNumber');
-            if (savedLastNumber) lastProjectNumber = parseInt(savedLastNumber);
-            
-            const savedLastPipelineNumber = localStorage.getItem('joineryLastPipelineNumber');
-            if (savedLastPipelineNumber) lastPipelineNumber = parseInt(savedLastPipelineNumber);
-            
-            const savedCurrentView = localStorage.getItem('joineryCurrentView');
-            if (savedCurrentView) currentView = savedCurrentView;
-
-            const today = new Date();
-            visibleStartDate = new Date(today);
-            visibleStartDate.setDate(today.getDate() - today.getDay());
-            visibleStartDate.setHours(0,0,0,0);
-            
-            // Start auto-save
-            startAutoSave();
-            
-            // Renderuj po załadowaniu
-            if (typeof render === 'function') render();
-            if (typeof renderPipeline === 'function') renderPipeline();
-        });
+        } catch (error) {
+            console.error('Supabase error, using localStorage:', error);
+            loadFromLocalStorage();
+        }
     } else {
-        // Brak Supabase - użyj tylko localStorage
         loadFromLocalStorage();
     }
+    
+    // Załaduj resztę danych (always from localStorage)
+    const savedFailedArchive = localStorage.getItem('joineryFailedArchive');
+    if (savedFailedArchive) {
+        failedArchive = JSON.parse(savedFailedArchive);
+    }
+    
+    const savedCompletedArchive = localStorage.getItem('joineryCompletedArchive');
+    if (savedCompletedArchive) {
+        completedArchive = JSON.parse(savedCompletedArchive);
+    }
+    
+    const savedPhases = localStorage.getItem('joineryPhases');
+    if (savedPhases) {
+        const loadedPhases = JSON.parse(savedPhases);
+        phases = { ...phases, ...loadedPhases };
+    }
+
+    const savedTeam = localStorage.getItem('joineryTeam');
+    if (savedTeam) teamMembers = JSON.parse(savedTeam);
+
+    const savedDaysOff = localStorage.getItem('joineryDaysOff');
+    if (savedDaysOff) daysOff = JSON.parse(savedDaysOff);
+    
+    const savedLastNumber = localStorage.getItem('joineryLastProjectNumber');
+    if (savedLastNumber) lastProjectNumber = parseInt(savedLastNumber);
+    
+    const savedLastPipelineNumber = localStorage.getItem('joineryLastPipelineNumber');
+    if (savedLastPipelineNumber) lastPipelineNumber = parseInt(savedLastPipelineNumber);
+    
+    const savedCurrentView = localStorage.getItem('joineryCurrentView');
+    if (savedCurrentView) currentView = savedCurrentView;
+
+    const today = new Date();
+    visibleStartDate = new Date(today);
+    visibleStartDate.setDate(today.getDate() - today.getDay());
+    visibleStartDate.setHours(0,0,0,0);
+    
+    // Start auto-save
+    startAutoSave();
+    
+    // NIE RENDERUJ TUTAJ! Pozwól app.js to zrobić
 }
 
 function loadFromLocalStorage() {
@@ -458,14 +462,14 @@ function loadFromLocalStorage() {
     visibleStartDate.setHours(0,0,0,0);
 }
 
-// ========== ZAPISYWANIE FAZ DO SUPABASE ==========
+// ========== ZAPISYWANIE FAZ DO SUPABASE - NAPRAWIONE ==========
 
 async function savePhasesToSupabase(projectId, phases, isProduction = true) {
     try {
         const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
         const projectIdField = isProduction ? 'project_id' : 'pipeline_project_id';
         
-        // 1. USUŃ STARE FAZY (żeby nie było duplikatów)
+        // 1. USUŃ STARE FAZY
         const { error: deleteError } = await supabaseClient
             .from(tableName)
             .delete()
@@ -515,53 +519,111 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
     }
 }
 
-// ========== ZAPISZ WSZYSTKIE PROJEKTY Z FAZAMI ==========
+// ========== NAPRAWIONY saveData z czekaniem na fazy ==========
 
-async function saveAllProjectsWithPhases() {
-    let savedCount = 0;
-    
-    // PRODUCTION PROJECTS
-    for (const project of projects) {
-        if (project.phases && project.phases.length > 0) {
-            // Znajdź project ID w bazie
-            const { data: projectData } = await supabaseClient
+async function saveData() {
+    try {
+        // PRODUCTION PROJECTS
+        if (projects.length > 0 && typeof supabaseClient !== 'undefined') {
+            // Zapisz projekty
+            const projectsForDB = projects.map(p => ({
+                project_number: p.projectNumber,
+                type: p.type,
+                name: p.name,
+                deadline: p.deadline || null,
+                status: 'active',
+                notes: p.client || null,
+                contract_value: 0,
+                client_id: p.client_id || null
+            }));
+            
+            const { data, error } = await supabaseClient
                 .from('projects')
-                .select('id')
-                .eq('project_number', project.projectNumber)
-                .single();
+                .upsert(projectsForDB, { onConflict: 'project_number' });
                 
-            if (projectData) {
-                const success = await savePhasesToSupabase(
-                    projectData.id, 
-                    project.phases, 
-                    true
-                );
-                if (success) savedCount++;
+            if (error) {
+                console.error('Error saving projects:', error);
+            } else {
+                console.log('✅ Projects saved to Supabase!');
+                
+                // ZAPISZ FAZY - czekamy na zakończenie!
+                for (const project of projects) {
+                    if (project.phases && project.phases.length > 0) {
+                        const { data: projectData } = await supabaseClient
+                            .from('projects')
+                            .select('id')
+                            .eq('project_number', project.projectNumber)
+                            .single();
+                            
+                        if (projectData) {
+                            await savePhasesToSupabase(
+                                projectData.id, 
+                                project.phases, 
+                                true
+                            );
+                        }
+                    }
+                }
             }
         }
-    }
-    
-    // PIPELINE PROJECTS
-    for (const project of pipelineProjects) {
-        if (project.phases && project.phases.length > 0) {
-            const { data: projectData } = await supabaseClient
+        
+        // PIPELINE PROJECTS - NAPRAWIONE!
+        if (pipelineProjects.length > 0 && typeof supabaseClient !== 'undefined') {
+            const pipelineForDB = pipelineProjects.map(p => ({
+                project_number: p.projectNumber,
+                type: p.type,
+                name: p.name,
+                client_id: p.client_id || null,
+                estimated_value: 0,
+                status: 'active',
+                notes: null
+            }));
+            
+            const { data, error } = await supabaseClient
                 .from('pipeline_projects')
-                .select('id')
-                .eq('project_number', project.projectNumber)
-                .single();
+                .upsert(pipelineForDB, { onConflict: 'project_number' });
                 
-            if (projectData) {
-                const success = await savePhasesToSupabase(
-                    projectData.id, 
-                    project.phases, 
-                    false
-                );
-                if (success) savedCount++;
+            if (error) {
+                console.error('Error saving pipeline:', error);
+            } else {
+                console.log('✅ Pipeline projects saved!');
+                
+                // ZAPISZ FAZY PIPELINE
+                for (const project of pipelineProjects) {
+                    if (project.phases && project.phases.length > 0) {
+                        const { data: projectData } = await supabaseClient
+                            .from('pipeline_projects')
+                            .select('id')
+                            .eq('project_number', project.projectNumber)
+                            .single();
+                            
+                        if (projectData) {
+                            await savePhasesToSupabase(
+                                projectData.id, 
+                                project.phases, 
+                                false // false = pipeline
+                            );
+                        }
+                    }
+                }
             }
         }
+        
+    } catch (err) {
+        console.error('General save error:', err);
     }
     
-    console.log(`✅ Total saved: ${savedCount} projects with phases`);
+    // ZAWSZE zapisz lokalnie jako backup
+    localStorage.setItem('joineryProjects', JSON.stringify(projects));
+    localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
+    localStorage.setItem('joineryFailedArchive', JSON.stringify(failedArchive));
+    localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));
+    localStorage.setItem('joineryPhases', JSON.stringify(phases));
+    localStorage.setItem('joineryTeam', JSON.stringify(teamMembers));
+    localStorage.setItem('joineryDaysOff', JSON.stringify(daysOff));
+    localStorage.setItem('joineryLastProjectNumber', lastProjectNumber);
+    localStorage.setItem('joineryLastPipelineNumber', lastPipelineNumber);
+    localStorage.setItem('joineryCurrentView', currentView);
 }
 
 // ========== AUTO-SAVE FUNCTIONS ==========
@@ -591,66 +653,6 @@ window.addEventListener('beforeunload', (e) => {
         e.returnValue = 'You have unsaved changes!';
     }
 });
-
-// ========== UPDATED SAVE FUNCTION WITH SUPABASE ==========
-async function saveData() {
-    // Save projects to Supabase
-    try {
-        if (projects.length > 0) {
-            // Prepare data for Supabase (rename fields to match DB schema)
-            const projectsForDB = projects.map(p => ({
-                project_number: p.projectNumber,
-                type: p.type,
-                name: p.name,
-                deadline: p.deadline || null,
-                status: 'active',
-                notes: p.client || null,
-                contract_value: 0,
-                client_id: p.client_id || null
-            }));
-            
-            // Save to projects table
-            const { data, error } = await supabaseClient
-                .from('projects')
-                .upsert(projectsForDB, { onConflict: 'project_number' });
-                
-            if (error) {
-                console.error('Error saving to Supabase:', error);
-            } else {
-                console.log('✅ Projects saved to Supabase!');
-                
-                // ZAPISZ FAZY DO BAZY
-                await saveAllProjectsWithPhases();
-            }
-        }
-        
-        // Save to localStorage as backup
-        localStorage.setItem('joineryProjects', JSON.stringify(projects));
-        localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
-        localStorage.setItem('joineryFailedArchive', JSON.stringify(failedArchive));
-        localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));
-        localStorage.setItem('joineryPhases', JSON.stringify(phases));
-        localStorage.setItem('joineryTeam', JSON.stringify(teamMembers));
-        localStorage.setItem('joineryDaysOff', JSON.stringify(daysOff));
-        localStorage.setItem('joineryLastProjectNumber', lastProjectNumber);
-        localStorage.setItem('joineryLastPipelineNumber', lastPipelineNumber);
-        localStorage.setItem('joineryCurrentView', currentView);
-        
-    } catch (err) {
-        console.error('General error:', err);
-        // Fallback - save everything locally
-        localStorage.setItem('joineryProjects', JSON.stringify(projects));
-        localStorage.setItem('joineryPipelineProjects', JSON.stringify(pipelineProjects));
-        localStorage.setItem('joineryFailedArchive', JSON.stringify(failedArchive));
-        localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));
-        localStorage.setItem('joineryPhases', JSON.stringify(phases));
-        localStorage.setItem('joineryTeam', JSON.stringify(teamMembers));
-        localStorage.setItem('joineryDaysOff', JSON.stringify(daysOff));
-        localStorage.setItem('joineryLastProjectNumber', lastProjectNumber);
-        localStorage.setItem('joineryLastPipelineNumber', lastPipelineNumber);
-        localStorage.setItem('joineryCurrentView', currentView);
-    }
-}
 
 function getNextProjectNumber() {
     lastProjectNumber++;

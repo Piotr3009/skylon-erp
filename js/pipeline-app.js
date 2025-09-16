@@ -1,8 +1,55 @@
-// ========== PIPELINE INITIALIZATION ==========
-window.addEventListener('DOMContentLoaded', () => {
-    loadData();
+// ========== PIPELINE INITIALIZATION - NAPRAWIONE ==========
+window.addEventListener('DOMContentLoaded', async () => {
+    // Sprawdź autoryzację NAJPIERW
+    if (typeof supabaseClient !== 'undefined') {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (!session) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        const { data: profile } = await supabaseClient
+            .from('user_profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+        
+        window.currentUser = profile;
+        
+        // Ukryj elementy na podstawie roli
+        if (profile && profile.role === 'viewer') {
+            document.querySelectorAll('.toolbar-btn.primary').forEach(btn => {
+                btn.style.display = 'none';
+            });
+        }
+        
+        // Dodaj logout
+        const header = document.querySelector('.header');
+        if (header && profile) {
+            const logoutBtn = document.createElement('button');
+            logoutBtn.className = 'toolbar-btn';
+            logoutBtn.innerHTML = '🚪 Logout (' + (profile.full_name || profile.email) + ')';
+            logoutBtn.onclick = () => {
+                if (confirm('Logout?')) {
+                    supabaseClient.auth.signOut().then(() => {
+                        window.location.href = 'login.html';
+                    });
+                }
+            };
+            logoutBtn.style.marginLeft = 'auto';
+            header.appendChild(logoutBtn);
+        }
+    }
+    
+    // Załaduj dane i renderuj RAZ
+    await loadData(); 
     updatePipelinePhasesLegend();
-    renderPipeline();
+    
+    // WAŻNE: Użyj setTimeout aby dać czas na załadowanie wszystkiego
+    setTimeout(() => {
+        renderPipeline();
+    }, 100);
 });
 
 // Close modals on ESC
@@ -17,6 +64,8 @@ document.addEventListener('keydown', (e) => {
 // Update phases legend for pipeline
 function updatePipelinePhasesLegend() {
     const legend = document.getElementById('phasesLegend');
+    if (!legend) return;
+    
     legend.innerHTML = '';
     
     // Sort pipeline phases according to pipelinePhaseOrder
