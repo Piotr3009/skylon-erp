@@ -177,7 +177,7 @@ async function saveEmployee() {
         return;
     }
     
-    // Prepare employee data - BEZ SZYFROWANIA
+    // Prepare employee data - BEZ SZYFROWANIA i BEZ STATUS
     const employeeData = {
         name: name,
         email: document.getElementById('empEmail').value.trim() || null,
@@ -191,9 +191,8 @@ async function saveEmployee() {
         start_date: document.getElementById('empStartDate').value || null,
         color_code: document.getElementById('empColor').value,
         notes: document.getElementById('empNotes').value.trim() || null,
-        active: true,
-        status: 'Active',
-      
+        active: true
+        // USUNIĘTE: status: 'Active' - to jest wyliczane w VIEW!
     };
 
     console.log('Sending data:', employeeData);
@@ -320,12 +319,17 @@ async function deactivateEmployee(id) {
     const member = teamMembers.find(m => m.id === id);
     if (!member) return;
     
-    if (!confirm(`Deactivate employee "${member.name}"? They can be reactivated later.`)) return;
+    if (!confirm(`Deactivate employee "${member.name}"?`)) {
+        return;
+    }
     
     try {
         const { error } = await supabaseClient
             .from('team_members')
-            .update({ active: false, status: 'Inactive' })
+            .update({ 
+                active: false,
+                end_date: new Date().toISOString().split('T')[0]
+            })
             .eq('id', id);
         
         if (error) throw error;
@@ -339,191 +343,32 @@ async function deactivateEmployee(id) {
     }
 }
 
-// ========== PAYMENTS ==========
-async function openPaymentsModal() {
-    // Load employee list for dropdown
-    const select = document.getElementById('paymentEmployee');
-    select.innerHTML = '<option value="">Select Employee...</option>';
+// ========== HOLIDAYS MODAL ==========
+function openHolidaysModal() {
+    const tbody = document.getElementById('holidaysTableBody');
+    tbody.innerHTML = '';
     
-    teamMembers.filter(m => m.active).forEach(member => {
-        const option = document.createElement('option');
-        option.value = member.id;
-        option.textContent = `${member.name} (${member.department})`;
-        select.appendChild(option);
-    });
-    
-    // Set today's date
-    document.getElementById('paymentDate').value = formatDate(new Date());
-    
-    // Load recent payments
-    await loadPayments();
-    
-    openModal('paymentsModal');
-}
-
-async function loadPayments() {
-    try {
-        // Load payments - BEZ SZYFROWANIA
-        const { data, error } = await supabaseClient
-            .from('team_payments')
-            .select(`
-                *,
-                team_members!inner(name, department)
-            `)
-            .order('payment_date', { ascending: false })
-            .limit(20);
-        
-        if (error) {
-            console.error('Error loading payments:', error);
-            return;
-        }
-        
-        const tbody = document.getElementById('paymentsTableBody');
-        tbody.innerHTML = '';
-        
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #999;">No payments recorded</td></tr>';
-            return;
-        }
-        
-        data.forEach(payment => {
+    teamMembers
+        .filter(m => m.active)
+        .forEach(member => {
             const tr = document.createElement('tr');
-            // Pokazuj prawdziwe kwoty
-            const baseAmount = payment.base_payment || 0;
-            const bonusAmount = payment.bonus || 0;
-            const totalAmount = payment.total || (baseAmount + bonusAmount);
+            const remaining = member.holiday_remaining || member.holiday_allowance || 0;
             
             tr.innerHTML = `
-                <td>${formatDateDisplay(payment.payment_date)}</td>
-                <td>${payment.team_members?.name || 'Unknown'}</td>
-                <td>${payment.payment_period}</td>
-                <td>£${baseAmount.toFixed(2)}</td>
-                <td>£${bonusAmount.toFixed(2)}</td>
-                <td><strong>£${totalAmount.toFixed(2)}</strong></td>
+                <td>${member.name}</td>
+                <td>${member.holiday_allowance || 28}</td>
+                <td>${member.holiday_used || 0}</td>
+                <td><strong>${remaining}</strong></td>
                 <td>
-                    <button class="action-btn delete" onclick="deletePayment('${payment.id}')" title="Delete">✕</button>
+                    <input type="number" id="holiday-${member.id}" 
+                           min="0" max="${remaining}" value="0" 
+                           style="width: 60px;">
+                    <button class="action-btn primary" 
+                            onclick="bookHoliday('${member.id}')">Book</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
-        
-    } catch (err) {
-        console.error('Failed to load payments:', err);
-    }
-}
-
-async function addPayment() {
-    const employeeId = document.getElementById('paymentEmployee').value;
-    const paymentDate = document.getElementById('paymentDate').value;
-    const baseAmount = parseFloat(document.getElementById('paymentBase').value) || 0;
-    const bonusAmount = parseFloat(document.getElementById('paymentBonus').value) || 0;
-    
-    if (!employeeId || !paymentDate) {
-        alert('Please select employee and date');
-        return;
-    }
-    
-    const totalAmount = baseAmount + bonusAmount;
-    
-    // Calculate period (simplified - last week)
-    const endDate = new Date(paymentDate);
-    const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - 7);
-    
-    const paymentData = {
-        team_member_id: employeeId,
-        payment_date: paymentDate,
-        payment_period: 'weekly',
-        period_start: formatDate(startDate),
-        period_end: formatDate(endDate),
-        base_payment: baseAmount, // Bez szyfrowania
-        bonus: bonusAmount,
-        total: totalAmount,
-        payment_method: 'bank',
-        notes: bonusAmount > 0 ? 'Includes bonus payment' : null
-    };
-    
-    try {
-        const { error } = await supabaseClient
-            .from('team_payments')
-            .insert([paymentData]);
-        
-        if (error) throw error;
-        
-        console.log('✅ Payment recorded');
-        
-        // Clear form
-        document.getElementById('paymentBase').value = '';
-        document.getElementById('paymentBonus').value = '';
-        
-        // Reload payments
-        loadPayments();
-        
-    } catch (error) {
-        console.error('Error adding payment:', error);
-        alert('Error: ' + error.message);
-    }
-}
-
-async function deletePayment(id) {
-    if (!confirm('Delete this payment record?')) return;
-    
-    try {
-        const { error } = await supabaseClient
-            .from('team_payments')
-            .delete()
-            .eq('id', id);
-        
-        if (error) throw error;
-        
-        console.log('✅ Payment deleted');
-        loadPayments();
-        
-    } catch (error) {
-        console.error('Error deleting payment:', error);
-        alert('Error: ' + error.message);
-    }
-}
-
-// ========== HOLIDAYS ==========
-async function openHolidaysModal() {
-    const tbody = document.getElementById('holidaysTableBody');
-    tbody.innerHTML = '';
-    
-    let totalAllowance = 0;
-    let totalUsed = 0;
-    
-    teamMembers.filter(m => m.active).forEach(member => {
-        const allowance = member.holiday_allowance || 28;
-        const used = member.holiday_used || 0;
-        const remaining = allowance - used;
-        const percent = (remaining / allowance * 100);
-        
-        totalAllowance += allowance;
-        totalUsed += used;
-        
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${member.name}</td>
-            <td>${allowance} days</td>
-            <td>${used} days</td>
-            <td><strong>${remaining} days</strong></td>
-            <td>
-                <div class="holiday-progress" style="width: 100px;">
-                    <div class="holiday-fill" style="width: ${percent}%"></div>
-                </div>
-            </td>
-            <td>
-                <button class="action-btn" onclick="bookHoliday('${member.id}')" title="Book Holiday">📅</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-    
-    // Update stats
-    document.getElementById('totalHolidayDays').textContent = totalAllowance;
-    document.getElementById('usedHolidayDays').textContent = totalUsed;
-    document.getElementById('remainingHolidayDays').textContent = totalAllowance - totalUsed;
     
     openModal('holidaysModal');
 }
@@ -532,15 +377,21 @@ async function bookHoliday(memberId) {
     const member = teamMembers.find(m => m.id === memberId);
     if (!member) return;
     
-    const days = prompt(`Book holiday for ${member.name}\nEnter number of days:`);
-    if (!days || isNaN(days)) return;
+    const days = parseInt(document.getElementById(`holiday-${memberId}`).value) || 0;
+    if (days <= 0) {
+        alert('Please enter valid number of days');
+        return;
+    }
     
-    const daysToBook = parseInt(days);
-    const newUsed = (member.holiday_used || 0) + daysToBook;
-    const newRemaining = (member.holiday_allowance || 28) - newUsed;
+    const remaining = member.holiday_remaining || member.holiday_allowance || 0;
+    if (days > remaining) {
+        alert(`Cannot book ${days} days. Only ${remaining} days remaining.`);
+        return;
+    }
     
-    if (newRemaining < 0) {
-        alert('Not enough holiday days remaining!');
+    const newUsed = (member.holiday_used || 0) + days;
+    
+    if (!confirm(`Book ${days} days holiday for ${member.name}?`)) {
         return;
     }
     
@@ -565,6 +416,143 @@ async function bookHoliday(memberId) {
     }
 }
 
+// ========== PAYMENTS MODAL ==========
+function openPaymentsModal() {
+    // Populate employee select
+    const select = document.getElementById('paymentEmployee');
+    select.innerHTML = '<option value="">Select Employee...</option>';
+    
+    teamMembers
+        .filter(m => m.active)
+        .forEach(member => {
+            const option = document.createElement('option');
+            option.value = member.id;
+            option.textContent = member.name;
+            select.appendChild(option);
+        });
+    
+    // Set today's date
+    document.getElementById('paymentDate').value = formatDate(new Date());
+    
+    // Load recent payments
+    loadRecentPayments();
+    
+    openModal('paymentsModal');
+}
+
+async function loadRecentPayments() {
+    const tbody = document.getElementById('recentPaymentsBody');
+    if (!tbody) {
+        console.warn('recentPaymentsBody element not found');
+        return;
+    }
+    
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading...</td></tr>';
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('team_payments')
+            .select(`
+                *,
+                team_members (
+                    name
+                )
+            `)
+            .order('payment_date', { ascending: false })
+            .limit(20);
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No payments found</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        data.forEach(payment => {
+            const tr = document.createElement('tr');
+            // Wyświetl kwoty (już nie są zaszyfrowane)
+            const base = parseFloat(payment.base_payment_encrypted) || 0;
+            const bonus = parseFloat(payment.bonus_encrypted) || 0;
+            const total = parseFloat(payment.total_encrypted) || base + bonus;
+            
+            tr.innerHTML = `
+                <td>${formatDateDisplay(payment.payment_date)}</td>
+                <td>${payment.team_members?.name || 'Unknown'}</td>
+                <td>£${base.toFixed(2)}</td>
+                <td>£${bonus.toFixed(2)}</td>
+                <td><strong>£${total.toFixed(2)}</strong></td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+    } catch (error) {
+        console.error('Error loading payments:', error);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Error loading payments</td></tr>';
+    }
+}
+
+async function addPayment() {
+    const employeeId = document.getElementById('paymentEmployee').value;
+    const date = document.getElementById('paymentDate').value;
+    const baseAmount = parseFloat(document.getElementById('paymentBase').value) || 0;
+    const bonusAmount = parseFloat(document.getElementById('paymentBonus').value) || 0;
+    
+    if (!employeeId || !date) {
+        alert('Please select employee and date');
+        return;
+    }
+    
+    if (baseAmount <= 0 && bonusAmount <= 0) {
+        alert('Please enter payment amount');
+        return;
+    }
+    
+    // Calculate period (assuming weekly payments)
+    const paymentDate = new Date(date);
+    const dayOfWeek = paymentDate.getDay();
+    const startOfWeek = new Date(paymentDate);
+    startOfWeek.setDate(paymentDate.getDate() - dayOfWeek + 1); // Monday
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+    
+    // BEZ SZYFROWANIA - przechowuj zwykłe liczby jako tekst
+    const paymentData = {
+        team_member_id: employeeId,  // Zmienione z 'employee_id'
+        payment_date: date,           // Zmienione z 'date'
+        payment_period: 'weekly',     // Dodane - musisz mieć ENUM payment_period
+        period_start: formatDate(startOfWeek),
+        period_end: formatDate(endOfWeek),
+        base_payment_encrypted: baseAmount.toFixed(2),  // Zwykły tekst z liczbą
+        bonus_encrypted: bonusAmount > 0 ? bonusAmount.toFixed(2) : null,
+        total_encrypted: (baseAmount + bonusAmount).toFixed(2),
+        payment_method: 'bank',
+        notes: null,
+        approved_by: currentUser?.id || null
+    };
+    
+    try {
+        const { error } = await supabaseClient
+            .from('team_payments')  // Zmienione z 'payments'
+            .insert([paymentData]);
+        
+        if (error) throw error;
+        
+        console.log('✅ Payment added');
+        
+        // Clear form
+        document.getElementById('paymentEmployee').value = '';
+        document.getElementById('paymentBase').value = '';
+        document.getElementById('paymentBonus').value = '';
+        
+        // Reload payments
+        loadRecentPayments();
+        
+    } catch (error) {
+        console.error('Error adding payment:', error);
+        alert('Error: ' + error.message);
+    }
+}
 
 // ========== SEARCH & FILTER ==========
 function searchTeam() {
@@ -631,9 +619,61 @@ function exportTeamJSON() {
     a.click();
 }
 
-function exportPaymentsCSV() {
-    // Export payments - wszystko widoczne
-    alert('Payments export will be implemented soon');
+async function exportPaymentsCSV() {
+    try {
+        // Pobierz payments z bazy
+        const { data, error } = await supabaseClient
+            .from('team_payments')
+            .select(`
+                *,
+                team_members (
+                    name,
+                    employee_number
+                )
+            `)
+            .order('payment_date', { ascending: false })
+            .limit(100);
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            alert('No payments to export');
+            return;
+        }
+        
+        // Stwórz CSV
+        const csv = [
+            ['Date', 'Employee', 'Employee Number', 'Period', 'Base Amount', 'Bonus', 'Total', 'Payment Method'],
+            ...data.map(p => {
+                const base = parseFloat(p.base_payment_encrypted) || 0;
+                const bonus = parseFloat(p.bonus_encrypted) || 0;
+                const total = parseFloat(p.total_encrypted) || base + bonus;
+                
+                return [
+                    p.payment_date,
+                    p.team_members?.name || 'Unknown',
+                    p.team_members?.employee_number || '-',
+                    `${p.period_start} to ${p.period_end}`,
+                    `£${base.toFixed(2)}`,
+                    `£${bonus.toFixed(2)}`,
+                    `£${total.toFixed(2)}`,
+                    p.payment_method || 'bank'
+                ];
+            })
+        ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        
+        // Download
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        
+    } catch (error) {
+        console.error('Error exporting payments:', error);
+        alert('Error exporting payments: ' + error.message);
+    }
 }
 
 // ========== UTILITY FUNCTIONS ==========
@@ -646,68 +686,79 @@ function generateEmployeeNumber() {
     const nextNumber = existingNumbers.length > 0 ? 
         Math.max(...existingNumbers) + 1 : 1;
     
-    return `EMP${String(nextNumber).padStart(3, '0')}`;
+    return `EMP${nextNumber.toString().padStart(4, '0')}`;
 }
 
 function generateRandomColor() {
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#F8B739', '#52B788'];
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#FFD93D', '#6BCF7F', '#C06FBB'];
     return colors[Math.floor(Math.random() * colors.length)];
 }
 
 function formatDate(date) {
-    if (!date) return '';
     const d = new Date(date);
     return d.toISOString().split('T')[0];
 }
 
 function formatDateDisplay(date) {
-    if (!date) return 'Not set';
+    if (!date) return '-';
     const d = new Date(date);
     return d.toLocaleDateString('en-GB');
 }
 
 function formatDepartment(dept) {
     if (!dept) return 'Unknown';
-    const departments = {
+    const deptMap = {
         'production': 'Production',
-        'spray': 'Spray',
+        'spray': 'Spray Shop',
         'installation': 'Installation',
         'drivers': 'Drivers',
         'management': 'Management',
-        'admin': 'Admin',
+        'admin': 'Admin'
     };
-    return departments[dept] || dept.charAt(0).toUpperCase() + dept.slice(1);
+    return deptMap[dept] || dept;
 }
 
 function formatContract(type) {
     if (!type) return 'Unknown';
-    const types = {
+    const typeMap = {
         'contract': 'Contract',
-        'b2b': 'B2B',
-        'apprentice': 'Apprentice'
+        'permanent': 'Permanent',
+        'temporary': 'Temporary',
+        'probation': 'Probation'
     };
-    return types[type] || type;
+    return typeMap[type] || type;
 }
 
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
+// ========== MODAL FUNCTIONS ==========
+function openModal(modalId) {
+    document.getElementById(modalId).classList.add('active');
 }
 
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
 }
 
-function updateColorHex(value) {
-    document.getElementById('empColorHex').value = value;
-}
+// Color picker sync
+document.addEventListener('DOMContentLoaded', function() {
+    const colorPicker = document.getElementById('empColor');
+    const colorHex = document.getElementById('empColorHex');
+    
+    if (colorPicker && colorHex) {
+        colorPicker.addEventListener('input', function() {
+            colorHex.value = this.value;
+        });
+    }
+    
+    // Load team on start
+    loadTeam();
+});
 
-function updateColorPicker(value) {
-    if (/^#[0-9A-F]{6}$/i.test(value)) {
-        document.getElementById('empColor').value = value;
+// Close modals on outside click
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.classList.remove('active');
     }
 }
 
-// ========== INITIALIZE ==========
-window.addEventListener('DOMContentLoaded', () => {
-    loadTeam();
-});
+// ========== INITIALIZATION ==========
+console.log('Team Management System loaded');
