@@ -193,10 +193,10 @@ async function saveEmployee() {
         notes: document.getElementById('empNotes').value.trim() || null,
         active: true,
         status: 'Active',
-        holiday_allowance: 28,
-        holiday_used: 0,
-        holiday_remaining: 28
+      
     };
+
+    console.log('Sending data:', employeeData);
     
     // Add emergency contact if provided
     const emergencyName = document.getElementById('emergencyName').value.trim();
@@ -548,8 +548,8 @@ async function bookHoliday(memberId) {
         const { error } = await supabaseClient
             .from('team_members')
             .update({ 
-                holiday_used: newUsed,
-                holiday_remaining: newRemaining
+                holiday_used: newUsed
+                // USUNIĘTE: holiday_remaining - to jest wyliczane w bazie!
             })
             .eq('id', memberId);
         
@@ -564,6 +564,7 @@ async function bookHoliday(memberId) {
         alert('Error: ' + error.message);
     }
 }
+
 
 // ========== SEARCH & FILTER ==========
 function searchTeam() {
