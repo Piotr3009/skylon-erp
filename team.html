@@ -246,14 +246,18 @@
             <!-- Search Bar -->
             <div class="search-bar">
                 <input type="text" id="searchInput" placeholder="🔍 Search by name, email, role..." onkeyup="searchTeam()">
-                <select id="filterDepartment" onchange="filterTeam()">
-                    <option value="">All Departments</option>
-                    <option value="admin">Admin</option>
-                    <option value="production">Production</option>
-                    <option value="spray">Spray</option>
-                    <option value="installation">Installation</option>
-                    <option value="drivers">Drivers</option>
-                    <option value="management">Management</option>
+                
+<select id="filterDepartment" onchange="filterTeam()">
+    <option value="">All Departments</option>
+    <option value="production">Production</option>
+    <option value="spray">Spray</option>
+    <option value="installation">Installation</option>
+    <option value="drivers">Drivers</option>
+    <option value="management">Management</option>
+    <option value="admin">Admin</option>
+
+
+
                    
                 </select>
                 <select id="filterStatus" onchange="filterTeam()">
@@ -341,13 +345,17 @@
                         
                         <div class="form-group">
                             <label>Department *</label>
-                            <select id="empDepartment">
-                                <option value="management">Management</option>
-                                 <option value="admin">Admin</option>
-                                <option value="production">Production</option>
-                                <option value="spray">Spray</option>
-                                <option value="installation">Installation</option>
-                                <option value="drivers">Drivers</option>
+                           
+
+                                <select id="empDepartment">
+    <option value="production">Production</option>
+    <option value="spray">Spray</option>
+    <option value="installation">Installation</option>
+    <option value="drivers">Drivers</option>
+    <option value="management">Management</option>
+    <option value="admin">Admin</option>
+    <!-- NIE dodawaj warehouse - nie chcesz tego -->
+</select>
 
                                 
                             </select>

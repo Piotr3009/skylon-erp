@@ -671,9 +671,10 @@ function formatDepartment(dept) {
     const departments = {
         'production': 'Production',
         'spray': 'Spray',
+        'installation': 'Installation',
+        'drivers': 'Drivers',
         'management': 'Management',
-        'office': 'Office',
-        'admin': 'Admin'
+        'admin': 'Admin',
     };
     return departments[dept] || dept.charAt(0).toUpperCase() + dept.slice(1);
 }
