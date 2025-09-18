@@ -471,10 +471,10 @@ async function loadRecentPayments() {
         tbody.innerHTML = '';
         data.forEach(payment => {
             const tr = document.createElement('tr');
-            // Wyświetl kwoty (już nie są zaszyfrowane)
-            const base = parseFloat(payment.base_payment_encrypted) || 0;
-            const bonus = parseFloat(payment.bonus_encrypted) || 0;
-            const total = parseFloat(payment.total_encrypted) || base + bonus;
+            // Wyświetl kwoty (poprawione nazwy kolumn)
+            const base = parseFloat(payment.base_payment) || 0;
+            const bonus = parseFloat(payment.bonus) || 0;
+            const total = parseFloat(payment.total) || base + bonus;
             
             tr.innerHTML = `
                 <td>${formatDateDisplay(payment.payment_date)}</td>
@@ -518,14 +518,14 @@ async function addPayment() {
     
     // BEZ SZYFROWANIA - przechowuj zwykłe liczby jako tekst
     const paymentData = {
-        team_member_id: employeeId,  // Zmienione z 'employee_id'
-        payment_date: date,           // Zmienione z 'date'
-        payment_period: 'weekly',     // Dodane - musisz mieć ENUM payment_period
+        team_member_id: employeeId,
+        payment_date: date,
+        payment_period: 'weekly',
         period_start: formatDate(startOfWeek),
         period_end: formatDate(endOfWeek),
-        base_payment_encrypted: baseAmount.toFixed(2),  // Zwykły tekst z liczbą
-        bonus_encrypted: bonusAmount > 0 ? bonusAmount.toFixed(2) : null,
-        total_encrypted: (baseAmount + bonusAmount).toFixed(2),
+        base_payment: baseAmount.toFixed(2),  // Poprawione nazwy kolumn
+        bonus: bonusAmount > 0 ? bonusAmount.toFixed(2) : null,
+        total: (baseAmount + bonusAmount).toFixed(2),
         payment_method: 'bank',
         notes: null,
         approved_by: currentUser?.id || null
@@ -645,9 +645,9 @@ async function exportPaymentsCSV() {
         const csv = [
             ['Date', 'Employee', 'Employee Number', 'Period', 'Base Amount', 'Bonus', 'Total', 'Payment Method'],
             ...data.map(p => {
-                const base = parseFloat(p.base_payment_encrypted) || 0;
-                const bonus = parseFloat(p.bonus_encrypted) || 0;
-                const total = parseFloat(p.total_encrypted) || base + bonus;
+                const base = parseFloat(p.base_payment) || 0;
+                const bonus = parseFloat(p.bonus) || 0;
+                const total = parseFloat(p.total) || base + bonus;
                 
                 return [
                     p.payment_date,
