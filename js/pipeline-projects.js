@@ -42,14 +42,23 @@ async function addPipelineProject() {
             
             let nextNumber = 1;
             if (lastProject && lastProject.length > 0) {
-                // Wyciągnij numer z "P001.2025"
-                const lastNum = parseInt(lastProject[0].project_number.substring(1, 4));
-                nextNumber = lastNum + 1;
+               
+const projectNum = lastProject[0].project_number;
+// Format: "PL001/2025" - wyciągnij cyfry między "PL" a "/"
+const match = projectNum.match(/PL(\d{3})\//);
+if (match) {
+    const lastNum = parseInt(match[1]);
+    if (!isNaN(lastNum)) {
+        nextNumber = lastNum + 1;
+    }
+
+
             }
             
             const currentYear = new Date().getFullYear();
             document.getElementById('projectNumber').value = 
-                `P${String(nextNumber).padStart(3, '0')}.${currentYear}`;
+              
+                `PL${String(nextNumber).padStart(3, '0')}/${currentYear}`;
         } catch (err) {
             console.error('Błąd pobierania numeracji:', err);
             // Jeśli błąd - użyj starej metody
