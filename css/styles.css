@@ -106,7 +106,7 @@ body {
 
 /* Zielone tło dla niedziel */
 .day-cell-sunday {
-    background-color: rgba(0, 255, 0, 0.08) !important;
+    background-color: rgba(41, 60, 41, 0.08) !important;
 }
 
 
@@ -121,32 +121,32 @@ body.pipeline-theme .container {
 }
 
 body.pipeline-theme .header {
-    background: #1f2421;
-    border-bottom-color: #343936;
+    background: #1f2024;
+    border-bottom-color: #272780;
 }
 
 body.pipeline-theme .toolbar {
-    background: #1f2421;
-    border-bottom-color: #354339;
+    background: #1f2124;
+    border-bottom-color: #2f2473;
 }
 
 body.pipeline-theme .chart-header {
-    background: #1f2421;
-    border-bottom-color: #354339;
+    background: #1f2024;
+    border-bottom-color: #212f63;
 }
 
 body.pipeline-theme .project-header {
-    background: #1f2421;
-    border-right-color: #353743;
+    background: #1f1f24;
+    border-right-color: #3d267a;
 }
 
 body.pipeline-theme .project-cell {
     background: #2f3037;
-    border-right-color: #100f54;
+    border-right-color: #25245f;
 }
 
 body.pipeline-theme .project-row {
-    border-bottom-color: #534a5d;
+    border-bottom-color: #402e83;
 }
 
 
@@ -452,7 +452,7 @@ body.pipeline-theme .chart-wrapper {
 
 /* PUNKT 4 - Pipeline day cells z jaśniejszym border */
 body.pipeline-theme .day-cell {
-    border-right: 1px solid rgba(83, 99, 87, 0.5); /* Jaśniejszy border dla pipeline */
+    border-right: 1px solid rgba(71, 66, 124, 0.5); /* Jaśniejszy border dla pipeline */
 }
 
 .day-number {
@@ -486,7 +486,7 @@ body.pipeline-theme .day-cell {
 
 /* PUNKT 4 - Pipeline project rows z jaśniejszym border */
 body.pipeline-theme .project-row {
-    border-bottom: 1px solid #536357;
+    border-bottom: 1px solid #394165;
 }
 
 /* Project cell */
@@ -504,8 +504,8 @@ body.pipeline-theme .project-row {
 
 /* PUNKT 4 - Pipeline project cells z jaśniejszym tłem */
 body.pipeline-theme .project-cell {
-    background: #323832;
-    border-right: 1px solid #536357;
+    background: #323338;
+    border-right: 1px solid #5a5363;
 }
 
 /* Column dividers */
