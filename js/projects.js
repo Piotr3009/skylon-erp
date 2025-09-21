@@ -43,15 +43,54 @@ async function loadClientsDropdown() {
 }
 
 // NAPRAWIONA funkcja addProject z async/await
-function addProject() {
+async function addProject() {
     currentEditProject = null;
     document.getElementById('projectModalTitle').textContent = 'Add Project';
     document.getElementById('projectName').value = '';
     document.getElementById('projectStartDate').value = formatDate(new Date());
     document.getElementById('projectDeadline').value = '';
     
-    // Generate new project number
-    document.getElementById('projectNumber').value = getNextProjectNumber();
+    // POBIERZ NUMERACJĘ Z BAZY DANYCH
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { data: lastProject, error } = await supabaseClient
+                .from('projects')
+                .select('project_number')
+                .order('project_number', { ascending: false })
+                .limit(1);
+            
+            let nextNumber = 1;
+            
+            if (lastProject && lastProject.length > 0) {
+                const projectNum = lastProject[0].project_number;
+                console.log('Ostatni numer Production z bazy:', projectNum);
+                
+                // Format: "001.2025" - wyciągnij cyfry przed kropką
+                const match = projectNum.match(/^(\d{3})\./);
+                if (match && match[1]) {
+                    const lastNum = parseInt(match[1]);
+                    if (!isNaN(lastNum)) {
+                        nextNumber = lastNum + 1;
+                    }
+                }
+            }
+            
+            const currentYear = new Date().getFullYear();
+            const generatedNumber = `${String(nextNumber).padStart(3, '0')}.${currentYear}`;
+            document.getElementById('projectNumber').value = generatedNumber;
+            console.log('Wygenerowany numer Production:', generatedNumber);
+            
+        } catch (err) {
+            console.error('Błąd pobierania numeracji:', err);
+            // Fallback - użyj domyślnego
+            const currentYear = new Date().getFullYear();
+            document.getElementById('projectNumber').value = `001.${currentYear}`;
+        }
+    } else {
+        // Jeśli nie ma Supabase - użyj domyślnego  
+        const currentYear = new Date().getFullYear();
+        document.getElementById('projectNumber').value = `001.${currentYear}`;
+    }
     
     // Reset type selection
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
