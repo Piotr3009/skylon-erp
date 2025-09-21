@@ -1,10 +1,10 @@
 // ========== GOOGLE DRIVE PICKER CONFIGURATION ==========
 
-// TUTAJ WSTAW SWOJE KLUCZE!
+// KONFIGURACJA DLA SKYLON JOINERY
 const GOOGLE_CONFIG = {
-    API_KEY: 'YOUR_API_KEY_HERE', // np. AIzaSyD...
-    CLIENT_ID: 'YOUR_CLIENT_ID_HERE', // np. 1234567890-abc...apps.googleusercontent.com
-    APP_ID: 'YOUR_APP_ID_HERE', // opcjonalne, ale zalecane
+    API_KEY: 'AIzaSyCGCY0cLvJWS0RApvTxOVn15bhhEYHvP1w',
+    CLIENT_ID: '320768714420-ov2q2b39khn2o803kv5mumf5slqmr6g6.apps.googleusercontent.com',
+    APP_ID: '320768714420', // Project number z Client ID
     SCOPE: 'https://www.googleapis.com/auth/drive.readonly'
 };
 
