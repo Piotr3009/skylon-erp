@@ -183,7 +183,7 @@ function renderProjects() {
                 <button class="action-btn" onclick="editProject(${index})" title="Edit">✏️</button>
                 ${project.google_drive_url ? 
                     `<a href="${project.google_drive_url}" target="_blank" class="action-btn gdrive" title="Open in Google Drive">📁</a>` :
-                    `<button class="action-btn gdrive-add" onclick="addGoogleDriveLink(${index})" title="Add Google Drive link">➕</button>`
+                    `<button class="action-btn gdrive-add" onclick="openGoogleDrivePicker(projects[${index}])" title="Add Google Drive link">➕</button>`
                 }
                 <button class="action-btn delete" onclick="deleteProject(${index})" title="Delete">✕</button>
             </div>
