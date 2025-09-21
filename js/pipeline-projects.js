@@ -22,6 +22,7 @@ async function loadClientsDropdown() {
     }
 }
 
+// POPRAWIONA FUNKCJA - pobiera numerację z bazy
 async function addPipelineProject() {
     currentEditProject = null;
     document.getElementById('projectModalTitle').textContent = 'Add Pipeline Project';
@@ -29,49 +30,56 @@ async function addPipelineProject() {
     document.getElementById('projectStartDate').value = formatDate(new Date());
     
     // Load clients dropdown
-    loadClientsDropdown();
+    await loadClientsDropdown();
     
     // POBIERZ NUMERACJĘ Z BAZY DANYCH
     if (typeof supabaseClient !== 'undefined') {
         try {
-            const { data: lastProject } = await supabaseClient
+            const { data: lastProject, error } = await supabaseClient
                 .from('pipeline_projects')
                 .select('project_number')
                 .order('project_number', { ascending: false })
                 .limit(1);
             
             let nextNumber = 1;
+            
             if (lastProject && lastProject.length > 0) {
-               
-const projectNum = lastProject[0].project_number;
-// Format: "PL001/2025" - wyciągnij cyfry między "PL" a "/"
-const match = projectNum.match(/PL(\d{3})\//);
-if (match) {
-    const lastNum = parseInt(match[1]);
-    if (!isNaN(lastNum)) {
-        nextNumber = lastNum + 1;
-    }
-
-
+                const projectNum = lastProject[0].project_number;
+                console.log('Ostatni numer z bazy:', projectNum);
+                
+                // Format: "PL001/2025" - wyciągnij cyfry między "PL" a "/"
+                const match = projectNum.match(/PL(\d{3})\//);
+                if (match && match[1]) {
+                    const lastNum = parseInt(match[1]);
+                    if (!isNaN(lastNum)) {
+                        nextNumber = lastNum + 1;
+                    }
+                }
             }
             
             const currentYear = new Date().getFullYear();
-            document.getElementById('projectNumber').value = 
-              
-                `PL${String(nextNumber).padStart(3, '0')}/${currentYear}`;
+            const generatedNumber = `PL${String(nextNumber).padStart(3, '0')}/${currentYear}`;
+            document.getElementById('projectNumber').value = generatedNumber;
+            console.log('Wygenerowany numer:', generatedNumber);
+            
         } catch (err) {
             console.error('Błąd pobierania numeracji:', err);
-            // Jeśli błąd - użyj starej metody
-            document.getElementById('projectNumber').value = getNextPipelineNumber();
+            // Fallback - jeśli błąd
+            const currentYear = new Date().getFullYear();
+            document.getElementById('projectNumber').value = `PL001/${currentYear}`;
         }
     } else {
-        // Jeśli nie ma Supabase - użyj starej metody
-        document.getElementById('projectNumber').value = getNextPipelineNumber();
+        // Jeśli nie ma Supabase
+        const currentYear = new Date().getFullYear();
+        document.getElementById('projectNumber').value = `PL001/${currentYear}`;
     }
     
     // Reset type selection
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
-    document.querySelector('.type-option[data-type="other"]').classList.add('selected');
+    const defaultType = document.querySelector('.type-option[data-type="other"]');
+    if (defaultType) {
+        defaultType.classList.add('selected');
+    }
     
     // For new pipeline project all phases are checked by default
     updatePipelinePhasesList(null, true);
@@ -672,4 +680,13 @@ function autoAdjustPhasesToDeadline(project, startDate, deadlineDate) {
             currentStart.setDate(currentStart.getDate() + 1);
         }
     });
+}
+
+// Fallback function for old localStorage method
+function getNextPipelineNumber() {
+    const currentYear = new Date().getFullYear();
+    lastPipelineNumber = parseInt(localStorage.getItem('lastPipelineNumber') || '0');
+    lastPipelineNumber++;
+    localStorage.setItem('lastPipelineNumber', lastPipelineNumber);
+    return `PL${String(lastPipelineNumber).padStart(3, '0')}/${currentYear}`;
 }
