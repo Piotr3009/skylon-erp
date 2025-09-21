@@ -778,7 +778,7 @@ body.pipeline-theme .project-cell {
     top: 50px;
     bottom: 0;
     width: 40px;
-    background: rgba(0, 255, 0, 0.08);
+    background: rgba(0, 255, 0, 0.05);
     border-left: 1px solid rgba(0, 255, 0, 0.2);
     border-right: 1px solid rgba(0, 255, 0, 0.2);
     pointer-events: none;

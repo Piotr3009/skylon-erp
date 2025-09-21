@@ -137,7 +137,7 @@ function renderGridPattern() {
                 top: 45px;
                 bottom: 0;
                 width: ${dayWidth}px;
-                background: rgba(0, 255, 0, 0.08);
+                background: rgba(0, 255, 0, 0.05);
                 pointer-events: none;
                 z-index: 1;
                 border-left: 1px solid rgba(0, 255, 0, 0.2);
