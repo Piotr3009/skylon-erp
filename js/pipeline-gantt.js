@@ -427,3 +427,8 @@ function workingDaysBetween(startDate, endDate) {
     }
     return count;
 }
+// Nadpisz funkcję shiftWeek dla Pipeline
+window.shiftWeek = function(direction) {
+    visibleStartDate.setDate(visibleStartDate.getDate() + (7 * direction));
+    renderPipeline();
+}
