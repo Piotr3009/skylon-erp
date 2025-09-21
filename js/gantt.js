@@ -161,6 +161,7 @@ function renderProjects() {
         
         const projectType = projectTypes[project.type] || projectTypes.other;
         
+        // ZMIANA: Dodałem przycisk Google Drive
         projectCell.innerHTML = `
             <div class="project-column project-number" onclick="editProjectNumber(${index})" title="Click to edit number">
                 ${project.projectNumber || '---'}
@@ -180,6 +181,10 @@ function renderProjects() {
             <div class="project-column-divider"></div>
             <div class="project-column project-actions">
                 <button class="action-btn" onclick="editProject(${index})" title="Edit">✏️</button>
+                ${project.google_drive_url ? 
+                    `<a href="${project.google_drive_url}" target="_blank" class="action-btn gdrive" title="Open in Google Drive">📁</a>` :
+                    `<button class="action-btn gdrive-add" onclick="addGoogleDriveLink(${index})" title="Add Google Drive link">➕</button>`
+                }
                 <button class="action-btn delete" onclick="deleteProject(${index})" title="Delete">✕</button>
             </div>
         `;
@@ -629,5 +634,47 @@ function renderDeadlineCell(project, timelineCell) {
         deadlineCell.title = `Deadline: ${project.deadline}`;
         
         timelineCell.appendChild(deadlineCell);
+    }
+}
+
+// NOWA FUNKCJA: Dodaj/Edytuj link Google Drive
+async function addGoogleDriveLink(projectIndex) {
+    const project = projects[projectIndex];
+    const currentUrl = project.google_drive_url || '';
+    
+    const newUrl = prompt('Enter Google Drive folder URL:', currentUrl);
+    
+    if (newUrl !== null && newUrl !== currentUrl) {
+        // Validate URL
+        if (newUrl && !newUrl.includes('drive.google.com')) {
+            alert('Please enter a valid Google Drive URL');
+            return;
+        }
+        
+        // Update local data
+        project.google_drive_url = newUrl;
+        
+        // Save to Supabase if connected
+        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+            try {
+                const { error } = await supabaseClient
+                    .from('projects')
+                    .update({ google_drive_url: newUrl })
+                    .eq('project_number', project.projectNumber);
+                
+                if (error) {
+                    console.error('Error updating Google Drive URL:', error);
+                    alert('Error saving to database. URL saved locally only.');
+                } else {
+                    console.log('✅ Google Drive URL saved to database');
+                }
+            } catch (err) {
+                console.error('Database connection error:', err);
+            }
+        }
+        
+        // Update local storage and refresh
+        saveData();
+        render();
     }
 }
