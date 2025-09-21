@@ -230,7 +230,12 @@ async function loadProjectsFromSupabase() {
                     name: dbProject.name,
                     client_id: dbProject.client_id,
                     deadline: dbProject.deadline,
+                        google_drive_url: dbProject.google_drive_url,  // DODANE!
+                    google_drive_folder_id: dbProject.google_drive_folder_id,  
+
                     phases: projectPhases.map(phase => ({
+
+                        
                         key: phase.phase_key,
                         start: phase.start_date,
                         end: phase.end_date,
