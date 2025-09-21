@@ -141,13 +141,13 @@ body.pipeline-theme .project-header {
 }
 
 body.pipeline-theme .project-cell {
-    background: #252a28;
+    background: #2f3037;
     border-right-color: #100f54;
 }
 
 body.pipeline-theme .project-row {
     border-bottom-color: #534a5d;
-}
+
 
 body.pipeline-theme .header-column-divider,
 body.pipeline-theme .project-column-divider {
