@@ -96,27 +96,27 @@ function createPicker() {
     picker.setVisible(true);
 }
 
-// Handle picker selection
+// Handle picker selection  
 async function pickerCallback(data) {
     if (data.action === google.picker.Action.PICKED) {
         const folder = data.docs[0];
         console.log('Selected folder:', folder);
 
-        // Save to project
-        currentProjectForPicker.googleDriveFolder = {
-            id: folder.id,
-            name: folder.name,
-            url: folder.url || `https://drive.google.com/drive/folders/${folder.id}`,
-            iconUrl: folder.iconUrl,
-            linkedAt: new Date().toISOString()
-        };
+        // Prepare folder URL
+        const folderUrl = folder.url || `https://drive.google.com/drive/folders/${folder.id}`;
+        
+        // Save to project object (UŻYWAMY TWOICH KOLUMN!)
+        currentProjectForPicker.google_drive_url = folderUrl;
+        currentProjectForPicker.google_drive_folder_id = folder.id;
+        currentProjectForPicker.google_drive_folder_name = folder.name; // Dodatkowe info
 
-        // Save to Supabase
+        // Save to Supabase (UŻYWAMY TWOICH KOLUMN!)
         if (typeof supabaseClient !== 'undefined') {
             const { error } = await supabaseClient
                 .from('projects')
                 .update({ 
-                    google_drive_folder: currentProjectForPicker.googleDriveFolder 
+                    google_drive_url: folderUrl,
+                    google_drive_folder_id: folder.id
                 })
                 .eq('project_number', currentProjectForPicker.projectNumber);
 
@@ -133,7 +133,7 @@ async function pickerCallback(data) {
         }
 
         // Save locally
-        saveData();
+        if (typeof saveData !== 'undefined') saveData();
     }
 }
 
