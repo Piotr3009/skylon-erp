@@ -22,7 +22,7 @@ async function loadClientsDropdown() {
     }
 }
 
-function addPipelineProject() {
+async function addPipelineProject() {
     currentEditProject = null;
     document.getElementById('projectModalTitle').textContent = 'Add Pipeline Project';
     document.getElementById('projectName').value = '';
@@ -31,8 +31,34 @@ function addPipelineProject() {
     // Load clients dropdown
     loadClientsDropdown();
     
-    // Generate new pipeline number
-    document.getElementById('projectNumber').value = getNextPipelineNumber();
+    // POBIERZ NUMERACJĘ Z BAZY DANYCH
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { data: lastProject } = await supabaseClient
+                .from('pipeline_projects')
+                .select('project_number')
+                .order('project_number', { ascending: false })
+                .limit(1);
+            
+            let nextNumber = 1;
+            if (lastProject && lastProject.length > 0) {
+                // Wyciągnij numer z "P001.2025"
+                const lastNum = parseInt(lastProject[0].project_number.substring(1, 4));
+                nextNumber = lastNum + 1;
+            }
+            
+            const currentYear = new Date().getFullYear();
+            document.getElementById('projectNumber').value = 
+                `P${String(nextNumber).padStart(3, '0')}.${currentYear}`;
+        } catch (err) {
+            console.error('Błąd pobierania numeracji:', err);
+            // Jeśli błąd - użyj starej metody
+            document.getElementById('projectNumber').value = getNextPipelineNumber();
+        }
+    } else {
+        // Jeśli nie ma Supabase - użyj starej metody
+        document.getElementById('projectNumber').value = getNextPipelineNumber();
+    }
     
     // Reset type selection
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
