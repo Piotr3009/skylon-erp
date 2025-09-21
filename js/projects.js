@@ -66,7 +66,7 @@ async function addProject() {
                 console.log('Ostatni numer Production z bazy:', projectNum);
                 
                 // Format: "001.2025" - wyciągnij cyfry przed kropką
-                const match = projectNum.match(/^(\d{3})\./);
+                const match = projectNum.match(/^(\d{3})\//);
                 if (match && match[1]) {
                     const lastNum = parseInt(match[1]);
                     if (!isNaN(lastNum)) {
@@ -76,7 +76,7 @@ async function addProject() {
             }
             
             const currentYear = new Date().getFullYear();
-            const generatedNumber = `${String(nextNumber).padStart(3, '0')}.${currentYear}`;
+            const generatedNumber = `${String(nextNumber).padStart(3, '0')}/${currentYear}`;
             document.getElementById('projectNumber').value = generatedNumber;
             console.log('Wygenerowany numer Production:', generatedNumber);
             
