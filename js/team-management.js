@@ -10,8 +10,7 @@ async function loadTeam() {
         const { data, error } = await supabaseClient
     .from('team_members')
     .select('*')
-    .eq('active', true)
-    .eq('archived', false)  // DODAJ TĘ LINIĘ!
+    .eq('active', true)  // DODANE - tylko aktywni
     .order('name');
         if (error) {
             console.error('Error loading team:', error);
@@ -315,7 +314,35 @@ function closeDetailPanel() {
     document.getElementById('detailPanel').classList.remove('active');
 }
 
-// ========== ARCHIVE EMPLOYEE ==========
+// ========== DEACTIVATE EMPLOYEE ==========
+async function deactivateEmployee(id) {
+    const member = teamMembers.find(m => m.id === id);
+    if (!member) return;
+    
+    if (!confirm(`Deactivate employee "${member.name}"?`)) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('team_members')
+            .update({ 
+                active: false,
+                end_date: new Date().toISOString().split('T')[0]
+            })
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Employee deactivated');
+        loadTeam();
+        
+    } catch (error) {
+        console.error('Error deactivating employee:', error);
+        alert('Error: ' + error.message);
+    }
+}
+// ========== ARCHIVE EMPLOYEE TO ARCHIVES SCHEMA ==========
 async function archiveEmployee(id) {
     const member = teamMembers.find(m => m.id === id);
     if (!member) return;
@@ -337,48 +364,9 @@ async function archiveEmployee(id) {
     
     const notes = prompt('Additional notes (optional):');
     
-    if (!confirm(`Archive "${member.name}"? This will:\n- Remove from all project phases\n- Mark as archived\n- Hide from active list`)) {
+    if (!confirm(`Archive "${member.name}"? This will move them to permanent archives.`)) {
         return;
     }
-    
-    try {
-        // 1. Usuń przypisania z faz projektów
-        const { error: unassignError } = await supabaseClient
-            .from('project_phases')
-            .update({ assigned_to: null })
-            .eq('assigned_to', id);
-            
-        if (unassignError) console.warn('Error removing phase assignments:', unassignError);
-        
-        // 2. Oznacz jako zarchiwizowany
-        const { error: updateError } = await supabaseClient
-            .from('team_members')
-            .update({ 
-                active: false,
-                archived: true,
-                end_date: new Date().toISOString().split('T')[0],
-                departure_reason: reasons[reason],
-                departure_notes: notes,
-                archived_date: new Date().toISOString()
-            })
-            .eq('id', id);
-            
-        if (updateError) throw updateError;
-        
-        alert(`✅ ${member.name} has been archived successfully!`);
-        loadTeam();
-        
-    } catch (error) {
-        console.error('Archive error:', error);
-        alert('❌ Error archiving employee: ' + error.message);
-    }
-}
-
-// Dla kompatybilności wstecznej
-async function deactivateEmployee(id) {
-    archiveEmployee(id);
-}
-
     
     try {
         // 1. Skopiuj do archiwum
