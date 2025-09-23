@@ -173,7 +173,9 @@ const sprayMaterialsList = [
 
 let teamMembers = [];
 let daysOff = [];
+
 let visibleStartDate = new Date();
+visibleStartDate.setDate(visibleStartDate.getDate() - 7); // Start tydzień wcześniej
 let daysToShow = 150;
 let dayWidth = 36;
 let currentEditProject = null;
