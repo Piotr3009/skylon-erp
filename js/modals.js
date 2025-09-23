@@ -118,7 +118,7 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
             
             // Jeśli brak pracowników
             if (employees.length === 0) {
-                select.innerHTML = '<option value="">Brak pracowników w dziale</option>';
+                select.innerHTML = '<option value="">No one assigned to this department</option>';
             }
         });
     } else {
