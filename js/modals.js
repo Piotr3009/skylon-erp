@@ -4,24 +4,42 @@ let currentEditPhase = null;
 // Nowa funkcja do pobierania pracowników z bazy
 async function loadTeamMembersForPhase(phaseKey) {
     try {
-        // Określ departament na podstawie fazy
-        let department = '';
-        if (phaseKey === 'timber') {
-            department = 'production';
+        let query;
+        
+        if (phaseKey === 'timber' || phaseKey === 'glazing') {
+            // Timber i Glazing → dział Production
+            query = supabaseClient
+                .from('team_members')
+                .select('id, name, employee_number, color')
+                .eq('status', 'active')
+                .eq('department', 'production')
+                .order('name');
+                
         } else if (phaseKey === 'spray') {
-            department = 'spray';
-        } else if (phaseKey === 'glazing') {
-            department = 'installation';
+            // Spray → dział Spray
+            query = supabaseClient
+                .from('team_members')
+                .select('id, name, employee_number, color')
+                .eq('status', 'active')
+                .eq('department', 'spray')
+                .order('name');
+                
+        } else if (phaseKey === 'dispatch') {
+            // Dispatch → działy Drivers LUB Installation
+            query = supabaseClient
+                .from('team_members')
+                .select('id, name, employee_number, color')
+                .eq('status', 'active')
+                .or('department.eq.drivers,department.eq.installation')
+                .order('name');
+                
+        } else {
+            // Inne fazy - nie pokazuj nikogo
+            return [];
         }
         
-        // Pobierz tylko aktywnych pracowników z tego działu
-        const { data, error } = await supabaseClient
-            .from('team_members')
-            .select('id, name, employee_number, color')
-            .eq('status', 'active')
-            .eq('department', department)
-            .order('name');
-            
+        const { data, error } = await query;
+        
         if (error) throw error;
         return data || [];
         
@@ -78,7 +96,7 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
     
     // Show/hide team assignment section - ZMIENIONA SEKCJA
     const assignSection = document.getElementById('assignSection');
-    if (phase.key === 'timber' || phase.key === 'spray' || phase.key === 'glazing') {
+    if (phase.key === 'timber' || phase.key === 'spray' || phase.key === 'glazing' || phase.key === 'dispatch') {
         assignSection.style.display = 'block';
         
         // NOWE - Pobierz pracowników z bazy
@@ -314,7 +332,7 @@ async function savePhaseChanges() {
     phase.status = status;
     
     // ZMIENIONA SEKCJA - Assign team member (if applicable)
-    if (phase.key === 'timber' || phase.key === 'spray' || phase.key === 'glazing') {
+    if (phase.key === 'timber' || phase.key === 'spray' || phase.key === 'glazing' || phase.key === 'dispatch') {
         const assignedId = document.getElementById('phaseAssignSelect').value;
         if (assignedId) {
             const selectedOption = document.getElementById('phaseAssignSelect').selectedOptions[0];

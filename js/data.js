@@ -15,7 +15,7 @@ let productionPhases = {
     spray: { name: "Spraying", color: "#e99f62" },
     glazing: { name: "Glazing", color: "#485d68" },
     qc: { name: "QC & Packing", color: "#63a3ab" },
-    dispatch: { name: "Dispatch", color: "#02802a" }
+    dispatch: { name: "Dispatch/Installation", color: "#02802a" }
 };
 
 // Separate pipeline phases  
