@@ -11,7 +11,7 @@ async function loadTeamMembersForPhase(phaseKey) {
             query = supabaseClient
                 .from('team_members')
                 .select('id, name, employee_number, color')
-                .eq('status', 'active')
+                .eq('active', true)
                 .eq('department', 'production')
                 .order('name');
                 
@@ -20,7 +20,7 @@ async function loadTeamMembersForPhase(phaseKey) {
             query = supabaseClient
                 .from('team_members')
                 .select('id, name, employee_number, color')
-                .eq('status', 'active')
+                .eq('active', true)
                 .eq('department', 'spray')
                 .order('name');
                 
@@ -29,7 +29,7 @@ async function loadTeamMembersForPhase(phaseKey) {
             query = supabaseClient
                 .from('team_members')
                 .select('id, name, employee_number, color')
-                .eq('status', 'active')
+                .eq('active', true)
                 .or('department.eq.drivers,department.eq.installation')
                 .order('name');
                 
