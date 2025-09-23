@@ -10,7 +10,8 @@ async function loadTeam() {
         const { data, error } = await supabaseClient
     .from('team_members')
     .select('*')
-    .eq('active', true)  // DODANE - tylko aktywni
+    .eq('active', true)
+    .eq('archived', false)  // DODAJ TĘ LINIĘ!
     .order('name');
         if (error) {
             console.error('Error loading team:', error);
@@ -377,31 +378,7 @@ async function archiveEmployee(id) {
 async function deactivateEmployee(id) {
     archiveEmployee(id);
 }
-// ========== ARCHIVE EMPLOYEE TO ARCHIVES SCHEMA ==========
-async function archiveEmployee(id) {
-    const member = teamMembers.find(m => m.id === id);
-    if (!member) return;
-    
-    // Okno dialogowe z powodem
-    const reason = prompt(`Archive employee "${member.name}"?\n\n1 = Resigned\n2 = Fired\n3 = Contract Ended\n4 = Other`);
-    
-    const reasons = {
-        '1': 'resigned',
-        '2': 'fired', 
-        '3': 'contract_ended',
-        '4': 'other'
-    };
-    
-    if (!reason || !reasons[reason]) {
-        alert('Please select a valid reason');
-        return;
-    }
-    
-    const notes = prompt('Additional notes (optional):');
-    
-    if (!confirm(`Archive "${member.name}"? This will move them to permanent archives.`)) {
-        return;
-    }
+
     
     try {
         // 1. Skopiuj do archiwum
