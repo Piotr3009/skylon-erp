@@ -1489,3 +1489,10 @@ textarea:focus {
     align-items: center;
     justify-content: center;
 }
+.action-btn.archive {
+    background: #ff9800;
+    color: white;
+}
+.action-btn.archive:hover {
+    background: #f57c00;
+}

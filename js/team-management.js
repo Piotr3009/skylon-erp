@@ -8,10 +8,10 @@ async function loadTeam() {
     try {
         // Load from Supabase - wszystko widoczne, bez zabezpieczeń
         const { data, error } = await supabaseClient
-            .from('team_members')
-            .select('*')
-            .order('name');
-        
+    .from('team_members')
+    .select('*')
+    .eq('active', true)  // DODANE - tylko aktywni
+    .order('name');
         if (error) {
             console.error('Error loading team:', error);
             return;
@@ -76,9 +76,9 @@ function renderTeam(members) {
                 </div>
             </td>
             <td>
-                <button class="action-btn" onclick="viewEmployee('${member.id}')" title="View">👁️</button>
-                <button class="action-btn" onclick="editEmployee('${member.id}')" title="Edit">✏️</button>
-                <button class="action-btn delete" onclick="deactivateEmployee('${member.id}')" title="Deactivate">✕</button>
+               <button class="action-btn" onclick="viewEmployee('${member.id}')" title="View">👁️</button>
+<button class="action-btn" onclick="editEmployee('${member.id}')" title="Edit">✏️</button>
+<button class="action-btn archive" onclick="archiveEmployee('${member.id}')" title="Archive">📦</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -342,6 +342,75 @@ async function deactivateEmployee(id) {
         alert('Error: ' + error.message);
     }
 }
+// ========== ARCHIVE EMPLOYEE TO ARCHIVES SCHEMA ==========
+async function archiveEmployee(id) {
+    const member = teamMembers.find(m => m.id === id);
+    if (!member) return;
+    
+    // Okno dialogowe z powodem
+    const reason = prompt(`Archive employee "${member.name}"?\n\n1 = Resigned\n2 = Fired\n3 = Contract Ended\n4 = Other`);
+    
+    const reasons = {
+        '1': 'resigned',
+        '2': 'fired', 
+        '3': 'contract_ended',
+        '4': 'other'
+    };
+    
+    if (!reason || !reasons[reason]) {
+        alert('Please select a valid reason');
+        return;
+    }
+    
+    const notes = prompt('Additional notes (optional):');
+    
+    if (!confirm(`Archive "${member.name}"? This will move them to permanent archives.`)) {
+        return;
+    }
+    
+    try {
+        // 1. Skopiuj do archiwum
+        const { error: archiveError } = await supabaseClient
+            .schema('archives')
+            .from('team_members')
+            .insert({
+                original_id: member.id,
+                name: member.name,
+                email: member.email,
+                phone: member.phone,
+                department: member.department,
+                role: member.role,
+                employee_number: member.employee_number,
+                start_date: member.start_date,
+                end_date: new Date().toISOString().split('T')[0],
+                departure_reason: reasons[reason],
+                departure_notes: notes,
+                archived_by: 'Admin'
+            });
+            
+        if (archiveError) throw archiveError;
+        
+        // 2. Oznacz jako nieaktywny w głównej tabeli
+        const { error: updateError } = await supabaseClient
+            .from('team_members')
+            .update({ 
+                active: false,
+                end_date: new Date().toISOString().split('T')[0]
+            })
+            .eq('id', id);
+            
+        if (updateError) throw updateError;
+        
+        alert(`✅ ${member.name} has been archived successfully!`);
+        loadTeam();
+        
+    } catch (error) {
+        console.error('Archive error:', error);
+        alert('❌ Error archiving employee: ' + error.message);
+    }
+}
+
+
 
 // ========== HOLIDAYS MODAL ==========
 function openHolidaysModal() {
