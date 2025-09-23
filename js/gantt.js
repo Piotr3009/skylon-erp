@@ -540,10 +540,7 @@ function saveDeadlineFromModal(index) {
         // Zapisz deadline
         project.deadline = newDeadline;
         
-        // Auto-dopasuj fazy jeśli są
-        if (phasesCount > 0) {
-            autoAdjustPhasesToDeadline(project, today, deadlineDate);
-        }
+      
         
         saveData();
         render();
