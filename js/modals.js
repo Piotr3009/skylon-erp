@@ -127,7 +127,7 @@ function deleteCurrentPhase() {
         
         // Automatycznie układaj pozostałe fazy
         if (typeof autoArrangeFromPhase === 'function') {
-            autoArrangeFromPhase(projectIndex, 0);
+            autoArrangeFromPhase(projectIndex, phaseIndex);
         }
         
         // MARK AS CHANGED
@@ -154,7 +154,7 @@ function deleteOrderPhase() {
         project.phases.splice(phaseIndex, 1);
         
         if (typeof autoArrangeFromPhase === 'function') {
-            autoArrangeFromPhase(projectIndex, 0);
+            autoArrangeFromPhase(projectIndex, phaseIndex);
         }
         
         // MARK AS CHANGED
@@ -180,7 +180,7 @@ function deleteOrderSprayPhase() {
         project.phases.splice(phaseIndex, 1);
         
         if (typeof autoArrangeFromPhase === 'function') {
-            autoArrangeFromPhase(projectIndex, 0);
+            autoArrangeFromPhase(projectIndex, phaseIndex);
         }
         
         // MARK AS CHANGED
@@ -206,7 +206,7 @@ function deleteOrderGlazingPhase() {
         project.phases.splice(phaseIndex, 1);
         
         if (typeof autoArrangeFromPhase === 'function') {
-            autoArrangeFromPhase(projectIndex, 0);
+            autoArrangeFromPhase(projectIndex, phaseIndex);
         }
         
         // MARK AS CHANGED
@@ -315,7 +315,7 @@ async function savePhaseChanges() {
     
     // Automatycznie układaj fazy po zmianie
     if (typeof autoArrangeFromPhase === 'function') {
-        autoArrangeFromPhase(projectIndex, 0);
+        autoArrangeFromPhase(projectIndex, phaseIndex);
         
         // CHECK IF AUTO-ARRANGE EXCEEDS DEADLINE
         if (project.deadline) {

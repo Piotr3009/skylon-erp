@@ -240,7 +240,7 @@ async function savePipelinePhaseChanges() {
     
     // Auto-arrange phases after change
     if (typeof autoArrangeFromPhase === 'function') {
-        autoArrangeFromPhase(projectIndex, 0);
+        autoArrangeFromPhase(projectIndex, phaseIndex);
     }
     
     // Mark as changed for auto-save
@@ -289,7 +289,7 @@ async function deletePipelineCurrentPhase() {
         
         // Auto-arrange remaining phases
         if (typeof autoArrangeFromPhase === 'function') {
-            autoArrangeFromPhase(projectIndex, 0);
+            autoArrangeFromPhase(projectIndex, phaseIndex);
         }
         
         // Mark as changed for auto-save
