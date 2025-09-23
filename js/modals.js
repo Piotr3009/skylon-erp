@@ -1,6 +1,36 @@
 // ========== MODAL MANAGEMENT ==========
 let currentEditPhase = null;
 
+// Nowa funkcja do pobierania pracowników z bazy
+async function loadTeamMembersForPhase(phaseKey) {
+    try {
+        // Określ departament na podstawie fazy
+        let department = '';
+        if (phaseKey === 'timber') {
+            department = 'production';
+        } else if (phaseKey === 'spray') {
+            department = 'spray';
+        } else if (phaseKey === 'glazing') {
+            department = 'installation';
+        }
+        
+        // Pobierz tylko aktywnych pracowników z tego działu
+        const { data, error } = await supabaseClient
+            .from('team_members')
+            .select('id, name, employee_number, color')
+            .eq('status', 'active')
+            .eq('department', department)
+            .order('name');
+            
+        if (error) throw error;
+        return data || [];
+        
+    } catch (err) {
+        console.error('Error loading team:', err);
+        return [];
+    }
+}
+
 // Open phase edit modal (double-click on any phase)
 function openPhaseEditModal(projectIndex, phaseIndex) {
     currentEditPhase = { projectIndex, phaseIndex };
@@ -46,23 +76,32 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
     const statusSelect = document.getElementById('phaseStatus');
     statusSelect.value = phase.status || 'notStarted';
     
-    // Show/hide team assignment section
+    // Show/hide team assignment section - ZMIENIONA SEKCJA
     const assignSection = document.getElementById('assignSection');
     if (phase.key === 'timber' || phase.key === 'spray' || phase.key === 'glazing') {
         assignSection.style.display = 'block';
         
-        // Fill team member select
-        const select = document.getElementById('phaseAssignSelect');
-        select.innerHTML = '<option value="">None</option>';
-        
-        teamMembers.forEach(member => {
-            const option = document.createElement('option');
-            option.value = member.id;
-            option.textContent = member.name;
-            if (phase.assignedTo === member.id) {
-                option.selected = true;
+        // NOWE - Pobierz pracowników z bazy
+        loadTeamMembersForPhase(phase.key).then(employees => {
+            const select = document.getElementById('phaseAssignSelect');
+            select.innerHTML = '<option value="">Wybierz pracownika...</option>';
+            
+            employees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.name} (${emp.employee_number || '-'})`;
+                option.dataset.color = emp.color || '#999999';
+                
+                if (phase.assignedTo === emp.id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            
+            // Jeśli brak pracowników
+            if (employees.length === 0) {
+                select.innerHTML = '<option value="">Brak pracowników w dziale</option>';
             }
-            select.appendChild(option);
         });
     } else {
         assignSection.style.display = 'none';
@@ -251,21 +290,10 @@ async function savePhaseChanges() {
         const deadlineDate = new Date(project.deadline);
         const phaseEnd = newDuration <= 1 ? start : addWorkingDays(start, newDuration - 1);
         
-        // Calculate days needed for remaining phases
-        let daysNeededForOtherPhases = 0;
-        for (let i = phaseIndex + 1; i < project.phases.length; i++) {
-            const otherPhase = project.phases[i];
-            daysNeededForOtherPhases += otherPhase.workDays || 4; // default 4 days if not set
-        }
-        
-        // Calculate maximum allowed duration for THIS phase
-        const totalAvailableDays = workingDaysBetween(start, deadlineDate);
-        const maxAllowedDuration = Math.max(1, totalAvailableDays - daysNeededForOtherPhases);
-        
-        if (newDuration > maxAllowedDuration) {
-            alert(`Duration exceeds deadline!\n\nMaximum allowed: ${maxAllowedDuration} days\n` +
-                  `(${totalAvailableDays} days to deadline - ${daysNeededForOtherPhases} days for remaining ${project.phases.length - phaseIndex - 1} phases)`);
-            return; // NIE ZAPISUJ!
+        if (phaseEnd > deadlineDate) {
+            const maxAllowed = workingDaysBetween(start, deadlineDate);
+            alert(`This phase would exceed the project deadline!\n\nMaximum allowed: ${maxAllowed} days`);
+            return;
         }
     }
     
@@ -285,13 +313,18 @@ async function savePhaseChanges() {
     // Save status
     phase.status = status;
     
-    // Assign team member (if applicable)
+    // ZMIENIONA SEKCJA - Assign team member (if applicable)
     if (phase.key === 'timber' || phase.key === 'spray' || phase.key === 'glazing') {
         const assignedId = document.getElementById('phaseAssignSelect').value;
         if (assignedId) {
+            const selectedOption = document.getElementById('phaseAssignSelect').selectedOptions[0];
             phase.assignedTo = assignedId;
+            phase.assignedToName = selectedOption.textContent.split(' (')[0];
+            phase.assignedToColor = selectedOption.dataset.color || '#999999';
         } else {
             delete phase.assignedTo;
+            delete phase.assignedToName;
+            delete phase.assignedToColor;
         }
     }
     
@@ -313,9 +346,9 @@ async function savePhaseChanges() {
         }
     }
     
-    // Automatycznie układaj fazy po zmianie
+    // Automatycznie układaj fazy po zmianie  
     if (typeof autoArrangeFromPhase === 'function') {
-        autoArrangeFromPhase(projectIndex, phaseIndex);
+        autoArrangeFromPhase(projectIndex, phaseIndex); // ZMIENIONE z 0 na phaseIndex
         
         // CHECK IF AUTO-ARRANGE EXCEEDS DEADLINE
         if (project.deadline) {
@@ -331,7 +364,6 @@ async function savePhaseChanges() {
             
             if (anyPhaseExceedsDeadline) {
                 alert('Auto-arrange pushed some phases beyond deadline! Please adjust manually.');
-                // Można tu cofnąć zmiany jeśli chcesz
             }
         }
     }
@@ -603,20 +635,15 @@ function openOrderMaterialsModal(projectIndex, phaseIndex) {
             <input type="text" class="material-note" 
                    placeholder="Notes..." 
                    value="${material.notes || ''}"
-                   onchange="updateMaterialNote(${projectIndex}, ${phaseIndex}, ${index}, this.value)">
+                   onchange="updateMaterialNote(${projectIndex}, ${phaseIndex}, ${index}, this.value)"
+                   style="width: 150px; padding: 4px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 11px;">
         `;
         container.appendChild(div);
     });
     
-    // Add custom materials section
-    const customMaterials = phase.customMaterials || [];
-    if (customMaterials.length > 0) {
-        const divider = document.createElement('div');
-        divider.style.cssText = 'border-top: 1px solid #3e3e42; margin: 10px 0; padding-top: 10px;';
-        divider.innerHTML = '<label style="font-size: 11px; color: #9e9e9e;">Custom Materials:</label>';
-        container.appendChild(divider);
-        
-        customMaterials.forEach((material, index) => {
+    // Add custom materials
+    if (phase.customMaterials && phase.customMaterials.length > 0) {
+        phase.customMaterials.forEach((material, index) => {
             const div = document.createElement('div');
             div.className = 'material-item';
             div.innerHTML = `
@@ -636,6 +663,43 @@ function openOrderMaterialsModal(projectIndex, phaseIndex) {
     updateOrderStatus(projectIndex, phaseIndex);
     
     openModal('orderMaterialsModal');
+}
+
+// Save Order duration - FIXED
+function saveOrderDuration() {
+    if (!currentEditPhase) return;
+    
+    const { projectIndex, phaseIndex } = currentEditPhase;
+    const project = projects[projectIndex];
+    const phase = project.phases[phaseIndex];
+    
+    const newDuration = parseInt(document.getElementById('orderDuration').value);
+    
+    if (newDuration < 1) {
+        alert('Duration must be at least 1 day');
+        return;
+    }
+    
+    // SAVE WORKDAYS!
+    phase.workDays = newDuration;
+    
+    // Calculate new end date
+    const start = new Date(phase.start);
+    const newEnd = addWorkingDays(start, newDuration - 1);
+    phase.end = formatDate(newEnd);
+    
+    // Automatycznie układaj kolejne fazy
+    if (typeof autoArrangeFromPhase === 'function') {
+        autoArrangeFromPhase(projectIndex, phaseIndex);
+    }
+    
+    // MARK AS CHANGED
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
+    saveData();
+    render();
 }
 
 // Open Order Spray Materials modal
@@ -674,9 +738,10 @@ function openOrderSprayModal(projectIndex, phaseIndex) {
         if (material.hasColor) {
             colorInput = `
                 <input type="text" class="material-color" 
-                       placeholder="RAL/Color code..." 
+                       placeholder="RAL code..." 
                        value="${material.color || ''}"
-                       onchange="updateSprayColor(${projectIndex}, ${phaseIndex}, ${index}, this.value)">
+                       onchange="updateSprayColor(${projectIndex}, ${phaseIndex}, ${index}, this.value)"
+                       style="width: 100px; padding: 4px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 11px;">
             `;
         }
         
@@ -701,68 +766,7 @@ function openOrderSprayModal(projectIndex, phaseIndex) {
     openModal('orderSprayModal');
 }
 
-// Save Order Materials duration - FIXED
-function saveOrderDuration() {
-    if (!currentEditPhase) return;
-    
-    const { projectIndex, phaseIndex } = currentEditPhase;
-    const project = projects[projectIndex];
-    const phase = project.phases[phaseIndex];
-    
-    const newDuration = parseInt(document.getElementById('orderDuration').value);
-    
-    if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
-        return;
-    }
-    
-    // CHECK DEADLINE BEFORE SAVING!
-    const start = new Date(phase.start);
-    
-    if (project.deadline) {
-        const deadlineDate = new Date(project.deadline);
-        
-        // Calculate days needed for remaining phases
-        let daysNeededForOtherPhases = 0;
-        for (let i = phaseIndex + 1; i < project.phases.length; i++) {
-            const otherPhase = project.phases[i];
-            daysNeededForOtherPhases += otherPhase.workDays || 4;
-        }
-        
-        // Calculate maximum allowed duration
-        const totalAvailableDays = workingDaysBetween(start, deadlineDate);
-        const maxAllowedDuration = Math.max(1, totalAvailableDays - daysNeededForOtherPhases);
-        
-        if (newDuration > maxAllowedDuration) {
-            alert(`Duration exceeds deadline!\n\nMaximum allowed: ${maxAllowedDuration} days\n` +
-                  `(${totalAvailableDays} days to deadline - ${daysNeededForOtherPhases} days for remaining phases)`);
-            document.getElementById('orderDuration').value = phase.workDays || 4;
-            return;
-        }
-    }
-    
-    // SAVE WORKDAYS!
-    phase.workDays = newDuration;
-    
-    // Calculate new end date
-    const newEnd = addWorkDays(start, newDuration - 1);
-    phase.end = formatDate(newEnd);
-    
-    // Automatycznie układaj kolejne fazy
-    if (typeof autoArrangeFromPhase === 'function') {
-        autoArrangeFromPhase(projectIndex, phaseIndex);
-    }
-    
-    // MARK AS CHANGED
-    if (typeof markAsChanged === 'function') {
-        markAsChanged();
-    }
-    
-    saveData();
-    render();
-}
-
-// Save Spray Order duration - FIXED
+// Save Spray Order duration - FIXED  
 function saveSprayOrderDuration() {
     if (!currentEditPhase) return;
     
@@ -777,36 +781,12 @@ function saveSprayOrderDuration() {
         return;
     }
     
-    // CHECK DEADLINE BEFORE SAVING!
-    const start = new Date(phase.start);
-    
-    if (project.deadline) {
-        const deadlineDate = new Date(project.deadline);
-        
-        // Calculate days needed for remaining phases
-        let daysNeededForOtherPhases = 0;
-        for (let i = phaseIndex + 1; i < project.phases.length; i++) {
-            const otherPhase = project.phases[i];
-            daysNeededForOtherPhases += otherPhase.workDays || 4;
-        }
-        
-        // Calculate maximum allowed duration
-        const totalAvailableDays = workingDaysBetween(start, deadlineDate);
-        const maxAllowedDuration = Math.max(1, totalAvailableDays - daysNeededForOtherPhases);
-        
-        if (newDuration > maxAllowedDuration) {
-            alert(`Duration exceeds deadline!\n\nMaximum allowed: ${maxAllowedDuration} days\n` +
-                  `(${totalAvailableDays} days to deadline - ${daysNeededForOtherPhases} days for remaining phases)`);
-            document.getElementById('sprayOrderDuration').value = phase.workDays || 4;
-            return;
-        }
-    }
-    
     // SAVE WORKDAYS!
     phase.workDays = newDuration;
     
     // Calculate new end date
-    const newEnd = addWorkDays(start, newDuration - 1);
+    const start = new Date(phase.start);
+    const newEnd = addWorkingDays(start, newDuration - 1);
     phase.end = formatDate(newEnd);
     
     // Automatycznie układaj kolejne fazy
@@ -846,6 +826,7 @@ function updateSprayColor(projectIndex, phaseIndex, materialIndex, color) {
     const phase = project.phases[phaseIndex];
     
     phase.sprayMaterials[materialIndex].color = color;
+    updateSprayOrderStatus(projectIndex, phaseIndex);
     
     // MARK AS CHANGED
     if (typeof markAsChanged === 'function') {
@@ -1127,28 +1108,35 @@ function updateDaysOffList() {
     const grouped = {};
     sortedDaysOff.forEach(dayOff => {
         const date = new Date(dayOff.date);
-        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-        const monthName = date.toLocaleDateString('en', { month: 'long', year: 'numeric' });
-        
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         if (!grouped[monthKey]) {
-            grouped[monthKey] = { name: monthName, days: [] };
+            grouped[monthKey] = [];
         }
-        grouped[monthKey].days.push(dayOff);
+        grouped[monthKey].push(dayOff);
     });
     
-    Object.values(grouped).forEach(month => {
-        const monthDiv = document.createElement('div');
-        monthDiv.style.cssText = 'margin-bottom: 15px;';
-        monthDiv.innerHTML = `<h4 style="color: #9e9e9e; font-size: 12px; margin-bottom: 5px;">${month.name}</h4>`;
+    // Display grouped days off
+    Object.keys(grouped).sort().reverse().forEach(monthKey => {
+        const [year, month] = monthKey.split('-');
+        const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         
-        month.days.forEach(dayOff => {
-            const div = document.createElement('div');
-            div.style.cssText = 'display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid #3e3e42;';
-            div.innerHTML = `
-                <span>${dayOff.member} - ${new Date(dayOff.date).toLocaleDateString()}</span>
-                <button class="action-btn delete" onclick="removeDayOff('${dayOff.date}', '${dayOff.member}')" style="width: 20px; height: 20px;">✕</button>
+        const monthDiv = document.createElement('div');
+        monthDiv.style.marginBottom = '15px';
+        monthDiv.innerHTML = `<div style="color: #007acc; font-weight: bold; margin-bottom: 5px;">${monthName}</div>`;
+        
+        grouped[monthKey].forEach(dayOff => {
+            const dayDiv = document.createElement('div');
+            dayDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #3e3e42;';
+            
+            const date = new Date(dayOff.date);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+            
+            dayDiv.innerHTML = `
+                <span>${dayOff.member}</span>
+                <span>${dayName}</span>
+                <button class="action-btn delete" onclick="removeDayOff('${dayOff.member}', '${dayOff.date}')">✕</button>
             `;
-            monthDiv.appendChild(div);
+            monthDiv.appendChild(dayDiv);
         });
         
         container.appendChild(monthDiv);
@@ -1156,42 +1144,46 @@ function updateDaysOffList() {
 }
 
 // Remove day off
-function removeDayOff(date, member) {
-    daysOff = daysOff.filter(d => !(d.date === date && d.member === member));
-    
-    // MARK AS CHANGED
-    if (typeof markAsChanged === 'function') {
-        markAsChanged();
+function removeDayOff(member, date) {
+    const index = daysOff.findIndex(d => d.member === member && d.date === date);
+    if (index !== -1) {
+        daysOff.splice(index, 1);
+        
+        // MARK AS CHANGED
+        if (typeof markAsChanged === 'function') {
+            markAsChanged();
+        }
+        
+        saveData();
+        updateDaysOffList();
+        render();
     }
-    
-    saveData();
-    updateDaysOffList();
-    render();
 }
 
-
-
-// Open Move to Archive Modal
+// Open Move to Archive modal
 function openMoveToArchiveModal() {
-    updateCompletedProjectSelect();
-    openModal('moveToArchiveModal');
-}
-
-// Update completed project select
-function updateCompletedProjectSelect() {
     const select = document.getElementById('completedProjectSelect');
     select.innerHTML = '<option value="">Select project...</option>';
     
     projects.forEach((project, index) => {
-        const option = document.createElement('option');
-        option.value = index;
-        option.textContent = `${project.projectNumber} - ${project.name}`;
-        select.appendChild(option);
+        // Check if all phases are completed
+        const allCompleted = project.phases && project.phases.every(phase => 
+            phase.status === 'completed' || phase.status === 'dispatched'
+        );
+        
+        if (allCompleted || !project.phases || project.phases.length === 0) {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${project.projectNumber} - ${project.name}`;
+            select.appendChild(option);
+        }
     });
+    
+    openModal('moveToArchiveModal');
 }
 
 // Confirm move to archive
-function confirmMoveToArchive() {
+async function confirmMoveToArchive() {
     const selectedIndex = document.getElementById('completedProjectSelect').value;
     const reason = document.getElementById('archiveReason').value;
     const notes = document.getElementById('archiveNotes').value.trim();
@@ -1201,19 +1193,40 @@ function confirmMoveToArchive() {
         return;
     }
     
-    const projectIndex = parseInt(selectedIndex);
-    const project = projects[projectIndex];
+    const project = projects[selectedIndex];
     
     // Add to completed archive
-    project.archivedDate = new Date().toISOString();
-    project.archiveReason = reason;
-    if (notes) project.archiveNotes = notes;
+    const archivedProject = {
+        ...project,
+        archivedDate: new Date().toISOString(),
+        archiveReason: reason,
+        archiveNotes: notes
+    };
     
-    if (!completedArchive) completedArchive = [];
-    completedArchive.push(project);
+    completedArchive.push(archivedProject);
     
     // Remove from active projects
-    projects.splice(projectIndex, 1);
+    projects.splice(selectedIndex, 1);
+    
+    // Update database if online
+    if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+        try {
+            // Update project status in database
+            await supabaseClient
+                .from('projects')
+                .update({ 
+                    status: 'archived',
+                    archived_date: archivedProject.archivedDate,
+                    archive_reason: reason,
+                    archive_notes: notes
+                })
+                .eq('project_number', project.projectNumber);
+                
+            console.log('✅ Project archived in database');
+        } catch (err) {
+            console.error('Error archiving in database:', err);
+        }
+    }
     
     // MARK AS CHANGED
     if (typeof markAsChanged === 'function') {
@@ -1224,10 +1237,23 @@ function confirmMoveToArchive() {
     render();
     closeModal('moveToArchiveModal');
     
-    alert(`Project archived: ${project.projectNumber}`);
+    alert(`Project ${project.projectNumber} has been archived successfully!`);
 }
 
-// Generic modal functions
+// Helper functions for materials
+function getMaterialList(projectType) {
+    return materialsList[projectType] || materialsList.other;
+}
+
+function getGlazingMaterialsList() {
+    return glazingMaterialsList || [];
+}
+
+function getSprayMaterialsList() {
+    return sprayMaterialsList || [];
+}
+
+// Generic modal functions - WAŻNE!
 function openModal(modalId) {
     document.getElementById(modalId).classList.add('active');
 }

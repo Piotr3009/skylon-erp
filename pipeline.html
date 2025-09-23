@@ -286,31 +286,7 @@
         </div>
     </div>
 
-    <!-- Team Management Modal -->
-    <div class="modal" id="teamModal">
-        <div class="modal-content">
-            <div class="modal-header">Team Management</div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Add Team Member</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="newMemberName" placeholder="Member name">
-                        <input type="color" id="newMemberColor" value="#ff6b6b">
-                        <button class="modal-btn primary" onclick="addTeamMember()">Add</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Team Members</label>
-                    <div id="teamMembersList" style="max-height: 200px; overflow-y: auto; border: 1px solid #3e3e42; border-radius: 3px; padding: 5px;">
-                        <!-- Team members list -->
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn primary" onclick="closeModal('teamModal')">Done</button>
-            </div>
-        </div>
-    </div>
+  
 
     <!-- Hidden file input -->
     <input type="file" id="fileInput" accept=".json" style="display: none;">

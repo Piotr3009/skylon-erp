@@ -293,8 +293,10 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     const phaseConfig = productionPhases[phase.key];
     if (!phaseConfig) return null;
     
-    const teamMember = phase.assignedTo ? 
-        teamMembers.find(m => m.id === phase.assignedTo) : null;
+   const teamMember = phase.assignedToName ? {
+    name: phase.assignedToName,
+    color: phase.assignedToColor || '#999999'
+} : (phase.assignedTo ? teamMembers.find(m => m.id === phase.assignedTo) : null);
     
     container.className = 'phase-container';
     
