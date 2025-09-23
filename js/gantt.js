@@ -13,6 +13,39 @@
     `;
     document.head.appendChild(style);
 })();
+// ========== SORTOWANIE ========== 
+function setSortMode(mode) {
+    currentSortMode = mode;
+    localStorage.setItem('joinerySortMode', mode);
+    
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`.sort-btn[data-sort="${mode}"]`)?.classList.add('active');
+    
+    render();
+}
+
+function getSortedProjects() {
+    let sortedProjects = [...projects];
+    
+    if (currentSortMode === 'deadline') {
+        sortedProjects.sort((a, b) => {
+            if (!a.deadline && !b.deadline) return 0;
+            if (!a.deadline) return 1;
+            if (!b.deadline) return -1;
+            return new Date(a.deadline) - new Date(b.deadline);
+        });
+    } else {
+        sortedProjects.sort((a, b) => {
+            const numA = parseInt(a.projectNumber.split('/')[0]);
+            const numB = parseInt(b.projectNumber.split('/')[0]);
+            return numA - numB;
+        });
+    }
+    
+    return sortedProjects;
+}
 
 
 // ========== RENDERING ==========
@@ -152,7 +185,12 @@ function renderProjects() {
     const body = document.getElementById('chartBody');
     body.innerHTML = '';
     
-    projects.forEach((project, index) => {
+    // NOWE - sortowanie
+    const sortedProjects = getSortedProjects();
+    
+    sortedProjects.forEach((project, sortIndex) => {
+        // WAŻNE - znajdź oryginalny indeks
+        const index = projects.indexOf(project);
         const row = document.createElement('div');
         row.className = 'project-row';
         
@@ -675,3 +713,16 @@ async function addGoogleDriveLink(projectIndex) {
         render();
     }
 }
+// Wczytaj zapisane sortowanie przy starcie
+window.addEventListener('DOMContentLoaded', function() {
+    const savedSort = localStorage.getItem('joinerySortMode') || 'number';
+    currentSortMode = savedSort;
+
+    // Zaznacz aktywny przycisk po załadowaniu
+    setTimeout(() => {
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`.sort-btn[data-sort="${savedSort}"]`)?.classList.add('active');
+    }, 100);
+});

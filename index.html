@@ -46,6 +46,16 @@
             <button class="toolbar-btn success" onclick="openMoveToArchiveModal()">📦 Move to Archive</button>
             <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
             <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
+<!-- Przyciski sortowania -->
+<div style="width: 1px; height: 20px; background: #555; margin: 0 10px;"></div>
+<span style="font-size: 11px; color: #999; margin-right: 8px;">Sort:</span>
+<button class="toolbar-btn sort-btn" data-sort="number" onclick="setSortMode('number')" title="Sortuj według numeru">
+    🔢 By Number
+</button>
+<button class="toolbar-btn sort-btn" data-sort="deadline" onclick="setSortMode('deadline')" title="Sortuj według Deadline">
+    📅 By DL
+</button>
+
             
             <div class="export-dropdown">
                 <button class="toolbar-btn">Export ▼</button>

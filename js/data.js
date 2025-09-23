@@ -188,6 +188,7 @@ let originalWidth = 0;
 let lastProjectNumber = 0;
 let lastPipelineNumber = 0;
 let currentView = 'production';
+let currentSortMode = 'number'; // NOWA LINIA - sortowanie domyślnie po numerze
 
 // Auto-save variables
 let hasUnsavedChanges = false;
