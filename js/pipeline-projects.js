@@ -464,7 +464,7 @@ async function convertToProduction() {
     };
     
     // Auto-adjust phases to deadline
-    autoAdjustPhasesToDeadline(productionProject, today, deadlineDate);
+   // autoAdjustPhasesToDeadline(productionProject, today, deadlineDate);
     
     // Add to production projects (cross-page save)
     let productionProjects = JSON.parse(localStorage.getItem('joineryProjects') || '[]');
