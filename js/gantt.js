@@ -300,7 +300,11 @@ function detectPhaseOverlaps(phases) {
 function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     const container = document.createElement('div');
     const phaseConfig = productionPhases[phase.key];
-    if (!phaseConfig) return null;
+    if (!phaseConfig) {
+        console.error(`❌ Faza "${phase.key}" nie istnieje w productionPhases! Projekt: ${project.name}`);
+        console.log('Dostępne fazy:', Object.keys(productionPhases));
+        return null;
+    }
     
    const teamMember = phase.assignedToName ? {
     name: phase.assignedToName,
