@@ -214,6 +214,7 @@ async function loadProjectsFromSupabase() {
         
         if (data && data.length > 0) {
             console.log('✅ Loaded', data.length, 'projects from Supabase');
+            console.log('📋 Projekty z bazy:', data.map(p => ({name: p.name, id: p.id, project_number: p.project_number})));
             
             // Load phases from Supabase
             const projectIds = data.map(p => p.id);
@@ -235,6 +236,13 @@ async function loadProjectsFromSupabase() {
             // Merge projects with phases
             projects = data.map(dbProject => {
                 const projectPhases = phasesData?.filter(p => p.project_id === dbProject.id) || [];
+                
+                console.log(`🔍 Projekt ${dbProject.name} (ID: ${dbProject.id}): znaleziono ${projectPhases.length} faz`);
+                if (projectPhases.length === 0 && phasesData) {
+                    // Sprawdź czy w ogóle są fazy dla tego ID
+                    const allProjectIds = phasesData.map(p => p.project_id);
+                    console.warn(`⚠️ Brak faz dla ID ${dbProject.id}. Dostępne project_id w fazach:`, [...new Set(allProjectIds)]);
+                }
                 
                 return {
                     projectNumber: dbProject.project_number,
