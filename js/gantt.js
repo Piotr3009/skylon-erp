@@ -183,6 +183,11 @@ function renderGridPattern() {
 
 function renderProjects() {
     const body = document.getElementById('chartBody');
+    
+    // DIAGNOSTYKA - monitoruj liczbę faz
+    const totalPhases = projects.reduce((sum, p) => sum + (p.phases?.length || 0), 0);
+    console.log(`🔄 Renderowanie: ${projects.length} projektów, ${totalPhases} faz całkowicie`);
+    
     body.innerHTML = '';
     
     // NOWE - sortowanie
@@ -299,11 +304,15 @@ function detectPhaseOverlaps(phases) {
 
 function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     const container = document.createElement('div');
-    const phaseConfig = productionPhases[phase.key];
+    let phaseConfig = productionPhases[phase.key];
+    
     if (!phaseConfig) {
-        console.error(`❌ Faza "${phase.key}" nie istnieje w productionPhases! Projekt: ${project.name}`);
-        console.log('Dostępne fazy:', Object.keys(productionPhases));
-        return null;
+        console.warn(`⚠️ Nieznana faza "${phase.key}" w projekcie ${project.name}. Używam domyślnej konfiguracji.`);
+        // Fallback dla nieznanych faz
+        phaseConfig = {
+            name: phase.key.replace(/([A-Z])/g, ' $1').trim(), // camelCase na spacje
+            color: '#808080' // szary kolor dla nieznanych
+        };
     }
     
    const teamMember = phase.assignedToName ? {
@@ -349,6 +358,14 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     container.style.left = (daysDiff * dayWidth) + 'px';
     container.style.width = (duration * dayWidth) + 'px';
     container.style.borderColor = phaseConfig.color;
+    
+    // DIAGNOSTYKA
+    if (daysDiff < -10 || daysDiff > 200) {
+        console.warn(`⚠️ Faza "${phase.key}" poza widocznym obszarem! Left: ${daysDiff * dayWidth}px, Projekt: ${project.name}`);
+    }
+    if (duration <= 0) {
+        console.error(`❌ Faza "${phase.key}" ma zerową szerokość! Duration: ${duration}, Projekt: ${project.name}`);
+    }
     
     // Top part - colored
     const topDiv = document.createElement('div');
