@@ -201,6 +201,18 @@ let autoSaveInterval = null;
 // Load projects from Supabase + merge with localStorage phases
 async function loadProjectsFromSupabase() {
     try {
+        // NAJPIERW ZAŁADUJ ZESPÓŁ
+        const { data: teamData, error: teamError } = await supabaseClient
+            .from('team_members')
+            .select('*')
+            .eq('active', true);
+            
+        if (!teamError && teamData) {
+            teamMembers = teamData;
+            console.log('✅ Loaded', teamMembers.length, 'team members');
+        }
+        
+        // TERAZ PROJEKTY
         const { data, error } = await supabaseClient
             .from('projects')
             .select('*')
@@ -214,7 +226,10 @@ async function loadProjectsFromSupabase() {
         
         if (data && data.length > 0) {
             console.log('✅ Loaded', data.length, 'projects from Supabase');
-            console.log('📋 Projekty z bazy:', data.map(p => ({name: p.name, id: p.id, project_number: p.project_number})));
+            console.log('📋 Projekty z bazy:');
+            data.forEach(p => {
+                console.log(`  - ${p.name} (ID: ${p.id}, Nr: ${p.project_number})`);
+            });
             
             // Load phases from Supabase
             const projectIds = data.map(p => p.id);
@@ -237,11 +252,13 @@ async function loadProjectsFromSupabase() {
             projects = data.map(dbProject => {
                 const projectPhases = phasesData?.filter(p => p.project_id === dbProject.id) || [];
                 
-                console.log(`🔍 Projekt ${dbProject.name} (ID: ${dbProject.id}): znaleziono ${projectPhases.length} faz`);
-                if (projectPhases.length === 0 && phasesData) {
-                    // Sprawdź czy w ogóle są fazy dla tego ID
-                    const allProjectIds = phasesData.map(p => p.project_id);
-                    console.warn(`⚠️ Brak faz dla ID ${dbProject.id}. Dostępne project_id w fazach:`, [...new Set(allProjectIds)]);
+                if (projectPhases.length === 0) {
+                    console.warn(`⚠️ Projekt "${dbProject.name}" (ID: ${dbProject.id}) nie ma faz!`);
+                    // Sprawdź czy może fazy mają błędne project_id
+                    const podobne = phasesData?.filter(p => p.project_id && p.project_id.startsWith(dbProject.id.substring(0,8)));
+                    if (podobne?.length > 0) {
+                        console.log(`   Znaleziono podobne ID w fazach:`, podobne.map(p => p.project_id));
+                    }
                 }
                 
                 return {
@@ -274,6 +291,12 @@ async function loadProjectsFromSupabase() {
                         workDays: phase.work_days,
                         status: phase.status,
                         assignedTo: phase.assigned_to,
+                        // Dodaj dane pracownika jeśli jest przypisany
+                        assignedToName: phase.assigned_to ? 
+                            teamMembers.find(m => m.id === phase.assigned_to)?.name : null,
+                        assignedToColor: phase.assigned_to ? 
+                            (teamMembers.find(m => m.id === phase.assigned_to)?.color || 
+                             teamMembers.find(m => m.id === phase.assigned_to)?.color_code) : null,
                         notes: phase.notes,
                         materials: phase.materials,
                         orderConfirmed: phase.order_confirmed
@@ -546,22 +569,31 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         }
         
         // 2. PRZYGOTUJ NOWE FAZY
-        const phasesForDB = phases.map((phase, index) => ({
-            [projectIdField]: projectId,
-            phase_key: phase.key,
-            start_date: phase.start,
-            end_date: phase.end || null,
-            work_days: phase.workDays || 4,
-            status: phase.status || 'notStarted',
-            notes: phase.notes || null,
-            order_position: index,
-            // Tylko dla production:
-            ...(isProduction && {
-                assigned_to: phase.assignedTo || null,
-                materials: phase.materials || null,
-                order_confirmed: phase.orderConfirmed || false
-            })
-        }));
+        const phasesForDB = phases.map((phase, index) => {
+            const phaseData = {
+                [projectIdField]: projectId,
+                phase_key: phase.key,
+                start_date: phase.start,
+                end_date: phase.end || null,
+                work_days: phase.workDays || 4,
+                status: phase.status || 'notStarted',
+                notes: phase.notes || null,
+                order_position: index,
+                // Tylko dla production:
+                ...(isProduction && {
+                    assigned_to: phase.assignedTo || null,
+                    materials: phase.materials || null,
+                    order_confirmed: phase.orderConfirmed || false
+                })
+            };
+            
+            // DEBUG przypisania
+            if (phase.assignedTo) {
+                console.log(`📝 Zapisuję przypisanie dla ${phase.key}: ${phase.assignedTo} (${phase.assignedToName})`);
+            }
+            
+            return phaseData;
+        });
         
         // 3. WSTAW NOWE FAZY
         if (phasesForDB.length > 0) {
