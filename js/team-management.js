@@ -190,6 +190,7 @@ async function saveEmployee() {
         hourly_rate: parseFloat(document.getElementById('salaryRate').value) || null,
         start_date: document.getElementById('empStartDate').value || null,
         color_code: document.getElementById('empColor').value,
+        color: document.getElementById('empColor').value,  // DODANE - ustaw też color!
         notes: document.getElementById('empNotes').value.trim() || null,
         active: true
         // USUNIĘTE: status: 'Active' - to jest wyliczane w VIEW!
