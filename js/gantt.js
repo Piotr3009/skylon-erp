@@ -345,6 +345,12 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     
     const start = new Date(phase.start);
     
+    // DIAGNOSTYKA DAT
+    if (isNaN(start.getTime())) {
+        console.error(`❌ Błędna data start dla fazy ${phase.key}: "${phase.start}"`);
+        return null;
+    }
+    
     // NEW - use computeEnd instead of phase.end
     const end = computeEnd(phase);
     

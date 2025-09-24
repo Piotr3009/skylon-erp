@@ -217,11 +217,20 @@ async function loadProjectsFromSupabase() {
             
             // Load phases from Supabase
             const projectIds = data.map(p => p.id);
-            const { data: phasesData } = await supabaseClient
+            const { data: phasesData, error: phasesError } = await supabaseClient
                 .from('project_phases')
                 .select('*')
                 .in('project_id', projectIds)
                 .order('order_position');
+            
+            if (phasesError) {
+                console.error('❌ Error loading phases:', phasesError);
+            }
+            
+            console.log('📊 Loaded phases data:', phasesData);
+            if (phasesData && phasesData.length > 0) {
+                console.log('🔍 First phase structure:', Object.keys(phasesData[0]));
+            }
             
             // Merge projects with phases
             projects = data.map(dbProject => {
@@ -236,19 +245,32 @@ async function loadProjectsFromSupabase() {
                         google_drive_url: dbProject.google_drive_url,  // DODANE!
                     google_drive_folder_id: dbProject.google_drive_folder_id,  
 
-                    phases: projectPhases.map(phase => ({
-
+                    phases: projectPhases.map(phase => {
+                        console.log(`📌 Processing phase for ${dbProject.name}:`, phase);
+                        
+                        // Napraw format daty DD/MM/YYYY na YYYY-MM-DD
+                        const fixDate = (dateStr) => {
+                            if (!dateStr) return null;
+                            if (dateStr.includes('/')) {
+                                const [day, month, year] = dateStr.split('/');
+                                return `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+                            }
+                            return dateStr;
+                        };
+                        
+                        return {
                         
                         key: phase.phase_key,
-                        start: phase.start_date,
-                        end: phase.end_date,
+                        start: fixDate(phase.start_date),
+                        end: fixDate(phase.end_date),
                         workDays: phase.work_days,
                         status: phase.status,
                         assignedTo: phase.assigned_to,
                         notes: phase.notes,
                         materials: phase.materials,
                         orderConfirmed: phase.order_confirmed
-                    }))
+                        };
+                    })
                 };
             });
             
@@ -295,14 +317,26 @@ async function loadPipelineFromSupabase() {
                     type: dbProject.type,
                     name: dbProject.name,
                     client_id: dbProject.client_id,
-                    phases: projectPhases.map(phase => ({
-                        key: phase.phase_key,
-                        start: phase.start_date,
-                        end: phase.end_date,
-                        workDays: phase.work_days,
-                        status: phase.status,
-                        notes: phase.notes
-                    }))
+                    phases: projectPhases.map(phase => {
+                        // Napraw format daty DD/MM/YYYY na YYYY-MM-DD
+                        const fixDate = (dateStr) => {
+                            if (!dateStr) return null;
+                            if (dateStr.includes('/')) {
+                                const [day, month, year] = dateStr.split('/');
+                                return `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+                            }
+                            return dateStr;
+                        };
+                        
+                        return {
+                            key: phase.phase_key,
+                            start: fixDate(phase.start_date),
+                            end: fixDate(phase.end_date),
+                            workDays: phase.work_days,
+                            status: phase.status,
+                            notes: phase.notes
+                        };
+                    })
                 };
             });
             
