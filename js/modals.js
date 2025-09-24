@@ -626,7 +626,7 @@ function openOrderMaterialsModal(projectIndex, phaseIndex) {
     
     // Initialize materials if not exists
     if (!phase.materials) {
-        phase.materials = materialList.map(mat => ({
+        phase.materials = materialList.mat(mat => ({
             ...mat,
             ordered: false,
             notes: ''
