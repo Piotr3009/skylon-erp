@@ -182,30 +182,42 @@ async function deleteCurrentPhase() {
     const phaseConfig = isPipeline ? pipelinePhases[phase.key] : phases[phase.key];
     
     if (confirm(`Delete phase "${phaseConfig.name}" from this project?`)) {
-        // Usuń fazę
-        project.phases.splice(phaseIndex, 1);
-        
-        // Automatycznie układaj pozostałe fazy
-        if (typeof autoArrangeFromPhase === 'function') {
-            autoArrangeFromPhase(projectIndex, phaseIndex);
+        try {
+            // Usuń fazę
+            project.phases.splice(phaseIndex, 1);
+            
+            // Automatycznie układaj pozostałe fazy
+            if (typeof autoArrangeFromPhase === 'function') {
+                autoArrangeFromPhase(projectIndex, phaseIndex);
+            }
+            
+            // MARK AS CHANGED
+            if (typeof markAsChanged === 'function') {
+                markAsChanged();
+            }
+            
+            // NATYCHMIAST zamknij modal - NIE CZEKAJ na zapis!
+            closeModal('phaseEditModal');
+            currentEditPhase = null;
+            
+            // Renderuj widok OD RAZU
+            if (window.location.pathname.includes('pipeline')) {
+                renderPipeline();
+            } else {
+                renderUniversal();
+            }
+            
+            // Zapisz dane W TLE (bez czekania)
+            saveData().catch(error => {
+                console.error('Error saving after delete:', error);
+            });
+            
+        } catch (error) {
+            console.error('Error deleting phase:', error);
+            alert('Error deleting phase. Please try again.');
+            closeModal('phaseEditModal');
+            currentEditPhase = null;
         }
-        
-        // MARK AS CHANGED
-        if (typeof markAsChanged === 'function') {
-            markAsChanged();
-        }
-        
-        await saveData();  // CZEKAJ na zakończenie zapisu!
-        
-        // Renderuj odpowiedni widok
-        if (window.location.pathname.includes('pipeline')) {
-            renderPipeline();
-        } else {
-        renderUniversal();
-        }
-        
-        closeModal('phaseEditModal');
-        currentEditPhase = null;
     }
 }
 
@@ -453,7 +465,9 @@ async function savePhaseChanges() {
         }
     }
     
-    await saveData();  // CZEKAJ na zakończenie zapisu!
+    // NATYCHMIAST zamknij modal
+    closeModal('phaseEditModal');
+    currentEditPhase = null;
     
     // DIAGNOSTYKA
     console.log('PO ZAPISIE - liczba faz:', project.phases.length);
@@ -466,8 +480,10 @@ async function savePhaseChanges() {
         renderUniversal();
     }
     
-    closeModal('phaseEditModal');
-    currentEditPhase = null;
+    // Zapisz dane W TLE (bez czekania)
+    saveData().catch(error => {
+        console.error('Error saving phase changes:', error);
+    });
 }
 
 // Open Order Glazing modal
