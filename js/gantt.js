@@ -251,13 +251,22 @@ function renderProjects() {
                 return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
             });
             
+            console.log(`📊 Projekt "${project.name}": ${project.phases.length} faz do renderowania`);
+            
             const overlaps = detectPhaseOverlaps(sortedPhases);
             
+            let renderedCount = 0;
             sortedPhases.forEach((phase, sortedIndex) => {
                 const originalIndex = project.phases.findIndex(p => p === phase);
                 const phaseBar = createPhaseBar(phase, project, index, originalIndex, overlaps);
-                if (phaseBar) timelineCell.appendChild(phaseBar);
+                if (phaseBar) {
+                    timelineCell.appendChild(phaseBar);
+                    renderedCount++;
+                } else {
+                    console.error(`❌ Faza ${phase.key} NIE utworzona dla projektu "${project.name}"`);
+                }
             });
+            console.log(`✅ Renderowano ${renderedCount}/${sortedPhases.length} faz dla "${project.name}"`);
         }
         
         // Renderuj deadline
