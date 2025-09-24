@@ -324,10 +324,9 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         };
     }
     
-   const teamMember = phase.assignedToName ? {
-    name: phase.assignedToName,
-    color: phase.assignedToColor || '#999999'
-} : (phase.assignedTo ? teamMembers.find(m => m.id === phase.assignedTo) : null);
+   // Zawsze szukaj w teamMembers po ID
+   const teamMember = phase.assignedTo ? 
+       teamMembers.find(m => m.id === phase.assignedTo) : null;
     
     container.className = 'phase-container';
     
