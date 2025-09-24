@@ -136,6 +136,15 @@ function renderPipelineProjects() {
     body.innerHTML = '';
     
     pipelineProjects.forEach((project, index) => {
+        // DIAGNOSTYKA - sprawdź czy są duplikaty faz
+        if (project.phases) {
+            const phaseKeys = project.phases.map(p => p.key);
+            const uniqueKeys = [...new Set(phaseKeys)];
+            if (phaseKeys.length !== uniqueKeys.length) {
+                console.error(`DUPLIKATY FAZ w projekcie ${project.name}:`, phaseKeys);
+            }
+        }
+        
         const row = document.createElement('div');
         row.className = 'project-row';
         

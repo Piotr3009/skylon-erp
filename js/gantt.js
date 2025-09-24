@@ -189,6 +189,15 @@ function renderProjects() {
     const sortedProjects = getSortedProjects();
     
     sortedProjects.forEach((project, sortIndex) => {
+        // DIAGNOSTYKA - sprawdź czy są duplikaty faz
+        if (project.phases) {
+            const phaseKeys = project.phases.map(p => p.key);
+            const uniqueKeys = [...new Set(phaseKeys)];
+            if (phaseKeys.length !== uniqueKeys.length) {
+                console.error(`DUPLIKATY FAZ w projekcie ${project.name}:`, phaseKeys);
+            }
+        }
+        
         // WAŻNE - znajdź oryginalny indeks
         const index = projects.indexOf(project);
         const row = document.createElement('div');
