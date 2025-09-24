@@ -55,7 +55,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // Załaduj dane i renderuj RAZ
     await loadData(); 
-    updatePipelinePhasesLegend();
+    updatePhasesLegend();  // Użyj wspólnej funkcji
     
     // WAŻNE: Użyj setTimeout aby dać czas na załadowanie wszystkiego
     setTimeout(() => {
@@ -192,7 +192,7 @@ function importPipelineJSON() {
                 });
                 
                 saveData();
-                updatePipelinePhasesLegend();
+                updatePhasesLegend();  // Użyj wspólnej funkcji
                 renderPipeline();
                 alert('Pipeline data imported successfully');
             } catch (err) {
@@ -271,8 +271,8 @@ async function savePipelinePhaseChanges() {
     currentEditPhase = null;
 }
 
-// Override savePhaseChanges for pipeline
-window.savePhaseChanges = savePipelinePhaseChanges;
+// Pipeline uses its own save function
+// window.savePhaseChanges = savePipelinePhaseChanges; // REMOVED - causing conflicts
 
 // Delete current pipeline phase
 async function deletePipelineCurrentPhase() {
@@ -321,5 +321,5 @@ async function deletePipelineCurrentPhase() {
     }
 }
 
-// Override deleteCurrentPhase for pipeline
-window.deleteCurrentPhase = deletePipelineCurrentPhase;
+// Pipeline uses its own delete function  
+// window.deleteCurrentPhase = deletePipelineCurrentPhase; // REMOVED - causing conflicts

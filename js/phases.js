@@ -121,6 +121,12 @@ function removePhase(key) {
         saveData();
         updatePhasesLegend();
         updateAvailablePhases();
-        render();
+        
+        // Renderuj odpowiedni widok
+        if (window.location.pathname.includes('pipeline')) {
+            renderPipeline();
+        } else {
+            renderUniversal();
+        }
     }
 }

@@ -375,6 +375,21 @@ async function loadData() {
         completedArchive = JSON.parse(savedCompletedArchive);
     }
     
+    // DEDUPLIKACJA - usuń duplikaty faz po załadowaniu
+    projects = Array.isArray(projects) ? projects : [];
+    projects.forEach(p => {
+        if (p.phases) {
+            p.phases = dedupeProjectPhases(p.phases);
+        }
+    });
+    
+    pipelineProjects = Array.isArray(pipelineProjects) ? pipelineProjects : [];
+    pipelineProjects.forEach(p => {
+        if (p.phases) {
+            p.phases = dedupeProjectPhases(p.phases);
+        }
+    });
+    
     const savedPhases = localStorage.getItem('joineryPhases');
     if (savedPhases) {
         const loadedPhases = JSON.parse(savedPhases);
@@ -636,17 +651,36 @@ async function saveData() {
 
 // ========== AUTO-SAVE FUNCTIONS ==========
 
+let saveInProgress = false;
+let pendingSave = false;
+
+async function saveDataQueued() {
+    if (saveInProgress) {
+        pendingSave = true;
+        return;
+    }
+    
+    saveInProgress = true;
+    await saveData();
+    saveInProgress = false;
+    
+    if (pendingSave) {
+        pendingSave = false;
+        await saveDataQueued();
+    }
+}
+
 function startAutoSave() {
     if (autoSaveInterval) clearInterval(autoSaveInterval);
     
     autoSaveInterval = setInterval(() => {
         if (hasUnsavedChanges) {
             console.log('🔄 Auto-saving...');
-            saveData();
+            saveDataQueued();  // Użyj kolejkowanej wersji
             hasUnsavedChanges = false;
             document.title = "Skylon Joinery - Production Manager";
         }
-    }, 5000); // CO 10 SEKUND
+    }, 5000); // CO 5 SEKUND
 }
 
 function markAsChanged() {

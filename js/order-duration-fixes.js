@@ -140,14 +140,14 @@ function saveOrderDuration() {
                 alert('Auto-arrange would exceed deadline. Reverting changes.');
                 project.phases = oldPhases;
                 input.value = phase.workDays || 4;
-                render();
+        renderUniversal();
                 return;
             }
         }
     }
     
     saveData();
-    render();
+        renderUniversal();
 }
 
 // FIXED: Save Spray Order duration with strict validation
@@ -215,14 +215,14 @@ function saveSprayOrderDuration() {
                 alert('Auto-arrange would exceed deadline. Reverting changes.');
                 project.phases = oldPhases;
                 input.value = phase.workDays || 4;
-                render();
+        renderUniversal();
                 return;
             }
         }
     }
     
     saveData();
-    render();
+        renderUniversal();
 }
 
 // FIXED: Save Glazing Order duration with strict validation  
@@ -290,14 +290,14 @@ function saveGlazingOrderDuration() {
                 alert('Auto-arrange would exceed deadline. Reverting changes.');
                 project.phases = oldPhases;
                 input.value = phase.workDays || 4;
-                render();
+        renderUniversal();
                 return;
             }
         }
     }
     
     saveData();
-    render();
+        renderUniversal();
 }
 
 // IMPORTANT: Add this to the end of modals.js or as separate include

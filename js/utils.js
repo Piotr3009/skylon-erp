@@ -1,4 +1,31 @@
 // ========== UTILITIES ==========
+
+// Uniwersalna funkcja renderująca - wybiera właściwy renderer
+function renderUniversal() {
+    if (window.location.pathname.includes('pipeline')) {
+        if (typeof renderPipeline === 'function') {
+            renderPipeline();
+        }
+    } else {
+        if (typeof render === 'function') {
+            render();
+        }
+    }
+}
+
+// Deduplikacja faz - usuwa duplikaty na podstawie klucza i daty
+function dedupeProjectPhases(phases) {
+    if (!Array.isArray(phases)) return phases;
+    const seen = new Set();
+    return phases.filter(p => {
+        // Unikalność fazy: klucz + data startu + status
+        const k = `${p.key}::${p.start || ''}::${p.status || ''}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+    });
+}
+
 function formatDate(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -16,23 +43,23 @@ function closeModal(id) {
 
 function shiftWeek(direction) {
     visibleStartDate.setDate(visibleStartDate.getDate() + (7 * direction));
-    render();
+    renderUniversal();
 }
 
 function zoomIn() {
     dayWidth = Math.min(72, dayWidth + 5);  // Max 72px (zmniejszone z 80)
-    render();
+    renderUniversal();
 }
 
 function zoomOut() {
     dayWidth = Math.max(18, dayWidth - 5);  // Min 18px (zmniejszone z 20)
-    render();
+    renderUniversal();
 }
 
 // Reset zoom to 100% (original size)
 function zoomReset() {
     dayWidth = 36; // Original default width (zmniejszone z 40)
-    render();
+    renderUniversal();
 }
 
 // Count days off between dates for a specific member (BEZ pomijania niedziel)

@@ -170,13 +170,16 @@ function openDeliveryGlazingModal(projectIndex, phaseIndex) {
 }
 
 // Delete Phase
-function deleteCurrentPhase() {
+async function deleteCurrentPhase() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
-    const project = projects[projectIndex];
+    
+    // WAŻNE: Sprawdź czy jesteśmy w Pipeline czy normalnym Gantt
+    const isPipeline = window.location.pathname.includes('pipeline');
+    const project = isPipeline ? pipelineProjects[projectIndex] : projects[projectIndex];
     const phase = project.phases[phaseIndex];
-    const phaseConfig = phases[phase.key];
+    const phaseConfig = isPipeline ? pipelinePhases[phase.key] : phases[phase.key];
     
     if (confirm(`Delete phase "${phaseConfig.name}" from this project?`)) {
         // Usuń fazę
@@ -192,15 +195,22 @@ function deleteCurrentPhase() {
             markAsChanged();
         }
         
-        saveData();
-        render();
+        await saveData();  // CZEKAJ na zakończenie zapisu!
+        
+        // Renderuj odpowiedni widok
+        if (window.location.pathname.includes('pipeline')) {
+            renderPipeline();
+        } else {
+        renderUniversal();
+        }
+        
         closeModal('phaseEditModal');
         currentEditPhase = null;
     }
 }
 
 // Delete Order Phase
-function deleteOrderPhase() {
+async function deleteOrderPhase() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -220,14 +230,21 @@ function deleteOrderPhase() {
         }
         
         saveData();
-        render();
+        
+        // Renderuj odpowiedni widok
+        if (window.location.pathname.includes('pipeline')) {
+            renderPipeline();
+        } else {
+        renderUniversal();
+        }
+        
         closeModal('orderMaterialsModal');
         currentEditPhase = null;
     }
 }
 
 // Delete Order Spray Phase
-function deleteOrderSprayPhase() {
+async function deleteOrderSprayPhase() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -246,14 +263,21 @@ function deleteOrderSprayPhase() {
         }
         
         saveData();
-        render();
+        
+        // Renderuj odpowiedni widok
+        if (window.location.pathname.includes('pipeline')) {
+            renderPipeline();
+        } else {
+        renderUniversal();
+        }
+        
         closeModal('orderSprayModal');
         currentEditPhase = null;
     }
 }
 
 // Delete Order Glazing Phase
-function deleteOrderGlazingPhase() {
+async function deleteOrderGlazingPhase() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -272,7 +296,14 @@ function deleteOrderGlazingPhase() {
         }
         
         saveData();
-        render();
+        
+        // Renderuj odpowiedni widok
+        if (window.location.pathname.includes('pipeline')) {
+            renderPipeline();
+        } else {
+        renderUniversal();
+        }
+        
         closeModal('orderGlazingModal');
         currentEditPhase = null;
     }
@@ -283,8 +314,17 @@ async function savePhaseChanges() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
-    const project = projects[projectIndex];
+    
+    // WAŻNE: Sprawdź czy jesteśmy w Pipeline czy normalnym Gantt
+    const isPipeline = window.location.pathname.includes('pipeline');
+    const project = isPipeline ? pipelineProjects[projectIndex] : projects[projectIndex];
+    
+    // DIAGNOSTYKA
+    console.log('PRZED ZAPISEM - liczba faz:', project.phases.length);
+    console.log('PRZED ZAPISEM - klucze faz:', project.phases.map(p => p.key));
+    
     const phase = project.phases[phaseIndex];
+    const phasesConfig = isPipeline ? pipelinePhases : phases;
     
     // Get new duration
     const newDuration = parseInt(document.getElementById('phaseDuration').value);
@@ -368,6 +408,10 @@ async function savePhaseChanges() {
     if (typeof autoArrangeFromPhase === 'function') {
         autoArrangeFromPhase(projectIndex, phaseIndex); // ZMIENIONE z 0 na phaseIndex
         
+        // DIAGNOSTYKA
+        console.log('PO AUTO-ARRANGE - liczba faz:', project.phases.length);
+        console.log('PO AUTO-ARRANGE - klucze faz:', project.phases.map(p => p.key));
+        
         // CHECK IF AUTO-ARRANGE EXCEEDS DEADLINE
         if (project.deadline) {
             const deadlineDate = new Date(project.deadline);
@@ -393,8 +437,9 @@ async function savePhaseChanges() {
     
     // Save phases to database if online
     if (typeof supabaseClient !== 'undefined') {
+        const tableName = isPipeline ? 'pipeline_projects' : 'projects';
         const { data: projectData } = await supabaseClient
-            .from('projects')
+            .from(tableName)
             .select('id')
             .eq('project_number', project.projectNumber)
             .single();
@@ -403,13 +448,24 @@ async function savePhaseChanges() {
             await savePhasesToSupabase(
                 projectData.id,
                 project.phases,
-                true  // true = production
+                !isPipeline  // true = production, false = pipeline
             );
         }
     }
     
-    saveData();
-    render();
+    await saveData();  // CZEKAJ na zakończenie zapisu!
+    
+    // DIAGNOSTYKA
+    console.log('PO ZAPISIE - liczba faz:', project.phases.length);
+    console.log('PO ZAPISIE - klucze faz:', project.phases.map(p => p.key));
+    
+    // Renderuj odpowiedni widok - Pipeline lub normalny Gantt
+    if (window.location.pathname.includes('pipeline')) {
+        renderPipeline();
+    } else {
+        renderUniversal();
+    }
+    
     closeModal('phaseEditModal');
     currentEditPhase = null;
 }
@@ -479,7 +535,7 @@ function openOrderGlazingModal(projectIndex, phaseIndex) {
 }
 
 // Save Glazing Order duration - FIXED
-function saveGlazingOrderDuration() {
+async function saveGlazingOrderDuration() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -512,7 +568,7 @@ function saveGlazingOrderDuration() {
     }
     
     saveData();
-    render();
+        renderUniversal();
 }
 
 // Update glazing material status
@@ -605,7 +661,14 @@ function confirmGlazingOrderComplete() {
     }
     
     saveData();
-    render();
+    
+    // Renderuj odpowiedni widok
+    if (window.location.pathname.includes('pipeline')) {
+        renderPipeline();
+    } else {
+        renderUniversal();
+    }
+    
     closeModal('orderGlazingModal');
 }
 
@@ -684,7 +747,7 @@ function openOrderMaterialsModal(projectIndex, phaseIndex) {
 }
 
 // Save Order duration - FIXED
-function saveOrderDuration() {
+async function saveOrderDuration() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -717,7 +780,7 @@ function saveOrderDuration() {
     }
     
     saveData();
-    render();
+        renderUniversal();
 }
 
 // Open Order Spray Materials modal
@@ -785,7 +848,7 @@ function openOrderSprayModal(projectIndex, phaseIndex) {
 }
 
 // Save Spray Order duration - FIXED  
-function saveSprayOrderDuration() {
+async function saveSprayOrderDuration() {
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
@@ -818,7 +881,13 @@ function saveSprayOrderDuration() {
     }
     
     saveData();
-    render();
+    
+    // Renderuj odpowiedni widok
+    if (window.location.pathname.includes('pipeline')) {
+        renderPipeline();
+    } else {
+        renderUniversal();
+    }
 }
 
 // Update spray material status
@@ -913,7 +982,14 @@ function confirmSprayOrderComplete() {
     }
     
     saveData();
-    render();
+    
+    // Renderuj odpowiedni widok
+    if (window.location.pathname.includes('pipeline')) {
+        renderPipeline();
+    } else {
+        renderUniversal();
+    }
+    
     closeModal('orderSprayModal');
 }
 
@@ -1057,7 +1133,14 @@ function confirmOrderComplete() {
     }
     
     saveData();
-    render();
+    
+    // Renderuj odpowiedni widok
+    if (window.location.pathname.includes('pipeline')) {
+        renderPipeline();
+    } else {
+        renderUniversal();
+    }
+    
     closeModal('orderMaterialsModal');
 }
 
@@ -1106,7 +1189,7 @@ function markDayOffFromModal() {
     
     saveData();
     updateDaysOffList();
-    render();
+        renderUniversal();
 }
 
 // Update Days Off list in modal
@@ -1174,7 +1257,7 @@ function removeDayOff(member, date) {
         
         saveData();
         updateDaysOffList();
-        render();
+        renderUniversal();
     }
 }
 
@@ -1252,7 +1335,7 @@ async function confirmMoveToArchive() {
     }
     
     saveData();
-    render();
+        renderUniversal();
     closeModal('moveToArchiveModal');
     
     alert(`Project ${project.projectNumber} has been archived successfully!`);

@@ -136,6 +136,9 @@ function renderPipelineProjects() {
     body.innerHTML = '';
     
     pipelineProjects.forEach((project, index) => {
+        // DEDUPLIKACJA FAZ - usuń duplikaty przed renderowaniem
+        project.phases = dedupeProjectPhases(project.phases);
+        
         // DIAGNOSTYKA - sprawdź czy są duplikaty faz
         if (project.phases) {
             const phaseKeys = project.phases.map(p => p.key);
