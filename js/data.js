@@ -478,7 +478,7 @@ async function loadData() {
 
     const today = new Date();
     visibleStartDate = new Date(today);
-    visibleStartDate.setDate(today.getDate() - today.getDay());
+    visibleStartDate.setDate(today.getDate() - 7);
     visibleStartDate.setHours(0,0,0,0);
     
     // Start auto-save
@@ -546,7 +546,7 @@ function loadFromLocalStorage() {
 
     const today = new Date();
     visibleStartDate = new Date(today);
-    visibleStartDate.setDate(today.getDate() - today.getDay());
+    visibleStartDate.setDate(today.getDate() - 7);
     visibleStartDate.setHours(0,0,0,0);
 }
 
