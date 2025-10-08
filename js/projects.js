@@ -229,14 +229,28 @@ async function saveProject() {
         }
     });
     
+
     const projectData = {
-        projectNumber,
-        type: projectType,
-        name,
-        client_id: clientId,  // Store client ID
-        deadline: deadline || null,
-        phases: selectedPhases
-    };
+    projectNumber,
+    type: projectType,
+    name,
+    client_id: clientId,
+    deadline: deadline || null,
+    phases: selectedPhases
+};
+
+// PRESERVE google_drive fields when editing
+if (currentEditProject !== null && projects[currentEditProject]) {
+    if (projects[currentEditProject].google_drive_url) {
+        projectData.google_drive_url = projects[currentEditProject].google_drive_url;
+    }
+    if (projects[currentEditProject].google_drive_folder_id) {
+        projectData.google_drive_folder_id = projects[currentEditProject].google_drive_folder_id;
+    }
+    if (projects[currentEditProject].google_drive_folder_name) {
+        projectData.google_drive_folder_name = projects[currentEditProject].google_drive_folder_name;
+    }
+}
     
     // Jeśli jest deadline, auto-dopasuj fazy
     if (deadline && selectedPhases.length > 0) {
