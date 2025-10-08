@@ -503,6 +503,28 @@ async function convertToProduction() {
     // Save to production DB with client_id and phases
     if (typeof supabaseClient !== 'undefined') {
         try {
+            console.log('💾 Attempting to save project:', productionProjectNumber);
+            console.log('💾 Project data:', {
+                project_number: productionProject.projectNumber,
+                type: productionProject.type,
+                name: productionProject.name,
+                client_id: productionProject.client_id,
+                deadline: productionProject.deadline
+            });
+            
+            // SPRAWDŹ CZY PROJEKT JUŻ ISTNIEJE
+            const { data: existingProject } = await supabaseClient
+                .from('projects')
+                .select('id, project_number')
+                .eq('project_number', productionProject.projectNumber)
+                .single();
+            
+            if (existingProject) {
+                console.error('❌ Project already exists:', existingProject);
+                alert(`Project ${productionProject.projectNumber} already exists in database! Cannot convert.`);
+                return;
+            }
+            
             const { data: savedProject, error } = await supabaseClient
                 .from('projects')
                 .insert([{
