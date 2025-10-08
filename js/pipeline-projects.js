@@ -434,15 +434,44 @@ async function convertToProduction() {
         return;
     }
     
-    // Properly increment lastProjectNumber
-    let currentLastNumber = parseInt(localStorage.getItem('joineryLastProjectNumber') || '0');
-    currentLastNumber++;
-    localStorage.setItem('joineryLastProjectNumber', currentLastNumber);
+    // Get next production number from Supabase
+    let productionProjectNumber;
     
-    // Create production project with incremented number
-    const year = new Date().getFullYear();
-    const number = String(currentLastNumber).padStart(3, '0');
-    const productionProjectNumber = `${number}/${year}`;
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { data: lastProject } = await supabaseClient
+                .from('projects')
+                .select('project_number')
+                .order('project_number', { ascending: false })
+                .limit(1);
+            
+            let nextNumber = 1;
+            if (lastProject && lastProject.length > 0) {
+                const match = lastProject[0].project_number.match(/(\d{3})\//);
+                if (match) {
+                    nextNumber = parseInt(match[1]) + 1;
+                }
+            }
+            
+            const year = new Date().getFullYear();
+            productionProjectNumber = `${String(nextNumber).padStart(3, '0')}/${year}`;
+            
+            console.log('🔢 Generated production number:', productionProjectNumber);
+        } catch (err) {
+            console.error('Error getting next number:', err);
+            const year = new Date().getFullYear();
+            productionProjectNumber = `001/${year}`;
+        }
+    } else {
+        // Fallback to localStorage
+        let currentLastNumber = parseInt(localStorage.getItem('joineryLastProjectNumber') || '0');
+        currentLastNumber++;
+        localStorage.setItem('joineryLastProjectNumber', currentLastNumber);
+        
+        const year = new Date().getFullYear();
+        const number = String(currentLastNumber).padStart(3, '0');
+        productionProjectNumber = `${number}/${year}`;
+    }
     
     // Create phases
     const phases = createProductionPhases(new Date());
