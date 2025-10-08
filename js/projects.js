@@ -273,7 +273,9 @@ async function saveProject() {
                 deadline: projectData.deadline,
                 status: 'active',
                 notes: null,
-                contract_value: 0
+                contract_value: 0,
+                google_drive_url: projectData.google_drive_url || null,
+                google_drive_folder_id: projectData.google_drive_folder_id || null
             };
             
             const { error } = await supabaseClient
