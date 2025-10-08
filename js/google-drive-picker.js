@@ -105,20 +105,21 @@ async function pickerCallback(data) {
         // Prepare folder URL
         const folderUrl = folder.url || `https://drive.google.com/drive/folders/${folder.id}`;
         
-        // Save to project object
+        // Save to current project object (for immediate UI update)
         currentProjectForPicker.google_drive_url = folderUrl;
         currentProjectForPicker.google_drive_folder_id = folder.id;
         currentProjectForPicker.google_drive_folder_name = folder.name;
         
-        // CRITICAL: Update project in the projects[] array
-        if (typeof projects !== 'undefined') {
-            const projectIndex = projects.findIndex(p => p.projectNumber === currentProjectForPicker.projectNumber);
-            if (projectIndex !== -1) {
-                projects[projectIndex].google_drive_url = folderUrl;
-                projects[projectIndex].google_drive_folder_id = folder.id;
-                projects[projectIndex].google_drive_folder_name = folder.name;
-                console.log('✅ Updated project in projects[] array');
-            }
+        // Update project in projects[] array using helper function
+        if (typeof window.updateProjectGoogleDrive === 'function') {
+            window.updateProjectGoogleDrive(
+                currentProjectForPicker.projectNumber,
+                folderUrl,
+                folder.id,
+                folder.name
+            );
+        } else {
+            console.error('❌ updateProjectGoogleDrive function not available');
         }
 
         // Save to Supabase

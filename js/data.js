@@ -914,3 +914,18 @@ function clearAll() {
         render();
     }
 }
+
+// ========== GOOGLE DRIVE HELPER ==========
+// Function to update Google Drive info for a project (called from google-drive-picker.js)
+window.updateProjectGoogleDrive = function(projectNumber, folderUrl, folderId, folderName) {
+    const projectIndex = projects.findIndex(p => p.projectNumber === projectNumber);
+    if (projectIndex !== -1) {
+        projects[projectIndex].google_drive_url = folderUrl;
+        projects[projectIndex].google_drive_folder_id = folderId;
+        projects[projectIndex].google_drive_folder_name = folderName;
+        console.log('✅ Updated project in projects[] array:', projectNumber);
+        return true;
+    }
+    console.error('❌ Project not found in projects[]:', projectNumber);
+    return false;
+};
