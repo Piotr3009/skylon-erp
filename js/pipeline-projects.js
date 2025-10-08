@@ -491,13 +491,18 @@ async function convertToProduction() {
             
             if (!error && savedProject) {
                 console.log('✅ Production project saved to DB with client');
+                console.log('📊 Saved project ID:', savedProject.id);
+                console.log('📊 Phases to save:', productionProject.phases.length);
+                console.log('📊 Phases data:', productionProject.phases);
                 
                 // Save production phases
-                await savePhasesToSupabase(
+                const phaseSaveResult = await savePhasesToSupabase(
                     savedProject.id,
                     productionProject.phases,
                     true  // true = production
                 );
+                
+                console.log('📊 Phase save result:', phaseSaveResult);
                 
                 await updateClientProjectCount(productionProject.client_id);
             }
