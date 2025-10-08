@@ -622,7 +622,7 @@ async function saveData() {
     try {
         // PRODUCTION PROJECTS
         if (projects.length > 0 && typeof supabaseClient !== 'undefined') {
-            // Zapisz projekty
+            // Zapisz TYLKO dane projektów (bez faz)
             const projectsForDB = projects.map(p => ({
                 project_number: p.projectNumber,
                 type: p.type,
@@ -644,25 +644,8 @@ async function saveData() {
                 console.error('Error saving projects:', error);
             } else {
                 console.log('✅ Projects saved to Supabase!');
-                
-                // ZAPISZ FAZY - czekamy na zakończenie!
-                for (const project of projects) {
-                    if (project.phases && project.phases.length > 0) {
-                        const { data: projectData } = await supabaseClient
-                            .from('projects')
-                            .select('id')
-                            .eq('project_number', project.projectNumber)
-                            .single();
-                            
-                        if (projectData) {
-                            await savePhasesToSupabase(
-                                projectData.id, 
-                                project.phases, 
-                                true
-                            );
-                        }
-                    }
-                }
+                // FAZY NIE SĄ ZAPISYWANE TUTAJ!
+                // Fazy zapisywane tylko przy edycji fazy (modals.js, drag.js)
             }
         }
         
