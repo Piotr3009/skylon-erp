@@ -631,7 +631,9 @@ async function saveData() {
                 status: 'active',
                 notes: p.client || null,
                 contract_value: 0,
-                client_id: p.client_id || null
+                client_id: p.client_id || null,
+                google_drive_url: p.google_drive_url || null,
+                google_drive_folder_id: p.google_drive_folder_id || null
             }));
             
             const { data, error } = await supabaseClient
