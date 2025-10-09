@@ -325,7 +325,7 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                         };
                         
                         const { error: phaseError } = await supabaseClient
-                            ..from('project_phases')  // ← TUTAJ
+                            .from('project_phases')  // ← TUTAJ
                             .upsert(phaseForDB, { onConflict: 'project_id,phase_key' });
                         
                         if (phaseError) {
