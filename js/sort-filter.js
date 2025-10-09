@@ -18,11 +18,14 @@ function initializeFilterDropdowns() {
 }
 
 function populateWorkerDropdowns() {
-    // Timber workers list
+    // Timber workers list - ONLY production department
     const timberList = document.getElementById('timberWorkersList');
     if (timberList) {
         timberList.innerHTML = '';
-        teamMembers.forEach(worker => {
+        
+        const productionWorkers = teamMembers.filter(w => w.department === 'production');
+        
+        productionWorkers.forEach(worker => {
             const button = document.createElement('button');
             button.onclick = () => setTimberFilter(worker.id);
             button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color};"></span>${worker.name}`;
@@ -35,14 +38,17 @@ function populateWorkerDropdowns() {
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         timberList.appendChild(unassignedBtn);
         
-        console.log('✅ Timber dropdown populated');
+        console.log(`✅ Timber dropdown populated with ${productionWorkers.length} production workers`);
     }
     
-    // Spray workers list
+    // Spray workers list - ONLY spray department
     const sprayList = document.getElementById('sprayWorkersList');
     if (sprayList) {
         sprayList.innerHTML = '';
-        teamMembers.forEach(worker => {
+        
+        const sprayWorkers = teamMembers.filter(w => w.department === 'spray');
+        
+        sprayWorkers.forEach(worker => {
             const button = document.createElement('button');
             button.onclick = () => setSprayFilter(worker.id);
             button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color};"></span>${worker.name}`;
@@ -55,7 +61,7 @@ function populateWorkerDropdowns() {
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         sprayList.appendChild(unassignedBtn);
         
-        console.log('✅ Spray dropdown populated');
+        console.log(`✅ Spray dropdown populated with ${sprayWorkers.length} spray workers`);
     }
 }
 
