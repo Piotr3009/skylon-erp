@@ -129,7 +129,7 @@ function handleDrag(e) {
     }
 }
 
-function stopDrag(e) {
+async function stopDrag(e) {
     if (!draggedElement) return;
     
     const deltaX = e.clientX - startX;
@@ -233,6 +233,27 @@ function stopDrag(e) {
         // Mark as changed for auto-save
         if (typeof markAsChanged === 'function') {
             markAsChanged();
+        }
+        
+        // ZAPISZ FAZY DO SUPABASE
+        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+            try {
+                // Pobierz project.id z bazy
+                const { data: projectData, error: fetchError } = await supabaseClient
+                    .from('projects')
+                    .select('id')
+                    .eq('project_number', project.projectNumber)
+                    .single();
+                
+                if (!fetchError && projectData) {
+                    await savePhasesToSupabase(projectData.id, project.phases, true);
+                    console.log('✅ Phases saved to Supabase after drag');
+                } else {
+                    console.warn('⚠️ Could not find project in database:', project.projectNumber);
+                }
+            } catch (err) {
+                console.error('Error saving phases to Supabase:', err);
+            }
         }
         
         saveData();

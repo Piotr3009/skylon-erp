@@ -197,6 +197,7 @@ async function saveProject() {
         const newPhase = {
             key: phaseKey,
             start: formatDate(phaseStart),
+            end: formatDate(phaseEnd),
             workDays: phaseDuration, // Save working days
             status: 'notStarted'
         };
@@ -229,28 +230,27 @@ async function saveProject() {
         }
     });
     
-
     const projectData = {
-    projectNumber,
-    type: projectType,
-    name,
-    client_id: clientId,
-    deadline: deadline || null,
-    phases: selectedPhases
-};
-
-// PRESERVE google_drive fields when editing
-if (currentEditProject !== null && projects[currentEditProject]) {
-    if (projects[currentEditProject].google_drive_url) {
-        projectData.google_drive_url = projects[currentEditProject].google_drive_url;
+        projectNumber,
+        type: projectType,
+        name,
+        client_id: clientId,
+        deadline: deadline || null,
+        phases: selectedPhases
+    };
+    
+    // PRESERVE google_drive fields when editing
+    if (currentEditProject !== null && projects[currentEditProject]) {
+        if (projects[currentEditProject].google_drive_url) {
+            projectData.google_drive_url = projects[currentEditProject].google_drive_url;
+        }
+        if (projects[currentEditProject].google_drive_folder_id) {
+            projectData.google_drive_folder_id = projects[currentEditProject].google_drive_folder_id;
+        }
+        if (projects[currentEditProject].google_drive_folder_name) {
+            projectData.google_drive_folder_name = projects[currentEditProject].google_drive_folder_name;
+        }
     }
-    if (projects[currentEditProject].google_drive_folder_id) {
-        projectData.google_drive_folder_id = projects[currentEditProject].google_drive_folder_id;
-    }
-    if (projects[currentEditProject].google_drive_folder_name) {
-        projectData.google_drive_folder_name = projects[currentEditProject].google_drive_folder_name;
-    }
-}
     
     // Jeśli jest deadline, auto-dopasuj fazy
     if (deadline && selectedPhases.length > 0) {
@@ -368,12 +368,15 @@ async function updateClientProjectCount(clientId) {
 }
 
 async function deleteProject(index) {
-    if (confirm('Delete project "' + projects[index].name + '"?')) {
-        const projectNumber = projects[index].projectNumber;
-        const clientId = projects[index].client_id;
-        
-        // Usuń z Supabase jeśli jest połączenie
-        if (projectNumber && typeof supabaseClient !== 'undefined') {
+    if (!projects[index]) return;
+    
+    const project = projects[index];
+    const projectNumber = project.projectNumber;
+    const clientId = project.client_id;
+    
+    if (confirm(`Delete project ${projectNumber}?\nThis will also delete all its phases.`)) {
+        // Delete from Supabase
+        if (typeof supabaseClient !== 'undefined' && projectNumber) {
             try {
                 const { error } = await supabaseClient
                     .from('projects')
