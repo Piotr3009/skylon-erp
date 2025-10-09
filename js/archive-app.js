@@ -136,6 +136,7 @@ function populateYearFilter() {
 // Setup filters
 function setupFilters() {
     document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('sourceFilter').addEventListener('change', applyFilters);
     document.getElementById('reasonFilter').addEventListener('change', applyFilters);
     document.getElementById('clientFilter').addEventListener('change', applyFilters);
     document.getElementById('yearFilter').addEventListener('change', applyFilters);
@@ -144,6 +145,7 @@ function setupFilters() {
 // Apply filters
 function applyFilters() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const sourceFilter = document.getElementById('sourceFilter').value;
     const reasonFilter = document.getElementById('reasonFilter').value;
     const clientFilter = document.getElementById('clientFilter').value;
     const yearFilter = document.getElementById('yearFilter').value;
@@ -155,6 +157,11 @@ function applyFilters() {
                 (project.project_number || '').toLowerCase().includes(searchTerm) ||
                 (project.name || '').toLowerCase().includes(searchTerm);
             if (!matchesSearch) return false;
+        }
+        
+        // Source filter
+        if (sourceFilter && project.source !== sourceFilter) {
+            return false;
         }
         
         // Reason filter
@@ -217,6 +224,10 @@ function createProjectCard(project) {
     const reasonText = (project.archive_reason || 'completed').charAt(0).toUpperCase() + 
                        (project.archive_reason || 'completed').slice(1);
     
+    const sourceIcon = project.source === 'pipeline' ? '📄' : '🏭';
+    const sourceText = project.source === 'pipeline' ? 'Pipeline' : 'Production';
+    const sourceBg = project.source === 'pipeline' ? '#2c5a8f' : '#5a4632';
+    
     const archivedDate = project.archived_date ? 
         new Date(project.archived_date).toLocaleDateString('en-GB') : '-';
     
@@ -233,7 +244,10 @@ function createProjectCard(project) {
                 <div class="project-main-info">
                     <div class="project-number">${project.project_number || '-'}</div>
                     <div class="project-name">${project.name || 'Unnamed Project'}</div>
-                    <span class="project-type-badge">${project.type || 'other'}</span>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <span class="project-type-badge">${project.type || 'other'}</span>
+                        <span class="project-type-badge" style="background: ${sourceBg};">${sourceIcon} ${sourceText}</span>
+                    </div>
                 </div>
                 <div class="project-dates">
                     <div style="margin-bottom: 8px;">
@@ -251,13 +265,15 @@ function createProjectCard(project) {
                     <div class="detail-value">${clientNumber} - ${clientName}</div>
                 </div>
                 
+                ${project.source === 'production' ? `
                 <div class="detail-item">
                     <div class="detail-label">Deadline</div>
                     <div class="detail-value">${deadlineDate}</div>
                 </div>
+                ` : ''}
                 
                 <div class="detail-item">
-                    <div class="detail-label">Contract Value</div>
+                    <div class="detail-label">${project.source === 'production' ? 'Contract Value' : 'Estimated Value'}</div>
                     <div class="detail-value">£${(project.contract_value || 0).toLocaleString()}</div>
                 </div>
                 

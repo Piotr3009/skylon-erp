@@ -626,7 +626,7 @@ async function convertToProduction() {
 }
 
 // Archive as failed
-function archiveAsFailed() {
+async function archiveAsFailed() {
     const selectedIndex = document.getElementById('pipelineProjectSelect').value;
     
     if (!selectedIndex) {
@@ -636,12 +636,65 @@ function archiveAsFailed() {
     
     const pipelineProject = pipelineProjects[parseInt(selectedIndex)];
     
-    // Add to failed archive
-    pipelineProject.archivedDate = new Date().toISOString();
-    pipelineProject.archiveReason = 'Failed negotiation';
-    failedArchive.push(pipelineProject);
+    // Przygotuj dane do archiwum
+    const archivedProject = {
+        project_number: pipelineProject.projectNumber,
+        name: pipelineProject.name,
+        type: pipelineProject.type,
+        client_id: pipelineProject.client_id,
+        google_drive_url: pipelineProject.google_drive_url || null,
+        google_drive_folder_id: pipelineProject.google_drive_folder_id || null,
+        timber_worker_id: null, // pipeline nie ma przypisanych workers
+        spray_worker_id: null,
+        admin_id: null,
+        sales_person_id: null,
+        contract_value: pipelineProject.estimated_value || 0,
+        deadline: null, // pipeline nie ma deadline
+        created_at: pipelineProject.created_at || new Date().toISOString(),
+        archived_date: new Date().toISOString(),
+        archive_reason: 'failed',
+        archive_notes: 'Failed negotiation',
+        source: 'pipeline'
+    };
     
-    // Remove from pipeline
+    // Zapisz do bazy
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { data, error } = await supabaseClient
+                .from('archived_projects')
+                .insert([archivedProject]);
+            
+            if (error) {
+                console.error('Error archiving pipeline project:', error);
+                alert('Error saving to archive. Please try again.');
+                return;
+            }
+            
+            console.log('✅ Pipeline project archived to database');
+            
+            // Usuń projekt z tabeli pipeline_projects
+            const { error: deleteError } = await supabaseClient
+                .from('pipeline_projects')
+                .delete()
+                .eq('project_number', pipelineProject.projectNumber);
+            
+            if (deleteError) {
+                console.error('Error deleting pipeline project:', deleteError);
+            }
+            
+            // Update client project count
+            if (pipelineProject.client_id) {
+                await updateClientProjectCount(pipelineProject.client_id);
+            }
+            
+        } catch (err) {
+            console.error('Database error:', err);
+            alert('Error connecting to database.');
+            return;
+        }
+    }
+    
+    // Usuń z lokalnej tablicy
     pipelineProjects.splice(parseInt(selectedIndex), 1);
     
     // Mark as changed for auto-save

@@ -601,7 +601,8 @@ async function confirmMoveToArchive() {
         created_at: project.created_at || new Date().toISOString(),
         archived_date: new Date().toISOString(),
         archive_reason: reason,
-        archive_notes: notes || null
+        archive_notes: notes || null,
+        source: 'production'
     };
     
     // Zapisz do bazy
