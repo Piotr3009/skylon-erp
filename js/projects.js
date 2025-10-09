@@ -299,6 +299,43 @@ if (currentEditProject !== null && projects[currentEditProject]) {
             if (!error) {
                 console.log('✅ Project saved to Supabase with client');
                 
+                // Pobierz ID zapisanego projektu
+                const { data: savedProject } = await supabaseClient
+                    .from('projects')
+                    .select('id')
+                    .eq('project_number', projectData.projectNumber)
+                    .single();
+                
+                // ZAPISZ FAZY DO TABELI PHASES
+                if (savedProject && projectData.phases) {
+                    console.log('💾 Zapisuję', projectData.phases.length, 'faz do tabeli phases dla projektu', savedProject.id);
+                    
+                    for (const phase of projectData.phases) {
+                        const phaseForDB = {
+                            project_id: savedProject.id,
+                            phase_key: phase.key,
+                            start_date: phase.start,
+                            end_date: null,
+                            work_days: phase.workDays || 4,
+                            status: phase.status || 'notStarted',
+                            assigned_to: phase.assignedTo || null,
+                            notes: phase.notes || null,
+                            order_confirmed: phase.orderConfirmed || false,
+                            materials: phase.materials || null
+                        };
+                        
+                        const { error: phaseError } = await supabaseClient
+                            .from('phases')
+                            .upsert(phaseForDB, { onConflict: 'project_id,phase_key' });
+                        
+                        if (phaseError) {
+                            console.error('❌ Błąd zapisu fazy', phase.key, ':', phaseError);
+                        } else {
+                            console.log('✅ Zapisano fazę', phase.key);
+                        }
+                    }
+                }
+                
                 // Update client project count
                 await updateClientProjectCount(clientId);
             } else {
