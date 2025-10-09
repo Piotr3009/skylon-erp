@@ -308,6 +308,53 @@
         </div>
     </div>
     
+    <!-- Edit Archive Project Modal -->
+    <div class="modal" id="editArchiveModal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Archived Project</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Contract Value (£)</label>
+                    <input type="number" id="editContractValue" placeholder="Enter contract value" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label>Archive Reason</label>
+                    <select id="editArchiveReason" style="width: 100%; padding: 8px;">
+                        <option value="completed">✅ Project Completed Successfully</option>
+                        <option value="cancelled">❌ Project Cancelled</option>
+                        <option value="onHold">⏸️ Project On Hold</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="editArchiveNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeEditModal()">Cancel</button>
+                <button class="modal-btn success" onclick="saveArchiveEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteArchiveModal">
+        <div class="modal-content">
+            <div class="modal-header">Delete Archived Project</div>
+            <div class="modal-body">
+                <p>Are you sure you want to permanently delete this archived project?</p>
+                <p style="color: #ff6b6b; font-weight: bold;" id="deleteProjectName"></p>
+                <p style="color: #999; font-size: 12px;">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeDeleteModal()">Cancel</button>
+                <button class="modal-btn danger" onclick="confirmDeleteArchive()">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Scripts -->
     <script src="js/archive-app.js"></script>
 </body>

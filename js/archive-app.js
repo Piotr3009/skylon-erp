@@ -4,6 +4,7 @@ let archivedProjects = [];
 let allClients = {};
 let allWorkers = {};
 let filteredProjects = [];
+let currentEditingProject = null;
 
 // Initialize
 window.addEventListener('DOMContentLoaded', async () => {
@@ -218,11 +219,12 @@ function createProjectCard(project) {
     const reasonIcon = {
         'completed': '✅',
         'failed': '❌',
-        'cancelled': '⚠️'
+        'cancelled': '⚠️',
+        'onHold': '⏸️'
     }[reasonClass] || '📦';
     
     const reasonText = (project.archive_reason || 'completed').charAt(0).toUpperCase() + 
-                       (project.archive_reason || 'completed').slice(1);
+                       (project.archive_reason || 'completed').slice(1).replace(/([A-Z])/g, ' $1');
     
     const sourceIcon = project.source === 'pipeline' ? '📄' : '🏭';
     const sourceText = project.source === 'pipeline' ? 'Pipeline' : 'Production';
@@ -235,7 +237,7 @@ function createProjectCard(project) {
         new Date(project.deadline).toLocaleDateString('en-GB') : '-';
     
     const gdLink = project.google_drive_url ? 
-        `<a href="${project.google_drive_url}" target="_blank">📁 Open Folder</a>` : 
+        `<a href="${project.google_drive_url}" target="_blank" style="color: #4a9eff; text-decoration: none;">📁 Open Folder</a>` : 
         '<span style="color: #666;">No GD Link</span>';
     
     return `
@@ -255,7 +257,11 @@ function createProjectCard(project) {
                             ${reasonIcon} ${reasonText}
                         </div>
                     </div>
-                    <div>Archived: ${archivedDate}</div>
+                    <div style="margin-bottom: 10px;">Archived: ${archivedDate}</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="toolbar-btn" style="padding: 6px 12px; font-size: 12px;" onclick="openEditModal('${project.id}')">✏️ Edit</button>
+                        <button class="toolbar-btn danger" style="padding: 6px 12px; font-size: 12px;" onclick="openDeleteModal('${project.id}')">🗑️ Delete</button>
+                    </div>
                 </div>
             </div>
             
@@ -312,3 +318,127 @@ function createProjectCard(project) {
         </div>
     `;
 }
+
+// ========== EDIT FUNCTIONALITY ==========
+
+function openEditModal(projectId) {
+    currentEditingProject = archivedProjects.find(p => p.id === projectId);
+    
+    if (!currentEditingProject) {
+        alert('Project not found');
+        return;
+    }
+    
+    // Populate form
+    document.getElementById('editContractValue').value = currentEditingProject.contract_value || 0;
+    document.getElementById('editArchiveReason').value = currentEditingProject.archive_reason || 'completed';
+    document.getElementById('editArchiveNotes').value = currentEditingProject.archive_notes || '';
+    
+    // Show modal
+    document.getElementById('editArchiveModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editArchiveModal').style.display = 'none';
+    currentEditingProject = null;
+}
+
+async function saveArchiveEdit() {
+    if (!currentEditingProject) return;
+    
+    const contractValue = parseFloat(document.getElementById('editContractValue').value) || 0;
+    const archiveReason = document.getElementById('editArchiveReason').value;
+    const archiveNotes = document.getElementById('editArchiveNotes').value.trim();
+    
+    try {
+        const { error } = await supabaseClient
+            .from('archived_projects')
+            .update({
+                contract_value: contractValue,
+                archive_reason: archiveReason,
+                archive_notes: archiveNotes
+            })
+            .eq('id', currentEditingProject.id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Project updated successfully');
+        
+        // Update local data
+        currentEditingProject.contract_value = contractValue;
+        currentEditingProject.archive_reason = archiveReason;
+        currentEditingProject.archive_notes = archiveNotes;
+        
+        // Refresh display
+        renderProjects();
+        updateStats();
+        closeEditModal();
+        
+        alert('Project updated successfully!');
+        
+    } catch (err) {
+        console.error('Error updating project:', err);
+        alert('Error updating project: ' + err.message);
+    }
+}
+
+// ========== DELETE FUNCTIONALITY ==========
+
+function openDeleteModal(projectId) {
+    currentEditingProject = archivedProjects.find(p => p.id === projectId);
+    
+    if (!currentEditingProject) {
+        alert('Project not found');
+        return;
+    }
+    
+    // Show project name in modal
+    document.getElementById('deleteProjectName').textContent = 
+        `${currentEditingProject.project_number} - ${currentEditingProject.name}`;
+    
+    // Show modal
+    document.getElementById('deleteArchiveModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteArchiveModal').style.display = 'none';
+    currentEditingProject = null;
+}
+
+async function confirmDeleteArchive() {
+    if (!currentEditingProject) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('archived_projects')
+            .delete()
+            .eq('id', currentEditingProject.id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Project deleted successfully');
+        
+        // Remove from local arrays
+        archivedProjects = archivedProjects.filter(p => p.id !== currentEditingProject.id);
+        filteredProjects = filteredProjects.filter(p => p.id !== currentEditingProject.id);
+        
+        // Refresh display
+        renderProjects();
+        updateStats();
+        closeDeleteModal();
+        
+        alert('Project deleted successfully!');
+        
+    } catch (err) {
+        console.error('Error deleting project:', err);
+        alert('Error deleting project: ' + err.message);
+    }
+}
+
+// Close modals when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        closeEditModal();
+        closeDeleteModal();
+    }
+});
