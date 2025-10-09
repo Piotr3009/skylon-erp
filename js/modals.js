@@ -1282,18 +1282,12 @@ function openMoveToArchiveModal() {
     const select = document.getElementById('completedProjectSelect');
     select.innerHTML = '<option value="">Select project...</option>';
     
+    // Show ALL projects (removed filter - user can archive any project)
     projects.forEach((project, index) => {
-        // Check if all phases are completed
-        const allCompleted = project.phases && project.phases.every(phase => 
-            phase.status === 'completed' || phase.status === 'dispatched'
-        );
-        
-        if (allCompleted || !project.phases || project.phases.length === 0) {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = `${project.projectNumber} - ${project.name}`;
-            select.appendChild(option);
-        }
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${project.projectNumber} - ${project.name}`;
+        select.appendChild(option);
     });
     
     openModal('moveToArchiveModal');
