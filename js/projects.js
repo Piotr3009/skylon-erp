@@ -308,7 +308,7 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 
                 // ZAPISZ FAZY DO TABELI PHASES
                 if (savedProject && projectData.phases) {
-                    console.log('💾 Zapisuję', projectData.phases.length, 'faz do tabeli phases dla projektu', savedProject.id);
+                    console.log('💾 Zapisuję', projectData.phases.length, 'faz do tabeli project_phases dla projektu', savedProject.id);
                     
                     for (const phase of projectData.phases) {
                         const phaseForDB = {
@@ -325,7 +325,7 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                         };
                         
                         const { error: phaseError } = await supabaseClient
-                            .from('phases')
+                            ..from('project_phases')  // ← TUTAJ
                             .upsert(phaseForDB, { onConflict: 'project_id,phase_key' });
                         
                         if (phaseError) {
