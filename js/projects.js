@@ -230,27 +230,28 @@ async function saveProject() {
         }
     });
     
+
     const projectData = {
-        projectNumber,
-        type: projectType,
-        name,
-        client_id: clientId,
-        deadline: deadline || null,
-        phases: selectedPhases
-    };
-    
-    // PRESERVE google_drive fields when editing
-    if (currentEditProject !== null && projects[currentEditProject]) {
-        if (projects[currentEditProject].google_drive_url) {
-            projectData.google_drive_url = projects[currentEditProject].google_drive_url;
-        }
-        if (projects[currentEditProject].google_drive_folder_id) {
-            projectData.google_drive_folder_id = projects[currentEditProject].google_drive_folder_id;
-        }
-        if (projects[currentEditProject].google_drive_folder_name) {
-            projectData.google_drive_folder_name = projects[currentEditProject].google_drive_folder_name;
-        }
+    projectNumber,
+    type: projectType,
+    name,
+    client_id: clientId,
+    deadline: deadline || null,
+    phases: selectedPhases
+};
+
+// PRESERVE google_drive fields when editing
+if (currentEditProject !== null && projects[currentEditProject]) {
+    if (projects[currentEditProject].google_drive_url) {
+        projectData.google_drive_url = projects[currentEditProject].google_drive_url;
     }
+    if (projects[currentEditProject].google_drive_folder_id) {
+        projectData.google_drive_folder_id = projects[currentEditProject].google_drive_folder_id;
+    }
+    if (projects[currentEditProject].google_drive_folder_name) {
+        projectData.google_drive_folder_name = projects[currentEditProject].google_drive_folder_name;
+    }
+}
     
     // Jeśli jest deadline, auto-dopasuj fazy
     if (deadline && selectedPhases.length > 0) {
@@ -368,15 +369,12 @@ async function updateClientProjectCount(clientId) {
 }
 
 async function deleteProject(index) {
-    if (!projects[index]) return;
-    
-    const project = projects[index];
-    const projectNumber = project.projectNumber;
-    const clientId = project.client_id;
-    
-    if (confirm(`Delete project ${projectNumber}?\nThis will also delete all its phases.`)) {
-        // Delete from Supabase
-        if (typeof supabaseClient !== 'undefined' && projectNumber) {
+    if (confirm('Delete project "' + projects[index].name + '"?')) {
+        const projectNumber = projects[index].projectNumber;
+        const clientId = projects[index].client_id;
+        
+        // Usuń z Supabase jeśli jest połączenie
+        if (projectNumber && typeof supabaseClient !== 'undefined') {
             try {
                 const { error } = await supabaseClient
                     .from('projects')
@@ -556,7 +554,7 @@ function updateCompletedProjectSelect() {
     });
 }
 
-function confirmMoveToArchive() {
+async function confirmMoveToArchive() {
     const selectedIndex = document.getElementById('completedProjectSelect').value;
     const reason = document.getElementById('archiveReason').value;
     const notes = document.getElementById('archiveNotes').value.trim();
@@ -574,20 +572,82 @@ function confirmMoveToArchive() {
     
     const project = projects[projectIndex];
     
-    // Add to completed archive
-    project.archivedDate = new Date().toISOString();
-    project.archiveReason = reason;
-    if (notes) project.archiveNotes = notes;
+    // Znajdź workers przypisanych do faz timber i spray
+    let timberWorkerId = null;
+    let sprayWorkerId = null;
     
-    completedArchive.push(project);
+    if (project.phases) {
+        const timberPhase = project.phases.find(p => p.key === 'timber');
+        const sprayPhase = project.phases.find(p => p.key === 'spray');
+        
+        if (timberPhase && timberPhase.assignedTo) timberWorkerId = timberPhase.assignedTo;
+        if (sprayPhase && sprayPhase.assignedTo) sprayWorkerId = sprayPhase.assignedTo;
+    }
     
-    // Remove from active projects
+    // Przygotuj dane do archiwum
+    const archivedProject = {
+        project_number: project.projectNumber,
+        name: project.name,
+        type: project.type,
+        client_id: project.client_id,
+        google_drive_url: project.google_drive_url || null,
+        google_drive_folder_id: project.google_drive_folder_id || null,
+        timber_worker_id: timberWorkerId,
+        spray_worker_id: sprayWorkerId,
+        admin_id: null, // na przyszłość
+        sales_person_id: null, // na przyszłość
+        contract_value: project.contract_value || 0,
+        deadline: project.deadline || null,
+        created_at: project.created_at || new Date().toISOString(),
+        archived_date: new Date().toISOString(),
+        archive_reason: reason,
+        archive_notes: notes || null
+    };
+    
+    // Zapisz do bazy
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { data, error } = await supabaseClient
+                .from('archived_projects')
+                .insert([archivedProject]);
+            
+            if (error) {
+                console.error('Error archiving project:', error);
+                alert('Error saving to archive. Please try again.');
+                return;
+            }
+            
+            console.log('✅ Project archived to database');
+            
+            // Usuń projekt z tabeli projects
+            const { error: deleteError } = await supabaseClient
+                .from('projects')
+                .delete()
+                .eq('project_number', project.projectNumber);
+            
+            if (deleteError) {
+                console.error('Error deleting project:', deleteError);
+            }
+            
+            // Update client project count
+            if (project.client_id) {
+                await updateClientProjectCount(project.client_id);
+            }
+            
+        } catch (err) {
+            console.error('Database error:', err);
+            alert('Error connecting to database.');
+            return;
+        }
+    }
+    
+    // Usuń z lokalnej tablicy
     projects.splice(projectIndex, 1);
     
     saveData();
     render();
     closeModal('moveToArchiveModal');
     
-    const reasonText = document.querySelector(`#archiveReason option[value="${reason}"]`).textContent;
+    const reasonText = document.querySelector(`#archiveReason option[value="${reason}"]`)?.textContent || reason;
     alert(`Project archived: ${project.projectNumber}\nReason: ${reasonText}`);
 }
