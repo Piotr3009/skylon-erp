@@ -24,7 +24,7 @@
             <div class="app-title">Skylon Joinery - Production Manager</div>
             <div class="navigation-links">
                 <a href="pipeline.html" class="nav-link nav-link-pipeline">📄 Pipeline</a>
-                <a href="archive.html" class="nav-link nav-link-archive">📦 Archive</a>
+                <a href="archive.html" class="nav-link nav-link-archive">Archive</a>
             </div>
             <div class="phases-legend" id="phasesLegend">
                 <!-- Phases will be added here -->
@@ -46,18 +46,58 @@
             <button class="toolbar-btn success" onclick="openMoveToArchiveModal()">📦 Move to Archive</button>
             <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
             <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
-<!-- Przyciski sortowania -->
-<div style="width: 1px; height: 20px; background: #555; margin: 0 10px;"></div>
-<span style="font-size: 11px; color: #999; margin-right: 8px;">Sort:</span>
-<button class="toolbar-btn sort-btn" data-sort="number" onclick="setSortMode('number')" title="Sortuj według numeru">
-    🔢 By Number
-</button>
-<button class="toolbar-btn sort-btn" data-sort="deadline" onclick="setSortMode('deadline')" title="Sortuj według Deadline">
-    📅 By DL
-</button>
+        </div>
+        
+        <!-- Sort & Filter Bar -->
+        <div class="toolbar" style="margin-top: 10px; padding: 8px 15px;">
+            <!-- Sort buttons -->
+            <span style="font-size: 11px; color: #999; margin-right: 8px;">Sort:</span>
+            <button class="toolbar-btn sort-btn active" data-sort="number" onclick="setSortMode('number')" title="Sort by number">
+                🔢 By Number
+            </button>
+            <button class="toolbar-btn sort-btn" data-sort="deadline" onclick="setSortMode('deadline')" title="Sort by deadline">
+                📅 By DL
+            </button>
+            <button class="toolbar-btn sort-btn" data-sort="timber" onclick="setSortMode('timber')" title="Sort by timber start date">
+                🪵 By Timber
+            </button>
+            <button class="toolbar-btn sort-btn" data-sort="spray" onclick="setSortMode('spray')" title="Sort by spray start date">
+                🎨 By Spray
+            </button>
+            
+            <div style="width: 1px; height: 20px; background: #555; margin: 0 10px;"></div>
+            
+            <!-- Filter dropdowns -->
+            <span style="font-size: 11px; color: #999; margin-right: 8px;">View:</span>
+            
+            <div class="filter-dropdown" style="display: inline-block; position: relative;">
+                <button class="toolbar-btn" onclick="toggleFilterDropdown('timberFilter')">
+                    🪵 Timber Schedule ▼
+                </button>
+                <div class="filter-menu" id="timberFilter" style="display: none;">
+                    <button onclick="setTimberFilter('all')">All Timber Workers</button>
+                    <div style="height: 1px; background: #444; margin: 5px 0;"></div>
+                    <div id="timberWorkersList"></div>
+                </div>
+            </div>
+            
+            <div class="filter-dropdown" style="display: inline-block; position: relative; margin-left: 5px;">
+                <button class="toolbar-btn" onclick="toggleFilterDropdown('sprayFilter')">
+                    🎨 Spray Schedule ▼
+                </button>
+                <div class="filter-menu" id="sprayFilter" style="display: none;">
+                    <button onclick="setSprayFilter('all')">All Spray Workers</button>
+                    <div style="height: 1px; background: #444; margin: 5px 0;"></div>
+                    <div id="sprayWorkersList"></div>
+                </div>
+            </div>
+            
+            <button class="toolbar-btn" onclick="clearFilters()" style="margin-left: 5px;">
+                ✖ Show All
+            </button>
 
             
-            <div class="export-dropdown">
+            <div class="export-dropdown" style="margin-left: auto;">
                 <button class="toolbar-btn">Export ▼</button>
                 <div class="export-menu">
                     <button onclick="exportJSON()">Export JSON</button>
@@ -429,6 +469,7 @@
     <script src="js/order-duration-fixes.js"></script> 
     <script src="js/sticky-fix.js"></script>
     <script src="js/google-drive-picker.js"></script>
+    <script src="js/sort-filter.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

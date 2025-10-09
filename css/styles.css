@@ -1142,6 +1142,51 @@ body.pipeline-theme .grid-line {
     font-size: 12px;
 }
 
+/* Filter dropdown styles */
+.filter-dropdown {
+    position: relative;
+}
+
+.filter-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #2d2d30;
+    border: 1px solid #555;
+    border-radius: 3px;
+    margin-top: 5px;
+    min-width: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+.filter-menu button {
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-menu button:hover {
+    background: #3a3a3a;
+}
+
+.worker-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
 .export-menu button:hover {
     background: #3e3e42;
 }
