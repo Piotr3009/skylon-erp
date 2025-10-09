@@ -538,20 +538,27 @@ function autoAdjustPhasesToDeadline(project, startDate, deadlineDate) {
 
 // ========== MOVE TO ARCHIVE ==========
 function openMoveToArchiveModal() {
+    console.log('🔍 Opening Move to Archive modal...');
+    console.log('📊 Projects count:', projects.length);
     updateCompletedProjectSelect();
     openModal('moveToArchiveModal');
+    console.log('✅ Modal opened');
 }
 
 function updateCompletedProjectSelect() {
     const select = document.getElementById('completedProjectSelect');
+    console.log('🔍 Select element:', select);
     select.innerHTML = '<option value="">Select project...</option>';
     
+    console.log('🔍 Projects to add:', projects);
     projects.forEach((project, index) => {
         const option = document.createElement('option');
         option.value = index;
         option.textContent = `${project.projectNumber} - ${project.name}`;
         select.appendChild(option);
+        console.log('➕ Added project:', option.textContent);
     });
+    console.log('✅ Total options:', select.options.length);
 }
 
 async function confirmMoveToArchive() {
