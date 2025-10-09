@@ -1,15 +1,23 @@
-// ========== SORT & FILTER ==========
+// ========== FILTER SYSTEM ==========
 
-let currentSortMode = 'number';
 let currentFilter = null; // { type: 'timber'|'spray', workerId: 'uuid'|'all'|'unassigned' }
+let originalProjects = null;
 
 // Initialize workers lists in dropdowns
 function initializeFilterDropdowns() {
-    if (!teamMembers || teamMembers.length === 0) {
-        console.warn('No team members loaded yet');
-        return;
-    }
+    console.log('🔧 Initializing filter dropdowns...');
     
+    // Wait for teamMembers to be loaded
+    const waitForTeamMembers = setInterval(() => {
+        if (typeof teamMembers !== 'undefined' && teamMembers && teamMembers.length > 0) {
+            clearInterval(waitForTeamMembers);
+            console.log('✅ Team members loaded:', teamMembers.length);
+            populateWorkerDropdowns();
+        }
+    }, 100);
+}
+
+function populateWorkerDropdowns() {
     // Timber workers list
     const timberList = document.getElementById('timberWorkersList');
     if (timberList) {
@@ -26,6 +34,8 @@ function initializeFilterDropdowns() {
         unassignedBtn.onclick = () => setTimberFilter('unassigned');
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         timberList.appendChild(unassignedBtn);
+        
+        console.log('✅ Timber dropdown populated');
     }
     
     // Spray workers list
@@ -44,6 +54,8 @@ function initializeFilterDropdowns() {
         unassignedBtn.onclick = () => setSprayFilter('unassigned');
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         sprayList.appendChild(unassignedBtn);
+        
+        console.log('✅ Spray dropdown populated');
     }
 }
 
@@ -65,81 +77,24 @@ function toggleFilterDropdown(dropdownId) {
 
 // Close dropdowns when clicking outside
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('.filter-dropdown')) {
+    if (!e.target.closest('.filter-dropdown') && !e.target.closest('.toolbar-btn')) {
         document.querySelectorAll('.filter-menu').forEach(menu => {
             menu.style.display = 'none';
         });
     }
 });
 
-// ========== SORTING ==========
-
-function setSortMode(mode) {
-    currentSortMode = mode;
-    
-    // Update button states
-    document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-sort="${mode}"]`)?.classList.add('active');
-    
-    // Sort and render
-    sortProjects();
-    renderUniversal();
-}
-
-function sortProjects() {
-    switch(currentSortMode) {
-        case 'number':
-            projects.sort((a, b) => {
-                const numA = parseInt(a.projectNumber?.split('/')[0]) || 0;
-                const numB = parseInt(b.projectNumber?.split('/')[0]) || 0;
-                return numA - numB;
-            });
-            break;
-            
-        case 'deadline':
-            projects.sort((a, b) => {
-                if (!a.deadline) return 1;
-                if (!b.deadline) return -1;
-                return new Date(a.deadline) - new Date(b.deadline);
-            });
-            break;
-            
-        case 'timber':
-            projects.sort((a, b) => {
-                const timberA = a.phases?.find(p => p.key === 'timber');
-                const timberB = b.phases?.find(p => p.key === 'timber');
-                
-                if (!timberA || !timberA.start) return 1;
-                if (!timberB || !timberB.start) return -1;
-                
-                return new Date(timberA.start) - new Date(timberB.start);
-            });
-            break;
-            
-        case 'spray':
-            projects.sort((a, b) => {
-                const sprayA = a.phases?.find(p => p.key === 'spray');
-                const sprayB = b.phases?.find(p => p.key === 'spray');
-                
-                if (!sprayA || !sprayA.start) return 1;
-                if (!sprayB || !sprayB.start) return -1;
-                
-                return new Date(sprayA.start) - new Date(sprayB.start);
-            });
-            break;
-    }
-}
-
-// ========== FILTERING ==========
+// ========== FILTERING FUNCTIONS ==========
 
 function setTimberFilter(workerId) {
+    console.log('🪵 Setting timber filter:', workerId);
+    
     currentFilter = {
         type: 'timber',
         workerId: workerId
     };
     
+    // Close dropdown
     document.querySelectorAll('.filter-menu').forEach(menu => {
         menu.style.display = 'none';
     });
@@ -148,11 +103,14 @@ function setTimberFilter(workerId) {
 }
 
 function setSprayFilter(workerId) {
+    console.log('🎨 Setting spray filter:', workerId);
+    
     currentFilter = {
         type: 'spray',
         workerId: workerId
     };
     
+    // Close dropdown
     document.querySelectorAll('.filter-menu').forEach(menu => {
         menu.style.display = 'none';
     });
@@ -161,21 +119,41 @@ function setSprayFilter(workerId) {
 }
 
 function clearFilters() {
+    console.log('✖ Clearing filters');
+    
     currentFilter = null;
-    renderUniversal();
+    
+    // Restore original projects if they were saved
+    if (originalProjects) {
+        projects.length = 0;
+        projects.push(...originalProjects);
+        originalProjects = null;
+    }
+    
+    render();
 }
 
 function applyFilter() {
     if (!currentFilter) {
-        renderUniversal();
+        render();
         return;
     }
     
     const { type, workerId } = currentFilter;
     const phaseKey = type; // 'timber' or 'spray'
     
-    // Filter projects and phases
-    const filteredProjects = projects.filter(project => {
+    console.log(`🔍 Applying ${type} filter for worker:`, workerId);
+    
+    // Save original projects if not already saved
+    if (!originalProjects) {
+        originalProjects = projects.map(p => ({
+            ...p,
+            phases: [...(p.phases || [])]
+        }));
+    }
+    
+    // Filter projects that have the target phase
+    const filteredProjects = originalProjects.filter(project => {
         if (!project.phases) return false;
         
         const targetPhase = project.phases.find(p => p.key === phaseKey);
@@ -191,41 +169,27 @@ function applyFilter() {
         }
     });
     
-    // Temporarily modify projects to show only target phase
-    const originalProjects = [...projects];
+    console.log(`✅ Filtered to ${filteredProjects.length} projects`);
     
-    // Create filtered view
-    projects = filteredProjects.map(project => ({
+    // Create filtered view with only target phase visible
+    const viewProjects = filteredProjects.map(project => ({
         ...project,
         phases: project.phases.filter(p => p.key === phaseKey)
     }));
     
-    renderUniversal();
+    // Replace projects array
+    projects.length = 0;
+    projects.push(...viewProjects);
     
-    // Restore original projects after render
-    setTimeout(() => {
-        projects = originalProjects;
-    }, 100);
+    // Render
+    render();
 }
 
-// Override render to apply current filter
-const originalRenderUniversal = window.renderUniversal;
-window.renderUniversal = function() {
-    if (currentFilter) {
-        applyFilter();
-    } else {
-        sortProjects();
-        originalRenderUniversal();
-    }
-};
+// Initialize on DOM load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeFilterDropdowns);
+} else {
+    initializeFilterDropdowns();
+}
 
-// Initialize on load
-window.addEventListener('DOMContentLoaded', () => {
-    // Wait for team members to load
-    const checkTeamMembers = setInterval(() => {
-        if (teamMembers && teamMembers.length > 0) {
-            initializeFilterDropdowns();
-            clearInterval(checkTeamMembers);
-        }
-    }, 100);
-});
+console.log('✅ Sort-filter.js loaded');

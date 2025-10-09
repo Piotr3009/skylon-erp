@@ -36,7 +36,28 @@ function getSortedProjects() {
             if (!b.deadline) return -1;
             return new Date(a.deadline) - new Date(b.deadline);
         });
+    } else if (currentSortMode === 'timber') {
+        sortedProjects.sort((a, b) => {
+            const timberA = a.phases?.find(p => p.key === 'timber');
+            const timberB = b.phases?.find(p => p.key === 'timber');
+            
+            if (!timberA || !timberA.start) return 1;
+            if (!timberB || !timberB.start) return -1;
+            
+            return new Date(timberA.start) - new Date(timberB.start);
+        });
+    } else if (currentSortMode === 'spray') {
+        sortedProjects.sort((a, b) => {
+            const sprayA = a.phases?.find(p => p.key === 'spray');
+            const sprayB = b.phases?.find(p => p.key === 'spray');
+            
+            if (!sprayA || !sprayA.start) return 1;
+            if (!sprayB || !sprayB.start) return -1;
+            
+            return new Date(sprayA.start) - new Date(sprayB.start);
+        });
     } else {
+        // Default: by number
         sortedProjects.sort((a, b) => {
             const numA = parseInt(a.projectNumber.split('/')[0]);
             const numB = parseInt(b.projectNumber.split('/')[0]);
