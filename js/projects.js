@@ -306,33 +306,20 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                     .eq('project_number', projectData.projectNumber)
                     .single();
                 
-                // ZAPISZ FAZY DO TABELI PHASES
-                if (savedProject && projectData.phases) {
+                // ZAPISZ FAZY DO TABELI project_phases
+                if (savedProject && projectData.phases && projectData.phases.length > 0) {
                     console.log('💾 Zapisuję', projectData.phases.length, 'faz do tabeli project_phases dla projektu', savedProject.id);
                     
-                    for (const phase of projectData.phases) {
-                        const phaseForDB = {
-                            project_id: savedProject.id,
-                            phase_key: phase.key,
-                            start_date: phase.start,
-                            end_date: null,
-                            work_days: phase.workDays || 4,
-                            status: phase.status || 'notStarted',
-                            assigned_to: phase.assignedTo || null,
-                            notes: phase.notes || null,
-                            order_confirmed: phase.orderConfirmed || false,
-                            materials: phase.materials || null
-                        };
-                        
-                        const { error: phaseError } = await supabaseClient
-                            .from('project_phases')  // ← TUTAJ
-                            .upsert(phaseForDB, { onConflict: 'project_id,phase_key' });
-                        
-                        if (phaseError) {
-                            console.error('❌ Błąd zapisu fazy', phase.key, ':', phaseError);
-                        } else {
-                            console.log('✅ Zapisano fazę', phase.key);
-                        }
+                    const phaseSaveResult = await savePhasesToSupabase(
+                        savedProject.id,
+                        projectData.phases,
+                        true  // true = production
+                    );
+                    
+                    if (phaseSaveResult) {
+                        console.log('✅ All phases saved successfully');
+                    } else {
+                        console.error('❌ Failed to save phases');
                     }
                 }
                 
