@@ -28,7 +28,7 @@ function populateWorkerDropdowns() {
         productionWorkers.forEach(worker => {
             const button = document.createElement('button');
             button.onclick = () => setTimberFilter(worker.id);
-            button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color};"></span>${worker.name}`;
+            button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color_code || worker.color};"></span>${worker.name}`;
             timberList.appendChild(button);
         });
         
@@ -51,7 +51,7 @@ function populateWorkerDropdowns() {
         sprayWorkers.forEach(worker => {
             const button = document.createElement('button');
             button.onclick = () => setSprayFilter(worker.id);
-            button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color};"></span>${worker.name}`;
+            button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color_code || worker.color};"></span>${worker.name}`;
             sprayList.appendChild(button);
         });
         
