@@ -439,7 +439,7 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         }
     } else if (teamMember) {
         topDiv.classList.add('has-team');
-        topDiv.style.background = `linear-gradient(to bottom, ${phaseConfig.color} 50%, ${teamMember.color} 50%)`;
+        topDiv.style.background = `linear-gradient(to bottom, ${phaseConfig.color} 50%, ${teamMember.color_code || teamMember.color} 50%)`;
     } else {
         topDiv.style.background = phaseConfig.color;
     }
