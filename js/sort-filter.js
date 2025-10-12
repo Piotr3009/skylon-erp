@@ -1,6 +1,6 @@
 // ========== FILTER SYSTEM ==========
 
-let currentFilter = null; // { type: 'timber'|'spray', workerId: 'uuid'|'all'|'unassigned' }
+let currentFilter = null; // { type: 'timberGlazing'|'spray', workerId: 'uuid'|'all'|'unassigned' }
 let originalProjects = null;
 
 // Initialize workers lists in dropdowns
@@ -93,10 +93,10 @@ document.addEventListener('click', (e) => {
 // ========== FILTERING FUNCTIONS ==========
 
 function setTimberFilter(workerId) {
-    console.log('🪵 Setting timber filter:', workerId);
+    console.log('🪵 Setting timber/glazing filter:', workerId);
     
     currentFilter = {
-        type: 'timber',
+        type: 'timberGlazing',
         workerId: workerId
     };
     
@@ -146,7 +146,6 @@ function applyFilter() {
     }
     
     const { type, workerId } = currentFilter;
-    const phaseKey = type; // 'timber' or 'spray'
     
     console.log(`🔍 Applying ${type} filter for worker:`, workerId);
     
@@ -158,29 +157,40 @@ function applyFilter() {
         }));
     }
     
-    // Filter projects that have the target phase
+    // Define phase keys based on filter type
+    let phaseKeys = [];
+    if (type === 'timberGlazing') {
+        phaseKeys = ['timber', 'glazing'];
+    } else if (type === 'spray') {
+        phaseKeys = ['spray'];
+    }
+    
+    // Filter projects that have at least one of the target phases
     const filteredProjects = originalProjects.filter(project => {
         if (!project.phases) return false;
         
-        const targetPhase = project.phases.find(p => p.key === phaseKey);
-        if (!targetPhase) return false;
-        
-        // Check worker assignment
-        if (workerId === 'all') {
-            return true; // Show all projects with this phase
-        } else if (workerId === 'unassigned') {
-            return !targetPhase.assignedTo;
-        } else {
-            return targetPhase.assignedTo === workerId;
-        }
+        // Check if project has any of the target phases with matching worker
+        return phaseKeys.some(phaseKey => {
+            const targetPhase = project.phases.find(p => p.key === phaseKey);
+            if (!targetPhase) return false;
+            
+            // Check worker assignment
+            if (workerId === 'all') {
+                return true; // Show all projects with this phase
+            } else if (workerId === 'unassigned') {
+                return !targetPhase.assignedTo;
+            } else {
+                return targetPhase.assignedTo === workerId;
+            }
+        });
     });
     
     console.log(`✅ Filtered to ${filteredProjects.length} projects`);
     
-    // Create filtered view with only target phase visible
+    // Create filtered view with only target phases visible
     const viewProjects = filteredProjects.map(project => ({
         ...project,
-        phases: project.phases.filter(p => p.key === phaseKey)
+        phases: project.phases.filter(p => phaseKeys.includes(p.key))
     }));
     
     // Replace projects array
