@@ -190,7 +190,7 @@ function applyFilter() {
     // Create filtered view with only target phases visible
     const viewProjects = filteredProjects.map(project => ({
         ...project,
-        phases: project.phases.filter(p => phaseKeys.includes(p.key))
+        phases: project.phases.filter(p => phaseKeys.includes(p.key) && (workerId === 'all' || !p.assignedTo || p.assignedTo === workerId))
     }));
     
     // Replace projects array
