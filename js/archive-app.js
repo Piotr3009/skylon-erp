@@ -292,7 +292,7 @@ function createProjectCard(project) {
                 <div class="detail-item">
                     <div class="detail-label">Timber Worker</div>
                     <div class="detail-value">
-                        <span style="display: inline-block; width: 12px; height: 12px; background: ${timberWorker.color}; border-radius: 50%; margin-right: 6px;"></span>
+                        <span style="display: inline-block; width: 12px; height: 12px; background: ${timberWorker.color_code || timberWorker.color}; border-radius: 50%; margin-right: 6px;"></span>
                         ${timberWorker.name}
                     </div>
                 </div>
@@ -302,7 +302,7 @@ function createProjectCard(project) {
                 <div class="detail-item">
                     <div class="detail-label">Spray Worker</div>
                     <div class="detail-value">
-                        <span style="display: inline-block; width: 12px; height: 12px; background: ${sprayWorker.color}; border-radius: 50%; margin-right: 6px;"></span>
+                        <span style="display: inline-block; width: 12px; height: 12px; background: ${sprayWorker.color_code || sprayWorker.color}; border-radius: 50%; margin-right: 6px;"></span>
                         ${sprayWorker.name}
                     </div>
                 </div>

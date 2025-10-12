@@ -456,7 +456,7 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     
     // ADD CARPENTER NAME
     if (teamMember) {
-        bottomContent += `<span style="font-size: 9px; color: ${teamMember.color}; margin-left: 4px;">${teamMember.name}</span>`;
+        bottomContent += `<span style="font-size: 9px; color: ${teamMember.color_code || teamMember.color}; margin-left: 4px;">${teamMember.name}</span>`;
     }
     
     if (phase.notes) {
