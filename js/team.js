@@ -35,7 +35,7 @@ function updateTeamMembersList() {
         const div = document.createElement('div');
         div.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 5px; border-bottom: 1px solid #3e3e42;';
         div.innerHTML = `
-            <div style="width: 30px; height: 20px; background: ${member.color}; border-radius: 2px;"></div>
+            <div style="width: 30px; height: 20px; background: ${member.color_code || member.color}; border-radius: 2px;"></div>
             <span style="flex: 1;">${member.name}</span>
             <button class="action-btn delete" onclick="removeTeamMember(${index})">✕</button>
         `;

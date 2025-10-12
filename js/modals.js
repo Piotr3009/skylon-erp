@@ -108,7 +108,7 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
                 const option = document.createElement('option');
                 option.value = emp.id;
                 option.textContent = `${emp.name} (${emp.employee_number || '-'})`;
-                option.dataset.color = emp.color || '#999999';
+                option.dataset.color = emp.color_code || emp.color || '#999999';
                 
                 if (phase.assignedTo === emp.id) {
                     option.selected = true;
