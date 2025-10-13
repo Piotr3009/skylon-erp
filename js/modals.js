@@ -323,6 +323,7 @@ async function deleteOrderGlazingPhase() {
 
 // Save phase changes - FIXED WITH workDays
 async function savePhaseChanges() {
+    console.log('🔵 savePhaseChanges CALLED!');
     if (!currentEditPhase) return;
     
     const { projectIndex, phaseIndex } = currentEditPhase;
