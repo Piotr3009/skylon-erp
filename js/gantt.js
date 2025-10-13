@@ -299,49 +299,58 @@ function renderProjects() {
 }
 
 function detectPhaseOverlaps(phases) {
+    console.log('🔍 detectPhaseOverlaps START');
     const overlaps = [];
-    if (!Array.isArray(phases) || phases.length < 2) return overlaps;
+    if (!Array.isArray(phases) || phases.length < 2) {
+        console.log('❌ Less than 2 phases, no overlaps possible');
+        return overlaps;
+    }
 
-    const norm = phases.map((p, idx) => {
-        const endDate = new Date(p.adjustedEnd || p.end);
-        // WAŻNE: end to OSTATNI dzień pracy, więc overlap kończy się NASTĘPNEGO dnia
-        endDate.setDate(endDate.getDate() + 1);
-        
-        return {
-            idx,
-            key: p.key,
-            start: new Date(p.start),
-            end: endDate
-        };
-    }).sort((a,b) => a.start - b.start);
+    const norm = phases.map((p, idx) => ({
+        idx,
+        key: p.key,
+        start: new Date(p.start),
+        end: new Date(p.adjustedEnd || p.end)
+    })).sort((a,b) => a.start - b.start);
+
+    console.log('📋 Normalized phases:', norm.map(n => `${n.key}: ${n.start.toISOString().split('T')[0]} - ${n.end.toISOString().split('T')[0]}`));
 
     for (let i = 0; i < norm.length; i++) {
         for (let j = i + 1; j < norm.length; j++) {
             const A = norm[i], B = norm[j];
             
-            // DEBUG
+            console.log(`Checking: ${A.key} vs ${B.key}`);
+            console.log(`  A: ${A.start.toISOString().split('T')[0]} - ${A.end.toISOString().split('T')[0]}`);
+            console.log(`  B: ${B.start.toISOString().split('T')[0]} - ${B.end.toISOString().split('T')[0]}`);
             
-            if (B.start >= A.end) {
+            // B starts AFTER A ends - no overlap possible
+            if (B.start > A.end) {
+                console.log(`  ❌ B starts after A ends - no overlap`);
                 break;
             }
             
             const overlapStart = new Date(Math.max(A.start, B.start));
             const overlapEnd = new Date(Math.min(A.end, B.end));
             
+            console.log(`  Overlap range: ${overlapStart.toISOString().split('T')[0]} - ${overlapEnd.toISOString().split('T')[0]}`);
             
-            if (overlapEnd > overlapStart) {
+            if (overlapEnd >= overlapStart) {
+                console.log(`  ✅ OVERLAP DETECTED`);
                 overlaps.push({ 
                     phase1Key: phases[A.idx].key, 
                     phase2Key: phases[B.idx].key, 
                     phase1Idx: A.idx,
                     phase2Idx: B.idx,
                     overlapStart, 
-                    overlapEnd: new Date(overlapEnd.getTime() - 24*60*60*1000) // Odejmij 1 dzień z powrotem
+                    overlapEnd
                 });
             } else {
+                console.log(`  ❌ NO OVERLAP`);
             }
         }
     }
+    
+    console.log('🔍 detectPhaseOverlaps RESULT:', overlaps.length, 'overlaps');
     return overlaps;
 }
 
