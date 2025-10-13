@@ -298,9 +298,38 @@ function renderProjects() {
     });
 }
 
-// Overlap detection wyłączone
+// Overlap detection - tylko prawdziwe nakładanie (nie dotykanie)
 function detectPhaseOverlaps(phases) {
-    return [];
+    const overlaps = [];
+    if (!phases || phases.length < 2) return overlaps;
+    
+    for (let i = 0; i < phases.length; i++) {
+        for (let j = i + 1; j < phases.length; j++) {
+            const p1 = phases[i];
+            const p2 = phases[j];
+            
+            if (!p1.start || !p1.end || !p2.start || !p2.end) continue;
+            
+            const start1 = new Date(p1.start);
+            const end1 = new Date(p1.adjustedEnd || p1.end);
+            const start2 = new Date(p2.start);
+            const end2 = new Date(p2.adjustedEnd || p2.end);
+            
+            // Overlap = start1 < end2 AND start2 < end1
+            // Używam < (nie <=) żeby wykluczyć dotykanie
+            if (start1 < end2 && start2 < end1) {
+                overlaps.push({
+                    phase1Key: p1.key,
+                    phase2Key: p2.key,
+                    phase1Idx: i,
+                    phase2Idx: j,
+                    overlapStart: new Date(Math.max(start1.getTime(), start2.getTime())),
+                    overlapEnd: new Date(Math.min(end1.getTime(), end2.getTime()))
+                });
+            }
+        }
+    }
+    return overlaps;
 }
 
 function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
@@ -451,21 +480,38 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         const otherColor = productionPhases[otherKey]?.color || '#888';
         
         if (overlayWidth > 0) {
-            // Nakładka GÓRA-DÓŁ 50/50 - zakrywa całą wysokość (50px)
-            const overlapOverlay = document.createElement('div');
-            overlapOverlay.className = 'overlap-stripe';
-            overlapOverlay.style.cssText = `
+            // Overlap tylko na górnej 1/4 (25px podzielone na 2x 12.5px)
+            // Górny pasek - kolor fazy 1
+            const topBar = document.createElement('div');
+            topBar.style.cssText = `
                 position: absolute;
                 left: ${overlayLeft}px;
                 width: ${overlayWidth}px;
                 top: 0;
-                height: 50px;
-                background: linear-gradient(to bottom, ${phaseConfig.color} 50%, ${otherColor} 50%);
+                height: 12.5px;
+                background: ${phaseConfig.color};
                 pointer-events: none;
                 z-index: 3;
-                border-radius: 2px;
+                border: 1px solid #555;
+                border-radius: 2px 2px 0 0;
             `;
-            container.appendChild(overlapOverlay);
+            container.appendChild(topBar);
+            
+            // Dolny pasek - kolor fazy 2
+            const bottomBar = document.createElement('div');
+            bottomBar.style.cssText = `
+                position: absolute;
+                left: ${overlayLeft}px;
+                width: ${overlayWidth}px;
+                top: 12.5px;
+                height: 12.5px;
+                background: ${otherColor};
+                pointer-events: none;
+                z-index: 3;
+                border: 1px solid #555;
+                border-radius: 0 0 2px 2px;
+            `;
+            container.appendChild(bottomBar);
         }
     }
     
