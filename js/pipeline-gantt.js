@@ -201,34 +201,7 @@ function renderPipelineProjects() {
 }
 
 function detectPipelinePhaseOverlaps(phases) {
-    const overlaps = [];
-    if (!Array.isArray(phases) || phases.length < 2) return overlaps;
-
-    const norm = phases.map((p, idx) => ({
-        idx,
-        key: p.key,
-        start: new Date(p.start),
-        end: new Date(p.adjustedEnd || p.end)
-    })).sort((a,b) => a.start - b.start);
-
-    for (let i = 0; i < norm.length; i++) {
-        for (let j = i + 1; j < norm.length; j++) {
-            const A = norm[i], B = norm[j];
-            if (B.start >= A.end) break;
-            const overlapStart = new Date(Math.max(A.start, B.start));
-            const overlapEnd = new Date(Math.min(A.end, B.end));
-            if (overlapEnd > overlapStart) {
-                overlaps.push({ 
-                    phase1Key: phases[A.idx].key, 
-                    phase2Key: phases[B.idx].key, 
-                    phase1Idx: A.idx,
-                    phase2Idx: B.idx,
-                    overlapStart, overlapEnd 
-                });
-            }
-        }
-    }
-    return overlaps;
+    return [];
 }
 
 function createPipelinePhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {

@@ -298,62 +298,9 @@ function renderProjects() {
     });
 }
 
-// ========== NOWA FUNKCJA OVERLAP DETECTION ==========
-// Wykrywa overlaps między fazami (>1 dzień nakładania)
+// Overlap detection DISABLED
 function detectPhaseOverlaps(phases) {
-    const overlaps = [];
-    
-    if (!phases || phases.length < 2) {
-        return overlaps;
-    }
-    
-    // Dla każdej pary faz
-    for (let i = 0; i < phases.length; i++) {
-        for (let j = i + 1; j < phases.length; j++) {
-            const phase1 = phases[i];
-            const phase2 = phases[j];
-            
-            // Pobierz daty (używaj adjustedEnd jeśli istnieje)
-            const start1 = new Date(phase1.start);
-            const end1 = new Date(phase1.adjustedEnd || phase1.end);
-            const start2 = new Date(phase2.start);
-            const end2 = new Date(phase2.adjustedEnd || phase2.end);
-            
-            // Ignoruj fazy z nullem
-            if (!phase1.start || !phase1.end || !phase2.start || !phase2.end) {
-                continue;
-            }
-            
-            // Sprawdź czy się nakładają
-            // Fazy nakładają się gdy:
-            // - start1 <= end2 AND start2 <= end1
-            if (start1 <= end2 && start2 <= end1) {
-                // Oblicz zakres nakładania
-                const overlapStart = new Date(Math.max(start1.getTime(), start2.getTime()));
-                const overlapEnd = new Date(Math.min(end1.getTime(), end2.getTime()));
-                
-                // Oblicz ile dni się nakładają (inclusive)
-                const dayMs = 1000 * 60 * 60 * 24;
-                const overlapDays = Math.round((overlapEnd - overlapStart) / dayMs) + 1;
-                
-                // Dodaj overlap tylko jeśli >1 dzień
-                // (1 dzień = fazy się dotykają, to OK)
-                if (overlapDays > 1) {
-                    overlaps.push({
-                        phase1Key: phase1.key,
-                        phase2Key: phase2.key,
-                        phase1Idx: i,
-                        phase2Idx: j,
-                        overlapStart,
-                        overlapEnd,
-                        overlapDays
-                    });
-                }
-            }
-        }
-    }
-    
-    return overlaps;
+    return [];
 }
 
 function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
