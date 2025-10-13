@@ -777,23 +777,14 @@ body.pipeline-theme .project-cell {
     border-radius: 0 3px 3px 0;
 }
 
-/* Overlap overlay */
-.phase-container .dual-overlay-top,
-.phase-container .dual-overlay-bottom {
+/* Overlap stripe - pokazuje 50/50 dwóch kolorów faz */
+.phase-container .overlap-stripe {
     position: absolute;
     pointer-events: none;
     z-index: 3;
-}
-
-.phase-container .dual-overlay-top {
     top: 0;
-    height: 12.5px;
+    height: 25px;
     border-radius: 2px 2px 0 0;
-}
-
-.phase-container .dual-overlay-bottom {
-    top: 12.5px;
-    height: 12.5px;
 }
 
 
