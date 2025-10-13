@@ -305,22 +305,28 @@ function detectPhaseOverlaps(phases) {
     const overlaps = [];
     if (!Array.isArray(phases) || phases.length < 2) return overlaps;
 
-    const norm = phases.map((p, idx) => ({
-        idx,
-        key: p.key,
-        start: new Date(p.start),
-        end: new Date(p.adjustedEnd || p.end)
-    })).sort((a,b) => a.start - b.start);
+    const norm = phases.map((p, idx) => {
+        const endDate = new Date(p.adjustedEnd || p.end);
+        // WAŻNE: end to OSTATNI dzień pracy, więc overlap kończy się NASTĘPNEGO dnia
+        endDate.setDate(endDate.getDate() + 1);
+        
+        return {
+            idx,
+            key: p.key,
+            start: new Date(p.start),
+            end: endDate
+        };
+    }).sort((a,b) => a.start - b.start);
 
     for (let i = 0; i < norm.length; i++) {
         for (let j = i + 1; j < norm.length; j++) {
             const A = norm[i], B = norm[j];
             
             // DEBUG
-            console.log(`🔍 Sprawdzam: ${A.key} (${A.start.toISOString().split('T')[0]} do ${A.end.toISOString().split('T')[0]}) vs ${B.key} (${B.start.toISOString().split('T')[0]} do ${B.end.toISOString().split('T')[0]})`);
+            console.log(`🔍 Sprawdzam: ${A.key} (start: ${A.start.toISOString().split('T')[0]}, end+1: ${A.end.toISOString().split('T')[0]}) vs ${B.key} (start: ${B.start.toISOString().split('T')[0]}, end+1: ${B.end.toISOString().split('T')[0]})`);
             
             if (B.start >= A.end) {
-                console.log(`  ✅ Brak overlap - B zaczyna się po A`);
+                console.log(`  ✅ Brak overlap - B zaczyna się po A (lub w tym samym dniu co koniec A)`);
                 break;
             }
             
@@ -336,7 +342,8 @@ function detectPhaseOverlaps(phases) {
                     phase2Key: phases[B.idx].key, 
                     phase1Idx: A.idx,
                     phase2Idx: B.idx,
-                    overlapStart, overlapEnd 
+                    overlapStart, 
+                    overlapEnd: new Date(overlapEnd.getTime() - 24*60*60*1000) // Odejmij 1 dzień z powrotem
                 });
             } else {
                 console.log(`  ✅ Brak overlap - daty się nie pokrywają`);
