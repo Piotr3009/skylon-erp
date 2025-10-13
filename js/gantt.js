@@ -207,7 +207,6 @@ function renderProjects() {
     
     // DIAGNOSTYKA - monitoruj liczbę faz
     const totalPhases = projects.reduce((sum, p) => sum + (p.phases?.length || 0), 0);
-    console.log(`🔄 Renderowanie: ${projects.length} projektów, ${totalPhases} faz całkowicie`);
     
     body.innerHTML = '';
     
@@ -272,7 +271,6 @@ function renderProjects() {
                 return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
             });
             
-            console.log(`📊 Projekt "${project.name}": ${project.phases.length} faz do renderowania`);
             
             const overlaps = detectPhaseOverlaps(sortedPhases);
             
@@ -287,7 +285,6 @@ function renderProjects() {
                     console.error(`❌ Faza ${phase.key} NIE utworzona dla projektu "${project.name}"`);
                 }
             });
-            console.log(`✅ Renderowano ${renderedCount}/${sortedPhases.length} faz dla "${project.name}"`);
         }
         
         // Renderuj deadline
@@ -323,20 +320,16 @@ function detectPhaseOverlaps(phases) {
             const A = norm[i], B = norm[j];
             
             // DEBUG
-            console.log(`🔍 Sprawdzam: ${A.key} (start: ${A.start.toISOString().split('T')[0]}, end+1: ${A.end.toISOString().split('T')[0]}) vs ${B.key} (start: ${B.start.toISOString().split('T')[0]}, end+1: ${B.end.toISOString().split('T')[0]})`);
             
             if (B.start >= A.end) {
-                console.log(`  ✅ Brak overlap - B zaczyna się po A (lub w tym samym dniu co koniec A)`);
                 break;
             }
             
             const overlapStart = new Date(Math.max(A.start, B.start));
             const overlapEnd = new Date(Math.min(A.end, B.end));
             
-            console.log(`  📊 overlapStart: ${overlapStart.toISOString().split('T')[0]}, overlapEnd: ${overlapEnd.toISOString().split('T')[0]}`);
             
             if (overlapEnd > overlapStart) {
-                console.log(`  ⚠️ OVERLAP WYKRYTY!`);
                 overlaps.push({ 
                     phase1Key: phases[A.idx].key, 
                     phase2Key: phases[B.idx].key, 
@@ -346,7 +339,6 @@ function detectPhaseOverlaps(phases) {
                     overlapEnd: new Date(overlapEnd.getTime() - 24*60*60*1000) // Odejmij 1 dzień z powrotem
                 });
             } else {
-                console.log(`  ✅ Brak overlap - daty się nie pokrywają`);
             }
         }
     }
@@ -809,7 +801,6 @@ async function addGoogleDriveLink(projectIndex) {
                     console.error('Error updating Google Drive URL:', error);
                     alert('Error saving to database. URL saved locally only.');
                 } else {
-                    console.log('✅ Google Drive URL saved to database');
                 }
             } catch (err) {
                 console.error('Database connection error:', err);

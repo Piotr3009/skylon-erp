@@ -209,7 +209,6 @@ async function loadProjectsFromSupabase() {
             
         if (!teamError && teamData) {
             teamMembers = teamData;
-            console.log('✅ Loaded', teamMembers.length, 'team members');
         }
         
         // TERAZ PROJEKTY
@@ -225,10 +224,7 @@ async function loadProjectsFromSupabase() {
         }
         
         if (data && data.length > 0) {
-            console.log('✅ Loaded', data.length, 'projects from Supabase');
-            console.log('📋 Projekty z bazy:');
             data.forEach(p => {
-                console.log(`  - ${p.name} (ID: ${p.id}, Nr: ${p.project_number})`);
             });
             
             // Load phases from Supabase
@@ -243,9 +239,7 @@ async function loadProjectsFromSupabase() {
                 console.error('❌ Error loading phases:', phasesError);
             }
             
-            console.log('📊 Loaded phases data:', phasesData);
             if (phasesData && phasesData.length > 0) {
-                console.log('🔍 First phase structure:', Object.keys(phasesData[0]));
             }
             
             // Merge projects with phases
@@ -257,7 +251,6 @@ async function loadProjectsFromSupabase() {
                     // Sprawdź czy może fazy mają błędne project_id
                     const podobne = phasesData?.filter(p => p.project_id && p.project_id.startsWith(dbProject.id.substring(0,8)));
                     if (podobne?.length > 0) {
-                        console.log(`   Znaleziono podobne ID w fazach:`, podobne.map(p => p.project_id));
                     }
                 }
                 
@@ -271,7 +264,6 @@ async function loadProjectsFromSupabase() {
                     google_drive_folder_id: dbProject.google_drive_folder_id,  
 
                     phases: projectPhases.map(phase => {
-                        console.log(`📌 Processing phase for ${dbProject.name}:`, phase);
                         
                         // Napraw format daty DD/MM/YYYY na YYYY-MM-DD
                         const fixDate = (dateStr) => {
@@ -329,7 +321,6 @@ async function loadPipelineFromSupabase() {
         }
         
         if (data && data.length > 0) {
-            console.log('✅ Loaded', data.length, 'pipeline projects from Supabase');
             
             // Load phases from Supabase
             const projectIds = data.map(p => p.id);
@@ -589,7 +580,6 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             
             // DEBUG przypisania
             if (phase.assignedTo) {
-                console.log(`📝 Zapisuję przypisanie dla ${phase.key}: ${phase.assignedTo} (${phase.assignedToName})`);
             }
             
             return phaseData;
@@ -607,7 +597,6 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             }
         }
         
-        console.log(`✅ Saved ${phases.length} phases to ${tableName}`);
         return true;
         
     } catch (err) {
@@ -623,9 +612,7 @@ async function saveData() {
         // PRODUCTION PROJECTS
         if (projects.length > 0 && typeof supabaseClient !== 'undefined') {
             // DEBUG: Sprawdź co jest w projects[] przed zapisem
-            console.log('🔍 DEBUG saveData - projects[] przed zapisem:');
             projects.forEach(p => {
-                console.log(`  ${p.projectNumber}: google_drive_url=${p.google_drive_url}`);
             });
             
             // Zapisz TYLKO dane projektów (bez faz)
@@ -645,7 +632,6 @@ async function saveData() {
             // DEBUG: Sprawdź co idzie do bazy
             const project018 = projectsForDB.find(p => p.project_number === '018/2025');
             if (project018) {
-                console.log('🔍 DEBUG saveData - projekt 018 do bazy:', project018);
             }
             
             const { data, error } = await supabaseClient
@@ -655,7 +641,6 @@ async function saveData() {
             if (error) {
                 console.error('Error saving projects:', error);
             } else {
-                console.log('✅ Projects saved to Supabase!');
                 // FAZY NIE SĄ ZAPISYWANE TUTAJ!
                 // Fazy zapisywane tylko przy edycji fazy (modals.js, drag.js)
             }
@@ -680,7 +665,6 @@ async function saveData() {
             if (error) {
                 console.error('Error saving pipeline:', error);
             } else {
-                console.log('✅ Pipeline projects saved!');
                 
                 // ZAPISZ FAZY PIPELINE
                 for (const project of pipelineProjects) {
@@ -746,7 +730,6 @@ function startAutoSave() {
     
     autoSaveInterval = setInterval(() => {
         if (hasUnsavedChanges) {
-            console.log('🔄 Auto-saving...');
             saveDataQueued();  // Użyj kolejkowanej wersji
             hasUnsavedChanges = false;
             document.title = "Skylon Joinery - Production Manager";
@@ -918,7 +901,6 @@ window.updateProjectGoogleDrive = function(projectNumber, folderUrl, folderId, f
         projects[projectIndex].google_drive_url = folderUrl;
         projects[projectIndex].google_drive_folder_id = folderId;
         projects[projectIndex].google_drive_folder_name = folderName;
-        console.log('✅ Updated project in projects[] array:', projectNumber);
         return true;
     }
     console.error('❌ Project not found in projects[]:', projectNumber);
