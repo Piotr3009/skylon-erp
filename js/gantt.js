@@ -423,9 +423,13 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     const bottomDiv = document.createElement('div');
     bottomDiv.className = 'phase-bottom';
     
-    // Jeśli jest pracownik - dolna połowa ma jego kolor jako tło
+    // Jeśli jest pracownik - dolna część ma border w jego kolorze (przezroczyste tło)
     if (teamMember) {
-        bottomDiv.style.background = teamMember.color_code || teamMember.color;
+        bottomDiv.style.borderTop = `2px solid ${teamMember.color_code || teamMember.color}`;
+        bottomDiv.style.borderBottom = `2px solid ${teamMember.color_code || teamMember.color}`;
+        bottomDiv.style.borderLeft = `2px solid ${teamMember.color_code || teamMember.color}`;
+        bottomDiv.style.borderRight = `2px solid ${teamMember.color_code || teamMember.color}`;
+        bottomDiv.style.background = 'transparent';
     }
     
     const status = phaseStatuses[phase.status || 'notStarted'];
@@ -434,7 +438,7 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     
     // ADD CARPENTER NAME
     if (teamMember) {
-        bottomContent += `<span style="font-size: 9px; color: white; margin-left: 4px; font-weight: bold;">${teamMember.name}</span>`;
+        bottomContent += `<span style="font-size: 9px; color: ${teamMember.color_code || teamMember.color}; margin-left: 4px; font-weight: bold;">${teamMember.name}</span>`;
     }
     
     if (phase.notes) {
@@ -456,7 +460,7 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     container.appendChild(topDiv);
     container.appendChild(bottomDiv);
     
-    // OVERLAP: Dodaj nakładkę TYLKO na górną część (topDiv)
+    // OVERLAP: Nakładka zakrywa CAŁĄ wysokość (50px) w obszarze overlap
     if (overlap) {
         const sPhase = new Date(phase.start);
         const ePhase = new Date(phase.adjustedEnd || phase.end);
@@ -476,7 +480,7 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         const otherColor = productionPhases[otherKey]?.color || '#888';
         
         if (overlayWidth > 0) {
-            // Nakładka TYLKO na górną część - pokazuje 50/50 dwóch faz
+            // Nakładka GÓRA-DÓŁ 50/50 - zakrywa całą wysokość (50px)
             const overlapOverlay = document.createElement('div');
             overlapOverlay.className = 'overlap-stripe';
             overlapOverlay.style.cssText = `
@@ -484,11 +488,11 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
                 left: ${overlayLeft}px;
                 width: ${overlayWidth}px;
                 top: 0;
-                height: 25px;
-                background: linear-gradient(to right, ${phaseConfig.color} 50%, ${otherColor} 50%);
+                height: 50px;
+                background: linear-gradient(to bottom, ${phaseConfig.color} 50%, ${otherColor} 50%);
                 pointer-events: none;
                 z-index: 3;
-                border-radius: 2px 2px 0 0;
+                border-radius: 2px;
             `;
             container.appendChild(overlapOverlay);
         }
