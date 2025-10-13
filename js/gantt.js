@@ -298,42 +298,9 @@ function renderProjects() {
     });
 }
 
-// PROSTY overlap detection - sprawdza czy 2 fazy mają wspólne dni
+// Overlap detection wyłączone
 function detectPhaseOverlaps(phases) {
-    const overlaps = [];
-    if (!phases || phases.length < 2) return overlaps;
-    
-    for (let i = 0; i < phases.length; i++) {
-        for (let j = i + 1; j < phases.length; j++) {
-            const p1 = phases[i];
-            const p2 = phases[j];
-            
-            // Pomiń fazy bez dat
-            if (!p1.start || !p1.end || !p2.start || !p2.end) continue;
-            
-            const start1 = new Date(p1.start);
-            const end1 = new Date(p1.adjustedEnd || p1.end);
-            const start2 = new Date(p2.start);
-            const end2 = new Date(p2.adjustedEnd || p2.end);
-            
-            // Czy się przecinają? (start1 <= end2 AND start2 <= end1)
-            // ALE wykluczamy dotykanie się (gdy end1 === start2)
-            const touching = (end1.getTime() === start2.getTime() || end2.getTime() === start1.getTime());
-            const intersect = (start1 <= end2 && start2 <= end1);
-            
-            if (intersect && !touching) {
-                overlaps.push({
-                    phase1Key: p1.key,
-                    phase2Key: p2.key,
-                    phase1Idx: i,
-                    phase2Idx: j,
-                    overlapStart: new Date(Math.max(start1, start2)),
-                    overlapEnd: new Date(Math.min(end1, end2))
-                });
-            }
-        }
-    }
-    return overlaps;
+    return [];
 }
 
 function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
