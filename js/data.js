@@ -578,9 +578,11 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
                 })
             };
             
-            // DEBUG przypisania
-            if (phase.assignedTo) {
-            }
+            // DEBUG ZAPISU FAZ
+            console.log(`💾 SAVING PHASE TO DB: ${phase.key}`);
+            console.log(`  start_date: ${phaseData.start_date}`);
+            console.log(`  end_date: ${phaseData.end_date}`);
+            console.log(`  IN MEMORY: start=${phase.start}, end=${phase.end}`);
             
             return phaseData;
         });
