@@ -778,15 +778,24 @@ body.pipeline-theme .project-cell {
 }
 
 /* Overlap overlay */
-.phase-container .dual-overlay {
+.phase-container .dual-overlay-top,
+.phase-container .dual-overlay-bottom {
     position: absolute;
-    top: 0;
-    height: 28px;
-    border-radius: 2px 2px 0 0;
     pointer-events: none;
-    opacity: 0.92;
-    z-index: 1;
+    z-index: 3;
 }
+
+.phase-container .dual-overlay-top {
+    top: 0;
+    height: 12.5px;
+    border-radius: 2px 2px 0 0;
+}
+
+.phase-container .dual-overlay-bottom {
+    top: 12.5px;
+    height: 12.5px;
+}
+
 
 /* Sunday stripes - zielone paski */
 .sunday-stripe {
