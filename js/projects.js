@@ -182,51 +182,60 @@ async function saveProject() {
         const phaseKey = cb.value;
         const phaseDuration = parseInt(cb.dataset.duration) || 4; // Default 4 working days
         
-        const phaseStart = new Date(currentDate);
+        // NOWA LOGIKA: Przy edycji zachowaj stare daty
+        let newPhase;
         
-        // Snap to Monday if start on Sunday
-        while (isWeekend(phaseStart)) {
-            phaseStart.setDate(phaseStart.getDate() + 1);
-        }
-        
-        // Calculate end using working days
-        const phaseEnd = phaseDuration <= 1 ? 
-            new Date(phaseStart) : 
-            addWorkingDays(phaseStart, phaseDuration - 1);
-        
-        const newPhase = {
-            key: phaseKey,
-            start: formatDate(phaseStart),
-            end: formatDate(phaseEnd),
-            workDays: phaseDuration, // Save working days
-            status: 'notStarted'
-        };
-        
-        // Preserve existing assignments and notes
         if (currentEditProject !== null) {
             const existingPhase = projects[currentEditProject].phases?.find(p => p.key === phaseKey);
             if (existingPhase) {
-                if (existingPhase.assignedTo) newPhase.assignedTo = existingPhase.assignedTo;
-                if (existingPhase.notes) newPhase.notes = existingPhase.notes;
-                if (existingPhase.status) newPhase.status = existingPhase.status;
-                if (existingPhase.materials) newPhase.materials = existingPhase.materials;
-                if (existingPhase.customMaterials) newPhase.customMaterials = existingPhase.customMaterials;
-                if (existingPhase.sprayMaterials) newPhase.sprayMaterials = existingPhase.sprayMaterials;
-                if (existingPhase.glazingMaterials) newPhase.glazingMaterials = existingPhase.glazingMaterials;
-                if (existingPhase.orderComplete) newPhase.orderComplete = existingPhase.orderComplete;
-                if (existingPhase.orderConfirmed) newPhase.orderConfirmed = existingPhase.orderConfirmed;
+                // ZACHOWAJ WSZYSTKO ze starej fazy
+                newPhase = { ...existingPhase };
+            } else {
+                // Nowa faza dodana przy edycji - oblicz daty
+                const phaseStart = new Date(currentDate);
+                while (isWeekend(phaseStart)) {
+                    phaseStart.setDate(phaseStart.getDate() + 1);
+                }
+                const phaseEnd = phaseDuration <= 1 ? 
+                    new Date(phaseStart) : 
+                    addWorkingDays(phaseStart, phaseDuration - 1);
+                
+                newPhase = {
+                    key: phaseKey,
+                    start: formatDate(phaseStart),
+                    end: formatDate(phaseEnd),
+                    workDays: phaseDuration,
+                    status: 'notStarted'
+                };
             }
+        } else {
+            // NOWY PROJEKT - oblicz daty normalnie
+            const phaseStart = new Date(currentDate);
+            while (isWeekend(phaseStart)) {
+                phaseStart.setDate(phaseStart.getDate() + 1);
+            }
+            const phaseEnd = phaseDuration <= 1 ? 
+                new Date(phaseStart) : 
+                addWorkingDays(phaseStart, phaseDuration - 1);
+            
+            newPhase = {
+                key: phaseKey,
+                start: formatDate(phaseStart),
+                end: formatDate(phaseEnd),
+                workDays: phaseDuration,
+                status: 'notStarted'
+            };
         }
         
         selectedPhases.push(newPhase);
         
-        // Next phase starts day after previous ends
-        currentDate = new Date(phaseEnd);
-        currentDate.setDate(currentDate.getDate() + 1);
-        
-        // Skip Sundays for next phase
-        while (isWeekend(currentDate)) {
+        // Next phase starts day after previous ends (tylko dla nowych projektów)
+        if (currentEditProject === null) {
+            currentDate = new Date(newPhase.end);
             currentDate.setDate(currentDate.getDate() + 1);
+            while (isWeekend(currentDate)) {
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
         }
     });
     
