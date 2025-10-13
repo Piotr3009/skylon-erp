@@ -315,10 +315,22 @@ function detectPhaseOverlaps(phases) {
     for (let i = 0; i < norm.length; i++) {
         for (let j = i + 1; j < norm.length; j++) {
             const A = norm[i], B = norm[j];
-            if (B.start >= A.end) break;
+            
+            // DEBUG
+            console.log(`🔍 Sprawdzam: ${A.key} (${A.start.toISOString().split('T')[0]} do ${A.end.toISOString().split('T')[0]}) vs ${B.key} (${B.start.toISOString().split('T')[0]} do ${B.end.toISOString().split('T')[0]})`);
+            
+            if (B.start >= A.end) {
+                console.log(`  ✅ Brak overlap - B zaczyna się po A`);
+                break;
+            }
+            
             const overlapStart = new Date(Math.max(A.start, B.start));
             const overlapEnd = new Date(Math.min(A.end, B.end));
+            
+            console.log(`  📊 overlapStart: ${overlapStart.toISOString().split('T')[0]}, overlapEnd: ${overlapEnd.toISOString().split('T')[0]}`);
+            
             if (overlapEnd > overlapStart) {
+                console.log(`  ⚠️ OVERLAP WYKRYTY!`);
                 overlaps.push({ 
                     phase1Key: phases[A.idx].key, 
                     phase2Key: phases[B.idx].key, 
@@ -326,6 +338,8 @@ function detectPhaseOverlaps(phases) {
                     phase2Idx: B.idx,
                     overlapStart, overlapEnd 
                 });
+            } else {
+                console.log(`  ✅ Brak overlap - daty się nie pokrywają`);
             }
         }
     }
