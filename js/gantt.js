@@ -299,10 +299,8 @@ function renderProjects() {
 }
 
 function detectPhaseOverlaps(phases) {
-    console.log('🔍 detectPhaseOverlaps START');
     const overlaps = [];
     if (!Array.isArray(phases) || phases.length < 2) {
-        console.log('❌ Less than 2 phases, no overlaps possible');
         return overlaps;
     }
 
@@ -313,29 +311,23 @@ function detectPhaseOverlaps(phases) {
         end: new Date(p.adjustedEnd || p.end)
     })).sort((a,b) => a.start - b.start);
 
-    console.log('📋 Normalized phases:', norm.map(n => `${n.key}: ${n.start.toISOString().split('T')[0]} - ${n.end.toISOString().split('T')[0]}`));
-
     for (let i = 0; i < norm.length; i++) {
         for (let j = i + 1; j < norm.length; j++) {
             const A = norm[i], B = norm[j];
             
-            console.log(`Checking: ${A.key} vs ${B.key}`);
-            console.log(`  A: ${A.start.toISOString().split('T')[0]} - ${A.end.toISOString().split('T')[0]}`);
-            console.log(`  B: ${B.start.toISOString().split('T')[0]} - ${B.end.toISOString().split('T')[0]}`);
-            
             // B starts AFTER A ends - no overlap possible
             if (B.start > A.end) {
-                console.log(`  ❌ B starts after A ends - no overlap`);
                 break;
             }
             
             const overlapStart = new Date(Math.max(A.start, B.start));
             const overlapEnd = new Date(Math.min(A.end, B.end));
             
-            console.log(`  Overlap range: ${overlapStart.toISOString().split('T')[0]} - ${overlapEnd.toISOString().split('T')[0]}`);
+            // Oblicz dni nakładania (inclusive)
+            const overlapDays = Math.round((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
             
-            if (overlapEnd >= overlapStart) {
-                console.log(`  ✅ OVERLAP DETECTED`);
+            // Overlap tylko jeśli >1 dzień nakładania
+            if (overlapDays > 1) {
                 overlaps.push({ 
                     phase1Key: phases[A.idx].key, 
                     phase2Key: phases[B.idx].key, 
@@ -344,13 +336,10 @@ function detectPhaseOverlaps(phases) {
                     overlapStart, 
                     overlapEnd
                 });
-            } else {
-                console.log(`  ❌ NO OVERLAP`);
             }
         }
     }
     
-    console.log('🔍 detectPhaseOverlaps RESULT:', overlaps.length, 'overlaps');
     return overlaps;
 }
 

@@ -544,7 +544,6 @@ function loadFromLocalStorage() {
 // ========== ZAPISYWANIE FAZ DO SUPABASE - NAPRAWIONE ==========
 
 async function savePhasesToSupabase(projectId, phases, isProduction = true) {
-    console.log('🚨 savePhasesToSupabase CALLED!', { projectId, phasesCount: phases.length, isProduction });
     try {
         const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
         const projectIdField = isProduction ? 'project_id' : 'pipeline_project_id';
@@ -578,12 +577,6 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
                     order_confirmed: phase.orderConfirmed || false
                 })
             };
-            
-            // DEBUG ZAPISU FAZ
-            console.log(`💾 SAVING PHASE TO DB: ${phase.key}`);
-            console.log(`  start_date: ${phaseData.start_date}`);
-            console.log(`  end_date: ${phaseData.end_date}`);
-            console.log(`  IN MEMORY: start=${phase.start}, end=${phase.end}`);
             
             return phaseData;
         });
