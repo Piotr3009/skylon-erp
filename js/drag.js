@@ -38,7 +38,7 @@ function shiftSuccessors(projectIndex, phaseIndex, deltaDays) {
     }
 }
 
-// NAPRAWIONA FUNKCJA - automatyczne układanie od danej fazy
+// NOWA FUNKCJA - pozwala na maksymalnie 2 nakładające się fazy
 function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
     const project = projects[projectIndex];
     const phases = project.phases;
@@ -46,35 +46,54 @@ function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
     // Sortuj fazy według kolejności
     phases.sort((a, b) => phaseOrder.indexOf(a.key) - phaseOrder.indexOf(b.key));
     
-    // WAŻNE - układaj wszystkie fazy od początku dla pewności
-    for (let i = 1; i < phases.length; i++) {
-        const prevPhase = phases[i - 1];
-        const currPhase = phases[i];
-        
-        // Oblicz koniec poprzedniej fazy używając computeEnd
-        const prevEnd = computeEnd(prevPhase);
-        const currStart = new Date(currPhase.start);
-        
-        // Jeśli fazy się nakładają lub są w złej kolejności
-        if (currStart <= prevEnd) {
-            // Przesuń bieżącą fazę za poprzednią
-            let nextDay = new Date(prevEnd);
-            nextDay.setDate(nextDay.getDate() + 1);
-            
-            // Pomiń niedziele
-            while (isWeekend(nextDay)) {
-                nextDay.setDate(nextDay.getDate() + 1);
-            }
-            
-            currPhase.start = formatDate(nextDay);
-            // workDays pozostaje bez zmian!
-        }
-    }
+    // NIE robimy automatycznego układania - pozwalamy na nakładanie
+    // Walidacja odbędzie się w stopDrag() poprzez checkMaxTwoOverlaps()
     
     // Mark as changed for auto-save
     if (typeof markAsChanged === 'function') {
         markAsChanged();
     }
+}
+
+// Nowa funkcja - sprawdza czy więcej niż 2 fazy się nakładają w danym momencie
+function checkMaxTwoOverlaps(phases) {
+    if (!Array.isArray(phases) || phases.length < 3) return true; // OK jeśli <3 fazy
+    
+    // Normalizuj fazy z datami
+    const normalized = phases.map((p, idx) => ({
+        idx,
+        key: p.key,
+        start: new Date(p.start),
+        end: new Date(computeEnd(p))
+    })).sort((a, b) => a.start - b.start);
+    
+    // Sprawdź każdy punkt czasowy czy więcej niż 2 fazy się nakładają
+    for (let i = 0; i < normalized.length; i++) {
+        const currentPhase = normalized[i];
+        
+        // Policz ile faz nakłada się z currentPhase
+        let overlapCount = 1; // currentPhase się liczy
+        
+        for (let j = 0; j < normalized.length; j++) {
+            if (i === j) continue;
+            
+            const otherPhase = normalized[j];
+            
+            // Sprawdź czy fazy się nakładają
+            const overlap = !(currentPhase.end < otherPhase.start || currentPhase.start > otherPhase.end);
+            
+            if (overlap) {
+                overlapCount++;
+                
+                // Jeśli więcej niż 2 fazy się nakładają
+                if (overlapCount > 2) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    return true;
 }
 
 function startDrag(e, bar, phase, projectIndex, phaseIndex) {
@@ -188,6 +207,25 @@ async function stopDrag(e) {
         
         // KROK 1: Układaj wszystkie fazy żeby nie było nakładania
         autoArrangeFromPhase(projectIndex, 0);
+        
+        // KROK 1.5: Sprawdź czy nie ma więcej niż 2 nakładających się faz
+        if (!checkMaxTwoOverlaps(project.phases)) {
+            alert('Cannot move/resize: More than 2 phases would overlap at the same time!');
+            
+            // Przywróć oryginalne fazy
+            project.phases = oldPhases;
+            
+            // Czyść handlery
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            draggedElement = null;
+            draggedPhase = null;
+            dragMode = null;
+            
+            // Odśwież
+            render();
+            return;
+        }
         
         // KROK 2: Sprawdź czy cokolwiek przekracza deadline
         let exceedsDeadline = false;

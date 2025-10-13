@@ -410,7 +410,13 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         o.phase1Key === phase.key || o.phase2Key === phase.key
     );
     
+    // Zmienne dla overlap - definiujemy poza if, żeby były dostępne później
+    let overlayLeft = 0;
+    let overlayWidth = 0;
+    let otherColor = '#888';
+    
     if (overlap) {
+        // NOWA LOGIKA: overlap z pracownikiem
         const sPhase = new Date(phase.start);
         const ePhase = new Date(phase.adjustedEnd || phase.end);
         const sOverlap = overlap.overlapStart;
@@ -422,21 +428,21 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         const fromStartDays = Math.max(0, Math.round((sOverlap - sPhase) / dayMs));
         const overlapDays = Math.max(0, Math.round((eOverlap - sOverlap) / dayMs) + 1);
 
-        const overlayLeft = Math.min(widthPx, fromStartDays * dayWidth);
-        const overlayWidth = Math.max(0, Math.min(widthPx - overlayLeft, overlapDays * dayWidth));
+        overlayLeft = Math.min(widthPx, fromStartDays * dayWidth);
+        overlayWidth = Math.max(0, Math.min(widthPx - overlayLeft, overlapDays * dayWidth));
 
-        topDiv.style.background = phaseConfig.color;
+        const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
+        otherColor = productionPhases[otherKey]?.color || '#888';
 
-        if (overlayWidth > 0) {
-            const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
-            const otherColor = productionPhases[otherKey]?.color || '#888';
-            const overlay = document.createElement('div');
-            overlay.className = 'dual-overlay';
-            overlay.style.left = overlayLeft + 'px';
-            overlay.style.width = overlayWidth + 'px';
-            overlay.style.background = `linear-gradient(90deg, ${phaseConfig.color} 0 50%, ${otherColor} 50% 100%)`;
-            container.appendChild(overlay);
+        // Jeśli jest pracownik - przed overlapem kolor fazy + pracownik
+        if (teamMember) {
+            topDiv.classList.add('has-team');
+            topDiv.style.background = `linear-gradient(to bottom, ${phaseConfig.color} 50%, ${teamMember.color_code || teamMember.color} 50%)`;
+        } else {
+            topDiv.style.background = phaseConfig.color;
         }
+        
+        // Overlay będzie dodany później, po topDiv i bottomDiv
     } else if (teamMember) {
         topDiv.classList.add('has-team');
         topDiv.style.background = `linear-gradient(to bottom, ${phaseConfig.color} 50%, ${teamMember.color_code || teamMember.color} 50%)`;
@@ -477,6 +483,40 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     
     container.appendChild(topDiv);
     container.appendChild(bottomDiv);
+    
+    // WAŻNE: Overlay musi być dodany OSTATNI, żeby był na wierzchu (z-index działa tylko jeśli jest później w DOM)
+    if (overlap && overlayWidth > 0) {
+        // Tworzymy 2 divy - górny i dolny
+        const overlayTop = document.createElement('div');
+        overlayTop.className = 'dual-overlay-top';
+        overlayTop.style.cssText = `
+            position: absolute;
+            left: ${overlayLeft}px;
+            width: ${overlayWidth}px;
+            top: 0;
+            height: 12.5px;
+            background: linear-gradient(to right, ${phaseConfig.color} 50%, ${otherColor} 50%);
+            pointer-events: none;
+            z-index: 2;
+            border-radius: 2px 2px 0 0;
+        `;
+        
+        const overlayBottom = document.createElement('div');
+        overlayBottom.className = 'dual-overlay-bottom';
+        overlayBottom.style.cssText = `
+            position: absolute;
+            left: ${overlayLeft}px;
+            width: ${overlayWidth}px;
+            top: 12.5px;
+            height: 12.5px;
+            background: ${otherColor};
+            pointer-events: none;
+            z-index: 2;
+        `;
+        
+        container.appendChild(overlayTop);
+        container.appendChild(overlayBottom);
+    }
     
     container.dataset.projectIndex = projectIndex;
     container.dataset.phaseIndex = phaseIndex;

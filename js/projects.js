@@ -211,65 +211,69 @@ async function saveProject() {
                 if (existingPhase.status) newPhase.status = existingPhase.status;
                 if (existingPhase.materials) newPhase.materials = existingPhase.materials;
                 if (existingPhase.customMaterials) newPhase.customMaterials = existingPhase.customMaterials;
-                if (existingPhase.sprayMaterials) newPhase.sprayMaterials = existingPhase.sprayMaterials;
-                if (existingPhase.glazingMaterials) newPhase.glazingMaterials = existingPhase.glazingMaterials;
-                if (existingPhase.orderComplete) newPhase.orderComplete = existingPhase.orderComplete;
-                if (existingPhase.orderConfirmed) newPhase.orderConfirmed = existingPhase.orderConfirmed;
+                if (existingPhase.orderComplete !== undefined) newPhase.orderComplete = existingPhase.orderComplete;
+                if (existingPhase.orderConfirmed !== undefined) newPhase.orderConfirmed = existingPhase.orderConfirmed;
             }
         }
         
         selectedPhases.push(newPhase);
         
-        // Next phase starts day after previous ends
+        // Next phase starts after this one ends
         currentDate = new Date(phaseEnd);
         currentDate.setDate(currentDate.getDate() + 1);
         
-        // Skip Sundays for next phase
+        // Skip weekends for next phase start
         while (isWeekend(currentDate)) {
             currentDate.setDate(currentDate.getDate() + 1);
         }
     });
     
-
+    if (selectedPhases.length === 0) {
+        alert('Please select at least one phase');
+        return;
+    }
+    
     const projectData = {
-    projectNumber,
-    type: projectType,
-    name,
-    client_id: clientId,
-    deadline: deadline || null,
-    phases: selectedPhases
-};
-
-// PRESERVE google_drive fields when editing
-if (currentEditProject !== null && projects[currentEditProject]) {
-    if (projects[currentEditProject].google_drive_url) {
-        projectData.google_drive_url = projects[currentEditProject].google_drive_url;
-    }
-    if (projects[currentEditProject].google_drive_folder_id) {
-        projectData.google_drive_folder_id = projects[currentEditProject].google_drive_folder_id;
-    }
-    if (projects[currentEditProject].google_drive_folder_name) {
-        projectData.google_drive_folder_name = projects[currentEditProject].google_drive_folder_name;
-    }
+        name: name,
+        projectNumber: projectNumber,
+        phases: selectedPhases,
+        type: projectType,
+        client_id: clientId,
+        deadline: deadline || null,
+        created_at: currentEditProject !== null ? projects[currentEditProject].created_at : new Date().toISOString()
+    };
+    
+    // Preserve google drive data if exists
+    if (currentEditProject !== null) {
+        const existingProject = projects[currentEditProject];
+        if (existingProject.google_drive_url) {
+            projectData.google_drive_url = existingProject.google_drive_url;
+        }
+        if (existingProject.google_drive_folder_id) {
+            projectData.google_drive_folder_id = existingProject.google_drive_folder_id;
+        }
+        if (existingProject.contract_value) {
+            projectData.contract_value = existingProject.contract_value;
+        }
 }
     
-    // Jeśli jest deadline, auto-dopasuj fazy
-    if (deadline && selectedPhases.length > 0) {
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const deadlineDate = new Date(deadline);
-        
-        // Sprawdź czy deadline jest wystarczający
-        const availableWorkDays = workingDaysBetween(today, deadlineDate);
-        
-        if (availableWorkDays < selectedPhases.length) {
-            alert(`Deadline too short! Need at least ${selectedPhases.length} working days for ${selectedPhases.length} phases.`);
-            return;
-        }
-        
-        // Auto-dopasuj fazy do deadline
-        autoAdjustPhasesToDeadline(projectData, today, deadlineDate);
-    }
+    // WYŁĄCZONE - automatyczne ustawianie faz przy deadline
+    // if (deadline && selectedPhases.length > 0) {
+    //     const today = new Date();
+    //     today.setHours(0,0,0,0);
+    //     const deadlineDate = new Date(deadline);
+    //     
+    //     // Sprawdź czy deadline jest wystarczający
+    //     const availableWorkDays = workingDaysBetween(today, deadlineDate);
+    //     
+    //     if (availableWorkDays < selectedPhases.length) {
+    //         alert(`Deadline too short! Need at least ${selectedPhases.length} working days for ${selectedPhases.length} phases.`);
+    //         return;
+    //     }
+    //     
+    //     // Auto-dopasuj fazy do deadline
+    //     autoAdjustPhasesToDeadline(projectData, today, deadlineDate);
+    // }
     
     if (currentEditProject !== null) {
         projects[currentEditProject] = projectData;
@@ -277,60 +281,80 @@ if (currentEditProject !== null && projects[currentEditProject]) {
         projects.push(projectData);
     }
     
-    // Save to Supabase
+    // ZAPISZ DO SUPABASE
     if (typeof supabaseClient !== 'undefined') {
         try {
-            const projectForDB = {
+            // Przygotuj dane projektu
+            const projectToSave = {
                 project_number: projectData.projectNumber,
-                type: projectData.type,
                 name: projectData.name,
+                type: projectData.type,
                 client_id: projectData.client_id,
-                deadline: projectData.deadline,
-                status: 'active',
-                notes: null,
-                contract_value: 0,
                 google_drive_url: projectData.google_drive_url || null,
-                google_drive_folder_id: projectData.google_drive_folder_id || null
+                google_drive_folder_id: projectData.google_drive_folder_id || null,
+                contract_value: projectData.contract_value || 0,
+                deadline: projectData.deadline,
+                created_at: projectData.created_at
             };
             
-            const { error } = await supabaseClient
-                .from('projects')
-                .upsert(projectForDB, { onConflict: 'project_number' });
-                
-            if (!error) {
-                console.log('✅ Project saved to Supabase with client');
-                
-                // Pobierz ID zapisanego projektu
-                const { data: savedProject } = await supabaseClient
+            if (currentEditProject !== null) {
+                // UPDATE istniejącego projektu
+                const { data, error } = await supabaseClient
                     .from('projects')
-                    .select('id')
+                    .update(projectToSave)
                     .eq('project_number', projectData.projectNumber)
-                    .single();
+                    .select();
                 
-                // ZAPISZ FAZY DO TABELI project_phases
-                if (savedProject && projectData.phases && projectData.phases.length > 0) {
-                    console.log('💾 Zapisuję', projectData.phases.length, 'faz do tabeli project_phases dla projektu', savedProject.id);
+                if (error) {
+                    console.error('Error updating project:', error);
+                    alert('Error saving project to database. Changes saved locally only.');
+                } else if (data && data.length > 0) {
+                    console.log('✅ Project updated in database:', data[0]);
                     
-                    const phaseSaveResult = await savePhasesToSupabase(
-                        savedProject.id,
-                        projectData.phases,
-                        true  // true = production
-                    );
+                    // Zapisz fazy
+                    await savePhasesToSupabase(data[0].id, projectData.phases, true);
                     
-                    if (phaseSaveResult) {
-                        console.log('✅ All phases saved successfully');
-                    } else {
-                        console.error('❌ Failed to save phases');
+                    // Update client project count
+                    await updateClientProjectCount(projectData.client_id);
+                } else {
+                    console.warn('⚠️ Project not found in database, creating new...');
+                    // Jeśli nie znaleziono, spróbuj utworzyć nowy
+                    const { data: newData, error: insertError } = await supabaseClient
+                        .from('projects')
+                        .insert([projectToSave])
+                        .select();
+                    
+                    if (insertError) {
+                        console.error('Error creating project:', insertError);
+                    } else if (newData && newData.length > 0) {
+                        console.log('✅ Project created in database:', newData[0]);
+                        await savePhasesToSupabase(newData[0].id, projectData.phases, false);
+                        await updateClientProjectCount(projectData.client_id);
                     }
                 }
-                
-                // Update client project count
-                await updateClientProjectCount(clientId);
             } else {
-                console.error('❌ Error saving project:', error);
+                // INSERT nowego projektu
+                const { data, error } = await supabaseClient
+                    .from('projects')
+                    .insert([projectToSave])
+                    .select();
+                
+                if (error) {
+                    console.error('Error creating project:', error);
+                    alert('Error saving project to database. Project saved locally only.');
+                } else if (data && data.length > 0) {
+                    console.log('✅ Project created in database:', data[0]);
+                    
+                    // Zapisz fazy
+                    await savePhasesToSupabase(data[0].id, projectData.phases, false);
+                    
+                    // Update client project count
+                    await updateClientProjectCount(projectData.client_id);
+                }
             }
         } catch (err) {
-            console.log('⚠️ Project saved locally only:', err);
+            console.error('Database error:', err);
+            alert('Error connecting to database. Changes saved locally only.');
         }
     }
     
@@ -339,113 +363,46 @@ if (currentEditProject !== null && projects[currentEditProject]) {
     closeModal('projectModal');
 }
 
-// Update client project count
-async function updateClientProjectCount(clientId) {
-    if (!clientId) return;
-    
-    try {
-        // Count all projects for this client
-        const { count: productionCount } = await supabaseClient
-            .from('projects')
-            .select('*', { count: 'exact', head: true })
-            .eq('client_id', clientId);
-            
-        const { count: pipelineCount } = await supabaseClient
-            .from('pipeline_projects')
-            .select('*', { count: 'exact', head: true })
-            .eq('client_id', clientId);
-        
-        const totalProjects = (productionCount || 0) + (pipelineCount || 0);
-        
-        // Update client record
-        await supabaseClient
-            .from('clients')
-            .update({ total_projects: totalProjects })
-            .eq('id', clientId);
-            
-    } catch (err) {
-        console.error('Error updating client stats:', err);
-    }
-}
-
 async function deleteProject(index) {
-    if (confirm('Delete project "' + projects[index].name + '"?')) {
-        const projectNumber = projects[index].projectNumber;
-        const clientId = projects[index].client_id;
-        
-        // Usuń z Supabase jeśli jest połączenie
-        if (projectNumber && typeof supabaseClient !== 'undefined') {
+    const project = projects[index];
+    
+    if (confirm(`Delete project "${project.name}"?`)) {
+        // USUŃ Z SUPABASE
+        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
             try {
                 const { error } = await supabaseClient
                     .from('projects')
                     .delete()
-                    .eq('project_number', projectNumber);
-                    
+                    .eq('project_number', project.projectNumber);
+                
                 if (error) {
-                    console.error('Błąd usuwania z DB:', error);
+                    console.error('Error deleting project from database:', error);
+                    alert('Error deleting from database. Project removed locally only.');
                 } else {
-                    console.log('✅ Usunięte z bazy');
+                    console.log('✅ Project deleted from database');
                     
                     // Update client project count
-                    await updateClientProjectCount(clientId);
+                    if (project.client_id) {
+                        await updateClientProjectCount(project.client_id);
+                    }
                 }
             } catch (err) {
-                console.log('Brak połączenia z DB, usuwam tylko lokalnie');
+                console.error('Database error:', err);
             }
         }
         
-        // Usuń lokalnie
         projects.splice(index, 1);
         saveData();
         render();
     }
 }
 
-function updatePhasesList(projectPhases = [], checkAll = false) {
-    const list = document.getElementById('phasesList');
-    list.innerHTML = '';
+function refreshAfterPhaseChange(projectIndex) {
+    if (!projects[projectIndex]) return;
     
-    const projectPhaseKeys = projectPhases ? projectPhases.map(p => p.key) : [];
-    
-    // Sort phases according to productionPhaseOrder
-    const sortedPhases = Object.entries(productionPhases).sort((a, b) => {
-        return productionPhaseOrder.indexOf(a[0]) - productionPhaseOrder.indexOf(b[0]);
-    });
-    
-    sortedPhases.forEach(([key, phase]) => {
-        const div = document.createElement('div');
-        div.className = 'phase-checkbox';
-        
-        // For new project (checkAll = true) all are checked
-        // For edit check which phases project has
-        const isChecked = checkAll || projectPhaseKeys.includes(key);
-        
-        // ALL PHASES DEFAULT 4 DAYS
-        let duration = 4; // Default 4 days for all phases
-        
-        div.innerHTML = `
-            <input type="checkbox" id="phase_${key}" value="${key}" 
-                   data-duration="${duration}" ${isChecked ? 'checked' : ''}>
-            <div class="phase-color" style="background: ${phase.color}; width: 20px; height: 15px; border-radius: 2px;"></div>
-            <label for="phase_${key}">${phase.name} (${duration} days)</label>
-        `;
-        
-        list.appendChild(div);
-    });
-}
-
-// Handle type selection
-function selectProjectType(type) {
-    document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-}
-
-// Auto-arrange all phases in project (remove overlaps)
-function autoArrangePhases(projectIndex) {
     const project = projects[projectIndex];
-    if (!project.phases || project.phases.length === 0) return;
     
-    // Sort phases by order
+    // Sort phases
     project.phases.sort((a, b) => {
         return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
     });
