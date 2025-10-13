@@ -298,44 +298,57 @@ function renderProjects() {
     });
 }
 
+// ========== NOWA FUNKCJA OVERLAP DETECTION ==========
+// Wykrywa overlaps między fazami (>1 dzień nakładania)
 function detectPhaseOverlaps(phases) {
     const overlaps = [];
-    if (!Array.isArray(phases) || phases.length < 2) {
+    
+    if (!phases || phases.length < 2) {
         return overlaps;
     }
-
-    const norm = phases.map((p, idx) => ({
-        idx,
-        key: p.key,
-        start: new Date(p.start),
-        end: new Date(p.adjustedEnd || p.end)
-    })).sort((a,b) => a.start - b.start);
-
-    for (let i = 0; i < norm.length; i++) {
-        for (let j = i + 1; j < norm.length; j++) {
-            const A = norm[i], B = norm[j];
+    
+    // Dla każdej pary faz
+    for (let i = 0; i < phases.length; i++) {
+        for (let j = i + 1; j < phases.length; j++) {
+            const phase1 = phases[i];
+            const phase2 = phases[j];
             
-            // B starts AFTER A ends - no overlap possible
-            if (B.start > A.end) {
-                break;
+            // Pobierz daty (używaj adjustedEnd jeśli istnieje)
+            const start1 = new Date(phase1.start);
+            const end1 = new Date(phase1.adjustedEnd || phase1.end);
+            const start2 = new Date(phase2.start);
+            const end2 = new Date(phase2.adjustedEnd || phase2.end);
+            
+            // Ignoruj fazy z nullem
+            if (!phase1.start || !phase1.end || !phase2.start || !phase2.end) {
+                continue;
             }
             
-            const overlapStart = new Date(Math.max(A.start, B.start));
-            const overlapEnd = new Date(Math.min(A.end, B.end));
-            
-            // Oblicz dni nakładania (inclusive)
-            const overlapDays = Math.round((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
-            
-            // Overlap tylko jeśli >1 dzień nakładania
-            if (overlapDays > 1) {
-                overlaps.push({ 
-                    phase1Key: phases[A.idx].key, 
-                    phase2Key: phases[B.idx].key, 
-                    phase1Idx: A.idx,
-                    phase2Idx: B.idx,
-                    overlapStart, 
-                    overlapEnd
-                });
+            // Sprawdź czy się nakładają
+            // Fazy nakładają się gdy:
+            // - start1 <= end2 AND start2 <= end1
+            if (start1 <= end2 && start2 <= end1) {
+                // Oblicz zakres nakładania
+                const overlapStart = new Date(Math.max(start1.getTime(), start2.getTime()));
+                const overlapEnd = new Date(Math.min(end1.getTime(), end2.getTime()));
+                
+                // Oblicz ile dni się nakładają (inclusive)
+                const dayMs = 1000 * 60 * 60 * 24;
+                const overlapDays = Math.round((overlapEnd - overlapStart) / dayMs) + 1;
+                
+                // Dodaj overlap tylko jeśli >1 dzień
+                // (1 dzień = fazy się dotykają, to OK)
+                if (overlapDays > 1) {
+                    overlaps.push({
+                        phase1Key: phase1.key,
+                        phase2Key: phase2.key,
+                        phase1Idx: i,
+                        phase2Idx: j,
+                        overlapStart,
+                        overlapEnd,
+                        overlapDays
+                    });
+                }
             }
         }
     }
