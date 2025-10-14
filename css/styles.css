@@ -711,7 +711,8 @@ body.pipeline-theme .project-cell {
 
 /* Note indicator w dolnej części */
 .phase-note-icon {
-    font-size: 9px;
+    font-size: 14px;
+    margin-left: 4px;
 }
 
 /* Order status w dolnej części */
