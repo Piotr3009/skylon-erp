@@ -46,8 +46,18 @@ async function loadEmployees() {
         const modalEmployee = document.getElementById('modalEmployee');
         
         employeeFilter.innerHTML = '<option value="all">All Employees</option>';
-        // Nie czyścimy modalEmployee - tam już jest "All Team Members" w HTML
         
+        // Wyczyść i zbuduj modal select od nowa
+        modalEmployee.innerHTML = '';
+        
+        // Dodaj ALL jako pierwszą opcję
+        const allOpt = document.createElement('option');
+        allOpt.value = 'all';
+        allOpt.textContent = 'ALL TEAM MEMBERS';
+        allOpt.className = 'opt-all-members';
+        modalEmployee.appendChild(allOpt);
+        
+        // Dodaj pracowników
         employees.forEach(emp => {
             const option1 = document.createElement('option');
             option1.value = emp.id;
@@ -299,9 +309,10 @@ function formatDate(date) {
 
 // ========== MODAL FUNCTIONS ==========
 function addHolidayModal() {
+    populateEmployeeSelect();
     document.getElementById('modalDateFrom').value = '';
     document.getElementById('modalDateTo').value = '';
-    document.getElementById('modalEmployee').value = '';
+    document.getElementById('modalEmployee').value = 'all';
     document.getElementById('modalHolidayType').value = 'annual';
     document.getElementById('modalStatus').value = 'approved';
     document.getElementById('modalNotes').value = '';
@@ -310,14 +321,42 @@ function addHolidayModal() {
 }
 
 function openHolidayModal(dateStr) {
+    populateEmployeeSelect();
     document.getElementById('modalDateFrom').value = dateStr;
     document.getElementById('modalDateTo').value = dateStr;
-    document.getElementById('modalEmployee').value = '';
+    document.getElementById('modalEmployee').value = 'all';
     document.getElementById('modalHolidayType').value = 'annual';
     document.getElementById('modalStatus').value = 'approved';
     document.getElementById('modalNotes').value = '';
     
     document.getElementById('holidayModal').classList.add('active');
+}
+
+function populateEmployeeSelect() {
+    const modalEmployee = document.getElementById('modalEmployee');
+    if (!modalEmployee) {
+        console.log('modalEmployee not found!');
+        return;
+    }
+    
+    console.log('Populating select, employees:', employees.length);
+    modalEmployee.innerHTML = '';
+    
+    const allOpt = document.createElement('option');
+    allOpt.value = 'all';
+    allOpt.textContent = 'ALL TEAM MEMBERS';
+    allOpt.className = 'opt-all-members';
+    modalEmployee.appendChild(allOpt);
+    console.log('Added ALL option');
+    
+    employees.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.textContent = emp.name;
+        modalEmployee.appendChild(opt);
+    });
+    
+    console.log('Total options:', modalEmployee.options.length);
 }
 
 function closeModal() {
@@ -332,7 +371,7 @@ async function saveHoliday() {
     const status = document.getElementById('modalStatus').value;
     const notes = document.getElementById('modalNotes').value;
     
-    if (!employeeId || !dateFrom || !dateTo) {
+    if ((employeeId !== 'all' && !employeeId) || !dateFrom || !dateTo) {
         alert('Please fill in all required fields');
         return;
     }
