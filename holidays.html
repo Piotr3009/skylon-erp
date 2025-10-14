@@ -131,13 +131,22 @@
             position: relative;
         }
         
-        .holiday-indicator {
+        .holiday-indicators-container {
             position: absolute;
             top: 2px;
+            left: 2px;
             right: 2px;
-            width: 8px;
-            height: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            max-width: calc(100% - 4px);
+        }
+        
+        .holiday-indicator {
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
+            flex-shrink: 0;
         }
         
         .employee-legend {
