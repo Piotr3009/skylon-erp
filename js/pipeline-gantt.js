@@ -171,6 +171,10 @@ function renderPipelineProjects() {
             <div class="project-column-divider"></div>
             <div class="project-column project-actions">
                 <button class="action-btn" onclick="editPipelineProject(${index})" title="Edit">✏️</button>
+                ${project.google_drive_url ? 
+                    `<a href="${project.google_drive_url}" target="_blank" class="action-btn gdrive" title="Open in Google Drive">📁</a>` :
+                    `<button class="action-btn gdrive-add" onclick="addPipelineGoogleDriveLink(${index})" title="Add Google Drive link">➕</button>`
+                }
                 <button class="action-btn delete" onclick="deletePipelineProject(${index})" title="Delete">✕</button>
             </div>
         `;
@@ -412,6 +416,47 @@ function workingDaysBetween(startDate, endDate) {
     }
     return count;
 }
+
+// Google Drive link management for Pipeline
+async function addPipelineGoogleDriveLink(projectIndex) {
+    const project = pipelineProjects[projectIndex];
+    const currentUrl = project.google_drive_url || '';
+    
+    const newUrl = prompt('Enter Google Drive folder URL:', currentUrl);
+    
+    if (newUrl !== null && newUrl !== currentUrl) {
+        // Validate URL
+        if (newUrl && !newUrl.includes('drive.google.com')) {
+            alert('Please enter a valid Google Drive URL');
+            return;
+        }
+        
+        // Update local data
+        project.google_drive_url = newUrl;
+        
+        // Save to Supabase if connected
+        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+            try {
+                const { error } = await supabaseClient
+                    .from('pipeline_projects')
+                    .update({ google_drive_url: newUrl })
+                    .eq('project_number', project.projectNumber);
+                
+                if (error) {
+                    console.error('Error updating Google Drive URL:', error);
+                    alert('Error saving to database. URL saved locally only.');
+                }
+            } catch (err) {
+                console.error('Database connection error:', err);
+            }
+        }
+        
+        // Update local storage and refresh
+        saveDataQueued();
+        renderPipeline();
+    }
+}
+
 // Nadpisz funkcję shiftWeek dla Pipeline
 window.shiftWeek = function(direction) {
     visibleStartDate.setDate(visibleStartDate.getDate() + (7 * direction));
