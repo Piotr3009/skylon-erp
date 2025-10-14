@@ -191,7 +191,7 @@ function importPipelineJSON() {
                     }
                 });
                 
-                saveData();
+                saveDataQueued();
                 updatePhasesLegend();  // Użyj wspólnej funkcji
                 renderPipeline();
                 alert('Pipeline data imported successfully');
@@ -265,7 +265,7 @@ async function savePipelinePhaseChanges() {
         }
     }
     
-    saveData();
+    saveDataQueued();
     renderPipeline();
     closeModal('phaseEditModal');
     currentEditPhase = null;
@@ -314,7 +314,7 @@ async function deletePipelineCurrentPhase() {
             }
         }
         
-        saveData();
+        saveDataQueued();
         renderPipeline();
         closeModal('phaseEditModal');
         currentEditPhase = null;

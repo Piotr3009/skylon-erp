@@ -16,7 +16,7 @@ function addTeamMember() {
     const id = 'member_' + Date.now();
     teamMembers.push({ id, name, color });
     
-    saveData();
+    saveDataQueued();
     updateTeamMembersList();
     
     document.getElementById('newMemberName').value = '';
@@ -62,7 +62,7 @@ function removeTeamMember(index) {
         // Remove days off for this member
         daysOff = daysOff.filter(d => d.member !== member.name);
         
-        saveData();
+        saveDataQueued();
         updateTeamMembersList();
         render();
     }

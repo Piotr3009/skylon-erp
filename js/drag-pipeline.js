@@ -165,7 +165,7 @@ function stopDrag(e) {
             markAsChanged();
         }
         
-        saveData();
+        saveDataQueued();
         renderPipeline(); // Use pipeline render
     }
     

@@ -145,7 +145,7 @@ async function pickerCallback(data) {
         }
 
         // Save locally - now projects[] has the google_drive_url!
-        if (typeof saveData !== 'undefined') saveData();
+        if (typeof saveDataQueued !== 'undefined') saveDataQueued();
     }
 }
 

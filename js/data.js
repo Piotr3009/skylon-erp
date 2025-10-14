@@ -561,11 +561,23 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         
         // 2. PRZYGOTUJ NOWE FAZY
         const phasesForDB = phases.map((phase, index) => {
+            // Oblicz end_date jeśli nie istnieje
+            let endDate = phase.end;
+            if (!endDate && phase.start && phase.workDays) {
+                try {
+                    const computedEnd = computeEnd(phase);
+                    endDate = formatDate(computedEnd);
+                } catch (err) {
+                    console.warn('Could not compute end date for phase:', phase.key, err);
+                    endDate = null;
+                }
+            }
+            
             const phaseData = {
                 [projectIdField]: projectId,
                 phase_key: phase.key,
                 start_date: phase.start,
-                end_date: phase.end || null,
+                end_date: endDate || null,
                 work_days: phase.workDays || 4,
                 status: phase.status || 'notStarted',
                 notes: phase.notes || null,
@@ -662,22 +674,23 @@ async function saveData() {
                 console.error('Error saving pipeline:', error);
             } else {
                 
-                // ZAPISZ FAZY PIPELINE
+                // ZAPISZ FAZY PIPELINE - ZAWSZE, nawet jeśli [] (pusta tablica)
                 for (const project of pipelineProjects) {
-                    if (project.phases && project.phases.length > 0) {
-                        const { data: projectData } = await supabaseClient
-                            .from('pipeline_projects')
-                            .select('id')
-                            .eq('project_number', project.projectNumber)
-                            .single();
-                            
-                        if (projectData) {
-                            await savePhasesToSupabase(
-                                projectData.id, 
-                                project.phases, 
-                                false // false = pipeline
-                            );
-                        }
+                    // Normalizuj fazy - zawsze tablica
+                    const phases = Array.isArray(project.phases) ? project.phases : [];
+                    
+                    const { data: projectData } = await supabaseClient
+                        .from('pipeline_projects')
+                        .select('id')
+                        .eq('project_number', project.projectNumber)
+                        .single();
+                        
+                    if (projectData) {
+                        await savePhasesToSupabase(
+                            projectData.id, 
+                            phases,  // zawsze przekazuj tablicę (może być [])
+                            false // false = pipeline
+                        );
                     }
                 }
             }
@@ -741,7 +754,7 @@ function markAsChanged() {
 // Save on page close
 window.addEventListener('beforeunload', (e) => {
     if (hasUnsavedChanges) {
-        saveData();
+        saveDataQueued();
         e.returnValue = 'You have unsaved changes!';
     }
 });
@@ -868,7 +881,7 @@ function importJSON() {
                     }
                 });
                 
-                saveData();
+                saveDataQueued();
                 updatePhasesLegend();
                 render();
                 alert('Data imported successfully');
@@ -884,7 +897,7 @@ function clearAll() {
     if (confirm('Clear all projects? This cannot be undone!')) {
         projects = [];
         lastProjectNumber = 0;
-        saveData();
+        saveDataQueued();
         render();
     }
 }

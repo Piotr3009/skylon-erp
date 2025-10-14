@@ -645,7 +645,7 @@ function editProjectNumber(index) {
     
     if (newNumber !== null && newNumber !== currentNumber) {
         project.projectNumber = newNumber;
-        saveData();
+        saveDataQueued();
         render();
     }
 }
@@ -711,7 +711,7 @@ function saveDeadlineFromModal(index) {
         
       
         
-        saveData();
+        saveDataQueued();
         render();
     }
     
@@ -839,7 +839,7 @@ async function addGoogleDriveLink(projectIndex) {
         }
         
         // Update local storage and refresh
-        saveData();
+        saveDataQueued();
         render();
     }
 }

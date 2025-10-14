@@ -95,7 +95,7 @@ function addCustomPhase() {
     phasesToUpdate[key] = { name, color };
     phases[key] = { name, color }; // Also add to global phases for compatibility
     
-    saveData();
+    saveDataQueued();
     updatePhasesLegend();
     updateAvailablePhases();
     
@@ -118,7 +118,7 @@ function removePhase(key) {
             }
         });
         
-        saveData();
+        saveDataQueued();
         updatePhasesLegend();
         updateAvailablePhases();
         

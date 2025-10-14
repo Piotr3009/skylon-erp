@@ -251,7 +251,7 @@ async function savePipelineProject() {
         markAsChanged();
     }
     
-    saveData();
+    saveDataQueued();
     renderPipeline();
     closeModal('projectModal');
 }
@@ -335,7 +335,7 @@ async function deletePipelineProject(index) {
             markAsChanged();
         }
         
-        saveData();
+        saveDataQueued();
         renderPipeline();
     }
 }
@@ -384,7 +384,7 @@ function clearAllPipeline() {
     if (confirm('Clear all pipeline projects? This cannot be undone!')) {
         pipelineProjects = [];
         lastPipelineNumber = 0;
-        saveData();
+        saveDataQueued();
         renderPipeline();
     }
 }
@@ -702,7 +702,7 @@ async function archiveAsFailed() {
         markAsChanged();
     }
     
-    saveData();
+    saveDataQueued();
     renderPipeline();
     closeModal('pipelineFinishedModal');
     

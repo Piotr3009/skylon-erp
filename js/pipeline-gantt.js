@@ -331,7 +331,7 @@ function editPipelineProjectNumber(index) {
     
     if (newNumber !== null && newNumber !== currentNumber) {
         project.projectNumber = newNumber;
-        saveData();
+        saveDataQueued();
         renderPipeline();
     }
 }

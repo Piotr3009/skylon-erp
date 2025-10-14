@@ -146,7 +146,7 @@ function saveOrderDuration() {
         }
     }
     
-    saveData();
+    saveDataQueued();
         renderUniversal();
 }
 
@@ -221,7 +221,7 @@ function saveSprayOrderDuration() {
         }
     }
     
-    saveData();
+    saveDataQueued();
         renderUniversal();
 }
 
@@ -296,7 +296,7 @@ function saveGlazingOrderDuration() {
         }
     }
     
-    saveData();
+    saveDataQueued();
         renderUniversal();
 }
 

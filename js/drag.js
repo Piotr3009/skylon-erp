@@ -293,7 +293,7 @@ async function stopDrag(e) {
             }
         }
         
-        saveData();
+        saveDataQueued();
         render();
     }
     

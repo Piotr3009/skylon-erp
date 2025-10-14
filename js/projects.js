@@ -343,7 +343,7 @@ if (currentEditProject !== null && projects[currentEditProject]) {
         }
     }
     
-    saveData();
+    saveDataQueued();
     render();
     closeModal('projectModal');
 }
@@ -405,7 +405,7 @@ async function deleteProject(index) {
         
         // Usuń lokalnie
         projects.splice(index, 1);
-        saveData();
+        saveDataQueued();
         render();
     }
 }
@@ -490,7 +490,7 @@ function autoArrangePhases(projectIndex) {
         }
     });
     
-    saveData();
+    saveDataQueued();
     render();
 }
 
@@ -661,7 +661,7 @@ async function confirmMoveToArchive() {
     // Usuń z lokalnej tablicy
     projects.splice(projectIndex, 1);
     
-    saveData();
+    saveDataQueued();
     render();
     closeModal('moveToArchiveModal');
     
