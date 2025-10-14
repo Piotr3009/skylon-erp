@@ -459,27 +459,17 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         bottomDiv.style.background = 'transparent';
     }
     
-    const status = phaseStatuses[phase.status || 'notStarted'];
-    let bottomContent = `<span class="phase-status-icon" title="${status.name}">${status.icon}</span>`;
-    bottomContent += `<span class="phase-days-info">(${displayDays} days)</span>`;
+    // Tylko podstawowe info (bez ikon statusu i zamówień)
+    let bottomContent = `<span class="phase-days-info">(${displayDays} days)</span>`;
     
-    // ADD CARPENTER NAME
+    // Nazwa pracownika
     if (teamMember) {
         bottomContent += `<span style="font-size: 9px; color: ${teamMember.color_code || teamMember.color}; margin-left: 4px; font-weight: bold;">${teamMember.name}</span>`;
     }
     
+    // TYLKO ikona notesu
     if (phase.notes) {
         bottomContent += `<span class="phase-note-icon" title="Has notes">📝</span>`;
-    }
-    
-    if (phase.key === 'order' || phase.key === 'orderSpray' || phase.key === 'orderGlazing') {
-        if (phase.orderConfirmed) {
-            bottomContent += '<span class="phase-order-icon" title="Order confirmed">📦✅</span>';
-        } else if (phase.orderComplete) {
-            bottomContent += '<span class="phase-order-icon" title="Order complete, not confirmed">📦⚠️</span>';
-        } else {
-            bottomContent += '<span class="phase-order-icon" title="Order incomplete">📦❌</span>';
-        }
     }
     
     bottomDiv.innerHTML = bottomContent;
