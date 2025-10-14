@@ -39,9 +39,10 @@ function renderTeam(members) {
     members.forEach(member => {
         const tr = document.createElement('tr');
         
-        // Calculate holiday percentage
+        // Calculate holiday percentage (remaining/allowance)
+        const remaining = (member.holiday_allowance || 0) - (member.holiday_used || 0);
         const holidayPercent = member.holiday_allowance > 0 ? 
-            ((member.holiday_allowance - member.holiday_used) / member.holiday_allowance * 100) : 100;
+            Math.max(0, (remaining / member.holiday_allowance * 100)) : 0;
         
         tr.innerHTML = `
             <td>
