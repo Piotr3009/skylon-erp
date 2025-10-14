@@ -81,6 +81,13 @@ function getSortedProjects() {
 }
 
 
+// Dynamiczny offset lewej krawędzi
+function baseLeftOffset() {
+    const firstRow = document.querySelector('#chartBody .project-row');
+    const firstProjectCell = firstRow?.querySelector('.project-cell');
+    return firstProjectCell ? firstProjectCell.offsetWidth : 400; // fallback 400
+}
+
 // ========== RENDERING ==========
 function render() {
     renderTimeline();
@@ -172,13 +179,15 @@ function renderGridPattern() {
     document.querySelectorAll('.grid-line').forEach(el => el.remove());
     document.querySelectorAll('.sunday-stripe').forEach(el => el.remove());
     
+    const baseLeft = baseLeftOffset();
+    
     // Vertical grid lines
     for (let i = 0; i <= daysToShow; i++) {
         const line = document.createElement('div');
         line.className = 'grid-line';
         line.style.cssText = `
             position: absolute;
-            left: ${400 + i * dayWidth}px;
+            left: ${baseLeft + i * dayWidth}px;
             top: 50px;
             bottom: 0;
             width: 1px;
@@ -199,7 +208,7 @@ function renderGridPattern() {
             stripe.className = 'sunday-stripe';
             stripe.style.cssText = `
                 position: absolute;
-                left: ${400 + i * dayWidth}px;
+                left: ${baseLeft + i * dayWidth}px;
                 top: 45px;
                 bottom: 0;
                 width: ${dayWidth}px;
@@ -267,7 +276,7 @@ function renderProjects() {
                 <button class="action-btn" onclick="editProject(${index})" title="Edit">✏️</button>
                 ${project.google_drive_url ? 
                     `<a href="${project.google_drive_url}" target="_blank" class="action-btn gdrive" title="Open in Google Drive">📁</a>` :
-                    `<button class="action-btn gdrive-add" onclick="openGoogleDrivePicker(projects[${index}])" title="Add Google Drive link">➕</button>`
+                    `<button class="action-btn gdrive-add" onclick="addGoogleDriveLink(${index})" title="Add Google Drive link">➕</button>`
                 }
                 <button class="action-btn delete" onclick="deleteProject(${index})" title="Delete">✕</button>
             </div>
@@ -334,14 +343,11 @@ function detectPhaseOverlaps(phases) {
     
     // Normalizuj fazy do UTC z ekskluzywnym końcem
     const normalized = phases.map((p, idx) => {
-        if (!p.start || !p.end) return null;
-        
         const startUTC = dUTC(p.start);
-        const endUTC = dUTC(p.adjustedEnd || p.end);
-        const endExUTC = addDaysUTC(endUTC, 1); // ekskluzywny koniec
-        
+        const endUTC = dUTC(p.adjustedEnd || computeEnd(p));
+        const endExUTC = addDaysUTC(endUTC, 1);
         return { key: p.key, startUTC, endExUTC, idx };
-    }).filter(x => x !== null);
+    });
     
     // Sprawdź overlaps na [start, end)
     for (let i = 0; i < normalized.length; i++) {
@@ -405,17 +411,8 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         return null;
     }
     
-    // NEW - use computeEnd instead of phase.end
-    const end = computeEnd(phase);
-    
-    let adjustedEnd = new Date(end);
-    if (teamMember) {
-        const daysOffCount = countDaysOffBetween(teamMember.name, start, end);
-        if (daysOffCount > 0) {
-            adjustedEnd.setDate(adjustedEnd.getDate() + daysOffCount);
-            phase.adjustedEnd = formatDate(adjustedEnd);
-        }
-    }
+    // Użyj adjustedEnd z pre-pass (już przeliczone)
+    const adjustedEnd = new Date(phase.adjustedEnd || computeEnd(phase));
     
     const daysDiff = Math.round((start - visibleStartDate) / (1000 * 60 * 60 * 24));
     const duration = Math.round((adjustedEnd - start) / (1000 * 60 * 60 * 24)) + 1;
@@ -439,10 +436,6 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     // Top part - colored
     const topDiv = document.createElement('div');
     topDiv.className = 'phase-top';
-    
-    const overlap = overlaps.find(o => 
-        o.phase1Key === phase.key || o.phase2Key === phase.key
-    );
     
     // PROSTA LOGIKA: 
     // - Górna połowa (topDiv) = kolor fazy (zawsze)
@@ -494,13 +487,17 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     container.appendChild(topDiv);
     container.appendChild(bottomDiv);
     
-    // OVERLAP: Rysuj tylko gdy faktyczny overlap (bez zaokrągleń)
-    if (overlap) {
+    // OVERLAP: Rysuj WSZYSTKIE overlaps dla tej fazy
+    const relatedOverlaps = overlaps.filter(o => 
+        o.phase1Key === phase.key || o.phase2Key === phase.key
+    );
+    
+    relatedOverlaps.forEach(overlap => {
         const dayMs = 86400000;
         
         // UTC z ekskluzywnym końcem
         const sPhase = dUTC(phase.start);
-        const ePhaseEx = addDaysUTC(dUTC(phase.adjustedEnd || phase.end), 1);
+        const ePhaseEx = addDaysUTC(dUTC(phase.adjustedEnd || computeEnd(phase)), 1);
         
         const sOv = dUTC(overlap.overlapStart);
         const eOvEx = addDaysUTC(dUTC(overlap.overlapEnd), 1);
@@ -510,54 +507,53 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         const interEndEx = Math.min(ePhaseEx.getTime(), eOvEx.getTime());
         const interMs = interEndEx - interStart;
         
-        if (interMs > 0) {
-            const widthPxTotal = parseFloat(container.style.width);
-            const barStart = sPhase.getTime();
-            
-            // Piksele bez zaokrąglania do dni
-            const fromStartDays = (interStart - barStart) / dayMs;
-            const overlapDaysExact = interMs / dayMs;
-            
-            const overlayLeft = Math.min(widthPxTotal, fromStartDays * dayWidth);
-            const overlayWidth = Math.max(0, Math.min(widthPxTotal - overlayLeft, overlapDaysExact * dayWidth));
-            
-            const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
-            const otherColor = productionPhases[otherKey]?.color || '#888';
-            
-            if (overlayWidth > 0) {
-                // Overlap tylko na górnej 1/4 (25px podzielone na 2x 12.5px)
-                const topBar = document.createElement('div');
-                topBar.style.cssText = `
-                    position: absolute;
-                    left: ${overlayLeft}px;
-                    width: ${overlayWidth}px;
-                    top: 0;
-                    height: 12.5px;
-                    background: ${phaseConfig.color};
-                    pointer-events: none;
-                    z-index: 3;
-                    border: 1px solid #555;
-                    border-radius: 2px 2px 0 0;
-                `;
-                container.appendChild(topBar);
-                
-                const bottomBar = document.createElement('div');
-                bottomBar.style.cssText = `
-                    position: absolute;
-                    left: ${overlayLeft}px;
-                    width: ${overlayWidth}px;
-                    top: 12.5px;
-                    height: 12.5px;
-                    background: ${otherColor};
-                    pointer-events: none;
-                    z-index: 3;
-                    border: 1px solid #555;
-                    border-radius: 0 0 2px 2px;
-                `;
-                container.appendChild(bottomBar);
-            }
-        }
-    }
+        if (interMs <= 0) return; // Brak przecięcia - skip
+        
+        const widthPxTotal = parseFloat(container.style.width);
+        
+        // Piksele bez zaokrąglania do dni
+        const fromStartDays = (interStart - sPhase.getTime()) / dayMs;
+        const overlapDaysExact = interMs / dayMs;
+        
+        const overlayLeft = Math.min(widthPxTotal, fromStartDays * dayWidth);
+        const overlayWidth = Math.max(0, Math.min(widthPxTotal - overlayLeft, overlapDaysExact * dayWidth));
+        
+        if (overlayWidth <= 0) return; // Zbyt wąski - skip
+        
+        const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
+        const otherColor = productionPhases[otherKey]?.color || '#888';
+        
+        // Overlap tylko na górnej 1/4 (25px podzielone na 2x 12.5px)
+        const topBar = document.createElement('div');
+        topBar.style.cssText = `
+            position: absolute;
+            left: ${overlayLeft}px;
+            width: ${overlayWidth}px;
+            top: 0;
+            height: 12.5px;
+            background: ${phaseConfig.color};
+            pointer-events: none;
+            z-index: 3;
+            border: 1px solid #555;
+            border-radius: 2px 2px 0 0;
+        `;
+        container.appendChild(topBar);
+        
+        const bottomBar = document.createElement('div');
+        bottomBar.style.cssText = `
+            position: absolute;
+            left: ${overlayLeft}px;
+            width: ${overlayWidth}px;
+            top: 12.5px;
+            height: 12.5px;
+            background: ${otherColor};
+            pointer-events: none;
+            z-index: 3;
+            border: 1px solid #555;
+            border-radius: 0 0 2px 2px;
+        `;
+        container.appendChild(bottomBar);
+    });
     
     container.dataset.projectIndex = projectIndex;
     container.dataset.phaseIndex = phaseIndex;
@@ -566,15 +562,11 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
         renderDaysOffOnBar(container, teamMember.name, start, adjustedEnd);
     }
     
-    const endDateStr = phase.adjustedEnd || formatDate(end);
+    const endDateStr = phase.adjustedEnd || formatDate(adjustedEnd);
     let tooltipText = `${phaseConfig.name}: ${phase.start} to ${endDateStr} (${displayDays} work days)`;
     tooltipText += `\nStatus: ${status.name}`;
     if (teamMember) tooltipText += `\nAssigned to: ${teamMember.name}`;
     if (phase.notes) tooltipText += `\nNotes: ${phase.notes.substring(0, 50)}...`;
-    if (overlap) {
-        const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
-        tooltipText += `\n⚠️ Overlapping with ${productionPhases[otherKey]?.name || 'phase'}`;
-    }
     
     container.title = tooltipText;
     
@@ -636,14 +628,15 @@ function renderTodayLine() {
     
     const today = new Date();
     today.setHours(0,0,0,0);
-    const daysDiff = Math.round((today - visibleStartDate) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.round((today - visibleStartDate) / (86400000));
     
     if (daysDiff >= 0 && daysDiff < daysToShow) {
+        const baseLeft = baseLeftOffset();
         const line = document.createElement('div');
         line.className = 'today-line';
         line.style.cssText = `
             position: absolute;
-            left: ${400 + daysDiff * dayWidth}px;
+            left: ${baseLeft + daysDiff * dayWidth}px;
             top: 0;
             bottom: 0;
             width: 2px;
