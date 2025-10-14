@@ -187,9 +187,13 @@ function renderCalendar() {
                 });
             }
             
-            // Click to add holiday
+            // Click to add/edit holiday
             dayDiv.addEventListener('click', () => {
-                openHolidayModal(dateStr);
+                if (dayHolidays.length > 0) {
+                    openEditDayModal(dateStr, dayHolidays);
+                } else {
+                    openHolidayModal(dateStr);
+                }
             });
             
             grid.appendChild(dayDiv);
@@ -387,8 +391,109 @@ async function saveHoliday() {
 // Close modal on outside click
 window.onclick = function(event) {
     const modal = document.getElementById('holidayModal');
+    const editModal = document.getElementById('editDayModal');
     if (event.target === modal) {
         closeModal();
+    }
+    if (event.target === editModal) {
+        closeEditDayModal();
+    }
+}
+
+// ========== EDIT DAY MODAL ==========
+let currentEditDate = null;
+
+function openEditDayModal(dateStr, dayHolidays) {
+    currentEditDate = dateStr;
+    const modal = document.getElementById('editDayModal');
+    const header = document.getElementById('editDayHeader');
+    const list = document.getElementById('editDayList');
+    
+    // Format date for display
+    const date = new Date(dateStr);
+    const formattedDate = date.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    header.textContent = `Holidays on ${formattedDate}`;
+    
+    // Build list of holidays
+    list.innerHTML = '';
+    
+    dayHolidays.forEach(holiday => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 12px; background: #3e3e42; border-radius: 3px; margin-bottom: 8px;';
+        
+        const color = document.createElement('div');
+        color.style.cssText = `width: 20px; height: 20px; border-radius: 3px; background: ${holiday.team_members?.color_code || holiday.team_members?.color || '#999'}; border: 1px solid #555;`;
+        
+        const info = document.createElement('div');
+        info.style.flex = '1';
+        info.innerHTML = `
+            <strong>${holiday.team_members?.name || 'Unknown'}</strong><br>
+            <small style="color: #999;">${holiday.holiday_type} - ${holiday.status} ${holiday.notes ? '- ' + holiday.notes : ''}</small>
+        `;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'modal-btn';
+        deleteBtn.textContent = '🗑️ Remove';
+        deleteBtn.style.cssText = 'padding: 8px 12px; background: #d32f2f; color: white;';
+        deleteBtn.onclick = () => deleteHoliday(holiday.id);
+        
+        item.appendChild(color);
+        item.appendChild(info);
+        item.appendChild(deleteBtn);
+        list.appendChild(item);
+    });
+    
+    modal.classList.add('active');
+}
+
+function closeEditDayModal() {
+    document.getElementById('editDayModal').classList.remove('active');
+    currentEditDate = null;
+}
+
+function addMoreHolidaysForDay() {
+    closeEditDayModal();
+    openHolidayModal(currentEditDate);
+}
+
+async function deleteHoliday(holidayId) {
+    if (!confirm('Are you sure you want to remove this holiday?')) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('employee_holidays')
+            .delete()
+            .eq('id', holidayId);
+        
+        if (error) throw error;
+        
+        console.log('Holiday deleted');
+        await loadEmployees();
+        await loadHolidays();
+        renderCalendar();
+        updateStats();
+        
+        // Refresh edit modal if still open
+        if (currentEditDate) {
+            const dayHolidays = getHolidaysForDate(currentEditDate);
+            if (dayHolidays.length > 0) {
+                openEditDayModal(currentEditDate, dayHolidays);
+            } else {
+                closeEditDayModal();
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error deleting holiday:', error);
+        alert('Error deleting holiday: ' + error.message);
     }
 }
 
