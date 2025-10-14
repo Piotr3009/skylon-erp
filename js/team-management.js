@@ -150,6 +150,7 @@ function editEmployee(id) {
     document.getElementById('salaryType').value = member.salary_type || 'hourly';
     document.getElementById('salaryRate').value = member.hourly_rate || '';
     document.getElementById('empStartDate').value = member.start_date || '';
+    document.getElementById('empHolidayAllowance').value = member.holiday_allowance || 28;
     document.getElementById('empColor').value = member.color_code || '#FFA500';
     document.getElementById('empColorHex').value = member.color_code || '#FFA500';
     document.getElementById('empNotes').value = member.notes || '';
@@ -189,6 +190,7 @@ async function saveEmployee() {
         salary_type: document.getElementById('salaryType').value,
         hourly_rate: parseFloat(document.getElementById('salaryRate').value) || null,
         start_date: document.getElementById('empStartDate').value || null,
+        holiday_allowance: parseInt(document.getElementById('empHolidayAllowance').value) || 28,
         color_code: document.getElementById('empColor').value,
         color: document.getElementById('empColor').value,  // DODANE - ustaw też color!
         notes: document.getElementById('empNotes').value.trim() || null,
