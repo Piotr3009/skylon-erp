@@ -58,36 +58,36 @@
         .calendar-year {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            gap: 15px;
         }
         
         .calendar-month {
             background: #2d2d30;
             border-radius: 5px;
-            padding: 15px;
+            padding: 12px;
         }
         
         .month-header {
             text-align: center;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             color: #FFA500;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #3e3e42;
         }
         
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
+            gap: 1px;
         }
         
         .day-header {
             text-align: center;
-            font-size: 11px;
+            font-size: 9px;
             color: #999;
-            padding: 5px 0;
+            padding: 3px 0;
             font-weight: 600;
         }
         
@@ -97,11 +97,12 @@
             align-items: center;
             justify-content: center;
             background: #3e3e42;
-            border-radius: 3px;
-            font-size: 12px;
+            border-radius: 2px;
+            font-size: 10px;
             position: relative;
             cursor: pointer;
             transition: all 0.2s;
+            min-height: 24px;
         }
         
         .calendar-day:hover {
