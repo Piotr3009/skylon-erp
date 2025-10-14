@@ -420,40 +420,177 @@ function workingDaysBetween(startDate, endDate) {
 // Google Drive link management for Pipeline
 async function addPipelineGoogleDriveLink(projectIndex) {
     const project = pipelineProjects[projectIndex];
-    const currentUrl = project.google_drive_url || '';
     
-    const newUrl = prompt('Enter Google Drive folder URL:', currentUrl);
-    
-    if (newUrl !== null && newUrl !== currentUrl) {
-        // Validate URL
-        if (newUrl && !newUrl.includes('drive.google.com')) {
-            alert('Please enter a valid Google Drive URL');
-            return;
-        }
+    // Use fancy Google Picker API if available
+    if (typeof openGoogleDrivePicker === 'function') {
+        // Create temporary project object with pipeline data
+        const tempProject = {
+            ...project,
+            projectNumber: project.projectNumber,
+            name: project.name
+        };
         
-        // Update local data
-        project.google_drive_url = newUrl;
+        // Store callback override for pipeline
+        const originalUpdateFunc = window.updateProjectGoogleDrive;
         
-        // Save to Supabase if connected
-        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
-            try {
-                const { error } = await supabaseClient
-                    .from('pipeline_projects')
-                    .update({ google_drive_url: newUrl })
-                    .eq('project_number', project.projectNumber);
+        // Override for pipeline
+        window.updateProjectGoogleDrive = function(projectNumber, folderUrl, folderId, folderName) {
+            const pipelineProject = pipelineProjects.find(p => p.projectNumber === projectNumber);
+            if (pipelineProject) {
+                pipelineProject.google_drive_url = folderUrl;
+                pipelineProject.google_drive_folder_id = folderId;
+                pipelineProject.google_drive_folder_name = folderName;
                 
-                if (error) {
-                    console.error('Error updating Google Drive URL:', error);
-                    alert('Error saving to database. URL saved locally only.');
+                // Save to Supabase
+                if (typeof supabaseClient !== 'undefined') {
+                    supabaseClient
+                        .from('pipeline_projects')
+                        .update({ 
+                            google_drive_url: folderUrl,
+                            google_drive_folder_id: folderId
+                        })
+                        .eq('project_number', projectNumber)
+                        .then(({ error }) => {
+                            if (error) console.error('Error saving to Supabase:', error);
+                            saveDataQueued();
+                            renderPipeline();
+                        });
                 }
-            } catch (err) {
-                console.error('Database connection error:', err);
+                
+                return true;
             }
-        }
+            return false;
+        };
         
-        // Update local storage and refresh
-        saveDataQueued();
-        renderPipeline();
+        openGoogleDrivePicker(tempProject);
+        
+        // Restore original after a delay
+        setTimeout(() => {
+            if (originalUpdateFunc) {
+                window.updateProjectGoogleDrive = originalUpdateFunc;
+            }
+        }, 5000);
+    } else {
+        // Fallback to simple prompt if picker not loaded
+        const currentUrl = project.google_drive_url || '';
+        const newUrl = prompt('Enter Google Drive folder URL:', currentUrl);
+        
+        if (newUrl !== null && newUrl !== currentUrl) {
+            // Validate URL
+            if (newUrl && !newUrl.includes('drive.google.com')) {
+                alert('Please enter a valid Google Drive URL');
+                return;
+            }
+            
+            // Update local data
+            project.google_drive_url = newUrl;
+            
+            // Save to Supabase if connected
+            if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('pipeline_projects')
+                        .update({ google_drive_url: newUrl })
+                        .eq('project_number', project.projectNumber);
+                    
+                    if (error) {
+                        console.error('Error updating Google Drive URL:', error);
+                        alert('Error saving to database. URL saved locally only.');
+                    }
+                } catch (err) {
+                    console.error('Database connection error:', err);
+                }
+            }
+            
+            // Update local storage and refresh
+            saveDataQueued();
+            renderPipeline();
+        }
+    }
+}(projectIndex) {
+    const project = pipelineProjects[projectIndex];
+    
+    // Use fancy Google Picker API if available
+    if (typeof openGoogleDrivePicker === 'function') {
+        // Temporarily modify the project to work with picker
+        const tempProject = {
+            ...project,
+            projectNumber: project.projectNumber
+        };
+        
+        // Store original callback
+        const originalCallback = window.pickerCallback;
+        
+        // Override callback for pipeline
+        window.pickerCallbackPipeline = async (data) => {
+            if (data.action === google.picker.Action.PICKED) {
+                const folder = data.docs[0];
+                const folderUrl = folder.url || `https://drive.google.com/drive/folders/${folder.id}`;
+                
+                // Update pipeline project
+                project.google_drive_url = folderUrl;
+                project.google_drive_folder_id = folder.id;
+                
+                // Save to Supabase
+                if (typeof supabaseClient !== 'undefined') {
+                    const { error } = await supabaseClient
+                        .from('pipeline_projects')
+                        .update({ 
+                            google_drive_url: folderUrl,
+                            google_drive_folder_id: folder.id
+                        })
+                        .eq('project_number', project.projectNumber);
+                    
+                    if (error) {
+                        console.error('Error saving to Supabase:', error);
+                        alert('Failed to save Google Drive folder');
+                    } else {
+                        alert(`Folder "${folder.name}" linked successfully!`);
+                    }
+                }
+                
+                saveDataQueued();
+                renderPipeline();
+            }
+        };
+        
+        openGoogleDrivePicker(tempProject);
+    } else {
+        // Fallback to simple prompt if picker not loaded
+        const currentUrl = project.google_drive_url || '';
+        const newUrl = prompt('Enter Google Drive folder URL:', currentUrl);
+        
+        if (newUrl !== null && newUrl !== currentUrl) {
+            // Validate URL
+            if (newUrl && !newUrl.includes('drive.google.com')) {
+                alert('Please enter a valid Google Drive URL');
+                return;
+            }
+            
+            // Update local data
+            project.google_drive_url = newUrl;
+            
+            // Save to Supabase if connected
+            if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('pipeline_projects')
+                        .update({ google_drive_url: newUrl })
+                        .eq('project_number', project.projectNumber);
+                    
+                    if (error) {
+                        console.error('Error updating Google Drive URL:', error);
+                        alert('Error saving to database. URL saved locally only.');
+                    }
+                } catch (err) {
+                    console.error('Database connection error:', err);
+                }
+            }
+            
+            // Update local storage and refresh
+            saveDataQueued();
+            renderPipeline();
+        }
     }
 }
 

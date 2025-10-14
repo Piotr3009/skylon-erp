@@ -806,41 +806,46 @@ function renderDeadlineCell(project, timelineCell) {
 // NOWA FUNKCJA: Dodaj/Edytuj link Google Drive
 async function addGoogleDriveLink(projectIndex) {
     const project = projects[projectIndex];
-    const currentUrl = project.google_drive_url || '';
     
-    const newUrl = prompt('Enter Google Drive folder URL:', currentUrl);
-    
-    if (newUrl !== null && newUrl !== currentUrl) {
-        // Validate URL
-        if (newUrl && !newUrl.includes('drive.google.com')) {
-            alert('Please enter a valid Google Drive URL');
-            return;
-        }
+    // Use fancy Google Picker API if available
+    if (typeof openGoogleDrivePicker === 'function') {
+        openGoogleDrivePicker(project);
+    } else {
+        // Fallback to simple prompt if picker not loaded
+        const currentUrl = project.google_drive_url || '';
+        const newUrl = prompt('Enter Google Drive folder URL:', currentUrl);
         
-        // Update local data
-        project.google_drive_url = newUrl;
-        
-        // Save to Supabase if connected
-        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
-            try {
-                const { error } = await supabaseClient
-                    .from('projects')
-                    .update({ google_drive_url: newUrl })
-                    .eq('project_number', project.projectNumber);
-                
-                if (error) {
-                    console.error('Error updating Google Drive URL:', error);
-                    alert('Error saving to database. URL saved locally only.');
-                } else {
-                }
-            } catch (err) {
-                console.error('Database connection error:', err);
+        if (newUrl !== null && newUrl !== currentUrl) {
+            // Validate URL
+            if (newUrl && !newUrl.includes('drive.google.com')) {
+                alert('Please enter a valid Google Drive URL');
+                return;
             }
+            
+            // Update local data
+            project.google_drive_url = newUrl;
+            
+            // Save to Supabase if connected
+            if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('projects')
+                        .update({ google_drive_url: newUrl })
+                        .eq('project_number', project.projectNumber);
+                    
+                    if (error) {
+                        console.error('Error updating Google Drive URL:', error);
+                        alert('Error saving to database. URL saved locally only.');
+                    }
+                } catch (err) {
+                    console.error('Database connection error:', err);
+                }
+            }
+            
+            // Update local storage and refresh
+            saveDataQueued();
+            render();
         }
-        
-        // Update local storage and refresh
-        saveDataQueued();
-        render();
     }
 }
 // Wczytaj zapisane sortowanie przy starcie
