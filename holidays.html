@@ -310,6 +310,13 @@
             background: #3e3e42;
             color: #e8e2d5;
         }
+        
+        /* Podbij wygląd opcji ALL w modalu */
+        #holidayModal select#modalEmployee option.opt-all-members {
+            color: #00ffc6;
+            font-weight: 700;
+            background: #223;
+        }
     </style>
 </head>
 <body>
@@ -388,8 +395,7 @@
                 <div class="form-group">
                     <label>Employee *</label>
                     <select id="modalEmployee" required>
-                        <option value="">Select employee...</option>
-                        <option value="all">All Team Members</option>
+                        <!-- Opcje są dodawane programowo przez JS -->
                     </select>
                 </div>
                 
