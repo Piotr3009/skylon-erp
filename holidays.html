@@ -424,6 +424,24 @@
         </div>
     </div>
 
+    <!-- Edit Day Modal -->
+    <div class="modal" id="editDayModal">
+        <div class="modal-content" style="width: 600px;">
+            <div class="modal-header" id="editDayHeader">Edit Holidays for Date</div>
+            <div class="modal-body">
+                <div id="editDayList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Lista urlopów będzie tutaj -->
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #3e3e42;">
+                    <button class="modal-btn primary" onclick="addMoreHolidaysForDay()">+ Add More Employees</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeEditDayModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/holidays.js"></script>
 </body>
