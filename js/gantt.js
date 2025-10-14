@@ -310,14 +310,22 @@ function detectPhaseOverlaps(phases) {
             
             if (!p1.start || !p1.end || !p2.start || !p2.end) continue;
             
+            // WAŻNE: Zeruję czas (godziny/minuty/sekundy) przed porównaniem
             const start1 = new Date(p1.start);
+            start1.setHours(0, 0, 0, 0);
+            
             const end1 = new Date(p1.adjustedEnd || p1.end);
+            end1.setHours(0, 0, 0, 0);
+            
             const start2 = new Date(p2.start);
+            start2.setHours(0, 0, 0, 0);
+            
             const end2 = new Date(p2.adjustedEnd || p2.end);
+            end2.setHours(0, 0, 0, 0);
             
             // Overlap = start1 < end2 AND start2 < end1
-            // Używam < (nie <=) żeby wykluczyć dotykanie
-            if (start1 < end2 && start2 < end1) {
+            // < (nie <=) wyklucza dotykanie (end1 === start2)
+            if (start1.getTime() < end2.getTime() && start2.getTime() < end1.getTime()) {
                 overlaps.push({
                     phase1Key: p1.key,
                     phase2Key: p2.key,
