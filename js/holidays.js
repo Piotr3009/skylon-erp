@@ -335,20 +335,43 @@ async function saveHoliday() {
     }
     
     try {
-        const { error } = await supabaseClient
-            .from('employee_holidays')
-            .insert({
-                employee_id: employeeId,
+        // Jeśli wybrano "All Team Members"
+        if (employeeId === 'all') {
+            // Dodaj urlop dla każdego pracownika
+            const holidaysToInsert = employees.map(emp => ({
+                employee_id: emp.id,
                 date_from: dateFrom,
                 date_to: dateTo,
                 holiday_type: holidayType,
                 status: status,
                 notes: notes || null
-            });
+            }));
+            
+            const { error } = await supabaseClient
+                .from('employee_holidays')
+                .insert(holidaysToInsert);
+            
+            if (error) throw error;
+            
+            console.log(`Holiday saved for ${employees.length} employees`);
+        } else {
+            // Dodaj urlop dla jednego pracownika
+            const { error } = await supabaseClient
+                .from('employee_holidays')
+                .insert({
+                    employee_id: employeeId,
+                    date_from: dateFrom,
+                    date_to: dateTo,
+                    holiday_type: holidayType,
+                    status: status,
+                    notes: notes || null
+                });
+            
+            if (error) throw error;
+            
+            console.log('Holiday saved successfully');
+        }
         
-        if (error) throw error;
-        
-        console.log('Holiday saved successfully');
         closeModal();
         await loadEmployees(); // Refresh employee stats
         await loadHolidays();
