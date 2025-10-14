@@ -13,6 +13,18 @@
     `;
     document.head.appendChild(style);
 })();
+// ========== UTC HELPERS - stabilne daty bez DST ==========
+function dUTC(dateLike) {
+    const d = new Date(dateLike);
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+
+function addDaysUTC(d, n) {
+    const u = dUTC(d);
+    u.setUTCDate(u.getUTCDate() + n);
+    return u;
+}
+
 // ========== SORTOWANIE ========== 
 function setSortMode(mode) {
     currentSortMode = mode;
@@ -271,7 +283,24 @@ function renderProjects() {
                 return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
             });
             
+            // PRE-PASS: oblicz adjustedEnd dla wszystkich faz
+            sortedPhases.forEach(phase => {
+                const start = dUTC(phase.start);
+                const rawEnd = dUTC(computeEnd(phase));
+                let endAdj = rawEnd;
+                
+                const teamMember = phase.assignedTo ? teamMembers.find(m => m.id === phase.assignedTo) : null;
+                if (teamMember) {
+                    const daysOffCount = countDaysOffBetween(teamMember.name, start, rawEnd);
+                    if (daysOffCount > 0) {
+                        endAdj = addDaysUTC(rawEnd, daysOffCount);
+                    }
+                }
+                
+                phase.adjustedEnd = formatDate(endAdj);
+            });
             
+            // Teraz detekcja overlap na spójnych danych
             const overlaps = detectPhaseOverlaps(sortedPhases);
             
             let renderedCount = 0;
@@ -298,45 +327,42 @@ function renderProjects() {
     });
 }
 
-// Overlap detection - tylko prawdziwe nakładanie (nie dotykanie)
+// Overlap detection - UTC, ekskluzywny koniec [start, end)
 function detectPhaseOverlaps(phases) {
     const overlaps = [];
     if (!phases || phases.length < 2) return overlaps;
     
-    for (let i = 0; i < phases.length; i++) {
-        for (let j = i + 1; j < phases.length; j++) {
-            const p1 = phases[i];
-            const p2 = phases[j];
+    // Normalizuj fazy do UTC z ekskluzywnym końcem
+    const normalized = phases.map((p, idx) => {
+        if (!p.start || !p.end) return null;
+        
+        const startUTC = dUTC(p.start);
+        const endUTC = dUTC(p.adjustedEnd || p.end);
+        const endExUTC = addDaysUTC(endUTC, 1); // ekskluzywny koniec
+        
+        return { key: p.key, startUTC, endExUTC, idx };
+    }).filter(x => x !== null);
+    
+    // Sprawdź overlaps na [start, end)
+    for (let i = 0; i < normalized.length; i++) {
+        for (let j = i + 1; j < normalized.length; j++) {
+            const a = normalized[i];
+            const b = normalized[j];
             
-            if (!p1.start || !p1.end || !p2.start || !p2.end) continue;
-            
-            // WAŻNE: Zeruję czas (godziny/minuty/sekundy) przed porównaniem
-            const start1 = new Date(p1.start);
-            start1.setHours(0, 0, 0, 0);
-            
-            const end1 = new Date(p1.adjustedEnd || p1.end);
-            end1.setHours(0, 0, 0, 0);
-            
-            const start2 = new Date(p2.start);
-            start2.setHours(0, 0, 0, 0);
-            
-            const end2 = new Date(p2.adjustedEnd || p2.end);
-            end2.setHours(0, 0, 0, 0);
-            
-            // Overlap = start1 < end2 AND start2 < end1
-            // < (nie <=) wyklucza dotykanie (end1 === start2)
-            if (start1.getTime() < end2.getTime() && start2.getTime() < end1.getTime()) {
+            // Przecięcie: start1 < end2 AND start2 < end1 (ekskluzywne końce)
+            if (a.startUTC < b.endExUTC && b.startUTC < a.endExUTC) {
                 overlaps.push({
-                    phase1Key: p1.key,
-                    phase2Key: p2.key,
-                    phase1Idx: i,
-                    phase2Idx: j,
-                    overlapStart: new Date(Math.max(start1.getTime(), start2.getTime())),
-                    overlapEnd: new Date(Math.min(end1.getTime(), end2.getTime()))
+                    phase1Key: a.key,
+                    phase2Key: b.key,
+                    phase1Idx: a.idx,
+                    phase2Idx: b.idx,
+                    overlapStart: new Date(Math.max(a.startUTC.getTime(), b.startUTC.getTime())),
+                    overlapEnd: addDaysUTC(new Date(Math.min(a.endExUTC.getTime(), b.endExUTC.getTime())), -1)
                 });
             }
         }
     }
+    
     return overlaps;
 }
 
@@ -468,58 +494,68 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     container.appendChild(topDiv);
     container.appendChild(bottomDiv);
     
-    // OVERLAP: Nakładka zakrywa CAŁĄ wysokość (50px) w obszarze overlap
+    // OVERLAP: Rysuj tylko gdy faktyczny overlap (bez zaokrągleń)
     if (overlap) {
-        const sPhase = new Date(phase.start);
-        const ePhase = new Date(phase.adjustedEnd || phase.end);
-        const sOverlap = overlap.overlapStart;
-        const eOverlap = overlap.overlapEnd;
-
-        const dayMs = 1000 * 60 * 60 * 24;
-        const widthPx = parseInt(container.style.width);
-
-        const fromStartDays = Math.max(0, Math.round((sOverlap - sPhase) / dayMs));
-        const overlapDays = Math.max(0, Math.round((eOverlap - sOverlap) / dayMs) + 1);
-
-        const overlayLeft = Math.min(widthPx, fromStartDays * dayWidth);
-        const overlayWidth = Math.max(0, Math.min(widthPx - overlayLeft, overlapDays * dayWidth));
-
-        const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
-        const otherColor = productionPhases[otherKey]?.color || '#888';
+        const dayMs = 86400000;
         
-        if (overlayWidth > 0) {
-            // Overlap tylko na górnej 1/4 (25px podzielone na 2x 12.5px)
-            // Górny pasek - kolor fazy 1
-            const topBar = document.createElement('div');
-            topBar.style.cssText = `
-                position: absolute;
-                left: ${overlayLeft}px;
-                width: ${overlayWidth}px;
-                top: 0;
-                height: 12.5px;
-                background: ${phaseConfig.color};
-                pointer-events: none;
-                z-index: 3;
-                border: 1px solid #555;
-                border-radius: 2px 2px 0 0;
-            `;
-            container.appendChild(topBar);
+        // UTC z ekskluzywnym końcem
+        const sPhase = dUTC(phase.start);
+        const ePhaseEx = addDaysUTC(dUTC(phase.adjustedEnd || phase.end), 1);
+        
+        const sOv = dUTC(overlap.overlapStart);
+        const eOvEx = addDaysUTC(dUTC(overlap.overlapEnd), 1);
+        
+        // Dokładne milisekundy przecięcia
+        const interStart = Math.max(sPhase.getTime(), sOv.getTime());
+        const interEndEx = Math.min(ePhaseEx.getTime(), eOvEx.getTime());
+        const interMs = interEndEx - interStart;
+        
+        if (interMs > 0) {
+            const widthPxTotal = parseFloat(container.style.width);
+            const barStart = sPhase.getTime();
             
-            // Dolny pasek - kolor fazy 2
-            const bottomBar = document.createElement('div');
-            bottomBar.style.cssText = `
-                position: absolute;
-                left: ${overlayLeft}px;
-                width: ${overlayWidth}px;
-                top: 12.5px;
-                height: 12.5px;
-                background: ${otherColor};
-                pointer-events: none;
-                z-index: 3;
-                border: 1px solid #555;
-                border-radius: 0 0 2px 2px;
-            `;
-            container.appendChild(bottomBar);
+            // Piksele bez zaokrąglania do dni
+            const fromStartDays = (interStart - barStart) / dayMs;
+            const overlapDaysExact = interMs / dayMs;
+            
+            const overlayLeft = Math.min(widthPxTotal, fromStartDays * dayWidth);
+            const overlayWidth = Math.max(0, Math.min(widthPxTotal - overlayLeft, overlapDaysExact * dayWidth));
+            
+            const otherKey = (overlap.phase1Key === phase.key) ? overlap.phase2Key : overlap.phase1Key;
+            const otherColor = productionPhases[otherKey]?.color || '#888';
+            
+            if (overlayWidth > 0) {
+                // Overlap tylko na górnej 1/4 (25px podzielone na 2x 12.5px)
+                const topBar = document.createElement('div');
+                topBar.style.cssText = `
+                    position: absolute;
+                    left: ${overlayLeft}px;
+                    width: ${overlayWidth}px;
+                    top: 0;
+                    height: 12.5px;
+                    background: ${phaseConfig.color};
+                    pointer-events: none;
+                    z-index: 3;
+                    border: 1px solid #555;
+                    border-radius: 2px 2px 0 0;
+                `;
+                container.appendChild(topBar);
+                
+                const bottomBar = document.createElement('div');
+                bottomBar.style.cssText = `
+                    position: absolute;
+                    left: ${overlayLeft}px;
+                    width: ${overlayWidth}px;
+                    top: 12.5px;
+                    height: 12.5px;
+                    background: ${otherColor};
+                    pointer-events: none;
+                    z-index: 3;
+                    border: 1px solid #555;
+                    border-radius: 0 0 2px 2px;
+                `;
+                container.appendChild(bottomBar);
+            }
         }
     }
     
