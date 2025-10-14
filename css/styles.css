@@ -654,8 +654,7 @@ body.pipeline-theme .project-cell {
     cursor: move;
     z-index: 2;
     transition: transform 0.1s;
-    border-width: 2px;
-    border-style: solid;
+    border: 1px solid #555;  /* Szara ramka */
 }
 
 .phase-container:hover {
