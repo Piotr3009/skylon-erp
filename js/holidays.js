@@ -334,12 +334,8 @@ function openHolidayModal(dateStr) {
 
 function populateEmployeeSelect() {
     const modalEmployee = document.getElementById('modalEmployee');
-    if (!modalEmployee) {
-        console.log('modalEmployee not found!');
-        return;
-    }
+    if (!modalEmployee) return;
     
-    console.log('Populating select, employees:', employees.length);
     modalEmployee.innerHTML = '';
     
     const allOpt = document.createElement('option');
@@ -347,7 +343,6 @@ function populateEmployeeSelect() {
     allOpt.textContent = 'ALL TEAM MEMBERS';
     allOpt.className = 'opt-all-members';
     modalEmployee.appendChild(allOpt);
-    console.log('Added ALL option');
     
     employees.forEach(emp => {
         const opt = document.createElement('option');
@@ -355,8 +350,6 @@ function populateEmployeeSelect() {
         opt.textContent = emp.name;
         modalEmployee.appendChild(opt);
     });
-    
-    console.log('Total options:', modalEmployee.options.length);
 }
 
 function closeModal() {
