@@ -173,7 +173,7 @@ function renderPipelineProjects() {
                 <button class="action-btn" onclick="editPipelineProject(${index})" title="Edit">✏️</button>
                 ${project.google_drive_url ? 
                     `<a href="${project.google_drive_url}" target="_blank" class="action-btn gdrive" title="Open in Google Drive">📁</a>` :
-                    `<button class="action-btn gdrive-add" onclick="addPipelineGoogleDriveLink(${index})" title="Add Google Drive link">➕</button>`
+                    `<button class="action-btn gdrive-add" onclick="openPipelineGoogleDrivePicker(${index})" title="Add Google Drive link">➕</button>`
                 }
                 <button class="action-btn delete" onclick="deletePipelineProject(${index})" title="Delete">✕</button>
             </div>
@@ -478,6 +478,62 @@ async function addPipelineGoogleDriveLink(projectIndex) {
         saveDataQueued();
         renderPipeline();
     }
+}
+
+// Google Drive Picker wrapper for Pipeline (fancy picker)
+function openPipelineGoogleDrivePicker(projectIndex) {
+    const project = pipelineProjects[projectIndex];
+    
+    // Check if picker is available
+    if (typeof openGoogleDrivePicker !== 'function') {
+        console.warn('Google Drive Picker not loaded, falling back to prompt');
+        addPipelineGoogleDriveLink(projectIndex);
+        return;
+    }
+    
+    // Store original callback
+    const originalCallback = window.pickerCallback;
+    
+    // Temporarily override pickerCallback for pipeline
+    window.pickerCallback = async function(data) {
+        if (data.action === google.picker.Action.PICKED) {
+            const folder = data.docs[0];
+            const folderUrl = folder.url || `https://drive.google.com/drive/folders/${folder.id}`;
+            
+            // Update pipeline project
+            project.google_drive_url = folderUrl;
+            project.google_drive_folder_id = folder.id;
+            
+            // Save to Supabase pipeline table
+            if (typeof supabaseClient !== 'undefined') {
+                const { error } = await supabaseClient
+                    .from('pipeline_projects')
+                    .update({ 
+                        google_drive_url: folderUrl,
+                        google_drive_folder_id: folder.id
+                    })
+                    .eq('project_number', project.projectNumber);
+                
+                if (error) {
+                    console.error('Error saving:', error);
+                    alert('Failed to save Google Drive folder');
+                } else {
+                    alert(`Folder "${folder.name}" linked!`);
+                }
+            }
+            
+            saveDataQueued();
+            renderPipeline();
+            
+            // Restore original callback after delay
+            setTimeout(() => {
+                window.pickerCallback = originalCallback;
+            }, 100);
+        }
+    };
+    
+    // Open picker
+    openGoogleDrivePicker(project);
 }
 
 // Nadpisz funkcję shiftWeek dla Pipeline
