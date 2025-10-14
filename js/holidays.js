@@ -46,7 +46,7 @@ async function loadEmployees() {
         const modalEmployee = document.getElementById('modalEmployee');
         
         employeeFilter.innerHTML = '<option value="all">All Employees</option>';
-        modalEmployee.innerHTML = '<option value="">Select employee...</option>';
+        // Nie czyścimy modalEmployee - tam już jest "All Team Members" w HTML
         
         employees.forEach(emp => {
             const option1 = document.createElement('option');
@@ -173,18 +173,23 @@ function renderCalendar() {
             if (dayHolidays.length > 0) {
                 dayDiv.classList.add('has-holiday');
                 
+                // Stwórz kontener na kropki
+                const indicatorsContainer = document.createElement('div');
+                indicatorsContainer.className = 'holiday-indicators-container';
+                
                 // Add colored indicators for each employee with holiday
-                dayHolidays.forEach((holiday, index) => {
+                dayHolidays.forEach(holiday => {
                     if (activeFilters.has(holiday.employee_id)) {
                         const indicator = document.createElement('div');
                         indicator.className = 'holiday-indicator';
                         const color = holiday.team_members?.color_code || holiday.team_members?.color || '#999';
                         indicator.style.background = color;
-                        indicator.style.top = `${2 + (index * 10)}px`;
                         indicator.title = holiday.team_members?.name || 'Unknown';
-                        dayDiv.appendChild(indicator);
+                        indicatorsContainer.appendChild(indicator);
                     }
                 });
+                
+                dayDiv.appendChild(indicatorsContainer);
             }
             
             // Click to add/edit holiday
