@@ -44,6 +44,16 @@ function renderTeam(members) {
         const holidayPercent = member.holiday_allowance > 0 ? 
             Math.max(0, (remaining / member.holiday_allowance * 100)) : 0;
         
+        // Holiday display - N/A for B2B contracts
+        const holidayDisplay = member.contract_type === 'b2b' ? 
+            '<span style="color: #999;">N/A</span>' :
+            `<div class="holiday-bar">
+                <div class="holiday-progress">
+                    <div class="holiday-fill" style="width: ${holidayPercent}%"></div>
+                </div>
+                <small>${member.holiday_remaining || 0}/${member.holiday_allowance || 28}</small>
+            </div>`;
+        
         tr.innerHTML = `
             <td>
                 <span class="color-indicator" style="background: ${member.color_code || '#999'};"></span>
@@ -69,12 +79,7 @@ function renderTeam(members) {
                 </span>
             </td>
             <td>
-                <div class="holiday-bar">
-                    <div class="holiday-progress">
-                        <div class="holiday-fill" style="width: ${holidayPercent}%"></div>
-                    </div>
-                    <small>${member.holiday_remaining || 0}/${member.holiday_allowance || 28}</small>
-                </div>
+                ${holidayDisplay}
             </td>
             <td>
                <button class="action-btn" onclick="viewEmployee('${member.id}')" title="View">👁️</button>
