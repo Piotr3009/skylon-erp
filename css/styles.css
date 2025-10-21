@@ -1,89 +1,90 @@
 /* Navigation links container */
 .navigation-links {
     display: flex;
-    gap: 15px;
+    gap: 8px;
     align-items: center;
 }
 
-/* Pipeline button - pastelowy jasnoniebieski */
+/* Pipeline button - delikatny niebieski */
 .nav-link-pipeline {
-    padding: 8px 16px !important;
-    background: #a8d5e8 !important;
-    color: #1a4a5a !important;
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #3b82f6 !important;
     text-decoration: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
     transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
 }
 
 .nav-link-pipeline:hover {
-    background: #95c5d8 !important;
+    background: #27272a !important;
+    border-color: #3b82f6 !important;
 }
 
-/* Production button - pastelowy zielony */
+/* Production button - delikatny zielony */
 .nav-link-production {
-    padding: 8px 16px !important;
-    background: #a8d5a8 !important;
-    color: #2d5a2d !important;
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #10b981 !important;
     text-decoration: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
     transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
 }
 
 .nav-link-production:hover {
-    background: #95c795 !important;
+    background: #27272a !important;
+    border-color: #10b981 !important;
 }
 
-/* Archive button - pastelowy szary */
+/* Archive button - delikatny szary */
 .nav-link-archive {
-    padding: 8px 16px !important;
-    background: #b8b8b8 !important;
-    color: #3a3a3a !important;
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #a1a1aa !important;
     text-decoration: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
     transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
 }
 
 .nav-link-archive:hover {
-    background: #a5a5a5 !important;
+    background: #27272a !important;
+    border-color: #52525b !important;
+}
+
+/* Accounting button - delikatny pomarańczowy */
+.nav-link-accounting {
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #f59e0b !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-accounting:hover {
+    background: #27272a !important;
+    border-color: #f59e0b !important;
 }
 
 /* Zmniejszona wysokość headera */
 .header {
     padding: 8px 18px !important;
 }
-
-
-/* Navigation links container */
-.navigation-links {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-}
-
-/* Pipeline button - pastelowy jasnoniebieski */
-.nav-link-pipeline {
-    padding: 8px 16px !important;
-    background: #a8d5e8 !important;
-    color: #1a4a5a !important;
-    text-decoration: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.nav-link-pipeline:hover {
-    background: #95c5d8 !important;
-    color: #0a3a4a !important;
-}
-
-
 
 
 /* ZMNIEJSZ wysokość headera */
