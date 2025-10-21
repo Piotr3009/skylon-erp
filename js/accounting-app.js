@@ -30,14 +30,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAllAccountingData() {
     try {
-        // Load clients first
         const { data: clients, error: clientsError } = await supabaseClient
             .from('clients')
             .select('*');
         
         if (!clientsError) clientsData = clients || [];
 
-        // Load pipeline projects (tylko LIFE - czyli status active i type nie jest canceled/failed/deleted)
         const { data: pipeline, error: pipelineError } = await supabaseClient
             .from('pipeline_projects')
             .select('*')
@@ -47,7 +45,6 @@ async function loadAllAccountingData() {
             pipelineProjectsData = pipeline || [];
         }
 
-        // Load pipeline phases (potrzebne do deadline)
         const pipelineIds = pipelineProjectsData.map(p => p.id);
         let pipelinePhases = [];
         if (pipelineIds.length > 0) {
@@ -58,7 +55,6 @@ async function loadAllAccountingData() {
             pipelinePhases = phases || [];
         }
 
-        // Merge pipeline with phases to get deadline
         pipelineProjectsData = pipelineProjectsData.map(p => {
             const phases = pipelinePhases.filter(ph => ph.pipeline_project_id === p.id);
             const lastPhase = phases.sort((a, b) => 
@@ -71,7 +67,6 @@ async function loadAllAccountingData() {
             };
         });
 
-        // Load production projects
         const { data: production, error: productionError } = await supabaseClient
             .from('projects')
             .select('*')
@@ -79,14 +74,12 @@ async function loadAllAccountingData() {
         
         if (!productionError) productionProjectsData = production || [];
 
-        // Load archived projects
         const { data: archived, error: archivedError } = await supabaseClient
             .from('archived_projects')
             .select('*');
         
         if (!archivedError) archivedProjectsData = archived || [];
 
-        // Load monthly overheads
         const { data: overheads, error: overheadsError } = await supabaseClient
             .from('monthly_overheads')
             .select('*')
@@ -94,7 +87,6 @@ async function loadAllAccountingData() {
         
         if (!overheadsError) monthlyOverheadsData = overheads || [];
 
-        // Load skill assignments
         const { data: skills, error: skillsError } = await supabaseClient
             .from('skill_assignments')
             .select('*')
@@ -122,7 +114,6 @@ async function refreshAccountingData() {
 // ========================================
 
 function calculateTotalPipelineBudget() {
-    // Tylko projekty LIFE (status active)
     const total = pipelineProjectsData.reduce((sum, p) => {
         return sum + (parseFloat(p.estimated_value) || 0);
     }, 0);
@@ -137,7 +128,6 @@ function calculateTotalProductionBudget() {
 }
 
 function calculateYTDTurnover(year = currentYear) {
-    // Turnover = suma actual_value z archived_projects dla danego roku
     const ytd = archivedProjectsData
         .filter(p => {
             if (!p.completed_date && !p.archived_date) return false;
@@ -150,7 +140,6 @@ function calculateYTDTurnover(year = currentYear) {
 }
 
 function calculateBurnRate() {
-    // Avg overheads / 30 dni
     if (monthlyOverheadsData.length === 0) return 0;
     
     const avgOverheads = monthlyOverheadsData.reduce((sum, o) => 
@@ -161,7 +150,6 @@ function calculateBurnRate() {
 }
 
 function getWeeklyBudget() {
-    // Grupuj projekty z production po tygodniach (deadline)
     const weeks = {};
     
     productionProjectsData.forEach(p => {
@@ -190,12 +178,11 @@ function getWeeklyBudget() {
 function getWeekStart(date) {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Poniedziałek
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(d.setDate(diff));
 }
 
 function getMonthlyBreakdown() {
-    // Grupuj projekty z production po miesiącach (deadline)
     const months = {};
     
     productionProjectsData.forEach(p => {
@@ -216,7 +203,6 @@ function getMonthlyBreakdown() {
         months[monthKey].totalValue += parseFloat(p.contract_value) || 0;
     });
     
-    // Dodaj worker counts i overheads
     Object.keys(months).forEach(monthKey => {
         const skills = skillAssignmentsData.filter(s => s.month === monthKey);
         const joineryWorkers = skills.find(s => s.skill_type === 'joinery')?.worker_count || 0;
@@ -240,7 +226,6 @@ function getMonthlyBreakdown() {
 }
 
 function getProjectProfits() {
-    // Projekty z archived (completed) z profit margins
     return archivedProjectsData
         .filter(p => p.archive_reason === 'completed')
         .map(p => {
@@ -261,7 +246,6 @@ function getProjectProfits() {
 }
 
 function getRevenuePerClient() {
-    // Suma revenue z archived projects grouped by client
     const clientRevenue = {};
     
     archivedProjectsData
@@ -289,7 +273,6 @@ function getRevenuePerClient() {
 }
 
 function getCashFlowForecast(weeksAhead = 8) {
-    // Przewidywanie wpływów na najbliższe X tygodni z production
     const today = new Date();
     const forecast = [];
     
@@ -329,21 +312,17 @@ function renderDashboard() {
 }
 
 function renderSummaryCards() {
-    // Total Pipeline Budget (LIFE only)
     const pipelineBudget = calculateTotalPipelineBudget();
     document.getElementById('totalPipelineBudget').textContent = `£${pipelineBudget.toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
     document.getElementById('pipelineProjectCount').textContent = `${pipelineProjectsData.length} projects`;
     
-    // Total Production Budget
     const productionBudget = calculateTotalProductionBudget();
     document.getElementById('totalProductionBudget').textContent = `£${productionBudget.toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
     document.getElementById('productionProjectCount').textContent = `${productionProjectsData.length} projects`;
     
-    // YTD Turnover
     const ytd = calculateYTDTurnover();
     document.getElementById('ytdTurnover').textContent = `£${ytd.toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
     
-    // Burn Rate
     const burnRate = calculateBurnRate();
     document.getElementById('burnRate').textContent = `£${burnRate.toLocaleString('en-GB', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
 }
@@ -377,39 +356,14 @@ function renderWeeklyBudget() {
         return;
     }
     
-    let html = `
-        <table style="width: 100%; border-collapse: collapse; color: white;">
-            <thead>
-                <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
-                    <th style="padding: 12px; text-align: left;">Week Start</th>
-                    <th style="padding: 12px; text-align: left;">Week End</th>
-                    <th style="padding: 12px; text-align: center;">Projects</th>
-                    <th style="padding: 12px; text-align: right;">Total Value</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Week Start</th><th style="padding: 12px; text-align: left;">Week End</th><th style="padding: 12px; text-align: center;">Projects</th><th style="padding: 12px; text-align: right;">Total Value</th></tr></thead><tbody>';
     
     weeks.forEach(week => {
-        html += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 12px;">${formatDate(week.weekStart)}</td>
-                <td style="padding: 12px;">${formatDate(week.weekEnd)}</td>
-                <td style="padding: 12px; text-align: center;">${week.projects.length}</td>
-                <td style="padding: 12px; text-align: right; font-weight: bold;">£${week.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        `;
+        html += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${formatDate(week.weekStart)}</td><td style="padding: 12px;">${formatDate(week.weekEnd)}</td><td style="padding: 12px; text-align: center;">${week.projects.length}</td><td style="padding: 12px; text-align: right; font-weight: bold;">£${week.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
     });
     
     const grandTotal = weeks.reduce((sum, w) => sum + w.totalValue, 0);
-    html += `
-            <tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
-                <td colspan="3" style="padding: 12px;">TOTAL</td>
-                <td style="padding: 12px; text-align: right;">£${grandTotal.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        </tbody>
-        </table>
-    `;
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="3" style="padding: 12px;">TOTAL</td><td style="padding: 12px; text-align: right;">£${grandTotal.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
     
     container.innerHTML = html;
 }
@@ -417,69 +371,26 @@ function renderWeeklyBudget() {
 function renderMonthlyBreakdown() {
     const months = getMonthlyBreakdown();
     
-    // Monthly Value per Skill
-    let html1 = `
-        <table style="width: 100%; border-collapse: collapse; color: white;">
-            <thead>
-                <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
-                    <th style="padding: 12px; text-align: left;">Month</th>
-                    <th style="padding: 12px; text-align: right;">Total Value</th>
-                    <th style="padding: 12px; text-align: center;">Joinery</th>
-                    <th style="padding: 12px; text-align: center;">Spraying</th>
-                    <th style="padding: 12px; text-align: center;">Total Workers</th>
-                    <th style="padding: 12px; text-align: right;">£ per Person</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let html1 = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Month</th><th style="padding: 12px; text-align: right;">Total Value</th><th style="padding: 12px; text-align: center;">Joinery</th><th style="padding: 12px; text-align: center;">Spraying</th><th style="padding: 12px; text-align: center;">Total Workers</th><th style="padding: 12px; text-align: right;">£ per Person</th></tr></thead><tbody>';
     
     months.forEach(m => {
-        html1 += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 12px;">${formatMonth(m.month)}</td>
-                <td style="padding: 12px; text-align: right; font-weight: bold;">£${m.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-                <td style="padding: 12px; text-align: center;">${m.joineryWorkers}</td>
-                <td style="padding: 12px; text-align: center;">${m.sprayingWorkers}</td>
-                <td style="padding: 12px; text-align: center; font-weight: bold;">${m.totalWorkers}</td>
-                <td style="padding: 12px; text-align: right; color: #4facfe;">£${m.valuePerPerson.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        `;
+        html1 += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${formatMonth(m.month)}</td><td style="padding: 12px; text-align: right; font-weight: bold;">£${m.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: center;">${m.joineryWorkers}</td><td style="padding: 12px; text-align: center;">${m.sprayingWorkers}</td><td style="padding: 12px; text-align: center; font-weight: bold;">${m.totalWorkers}</td><td style="padding: 12px; text-align: right; color: #4facfe;">£${m.valuePerPerson.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
     });
     
-    html1 += `</tbody></table>`;
+    html1 += '</tbody></table>';
     document.getElementById('monthlyBreakdownTable').innerHTML = html1;
     
-    // Monthly Turnover vs Overheads
-    let html2 = `
-        <table style="width: 100%; border-collapse: collapse; color: white;">
-            <thead>
-                <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
-                    <th style="padding: 12px; text-align: left;">Month</th>
-                    <th style="padding: 12px; text-align: right;">Revenue</th>
-                    <th style="padding: 12px; text-align: right;">Overheads</th>
-                    <th style="padding: 12px; text-align: right;">Profit</th>
-                    <th style="padding: 12px; text-align: right;">OH %</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let html2 = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Month</th><th style="padding: 12px; text-align: right;">Revenue</th><th style="padding: 12px; text-align: right;">Overheads</th><th style="padding: 12px; text-align: right;">Profit</th><th style="padding: 12px; text-align: right;">OH %</th></tr></thead><tbody>';
     
     months.forEach(m => {
         const ohColor = m.overheadsPercent > 50 ? '#f5576c' : m.overheadsPercent > 30 ? '#fee140' : '#4ade80';
-        html2 += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 12px;">${formatMonth(m.month)}</td>
-                <td style="padding: 12px; text-align: right;">£${m.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-                <td style="padding: 12px; text-align: right;">£${m.overheads.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-                <td style="padding: 12px; text-align: right; color: ${m.profit >= 0 ? '#4ade80' : '#f5576c'};">£${m.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-                <td style="padding: 12px; text-align: right; font-weight: bold; color: ${ohColor};">${m.overheadsPercent.toFixed(1)}%</td>
-            </tr>
-        `;
+        html2 += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${formatMonth(m.month)}</td><td style="padding: 12px; text-align: right;">£${m.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right;">£${m.overheads.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right; color: ${m.profit >= 0 ? '#4ade80' : '#f5576c'};">£${m.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right; font-weight: bold; color: ${ohColor};">${m.overheadsPercent.toFixed(1)}%</td></tr>`;
     });
     
-    html2 += `</tbody></table>`;
+    html2 += '</tbody></table>';
     document.getElementById('monthlyOverheadsTable').innerHTML = html2;
 }
+
 function renderProjectProfits() {
     const projects = getProjectProfits();
     const container = document.getElementById('projectProfitsTable');
@@ -489,36 +400,14 @@ function renderProjectProfits() {
         return;
     }
     
-    let html = `
-        <table style="width: 100%; border-collapse: collapse; color: white;">
-            <thead>
-                <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
-                    <th style="padding: 12px; text-align: left;">Project #</th>
-                    <th style="padding: 12px; text-align: left;">Name</th>
-                    <th style="padding: 12px; text-align: right;">Value</th>
-                    <th style="padding: 12px; text-align: right;">Cost</th>
-                    <th style="padding: 12px; text-align: right;">Profit</th>
-                    <th style="padding: 12px; text-align: right;">Margin %</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Project #</th><th style="padding: 12px; text-align: left;">Name</th><th style="padding: 12px; text-align: right;">Value</th><th style="padding: 12px; text-align: right;">Cost</th><th style="padding: 12px; text-align: right;">Profit</th><th style="padding: 12px; text-align: right;">Margin %</th></tr></thead><tbody>';
     
     projects.forEach(p => {
         const marginColor = p.margin >= 20 ? '#4ade80' : p.margin >= 10 ? '#fee140' : '#f5576c';
-        html += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 12px;">${p.project_number}</td>
-                <td style="padding: 12px;">${p.name}</td>
-                <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-                <td style="padding: 12px; text-align: right;">£${p.cost.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-                <td style="padding: 12px; text-align: right; color: ${p.profit >= 0 ? '#4ade80' : '#f5576c'};">£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-                <td style="padding: 12px; text-align: right; font-weight: bold; color: ${marginColor};">${p.margin.toFixed(1)}%</td>
-            </tr>
-        `;
+        html += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${p.project_number}</td><td style="padding: 12px;">${p.name}</td><td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right;">£${p.cost.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right; color: ${p.profit >= 0 ? '#4ade80' : '#f5576c'};">£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right; font-weight: bold; color: ${marginColor};">${p.margin.toFixed(1)}%</td></tr>`;
     });
     
-    html += `</tbody></table>`;
+    html += '</tbody></table>';
     container.innerHTML = html;
 }
 
@@ -531,37 +420,14 @@ function renderRevenuePerClient() {
         return;
     }
     
-    let html = `
-        <table style="width: 100%; border-collapse: collapse; color: white;">
-            <thead>
-                <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
-                    <th style="padding: 12px; text-align: left;">Client</th>
-                    <th style="padding: 12px; text-align: center;">Projects</th>
-                    <th style="padding: 12px; text-align: right;">Total Revenue</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Client</th><th style="padding: 12px; text-align: center;">Projects</th><th style="padding: 12px; text-align: right;">Total Revenue</th></tr></thead><tbody>';
     
     clients.forEach(c => {
-        html += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 12px;">${c.client_name}</td>
-                <td style="padding: 12px; text-align: center;">${c.projects.length}</td>
-                <td style="padding: 12px; text-align: right; font-weight: bold;">£${c.totalRevenue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        `;
+        html += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${c.client_name}</td><td style="padding: 12px; text-align: center;">${c.projects.length}</td><td style="padding: 12px; text-align: right; font-weight: bold;">£${c.totalRevenue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
     });
     
     const grandTotal = clients.reduce((sum, c) => sum + c.totalRevenue, 0);
-    html += `
-            <tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
-                <td colspan="2" style="padding: 12px;">TOTAL</td>
-                <td style="padding: 12px; text-align: right;">£${grandTotal.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        </tbody>
-        </table>
-    `;
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="2" style="padding: 12px;">TOTAL</td><td style="padding: 12px; text-align: right;">£${grandTotal.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
     
     container.innerHTML = html;
 }
@@ -570,128 +436,32 @@ function renderCashFlowForecast() {
     const forecast = getCashFlowForecast(8);
     const container = document.getElementById('forecastTable');
     
-    let html = `
-        <table style="width: 100%; border-collapse: collapse; color: white;">
-            <thead>
-                <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
-                    <th style="padding: 12px; text-align: left;">Week</th>
-                    <th style="padding: 12px; text-align: left;">Period</th>
-                    <th style="padding: 12px; text-align: center;">Projects</th>
-                    <th style="padding: 12px; text-align: right;">Expected Income</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Week</th><th style="padding: 12px; text-align: left;">Period</th><th style="padding: 12px; text-align: center;">Projects</th><th style="padding: 12px; text-align: right;">Expected Income</th></tr></thead><tbody>';
     
     forecast.forEach(f => {
-        html += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 12px;">Week ${f.weekNumber}</td>
-                <td style="padding: 12px;">${formatDate(f.weekStart)} - ${formatDate(f.weekEnd)}</td>
-                <td style="padding: 12px; text-align: center;">${f.projects.length}</td>
-                <td style="padding: 12px; text-align: right; font-weight: bold;">£${f.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        `;
+        html += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">Week ${f.weekNumber}</td><td style="padding: 12px;">${formatDate(f.weekStart)} - ${formatDate(f.weekEnd)}</td><td style="padding: 12px; text-align: center;">${f.projects.length}</td><td style="padding: 12px; text-align: right; font-weight: bold;">£${f.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
     });
     
     const totalForecast = forecast.reduce((sum, f) => sum + f.totalValue, 0);
-    html += `
-            <tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
-                <td colspan="3" style="padding: 12px;">TOTAL (8 weeks)</td>
-                <td style="padding: 12px; text-align: right;">£${totalForecast.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        </tbody>
-        </table>
-    `;
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="3" style="padding: 12px;">TOTAL (8 weeks)</td><td style="padding: 12px; text-align: right;">£${totalForecast.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
     
     container.innerHTML = html;
 }
 
 // ========================================
-// TAB SWITCHING
+// TAB SWITCHING & MODALS
 // ========================================
 
 function switchTab(tabName) {
     activeTab = tabName;
-    
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    
     document.getElementById(tabName + 'Tab').style.display = 'block';
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-    
     renderActiveTab();
 }
 
-// ========================================
-// MODALS
-// ========================================
-
-function openMonthlySettingsModal() {
-    document.getElementById('monthlySettingsModal').style.display = 'block';
-    const now = new Date();
-    document.getElementById('settingsMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function closeMonthlySettingsModal() {
-    document.getElementById('monthlySettingsModal').style.display = 'none';
-}
-
-async function saveMonthlySettings() {
-    const month = document.getElementById('settingsMonth').value;
-    const overheads = parseFloat(document.getElementById('settingsOverheads').value) || 0;
-    const joineryWorkers = parseInt(document.getElementById('settingsJoineryWorkers').value) || 0;
-    const sprayingWorkers = parseInt(document.getElementById('settingsSprayingWorkers').value) || 0;
-    
-    if (!month) {
-        alert('Please select a month');
-        return;
-    }
-    
-    const year = parseInt(month.split('-')[0]);
-    
-    try {
-        const { error: ohError } = await supabaseClient
-            .from('monthly_overheads')
-            .upsert({
-                month: month,
-                year: year,
-                overheads_value: overheads
-            }, { onConflict: 'month' });
-        
-        if (ohError) throw ohError;
-        
-        const { error: joineryError } = await supabaseClient
-            .from('skill_assignments')
-            .upsert({
-                month: month,
-                year: year,
-                skill_type: 'joinery',
-                worker_count: joineryWorkers
-            }, { onConflict: 'month,skill_type' });
-        
-        if (joineryError) throw joineryError;
-        
-        const { error: sprayError } = await supabaseClient
-            .from('skill_assignments')
-            .upsert({
-                month: month,
-                year: year,
-                skill_type: 'spraying',
-                worker_count: sprayingWorkers
-            }, { onConflict: 'month,skill_type' });
-        
-        if (sprayError) throw sprayError;
-        
-        alert('Settings saved successfully!');
-        closeMonthlySettingsModal();
-        await refreshAccountingData();
-        
-    } catch (error) {
-        console.error('Error saving settings:', error);
-        alert('Error saving settings: ' + error.message);
-    }
-}
+// Monthly settings modal - see monthly-overheads-modal.js
 
 function openExportRangeModal() {
     document.getElementById('exportRangeModal').style.display = 'block';
@@ -723,43 +493,14 @@ async function exportProjectsByRange() {
         sum + (parseFloat(p.actual_value || p.contract_value) || 0), 0
     );
     
-    let html = `
-        <h3 style="color: white; margin-bottom: 15px;">Export Results</h3>
-        <p style="color: #999;">Period: ${formatDate(from)} - ${formatDate(to)}</p>
-        <p style="color: #999; margin-bottom: 15px;">Found ${projectsInRange.length} completed projects</p>
-        
-        <table style="width: 100%; border-collapse: collapse; color: white; margin-bottom: 20px;">
-            <thead>
-                <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
-                    <th style="padding: 10px; text-align: left;">Project #</th>
-                    <th style="padding: 10px; text-align: left;">Name</th>
-                    <th style="padding: 10px; text-align: right;">Value</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let html = `<h3 style="color: white; margin-bottom: 15px;">Export Results</h3><p style="color: #999;">Period: ${formatDate(from)} - ${formatDate(to)}</p><p style="color: #999; margin-bottom: 15px;">Found ${projectsInRange.length} completed projects</p><table style="width: 100%; border-collapse: collapse; color: white; margin-bottom: 20px;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 10px; text-align: left;">Project #</th><th style="padding: 10px; text-align: left;">Name</th><th style="padding: 10px; text-align: right;">Value</th></tr></thead><tbody>`;
     
     projectsInRange.forEach(p => {
         const value = parseFloat(p.actual_value || p.contract_value) || 0;
-        html += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 10px;">${p.project_number}</td>
-                <td style="padding: 10px;">${p.name}</td>
-                <td style="padding: 10px; text-align: right;">£${value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        `;
+        html += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 10px;">${p.project_number}</td><td style="padding: 10px;">${p.name}</td><td style="padding: 10px; text-align: right;">£${value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
     });
     
-    html += `
-            <tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
-                <td colspan="2" style="padding: 10px;">TOTAL</td>
-                <td style="padding: 10px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            </tr>
-        </tbody>
-        </table>
-        
-        <button class="modal-btn primary" onclick="downloadRangeCSV('${fromDate}', '${toDate}')">Download CSV</button>
-    `;
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="2" style="padding: 10px;">TOTAL</td><td style="padding: 10px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table><button class="modal-btn primary" onclick="downloadRangeCSV('${fromDate}', '${toDate}')">Download CSV</button>`;
     
     document.getElementById('exportResult').innerHTML = html;
     document.getElementById('exportResult').style.display = 'block';
@@ -794,10 +535,6 @@ function downloadRangeCSV(fromDate, toDate) {
     a.download = `projects_${fromDate}_to_${toDate}.csv`;
     a.click();
 }
-
-// ========================================
-// UTILITIES
-// ========================================
 
 function formatDate(date) {
     const d = new Date(date);
