@@ -120,6 +120,8 @@ function editProject(index) {
     document.getElementById('projectStartDate').value = project.phases[0]?.start || formatDate(new Date());
     document.getElementById('projectNumber').value = project.projectNumber || '';
     document.getElementById('projectDeadline').value = project.deadline || '';
+    document.getElementById('projectContractValue').value = project.contract_value || '';
+    document.getElementById('projectCost').value = project.project_cost || '';
     
     // Set selected type
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('selected'));
@@ -148,6 +150,8 @@ async function saveProject() {
     const startDate = document.getElementById('projectStartDate').value;
     const projectNumber = document.getElementById('projectNumber').value.trim();
     const deadline = document.getElementById('projectDeadline').value;
+    const contractValue = parseFloat(document.getElementById('projectContractValue').value) || 0;
+    const projectCost = parseFloat(document.getElementById('projectCost').value) || 0;
     
     // Get selected type
     const selectedTypeElement = document.querySelector('.type-option.selected');
@@ -246,6 +250,8 @@ async function saveProject() {
     name,
     client_id: clientId,
     deadline: deadline || null,
+    contract_value: contractValue,
+    project_cost: projectCost,
     phases: selectedPhases
 };
 
@@ -297,7 +303,8 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 deadline: projectData.deadline,
                 status: 'active',
                 notes: null,
-                contract_value: 0,
+                contract_value: projectData.contract_value || 0,
+                project_cost: projectData.project_cost || 0,
                 google_drive_url: projectData.google_drive_url || null,
                 google_drive_folder_id: projectData.google_drive_folder_id || null
             };

@@ -94,6 +94,7 @@ function editPipelineProject(index) {
     document.getElementById('projectName').value = project.name;
     document.getElementById('projectStartDate').value = project.phases[0]?.start || formatDate(new Date());
     document.getElementById('projectNumber').value = project.projectNumber || '';
+    document.getElementById('pipelineEstimatedValue').value = project.estimated_value || '';
     
     // Load clients and select current one
     loadClientsDropdown().then(() => {
@@ -117,6 +118,7 @@ async function savePipelineProject() {
     const clientId = document.getElementById('projectClient').value;
     const startDate = document.getElementById('projectStartDate').value;
     const projectNumber = document.getElementById('projectNumber').value.trim();
+    const estimatedValue = parseFloat(document.getElementById('pipelineEstimatedValue').value) || 0;
     
     // Get selected type
     const selectedTypeElement = document.querySelector('.type-option.selected');
@@ -196,6 +198,7 @@ async function savePipelineProject() {
         type: projectType,
         name,
         client_id: clientId,
+        estimated_value: estimatedValue,
         phases: selectedPhases
     };
     
@@ -213,7 +216,7 @@ async function savePipelineProject() {
                 name: projectData.name,
                 type: projectData.type,
                 client_id: projectData.client_id,
-                estimated_value: 0,
+                estimated_value: projectData.estimated_value || 0,
                 status: 'active',
                 notes: null
             };
