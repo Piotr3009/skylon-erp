@@ -104,24 +104,24 @@ function renderCategoryItems(category) {
     // Render items
     items.forEach((item, index) => {
         const itemDiv = document.createElement('div');
-        itemDiv.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 50px; gap: 10px; margin-bottom: 10px; align-items: center;';
+        itemDiv.style.cssText = 'display: grid; grid-template-columns: 1.8fr 0.8fr 40px; gap: 10px; margin-bottom: 8px; align-items: center;';
         
         itemDiv.innerHTML = `
             <input type="text" 
                    value="${item.item_name}" 
                    onchange="updateItemName('${category}', ${index}, this.value)"
                    placeholder="Item name"
-                   style="padding: 8px; background: #3e3e42; border: 1px solid #555; color: white; border-radius: 3px;">
+                   style="padding: 8px 10px; background: #18181b; border: 1px solid #3f3f46; color: #d4d4d8; border-radius: 2px; font-size: 12px;">
             <input type="number" 
                    value="${item.amount}" 
                    onchange="updateItemAmount('${category}', ${index}, this.value)"
                    step="0.01"
                    min="0"
                    placeholder="0.00"
-                   style="padding: 8px; background: #3e3e42; border: 1px solid #555; color: white; border-radius: 3px;">
+                   style="padding: 8px 10px; background: #18181b; border: 1px solid #3f3f46; color: #d4d4d8; border-radius: 2px; font-size: 12px; font-family: monospace;">
             <button onclick="deleteItem('${category}', ${index})" 
-                    style="padding: 8px; background: #ef4444; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 16px;">
-                🗑️
+                    style="padding: 8px; background: #dc2626; border: 1px solid #b91c1c; color: white; border-radius: 2px; cursor: pointer; font-size: 12px; transition: all 0.2s;">
+                ×
             </button>
         `;
         
