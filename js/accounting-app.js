@@ -41,6 +41,8 @@ async function loadAllAccountingData() {
             .select('*')
             .eq('status', 'active');
         
+        console.log('🔍 RAW Pipeline data from DB:', pipeline);
+        
         if (!pipelineError) {
             pipelineProjectsData = pipeline || [];
         }
@@ -71,6 +73,8 @@ async function loadAllAccountingData() {
             .from('projects')
             .select('*')
             .eq('status', 'active');
+        
+        console.log('🔍 RAW Production data from DB:', production);
         
         if (!productionError) productionProjectsData = production || [];
 
@@ -465,7 +469,10 @@ function renderRevenuePerClient() {
 }
 
 function renderCashFlowForecast() {
-    const forecast = getCashFlowForecast(8);
+    const weeksSelector = document.getElementById('forecastWeeksSelector');
+    const weeks = weeksSelector ? parseInt(weeksSelector.value) : 8;
+    
+    const forecast = getCashFlowForecast(weeks);
     const container = document.getElementById('forecastTable');
     
     let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Week</th><th style="padding: 12px; text-align: left;">Period</th><th style="padding: 12px; text-align: center;">Projects</th><th style="padding: 12px; text-align: right;">Expected Income</th></tr></thead><tbody>';
@@ -475,9 +482,13 @@ function renderCashFlowForecast() {
     });
     
     const totalForecast = forecast.reduce((sum, f) => sum + f.totalValue, 0);
-    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="3" style="padding: 12px;">TOTAL (8 weeks)</td><td style="padding: 12px; text-align: right;">£${totalForecast.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="3" style="padding: 12px;">TOTAL (${weeks} weeks)</td><td style="padding: 12px; text-align: right;">£${totalForecast.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
     
     container.innerHTML = html;
+}
+
+function updateForecastWeeks() {
+    renderCashFlowForecast();
 }
 
 // ========================================
