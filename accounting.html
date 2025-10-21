@@ -133,23 +133,157 @@
 
     <!-- MODAL: Monthly Settings -->
     <div id="monthlySettingsModal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
             <span class="close" onclick="closeMonthlySettingsModal()">&times;</span>
-            <h2>Monthly Settings</h2>
+            <h2 style="margin-bottom: 20px; color: white;">💰 Monthly Overheads Settings</h2>
             
-            <label>Month:</label>
-            <input type="month" id="settingsMonth" required>
+            <div style="margin-bottom: 30px;">
+                <label style="font-size: 16px; font-weight: bold; color: #4facfe; display: block; margin-bottom: 10px;">
+                    📅 Select Month:
+                </label>
+                <input type="month" id="settingsMonth" required style="padding: 12px; font-size: 16px; background: #2a2a2a; color: white; border: 2px solid #4facfe; border-radius: 5px; width: 250px;">
+                <button onclick="loadMonthOverheads()" style="padding: 12px 20px; margin-left: 10px; background: #4facfe; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    Load Month Data
+                </button>
+            </div>
             
-            <label>Monthly Overheads (£):</label>
-            <input type="number" id="settingsOverheads" step="0.01" placeholder="e.g. 15000">
+            <div style="background: #1a1a1a; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                
+                <!-- PROPERTY COSTS -->
+                <div class="overhead-category" style="margin-bottom: 15px;">
+                    <div class="category-header" onclick="toggleCategory('property')" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #2a2a2a; border-radius: 5px; cursor: pointer; border-left: 4px solid #667eea;">
+                        <div>
+                            <span style="font-size: 18px; font-weight: bold; color: white;">🏢 Property Costs</span>
+                            <span style="font-size: 12px; color: #999; margin-left: 10px;">(Rent, Council Tax, Utilities)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span id="propertyTotal" style="font-size: 16px; font-weight: bold; color: #667eea;">£0.00</span>
+                            <span id="propertyToggle" style="font-size: 20px; color: #667eea;">▼</span>
+                        </div>
+                    </div>
+                    <div id="propertyItems" class="category-items" style="padding: 15px; background: #222; border-radius: 0 0 5px 5px; margin-top: 2px;">
+                        <!-- Items will be added here dynamically -->
+                        <button onclick="addOverheadItem('property')" class="add-item-btn" style="padding: 8px 15px; background: #667eea; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 14px;">
+                            + Add Item
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- OPERATIONS -->
+                <div class="overhead-category" style="margin-bottom: 15px;">
+                    <div class="category-header" onclick="toggleCategory('operations')" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #2a2a2a; border-radius: 5px; cursor: pointer; border-left: 4px solid #f093fb;">
+                        <div>
+                            <span style="font-size: 18px; font-weight: bold; color: white;">🚛 Operations</span>
+                            <span style="font-size: 12px; color: #999; margin-left: 10px;">(Skips, Transport, Materials)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span id="operationsTotal" style="font-size: 16px; font-weight: bold; color: #f093fb;">£0.00</span>
+                            <span id="operationsToggle" style="font-size: 20px; color: #f093fb;">▼</span>
+                        </div>
+                    </div>
+                    <div id="operationsItems" class="category-items" style="padding: 15px; background: #222; border-radius: 0 0 5px 5px; margin-top: 2px;">
+                        <button onclick="addOverheadItem('operations')" class="add-item-btn" style="padding: 8px 15px; background: #f093fb; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 14px;">
+                            + Add Item
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- ADMIN & WAGES -->
+                <div class="overhead-category" style="margin-bottom: 15px;">
+                    <div class="category-header" onclick="toggleCategory('admin')" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #2a2a2a; border-radius: 5px; cursor: pointer; border-left: 4px solid #4facfe;">
+                        <div>
+                            <span style="font-size: 18px; font-weight: bold; color: white;">👔 Admin & Wages</span>
+                            <span style="font-size: 12px; color: #999; margin-left: 10px;">(Salaries, Office Supplies)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span id="adminTotal" style="font-size: 16px; font-weight: bold; color: #4facfe;">£0.00</span>
+                            <span id="adminToggle" style="font-size: 20px; color: #4facfe;">▼</span>
+                        </div>
+                    </div>
+                    <div id="adminItems" class="category-items" style="padding: 15px; background: #222; border-radius: 0 0 5px 5px; margin-top: 2px;">
+                        <button onclick="addOverheadItem('admin')" class="add-item-btn" style="padding: 8px 15px; background: #4facfe; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 14px;">
+                            + Add Item
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- FINANCIAL -->
+                <div class="overhead-category" style="margin-bottom: 15px;">
+                    <div class="category-header" onclick="toggleCategory('financial')" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #2a2a2a; border-radius: 5px; cursor: pointer; border-left: 4px solid #fa709a;">
+                        <div>
+                            <span style="font-size: 18px; font-weight: bold; color: white;">💰 Financial</span>
+                            <span style="font-size: 12px; color: #999; margin-left: 10px;">(Bank Fees, Loans, Accountant)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span id="financialTotal" style="font-size: 16px; font-weight: bold; color: #fa709a;">£0.00</span>
+                            <span id="financialToggle" style="font-size: 20px; color: #fa709a;">▼</span>
+                        </div>
+                    </div>
+                    <div id="financialItems" class="category-items" style="padding: 15px; background: #222; border-radius: 0 0 5px 5px; margin-top: 2px;">
+                        <button onclick="addOverheadItem('financial')" class="add-item-btn" style="padding: 8px 15px; background: #fa709a; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 14px;">
+                            + Add Item
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- MACHINERY -->
+                <div class="overhead-category" style="margin-bottom: 15px;">
+                    <div class="category-header" onclick="toggleCategory('machinery')" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #2a2a2a; border-radius: 5px; cursor: pointer; border-left: 4px solid #fee140;">
+                        <div>
+                            <span style="font-size: 18px; font-weight: bold; color: white;">🔧 Machinery & Equipment</span>
+                            <span style="font-size: 12px; color: #999; margin-left: 10px;">(Maintenance, Service, Budget)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span id="machineryTotal" style="font-size: 16px; font-weight: bold; color: #fee140;">£0.00</span>
+                            <span id="machineryToggle" style="font-size: 20px; color: #fee140;">▼</span>
+                        </div>
+                    </div>
+                    <div id="machineryItems" class="category-items" style="padding: 15px; background: #222; border-radius: 0 0 5px 5px; margin-top: 2px;">
+                        <button onclick="addOverheadItem('machinery')" class="add-item-btn" style="padding: 8px 15px; background: #fee140; border: none; color: #000; border-radius: 3px; cursor: pointer; font-size: 14px;">
+                            + Add Item
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- OTHER -->
+                <div class="overhead-category" style="margin-bottom: 15px;">
+                    <div class="category-header" onclick="toggleCategory('other')" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #2a2a2a; border-radius: 5px; cursor: pointer; border-left: 4px solid #999;">
+                        <div>
+                            <span style="font-size: 18px; font-weight: bold; color: white;">📋 Other Overheads</span>
+                            <span style="font-size: 12px; color: #999; margin-left: 10px;">(Miscellaneous)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span id="otherTotal" style="font-size: 16px; font-weight: bold; color: #999;">£0.00</span>
+                            <span id="otherToggle" style="font-size: 20px; color: #999;">▼</span>
+                        </div>
+                    </div>
+                    <div id="otherItems" class="category-items" style="padding: 15px; background: #222; border-radius: 0 0 5px 5px; margin-top: 2px;">
+                        <button onclick="addOverheadItem('other')" class="add-item-btn" style="padding: 8px 15px; background: #999; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 14px;">
+                            + Add Item
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
             
-            <label>Joinery Workers Count:</label>
-            <input type="number" id="settingsJoineryWorkers" min="0" placeholder="e.g. 3">
+            <!-- TOTAL SUMMARY -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 16px; color: white; opacity: 0.9; margin-bottom: 10px;">
+                    TOTAL MONTHLY OVERHEADS
+                </div>
+                <div id="totalOverheadsCost" style="font-size: 42px; font-weight: bold; color: white;">
+                    £0.00
+                </div>
+            </div>
             
-            <label>Spraying Workers Count:</label>
-            <input type="number" id="settingsSprayingWorkers" min="0" placeholder="e.g. 1">
-            
-            <button class="modal-btn primary" onclick="saveMonthlySettings()">Save Settings</button>
+            <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: flex-end;">
+                <button class="modal-btn" onclick="closeMonthlySettingsModal()" style="padding: 12px 30px; background: #666; border: none; color: white; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                    Cancel
+                </button>
+                <button class="modal-btn primary" onclick="saveMonthlyOverheads()" style="padding: 12px 30px; background: #4ade80; border: none; color: white; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">
+                    💾 Save All Changes
+                </button>
+            </div>
         </div>
     </div>
 
