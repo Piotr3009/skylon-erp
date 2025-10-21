@@ -631,6 +631,7 @@ async function convertToProduction() {
 // Archive as failed
 async function archiveAsFailed() {
     const selectedIndex = document.getElementById('pipelineProjectSelect').value;
+    const failedReason = document.getElementById('failedReason').value.trim();
     
     if (!selectedIndex) {
         alert('Please select a pipeline project');
@@ -647,16 +648,17 @@ async function archiveAsFailed() {
         client_id: pipelineProject.client_id,
         google_drive_url: pipelineProject.google_drive_url || null,
         google_drive_folder_id: pipelineProject.google_drive_folder_id || null,
-        timber_worker_id: null, // pipeline nie ma przypisanych workers
+        timber_worker_id: null,
         spray_worker_id: null,
         admin_id: null,
         sales_person_id: null,
         contract_value: pipelineProject.estimated_value || 0,
-        deadline: null, // pipeline nie ma deadline
+        estimated_value: pipelineProject.estimated_value || 0,
+        deadline: null,
         created_at: pipelineProject.created_at || new Date().toISOString(),
         archived_date: new Date().toISOString(),
         archive_reason: 'failed',
-        archive_notes: 'Failed negotiation',
+        archive_notes: failedReason || 'Pipeline failed',
         source: 'pipeline'
     };
     
@@ -710,6 +712,148 @@ async function archiveAsFailed() {
     closeModal('pipelineFinishedModal');
     
     alert(`Project archived as failed: ${pipelineProject.projectNumber}`);
+}
+
+async function archiveAsCanceled() {
+    const selectedIndex = document.getElementById('pipelineProjectSelect').value;
+    const canceledReason = document.getElementById('canceledReason').value.trim();
+    
+    if (!selectedIndex) {
+        alert('Please select a pipeline project');
+        return;
+    }
+    
+    const pipelineProject = pipelineProjects[parseInt(selectedIndex)];
+    
+    // Przygotuj dane do archiwum
+    const archivedProject = {
+        project_number: pipelineProject.projectNumber,
+        name: pipelineProject.name,
+        type: pipelineProject.type,
+        client_id: pipelineProject.client_id,
+        google_drive_url: pipelineProject.google_drive_url || null,
+        google_drive_folder_id: pipelineProject.google_drive_folder_id || null,
+        timber_worker_id: null,
+        spray_worker_id: null,
+        admin_id: null,
+        sales_person_id: null,
+        contract_value: pipelineProject.estimated_value || 0,
+        estimated_value: pipelineProject.estimated_value || 0,
+        deadline: null,
+        created_at: pipelineProject.created_at || new Date().toISOString(),
+        archived_date: new Date().toISOString(),
+        archive_reason: 'canceled',
+        archive_notes: canceledReason || 'Client canceled',
+        source: 'pipeline'
+    };
+    
+    // Zapisz do bazy
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { data, error } = await supabaseClient
+                .from('archived_projects')
+                .insert([archivedProject]);
+            
+            if (error) {
+                console.error('Error archiving pipeline project:', error);
+                alert('Error saving to archive. Please try again.');
+                return;
+            }
+            
+            console.log('✅ Pipeline project archived as canceled');
+            
+            // Usuń projekt z tabeli pipeline_projects
+            const { error: deleteError } = await supabaseClient
+                .from('pipeline_projects')
+                .delete()
+                .eq('project_number', pipelineProject.projectNumber);
+            
+            if (deleteError) {
+                console.error('Error deleting pipeline project:', deleteError);
+            }
+            
+            // Update client project count
+            if (pipelineProject.client_id) {
+                await updateClientProjectCount(pipelineProject.client_id);
+            }
+            
+        } catch (err) {
+            console.error('Database error:', err);
+            alert('Error connecting to database.');
+            return;
+        }
+    }
+    
+    // Usuń z lokalnej tablicy
+    pipelineProjects.splice(parseInt(selectedIndex), 1);
+    
+    // Mark as changed
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
+    saveDataQueued();
+    renderPipeline();
+    closeModal('pipelineFinishedModal');
+    
+    alert(`Project archived as canceled: ${pipelineProject.projectNumber}`);
+}
+
+async function deletePipelineProject() {
+    const selectedIndex = document.getElementById('pipelineProjectSelect').value;
+    
+    if (!selectedIndex) {
+        alert('Please select a pipeline project');
+        return;
+    }
+    
+    const pipelineProject = pipelineProjects[parseInt(selectedIndex)];
+    
+    if (!confirm(`Are you sure you want to PERMANENTLY DELETE project "${pipelineProject.projectNumber} - ${pipelineProject.name}"?\n\nThis action cannot be undone!`)) {
+        return;
+    }
+    
+    // Usuń z bazy
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { error: deleteError } = await supabaseClient
+                .from('pipeline_projects')
+                .delete()
+                .eq('project_number', pipelineProject.projectNumber);
+            
+            if (deleteError) {
+                console.error('Error deleting pipeline project:', deleteError);
+                alert('Error deleting from database.');
+                return;
+            }
+            
+            console.log('✅ Pipeline project deleted from database');
+            
+            // Update client project count
+            if (pipelineProject.client_id) {
+                await updateClientProjectCount(pipelineProject.client_id);
+            }
+            
+        } catch (err) {
+            console.error('Database error:', err);
+            alert('Error connecting to database.');
+            return;
+        }
+    }
+    
+    // Usuń z lokalnej tablicy
+    pipelineProjects.splice(parseInt(selectedIndex), 1);
+    
+    // Mark as changed
+    if (typeof markAsChanged === 'function') {
+        markAsChanged();
+    }
+    
+    saveDataQueued();
+    renderPipeline();
+    closeModal('pipelineFinishedModal');
+    
+    alert(`Project deleted: ${pipelineProject.projectNumber}`);
 }
 
 // Create production phases

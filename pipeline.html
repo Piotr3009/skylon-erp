@@ -172,27 +172,77 @@
     <!-- Pipeline Finished Modal -->
     <div class="modal" id="pipelineFinishedModal">
         <div class="modal-content">
-            <div class="modal-header">Pipeline Finished</div>
+            <div class="modal-header">Pipeline Project - Final Decision</div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Select Pipeline Project to Finish</label>
+                    <label>Select Pipeline Project</label>
                     <select id="pipelineProjectSelect" style="width: 100%; padding: 8px;">
                         <option value="">Select project...</option>
                     </select>
                 </div>
+                
                 <div class="form-group">
-                    <label>Production Deadline (from contract)</label>
-                    <input type="date" id="productionDeadline" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
-                </div>
-                <div class="form-group">
-                    <label>Project Status</label>
-                    <div class="pipeline-status-options">
-                        <button class="status-btn success" onclick="convertToProduction()">
-                            ✅ Convert to Production
-                        </button>
-                        <button class="status-btn danger" onclick="archiveAsFailed()">
-                            📦 Archive as Failed
-                        </button>
+                    <label style="font-weight: bold; color: #4ade80;">What happened with this pipeline project?</label>
+                    <div style="display: grid; gap: 10px; margin-top: 10px;">
+                        
+                        <!-- WON - Convert to Production -->
+                        <div style="border: 2px solid #4ade80; padding: 15px; border-radius: 5px; background: #1a2f1a;">
+                            <div style="font-weight: bold; color: #4ade80; margin-bottom: 10px;">
+                                ✅ WON - Convert to Production
+                            </div>
+                            <div style="font-size: 12px; color: #999; margin-bottom: 10px;">
+                                Client accepted the quote. Move to production schedule.
+                            </div>
+                            <label style="display: block; margin-bottom: 5px;">Production Deadline (from contract)</label>
+                            <input type="date" id="productionDeadline" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; margin-bottom: 10px;">
+                            <button class="status-btn success" onclick="convertToProduction()" style="width: 100%;">
+                                ✅ Convert to Production
+                            </button>
+                        </div>
+                        
+                        <!-- LOST - Canceled -->
+                        <div style="border: 2px solid #f59e0b; padding: 15px; border-radius: 5px; background: #2a1f0a;">
+                            <div style="font-weight: bold; color: #f59e0b; margin-bottom: 10px;">
+                                ⏸️ LOST - Client Canceled
+                            </div>
+                            <div style="font-size: 12px; color: #999; margin-bottom: 10px;">
+                                Client decided not to proceed with the project.
+                            </div>
+                            <label style="display: block; margin-bottom: 5px;">Reason (optional)</label>
+                            <textarea id="canceledReason" placeholder="e.g. Budget constraints, chose another supplier..." style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; margin-bottom: 10px; min-height: 60px;"></textarea>
+                            <button class="status-btn warning" onclick="archiveAsCanceled()" style="width: 100%; background: #f59e0b;">
+                                ⏸️ Archive as Canceled
+                            </button>
+                        </div>
+                        
+                        <!-- LOST - Failed -->
+                        <div style="border: 2px solid #ef4444; padding: 15px; border-radius: 5px; background: #2a0a0a;">
+                            <div style="font-weight: bold; color: #ef4444; margin-bottom: 10px;">
+                                ❌ LOST - Project Failed
+                            </div>
+                            <div style="font-size: 12px; color: #999; margin-bottom: 10px;">
+                                Project couldn't be completed (technical issues, disputes, etc.)
+                            </div>
+                            <label style="display: block; margin-bottom: 5px;">Reason (optional)</label>
+                            <textarea id="failedReason" placeholder="e.g. Technical issues, client disputes..." style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; margin-bottom: 10px; min-height: 60px;"></textarea>
+                            <button class="status-btn danger" onclick="archiveAsFailed()" style="width: 100%;">
+                                ❌ Archive as Failed
+                            </button>
+                        </div>
+                        
+                        <!-- DELETE -->
+                        <div style="border: 2px solid #666; padding: 15px; border-radius: 5px; background: #1a1a1a;">
+                            <div style="font-weight: bold; color: #999; margin-bottom: 10px;">
+                                🗑️ Delete Project
+                            </div>
+                            <div style="font-size: 12px; color: #999; margin-bottom: 10px;">
+                                Permanently remove this project (mistake, duplicate, etc.)
+                            </div>
+                            <button class="status-btn" onclick="deletePipelineProject()" style="width: 100%; background: #666;">
+                                🗑️ Delete Permanently
+                            </button>
+                        </div>
+                        
                     </div>
                 </div>
             </div>
