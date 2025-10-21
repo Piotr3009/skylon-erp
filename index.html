@@ -445,11 +445,30 @@
                 
                 <div class="form-group">
                     <label>Archive Reason</label>
-                    <select id="archiveReason" style="width: 100%; padding: 8px;">
+                    <select id="archiveReason" style="width: 100%; padding: 8px;" onchange="toggleBudgetConfirmation()">
                         <option value="completed">✅ Project Completed Successfully</option>
                         <option value="cancelled">❌ Project Cancelled</option>
                         <option value="onHold">⏸️ Project On Hold</option>
                     </select>
+                </div>
+                
+                <div id="budgetConfirmationSection" class="form-group" style="border: 2px solid #4ade80; padding: 15px; border-radius: 5px; background: #1a2f1a;">
+                    <label style="color: #4ade80; font-weight: bold;">💰 Budget Confirmation (Completed Projects Only)</label>
+                    
+                    <div style="margin: 10px 0;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="budgetSameAsQuote" checked onchange="toggleActualValueField()" style="margin-right: 10px; width: 20px; height: 20px;">
+                            <span>Budget was the same as in the quote</span>
+                        </label>
+                    </div>
+                    
+                    <div id="actualValueField" class="form-group" style="display: none; margin-top: 10px;">
+                        <label>Actual Final Value (£)</label>
+                        <input type="number" id="actualFinalValue" step="0.01" min="0" placeholder="e.g. 14500">
+                        <small style="color: #999; display: block; margin-top: 5px;">
+                            Enter the final value if different from the original contract value
+                        </small>
+                    </div>
                 </div>
                 
                 <div class="form-group">

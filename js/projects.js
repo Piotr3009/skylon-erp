@@ -581,6 +581,8 @@ async function confirmMoveToArchive() {
     const selectedIndex = document.getElementById('completedProjectSelect').value;
     const reason = document.getElementById('archiveReason').value;
     const notes = document.getElementById('archiveNotes').value.trim();
+    const budgetSameAsQuote = document.getElementById('budgetSameAsQuote').checked;
+    const actualFinalValue = parseFloat(document.getElementById('actualFinalValue').value) || null;
     
     if (!selectedIndex) {
         alert('Please select a project to archive');
@@ -595,6 +597,12 @@ async function confirmMoveToArchive() {
     
     const project = projects[projectIndex];
     
+    // Walidacja: jeśli completed i nie zaznaczono "same as quote", musi być actual value
+    if (reason === 'completed' && !budgetSameAsQuote && !actualFinalValue) {
+        alert('Please enter the actual final value or confirm that budget was same as quote');
+        return;
+    }
+    
     // Znajdź workers przypisanych do faz timber i spray
     let timberWorkerId = null;
     let sprayWorkerId = null;
@@ -605,6 +613,16 @@ async function confirmMoveToArchive() {
         
         if (timberPhase && timberPhase.assignedTo) timberWorkerId = timberPhase.assignedTo;
         if (sprayPhase && sprayPhase.assignedTo) sprayWorkerId = sprayPhase.assignedTo;
+    }
+    
+    // Określ actual_value
+    let finalActualValue = null;
+    if (reason === 'completed') {
+        if (budgetSameAsQuote) {
+            finalActualValue = project.contract_value || 0;
+        } else {
+            finalActualValue = actualFinalValue;
+        }
     }
     
     // Przygotuj dane do archiwum
@@ -620,12 +638,15 @@ async function confirmMoveToArchive() {
         admin_id: null, // na przyszłość
         sales_person_id: null, // na przyszłość
         contract_value: project.contract_value || 0,
+        actual_value: finalActualValue,
+        project_cost: project.project_cost || 0,
         deadline: project.deadline || null,
         created_at: project.created_at || new Date().toISOString(),
         archived_date: new Date().toISOString(),
         archive_reason: reason,
         archive_notes: notes || null,
-        source: 'production'
+        source: 'production',
+        completed_date: reason === 'completed' ? new Date().toISOString() : null
     };
     
     // Zapisz do bazy

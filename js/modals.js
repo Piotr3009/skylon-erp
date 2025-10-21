@@ -1290,7 +1290,37 @@ function openMoveToArchiveModal() {
         select.appendChild(option);
     });
     
+    // Reset budget fields
+    document.getElementById('budgetSameAsQuote').checked = true;
+    document.getElementById('actualFinalValue').value = '';
+    document.getElementById('actualValueField').style.display = 'none';
+    document.getElementById('budgetConfirmationSection').style.display = 'block';
+    
     openModal('moveToArchiveModal');
+}
+
+function toggleBudgetConfirmation() {
+    const reason = document.getElementById('archiveReason').value;
+    const budgetSection = document.getElementById('budgetConfirmationSection');
+    
+    // Pokazuj sekcję budżetu tylko dla "completed"
+    if (reason === 'completed') {
+        budgetSection.style.display = 'block';
+    } else {
+        budgetSection.style.display = 'none';
+    }
+}
+
+function toggleActualValueField() {
+    const checkbox = document.getElementById('budgetSameAsQuote');
+    const actualValueField = document.getElementById('actualValueField');
+    
+    if (checkbox.checked) {
+        actualValueField.style.display = 'none';
+        document.getElementById('actualFinalValue').value = '';
+    } else {
+        actualValueField.style.display = 'block';
+    }
 }
 
 // Helper functions for materials
