@@ -243,7 +243,18 @@ async function saveMonthlyOverheads() {
             return;
         }
         
-        // Delete existing items for this month
+        // Check for duplicates within the same category
+        const itemKeys = new Set();
+        for (const item of allItems) {
+            const key = `${item.month}-${item.category}-${item.item_name}`;
+            if (itemKeys.has(key)) {
+                alert(`Duplicate item found: "${item.item_name}" in ${item.category}. Each item name must be unique within its category.`);
+                return;
+            }
+            itemKeys.add(key);
+        }
+        
+        // Delete existing items for this month first
         const { error: deleteError } = await supabaseClient
             .from('overhead_items')
             .delete()
