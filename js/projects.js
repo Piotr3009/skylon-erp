@@ -313,6 +313,8 @@ if (currentEditProject !== null && projects[currentEditProject]) {
             };
             
             console.log('📤 Sending to Supabase:', projectForDB);
+            console.log('💷 CONTRACT_VALUE in object:', projectForDB.contract_value, typeof projectForDB.contract_value);
+            console.log('🔍 Full object keys:', Object.keys(projectForDB));
             
             let supabaseResponse;
             if (currentEditProject !== null) {
@@ -321,7 +323,10 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 supabaseResponse = await supabaseClient
                     .from('projects')
                     .update(projectForDB)
-                    .eq('project_number', projectForDB.project_number);
+                    .eq('project_number', projectForDB.project_number)
+                    .select(); // DODAJ select() żeby zobaczyć co zostało zapisane
+                    
+                console.log('📊 Updated data returned:', supabaseResponse.data);
             } else {
                 // INSERT new project
                 console.log('➕ INSERT mode');
