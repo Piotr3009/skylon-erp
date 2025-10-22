@@ -662,7 +662,7 @@ async function saveData() {
                 type: p.type,
                 name: p.name,
                 client_id: p.client_id || null,
-                estimated_value: 0,
+                estimated_value: p.estimated_value || 0,
                 status: 'active',
                 notes: null
             }));
