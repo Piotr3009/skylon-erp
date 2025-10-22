@@ -681,8 +681,9 @@ async function confirmMoveToArchive() {
         archived_date: new Date().toISOString(),
         archive_reason: reason,
         archive_notes: notes || null,
-        source: 'production',
-        completed_date: reason === 'completed' ? new Date().toISOString() : null
+        source: 'production'
+        // TODO: Dodaj kolumnę 'completed_date' do tabeli archived_projects w Supabase
+        // completed_date: reason === 'completed' ? new Date().toISOString() : null
     };
     
     // Zapisz do bazy
