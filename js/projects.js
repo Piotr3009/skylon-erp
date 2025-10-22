@@ -314,10 +314,21 @@ if (currentEditProject !== null && projects[currentEditProject]) {
             
             console.log('📤 Sending to Supabase:', projectForDB);
             
-            const { error } = await supabaseClient
-                .from('projects')
-                .upsert(projectForDB, { onConflict: 'project_number' });
+            let supabaseResponse;
+            if (currentEditProject !== null && projects[currentEditProject].id) {
+                // UPDATE existing project
+                supabaseResponse = await supabaseClient
+                    .from('projects')
+                    .update(projectForDB)
+                    .eq('id', projects[currentEditProject].id);
+            } else {
+                // INSERT new project
+                supabaseResponse = await supabaseClient
+                    .from('projects')
+                    .insert(projectForDB);
+            }
             
+            const { error } = supabaseResponse;
             console.log('📥 Supabase response error:', error);
                 
             if (!error) {
