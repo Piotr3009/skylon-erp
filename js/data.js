@@ -552,18 +552,16 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
     try {
         const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
         const projectIdField = isProduction ? 'project_id' : 'pipeline_project_id';
-        
-        // 1. USUŃ STARE FAZY
-        const { error: deleteError } = await supabaseClient
-            .from(tableName)
-            .delete()
-            .eq(projectIdField, projectId);
-            
-        if (deleteError) {
-            console.error('Error deleting old phases:', deleteError);
+
+        // WALIDACJA: Sprawdź czy phases jest prawidłową tablicą
+        if (!phases || !Array.isArray(phases)) {
+            console.error('❌ CRITICAL: phases is not an array!', phases);
+            console.error('❌ Aborting save to prevent data loss');
             return false;
         }
-        
+
+        console.log(`💾 Saving ${phases.length} phases for project ${projectId}`);
+
         // 2. PRZYGOTUJ NOWE FAZY
         const phasesForDB = phases.map((phase, index) => {
             // Oblicz end_date jeśli nie istnieje
@@ -577,7 +575,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
                     endDate = null;
                 }
             }
-            
+
             const phaseData = {
                 [projectIdField]: projectId,
                 phase_key: phase.key,
@@ -594,24 +592,40 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
                     order_confirmed: phase.orderConfirmed || false
                 })
             };
-            
+
             return phaseData;
         });
-        
-        // 3. WSTAW NOWE FAZY
-        if (phasesForDB.length > 0) {
-            const { data, error } = await supabaseClient
-                .from(tableName)
-                .insert(phasesForDB);
-                
-            if (error) {
-                console.error('Error saving phases:', error);
-                return false;
-            }
+
+        // WALIDACJA: Upewnij się że phasesForDB jest poprawne
+        if (!phasesForDB || phasesForDB.length === 0) {
+            console.warn('⚠️ No phases to save - skipping database update to preserve existing phases');
+            return true; // Zwróć true żeby nie zgłaszać błędu
         }
-        
+
+        // 1. USUŃ STARE FAZY - TYLKO JEŚLI MAMY NOWE DO WSTAWIENIA!
+        const { error: deleteError } = await supabaseClient
+            .from(tableName)
+            .delete()
+            .eq(projectIdField, projectId);
+
+        if (deleteError) {
+            console.error('Error deleting old phases:', deleteError);
+            return false;
+        }
+
+        // 3. WSTAW NOWE FAZY
+        const { data, error } = await supabaseClient
+            .from(tableName)
+            .insert(phasesForDB);
+
+        if (error) {
+            console.error('Error saving phases:', error);
+            return false;
+        }
+
+        console.log(`✅ Successfully saved ${phasesForDB.length} phases`);
         return true;
-        
+
     } catch (err) {
         console.error('Failed to save phases:', err);
         return false;

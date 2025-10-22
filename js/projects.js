@@ -185,10 +185,10 @@ async function saveProject() {
     sortedCheckboxes.forEach(cb => {
         const phaseKey = cb.value;
         const phaseDuration = parseInt(cb.dataset.duration) || 4; // Default 4 working days
-        
+
         // NOWA LOGIKA: Przy edycji zachowaj stare daty
         let newPhase;
-        
+
         if (currentEditProject !== null) {
             const existingPhase = projects[currentEditProject].phases?.find(p => p.key === phaseKey);
             if (existingPhase) {
@@ -200,10 +200,10 @@ async function saveProject() {
                 while (isWeekend(phaseStart)) {
                     phaseStart.setDate(phaseStart.getDate() + 1);
                 }
-                const phaseEnd = phaseDuration <= 1 ? 
-                    new Date(phaseStart) : 
+                const phaseEnd = phaseDuration <= 1 ?
+                    new Date(phaseStart) :
                     addWorkingDays(phaseStart, phaseDuration - 1);
-                
+
                 newPhase = {
                     key: phaseKey,
                     start: formatDate(phaseStart),
@@ -211,6 +211,13 @@ async function saveProject() {
                     workDays: phaseDuration,
                     status: 'notStarted'
                 };
+
+                // NAPRAWA: Aktualizuj currentDate RÓWNIEŻ dla edycji nowych faz
+                currentDate = new Date(newPhase.end);
+                currentDate.setDate(currentDate.getDate() + 1);
+                while (isWeekend(currentDate)) {
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
             }
         } else {
             // NOWY PROJEKT - oblicz daty normalnie
@@ -218,10 +225,10 @@ async function saveProject() {
             while (isWeekend(phaseStart)) {
                 phaseStart.setDate(phaseStart.getDate() + 1);
             }
-            const phaseEnd = phaseDuration <= 1 ? 
-                new Date(phaseStart) : 
+            const phaseEnd = phaseDuration <= 1 ?
+                new Date(phaseStart) :
                 addWorkingDays(phaseStart, phaseDuration - 1);
-            
+
             newPhase = {
                 key: phaseKey,
                 start: formatDate(phaseStart),
@@ -229,18 +236,16 @@ async function saveProject() {
                 workDays: phaseDuration,
                 status: 'notStarted'
             };
-        }
-        
-        selectedPhases.push(newPhase);
-        
-        // Next phase starts day after previous ends (tylko dla nowych projektów)
-        if (currentEditProject === null) {
+
+            // Aktualizuj currentDate dla nowych projektów
             currentDate = new Date(newPhase.end);
             currentDate.setDate(currentDate.getDate() + 1);
             while (isWeekend(currentDate)) {
                 currentDate.setDate(currentDate.getDate() + 1);
             }
         }
+
+        selectedPhases.push(newPhase);
     });
     
 
