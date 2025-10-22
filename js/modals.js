@@ -185,33 +185,51 @@ async function deleteCurrentPhase() {
         try {
             // Usuń fazę
             project.phases.splice(phaseIndex, 1);
-            
+
             // Automatycznie układaj pozostałe fazy
             if (typeof autoArrangeFromPhase === 'function') {
                 autoArrangeFromPhase(projectIndex, phaseIndex);
             }
-            
+
             // MARK AS CHANGED
             if (typeof markAsChanged === 'function') {
                 markAsChanged();
             }
-            
+
+            // NAPRAWA: Zapisz fazy do bazy danych dla production projects
+            if (!isPipeline && typeof supabaseClient !== 'undefined' && project.projectNumber) {
+                try {
+                    const { data: projectData, error: fetchError } = await supabaseClient
+                        .from('projects')
+                        .select('id')
+                        .eq('project_number', project.projectNumber)
+                        .single();
+
+                    if (!fetchError && projectData) {
+                        await savePhasesToSupabase(projectData.id, project.phases, true);
+                        console.log('✅ Phase deleted and database updated');
+                    }
+                } catch (err) {
+                    console.error('Error saving phases after delete:', err);
+                }
+            }
+
             // NATYCHMIAST zamknij modal - NIE CZEKAJ na zapis!
             closeModal('phaseEditModal');
             currentEditPhase = null;
-            
+
             // Renderuj widok OD RAZU
             if (window.location.pathname.includes('pipeline')) {
                 renderPipeline();
             } else {
                 renderUniversal();
             }
-            
+
             // Zapisz dane W TLE (bez czekania)
             saveDataQueued().catch(error => {
                 console.error('Error saving after delete:', error);
             });
-            
+
         } catch (error) {
             console.error('Error deleting phase:', error);
             alert('Error deleting phase. Please try again.');
@@ -231,25 +249,40 @@ async function deleteOrderPhase() {
     
     if (confirm(`Delete "Order Materials" phase from this project?`)) {
         project.phases.splice(phaseIndex, 1);
-        
+
         if (typeof autoArrangeFromPhase === 'function') {
             autoArrangeFromPhase(projectIndex, phaseIndex);
         }
-        
+
         // MARK AS CHANGED
         if (typeof markAsChanged === 'function') {
             markAsChanged();
         }
-        
+
+        // NAPRAWA: Zapisz fazy do bazy danych dla production projects
+        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+            supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single()
+                .then(({ data: projectData, error: fetchError }) => {
+                    if (!fetchError && projectData) {
+                        savePhasesToSupabase(projectData.id, project.phases, true);
+                    }
+                })
+                .catch(err => console.error('Error saving phases after delete:', err));
+        }
+
         saveDataQueued();
-        
+
         // Renderuj odpowiedni widok
         if (window.location.pathname.includes('pipeline')) {
             renderPipeline();
         } else {
         renderUniversal();
         }
-        
+
         closeModal('orderMaterialsModal');
         currentEditPhase = null;
     }
@@ -264,25 +297,40 @@ async function deleteOrderSprayPhase() {
     
     if (confirm(`Delete "Order Spray Materials" phase from this project?`)) {
         project.phases.splice(phaseIndex, 1);
-        
+
         if (typeof autoArrangeFromPhase === 'function') {
             autoArrangeFromPhase(projectIndex, phaseIndex);
         }
-        
+
         // MARK AS CHANGED
         if (typeof markAsChanged === 'function') {
             markAsChanged();
         }
-        
+
+        // NAPRAWA: Zapisz fazy do bazy danych dla production projects
+        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+            supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single()
+                .then(({ data: projectData, error: fetchError }) => {
+                    if (!fetchError && projectData) {
+                        savePhasesToSupabase(projectData.id, project.phases, true);
+                    }
+                })
+                .catch(err => console.error('Error saving phases after delete:', err));
+        }
+
         saveDataQueued();
-        
+
         // Renderuj odpowiedni widok
         if (window.location.pathname.includes('pipeline')) {
             renderPipeline();
         } else {
         renderUniversal();
         }
-        
+
         closeModal('orderSprayModal');
         currentEditPhase = null;
     }
@@ -297,25 +345,40 @@ async function deleteOrderGlazingPhase() {
     
     if (confirm(`Delete "Order Glazing" phase from this project?`)) {
         project.phases.splice(phaseIndex, 1);
-        
+
         if (typeof autoArrangeFromPhase === 'function') {
             autoArrangeFromPhase(projectIndex, phaseIndex);
         }
-        
+
         // MARK AS CHANGED
         if (typeof markAsChanged === 'function') {
             markAsChanged();
         }
-        
+
+        // NAPRAWA: Zapisz fazy do bazy danych dla production projects
+        if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+            supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single()
+                .then(({ data: projectData, error: fetchError }) => {
+                    if (!fetchError && projectData) {
+                        savePhasesToSupabase(projectData.id, project.phases, true);
+                    }
+                })
+                .catch(err => console.error('Error saving phases after delete:', err));
+        }
+
         saveDataQueued();
-        
+
         // Renderuj odpowiedni widok
         if (window.location.pathname.includes('pipeline')) {
             renderPipeline();
         } else {
         renderUniversal();
         }
-        
+
         closeModal('orderGlazingModal');
         currentEditPhase = null;
     }
