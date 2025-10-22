@@ -315,14 +315,16 @@ if (currentEditProject !== null && projects[currentEditProject]) {
             console.log('📤 Sending to Supabase:', projectForDB);
             
             let supabaseResponse;
-            if (currentEditProject !== null && projects[currentEditProject].id) {
-                // UPDATE existing project
+            if (currentEditProject !== null) {
+                // UPDATE existing project by project_number
+                console.log('🔄 UPDATE mode - project_number:', projectForDB.project_number);
                 supabaseResponse = await supabaseClient
                     .from('projects')
                     .update(projectForDB)
-                    .eq('id', projects[currentEditProject].id);
+                    .eq('project_number', projectForDB.project_number);
             } else {
                 // INSERT new project
+                console.log('➕ INSERT mode');
                 supabaseResponse = await supabaseClient
                     .from('projects')
                     .insert(projectForDB);
