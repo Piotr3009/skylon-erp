@@ -258,8 +258,11 @@ async function saveProject() {
 console.log('💾 Saving project data:', projectData);
 console.log('💰 Contract Value:', contractValue, typeof contractValue);
 
-// PRESERVE google_drive fields when editing
+// PRESERVE id and google_drive fields when editing
 if (currentEditProject !== null && projects[currentEditProject]) {
+    if (projects[currentEditProject].id) {
+        projectData.id = projects[currentEditProject].id;
+    }
     if (projects[currentEditProject].google_drive_url) {
         projectData.google_drive_url = projects[currentEditProject].google_drive_url;
     }

@@ -202,6 +202,13 @@ async function savePipelineProject() {
         phases: selectedPhases
     };
     
+    // PRESERVE id when editing
+    if (currentEditProject !== null && pipelineProjects[currentEditProject]) {
+        if (pipelineProjects[currentEditProject].id) {
+            projectData.id = pipelineProjects[currentEditProject].id;
+        }
+    }
+    
     if (currentEditProject !== null) {
         pipelineProjects[currentEditProject] = projectData;
     } else {
