@@ -18,49 +18,82 @@ function initializeFilterDropdowns() {
 }
 
 function populateWorkerDropdowns() {
+    // Production workers list - production AND spray departments combined
+    const productionList = document.getElementById('productionWorkersList');
+    if (productionList) {
+        productionList.innerHTML = '';
+
+        const productionWorkers = teamMembers.filter(w => w.department === 'production');
+        const sprayWorkers = teamMembers.filter(w => w.department === 'spray');
+
+        // Add production workers (timber/glazing)
+        productionWorkers.forEach(worker => {
+            const button = document.createElement('button');
+            button.onclick = () => setProductionFilter(worker.id);
+            button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color_code || worker.color};"></span>🪵 ${worker.name}`;
+            productionList.appendChild(button);
+        });
+
+        // Add spray workers
+        sprayWorkers.forEach(worker => {
+            const button = document.createElement('button');
+            button.onclick = () => setProductionFilter(worker.id);
+            button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color_code || worker.color};"></span>🎨 ${worker.name}`;
+            productionList.appendChild(button);
+        });
+
+        // Add unassigned option
+        const unassignedBtn = document.createElement('button');
+        unassignedBtn.onclick = () => setProductionFilter('unassigned');
+        unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
+        productionList.appendChild(unassignedBtn);
+
+        console.log(`✅ Production dropdown populated with ${productionWorkers.length + sprayWorkers.length} workers`);
+    }
+
     // Timber workers list - ONLY production department
     const timberList = document.getElementById('timberWorkersList');
     if (timberList) {
         timberList.innerHTML = '';
-        
+
         const productionWorkers = teamMembers.filter(w => w.department === 'production');
-        
+
         productionWorkers.forEach(worker => {
             const button = document.createElement('button');
             button.onclick = () => setTimberFilter(worker.id);
             button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color_code || worker.color};"></span>${worker.name}`;
             timberList.appendChild(button);
         });
-        
+
         // Add unassigned option
         const unassignedBtn = document.createElement('button');
         unassignedBtn.onclick = () => setTimberFilter('unassigned');
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         timberList.appendChild(unassignedBtn);
-        
+
         console.log(`✅ Timber dropdown populated with ${productionWorkers.length} production workers`);
     }
-    
+
     // Spray workers list - ONLY spray department
     const sprayList = document.getElementById('sprayWorkersList');
     if (sprayList) {
         sprayList.innerHTML = '';
-        
+
         const sprayWorkers = teamMembers.filter(w => w.department === 'spray');
-        
+
         sprayWorkers.forEach(worker => {
             const button = document.createElement('button');
             button.onclick = () => setSprayFilter(worker.id);
             button.innerHTML = `<span class="worker-color-dot" style="background: ${worker.color_code || worker.color};"></span>${worker.name}`;
             sprayList.appendChild(button);
         });
-        
+
         // Add unassigned option
         const unassignedBtn = document.createElement('button');
         unassignedBtn.onclick = () => setSprayFilter('unassigned');
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         sprayList.appendChild(unassignedBtn);
-        
+
         console.log(`✅ Spray dropdown populated with ${sprayWorkers.length} spray workers`);
     }
 }
@@ -92,35 +125,51 @@ document.addEventListener('click', (e) => {
 
 // ========== FILTERING FUNCTIONS ==========
 
-function setTimberFilter(workerId) {
-    console.log('🪵 Setting timber/glazing filter:', workerId);
-    
+function setProductionFilter(workerId) {
+    console.log('🏭 Setting production filter (timber+glazing+spray):', workerId);
+
     currentFilter = {
-        type: 'timberGlazing',
+        type: 'production',
         workerId: workerId
     };
-    
+
     // Close dropdown
     document.querySelectorAll('.filter-menu').forEach(menu => {
         menu.style.display = 'none';
     });
-    
+
+    applyFilter();
+}
+
+function setTimberFilter(workerId) {
+    console.log('🪵 Setting timber/glazing filter:', workerId);
+
+    currentFilter = {
+        type: 'timberGlazing',
+        workerId: workerId
+    };
+
+    // Close dropdown
+    document.querySelectorAll('.filter-menu').forEach(menu => {
+        menu.style.display = 'none';
+    });
+
     applyFilter();
 }
 
 function setSprayFilter(workerId) {
     console.log('🎨 Setting spray filter:', workerId);
-    
+
     currentFilter = {
         type: 'spray',
         workerId: workerId
     };
-    
+
     // Close dropdown
     document.querySelectorAll('.filter-menu').forEach(menu => {
         menu.style.display = 'none';
     });
-    
+
     applyFilter();
 }
 
@@ -159,7 +208,9 @@ function applyFilter() {
     
     // Define phase keys based on filter type
     let phaseKeys = [];
-    if (type === 'timberGlazing') {
+    if (type === 'production') {
+        phaseKeys = ['timber', 'glazing', 'spray'];
+    } else if (type === 'timberGlazing') {
         phaseKeys = ['timber', 'glazing'];
     } else if (type === 'spray') {
         phaseKeys = ['spray'];
