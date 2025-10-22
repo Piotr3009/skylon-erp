@@ -255,6 +255,9 @@ async function saveProject() {
     phases: selectedPhases
 };
 
+console.log('💾 Saving project data:', projectData);
+console.log('💰 Contract Value:', contractValue, typeof contractValue);
+
 // PRESERVE google_drive fields when editing
 if (currentEditProject !== null && projects[currentEditProject]) {
     if (projects[currentEditProject].google_drive_url) {
@@ -309,9 +312,13 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 google_drive_folder_id: projectData.google_drive_folder_id || null
             };
             
+            console.log('📤 Sending to Supabase:', projectForDB);
+            
             const { error } = await supabaseClient
                 .from('projects')
                 .upsert(projectForDB, { onConflict: 'project_number' });
+            
+            console.log('📥 Supabase response error:', error);
                 
             if (!error) {
                 console.log('✅ Project saved to Supabase with client');
