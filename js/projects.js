@@ -306,8 +306,8 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 deadline: projectData.deadline,
                 status: 'active',
                 notes: null,
-                contract_value: projectData.contract_value || 0,
-                project_cost: projectData.project_cost || 0,
+                contract_value: projectData.contract_value ? projectData.contract_value.toString() : '0',
+                project_cost: projectData.project_cost ? projectData.project_cost.toString() : '0',
                 google_drive_url: projectData.google_drive_url || null,
                 google_drive_folder_id: projectData.google_drive_folder_id || null
             };
@@ -327,6 +327,9 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                     .select(); // DODAJ select() żeby zobaczyć co zostało zapisane
                     
                 console.log('📊 Updated data returned:', supabaseResponse.data);
+                if (supabaseResponse.data && supabaseResponse.data[0]) {
+                    console.log('✅ ZAPISANA wartość contract_value:', supabaseResponse.data[0].contract_value);
+                }
             } else {
                 // INSERT new project
                 console.log('➕ INSERT mode');
