@@ -255,12 +255,15 @@ async function loadProjectsFromSupabase() {
                 }
                 
                 return {
+                    id: dbProject.id,
                     projectNumber: dbProject.project_number,
                     type: dbProject.type,
                     name: dbProject.name,
                     client_id: dbProject.client_id,
                     deadline: dbProject.deadline,
-                        google_drive_url: dbProject.google_drive_url,  // DODANE!
+                    contract_value: dbProject.contract_value || 0,
+                    project_cost: dbProject.project_cost || 0,
+                    google_drive_url: dbProject.google_drive_url,
                     google_drive_folder_id: dbProject.google_drive_folder_id,  
 
                     phases: projectPhases.map(phase => {
@@ -335,10 +338,12 @@ async function loadPipelineFromSupabase() {
                 const projectPhases = phasesData?.filter(p => p.pipeline_project_id === dbProject.id) || [];
                 
                 return {
+                    id: dbProject.id,
                     projectNumber: dbProject.project_number,
                     type: dbProject.type,
                     name: dbProject.name,
                     client_id: dbProject.client_id,
+                    estimated_value: dbProject.estimated_value || 0,
                     phases: projectPhases.map(phase => {
                         // Napraw format daty DD/MM/YYYY na YYYY-MM-DD
                         const fixDate = (dateStr) => {
