@@ -993,16 +993,27 @@ function openPipelineProjectNotes(index) {
     modal.style.display = 'flex';
     
     modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">Project Notes - ${project.projectNumber}</div>
+        <div class="modal-content" style="max-width: 1000px; width: 90%;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div id="logoPlaceholder" style="width: 60px; height: 60px; border: 2px dashed #555; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #777; font-size: 10px; text-align: center;">
+                        LOGO
+                    </div>
+                    <div>
+                        <div style="font-size: 18px; font-weight: bold;">Project Notes</div>
+                        <div style="font-size: 14px; color: #999;">${project.projectNumber} - ${project.name}</div>
+                    </div>
+                </div>
+            </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Notes for ${project.name}</label>
-                    <textarea id="pipelineProjectNotesText" placeholder="Add notes about this pipeline project..." style="min-height: 200px;">${project.notes || ''}</textarea>
+                    <label>Notes</label>
+                    <textarea id="pipelineProjectNotesText" placeholder="Add notes about this pipeline project..." style="min-height: 400px; font-size: 14px;">${project.notes || ''}</textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="modal-btn" onclick="closePipelineProjectNotes()">Cancel</button>
+                <button class="modal-btn success" onclick="exportPipelineProjectNotesPDF(${index})">📄 Export PDF</button>
                 <button class="modal-btn primary" onclick="savePipelineProjectNotes(${index})">Save</button>
             </div>
         </div>
@@ -1044,4 +1055,114 @@ async function savePipelineProjectNotes(index) {
     saveDataQueued();
     renderPipeline();
     closePipelineProjectNotes();
+}
+
+async function exportPipelineProjectNotesPDF(index) {
+    const project = pipelineProjects[index];
+    if (!project) return;
+    
+    const notes = document.getElementById('pipelineProjectNotesText').value.trim();
+    
+    if (!notes) {
+        alert('No notes to export. Please add some notes first.');
+        return;
+    }
+    
+    // Create PDF content as HTML
+    const pdfContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; padding: 40px; }
+                .header { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                .logo-placeholder { width: 80px; height: 80px; border: 2px dashed #999; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; }
+                .project-info h1 { margin: 0; font-size: 24px; }
+                .project-info p { margin: 5px 0; color: #666; }
+                .notes { white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="logo-placeholder">LOGO</div>
+                <div class="project-info">
+                    <h1>Project Notes</h1>
+                    <p><strong>${project.projectNumber}</strong> - ${project.name}</p>
+                    <p>Generated: ${new Date().toLocaleDateString('en-GB')}</p>
+                </div>
+            </div>
+            <div class="notes">${notes}</div>
+        </body>
+        </html>
+    `;
+    
+    // Convert HTML to PDF using browser print (simple approach)
+    // For production, consider using jsPDF or pdfmake
+    const blob = new Blob([pdfContent], { type: 'text/html' });
+    
+    // Generate filename
+    const filename = `${project.projectNumber.replace(/\//g, '-')}-notes.pdf`;
+    
+    // Upload to Supabase Storage
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const filePath = `pipeline/${filename}`;
+            
+            // Upload file
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                .from('project-documents')
+                .upload(filePath, blob, {
+                    contentType: 'text/html',
+                    upsert: true
+                });
+            
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                alert('Error uploading PDF. Downloading locally instead.');
+                downloadLocally();
+                return;
+            }
+            
+            // Get public URL
+            const { data: urlData } = supabaseClient.storage
+                .from('project-documents')
+                .getPublicUrl(filePath);
+            
+            const pdfUrl = urlData.publicUrl;
+            
+            // Save URL to database
+            const { error: updateError } = await supabaseClient
+                .from('pipeline_projects')
+                .update({ pdf_url: pdfUrl })
+                .eq('project_number', project.projectNumber);
+            
+            if (updateError) {
+                console.error('Error updating PDF URL:', updateError);
+            }
+            
+            project.pdf_url = pdfUrl;
+            
+            alert('PDF uploaded successfully!\n\nYou can access it anytime from the project.');
+            
+            // Open PDF in new tab
+            window.open(pdfUrl, '_blank');
+            
+        } catch (err) {
+            console.error('Error:', err);
+            alert('Error uploading PDF. Downloading locally instead.');
+            downloadLocally();
+        }
+    } else {
+        downloadLocally();
+    }
+    
+    function downloadLocally() {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.replace('.pdf', '.html');
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }
