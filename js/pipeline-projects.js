@@ -981,3 +981,67 @@ function getNextPipelineNumber() {
     localStorage.setItem('lastPipelineNumber', lastPipelineNumber);
     return `PL${String(lastPipelineNumber).padStart(3, '0')}/${currentYear}`;
 }
+
+// Open project notes modal
+function openPipelineProjectNotes(index) {
+    const project = pipelineProjects[index];
+    if (!project) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'pipelineProjectNotesModal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">Project Notes - ${project.projectNumber}</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Notes for ${project.name}</label>
+                    <textarea id="pipelineProjectNotesText" placeholder="Add notes about this pipeline project..." style="min-height: 200px;">${project.notes || ''}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closePipelineProjectNotes()">Cancel</button>
+                <button class="modal-btn primary" onclick="savePipelineProjectNotes(${index})">Save</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function closePipelineProjectNotes() {
+    const modal = document.getElementById('pipelineProjectNotesModal');
+    if (modal) modal.remove();
+}
+
+async function savePipelineProjectNotes(index) {
+    const project = pipelineProjects[index];
+    if (!project) return;
+    
+    const notes = document.getElementById('pipelineProjectNotesText').value.trim();
+    project.notes = notes || null;
+    
+    // Save to Supabase
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { error } = await supabaseClient
+                .from('pipeline_projects')
+                .update({ notes: notes || null })
+                .eq('project_number', project.projectNumber);
+            
+            if (error) {
+                console.error('Error saving notes:', error);
+                alert('Error saving notes to database');
+                return;
+            }
+        } catch (err) {
+            console.error('Database error:', err);
+        }
+    }
+    
+    saveDataQueued();
+    renderPipeline();
+    closePipelineProjectNotes();
+}
