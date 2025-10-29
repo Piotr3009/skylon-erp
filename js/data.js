@@ -21,12 +21,7 @@ let productionPhases = {
 // Separate pipeline phases  
 let pipelinePhases = {
     initialContact: { name: "Initial Contact", color: "#8b5a3c" },
-    siteSurvey: { name: "Site Survey", color: "#5e4e81" },
-    quotePrep: { name: "Quote Preparation", color: "#4a6741" },
-    quoteSent: { name: "Quote Sent", color: "#387933" },
-    negotiations: { name: "Negotiations", color: "#b8860b" },
-    contractPrep: { name: "Contract Preparation", color: "#6b4e7a" },
-    contractSigned: { name: "Contract Signed", color: "#2e5266" },
+    quote: { name: "Quote", color: "#4a6741" },
     depositReceived: { name: "Deposit Received", color: "#1a5d1a" }
 };
 
@@ -35,8 +30,7 @@ let phases = { ...pipelinePhases, ...productionPhases };
 
 // Fixed phase orders
 const pipelinePhaseOrder = [
-    'initialContact', 'siteSurvey', 'quotePrep', 'quoteSent', 
-    'negotiations', 'contractPrep', 'contractSigned', 'depositReceived'
+    'initialContact', 'quote', 'depositReceived'
 ];
 
 // Updated production order WITHOUT deliveryGlazing
