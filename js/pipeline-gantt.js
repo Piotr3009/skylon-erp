@@ -302,9 +302,7 @@ function createPipelinePhaseBar(phase, project, projectIndex, phaseIndex, overla
     const bottomDiv = document.createElement('div');
     bottomDiv.className = 'phase-bottom';
     
-    const status = phaseStatuses[phase.status || 'notStarted'];
-    let bottomContent = `<span class="phase-status-icon" title="${status.name}">${status.icon}</span>`;
-    bottomContent += `<span class="phase-days-info">(${displayDays} days)</span>`;
+    let bottomContent = `<span class="phase-days-info">(${displayDays} days)</span>`;
     
     if (phase.notes) {
         bottomContent += `<span class="phase-note-icon" title="Has notes">📝</span>`;

@@ -21,7 +21,7 @@ let productionPhases = {
 // Separate pipeline phases  
 let pipelinePhases = {
     initialContact: { name: "Initial Contact", color: "#8b5a3c" },
-    quote: { name: "Quote", color: "#4a6741" },
+    quote: { name: "Quote", color: "#4a90e2" },
     depositReceived: { name: "Deposit Received", color: "#1a5d1a" }
 };
 
