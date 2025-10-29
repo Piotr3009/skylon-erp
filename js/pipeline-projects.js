@@ -1013,7 +1013,10 @@ function openPipelineProjectNotes(index) {
             </div>
             <div class="modal-footer">
                 <button class="modal-btn" onclick="closePipelineProjectNotes()">Cancel</button>
-                <button class="modal-btn success" onclick="exportPipelineProjectNotesPDF(${index})">📄 Export PDF</button>
+                ${project.pdf_url ? 
+                    `<button class="modal-btn" onclick="window.open('${project.pdf_url}', '_blank')" style="background: #4a90e2;">📄 Open PDF</button>` : ''
+                }
+                <button class="modal-btn success" onclick="exportPipelineProjectNotesPDF(${index})">📥 Export PDF</button>
                 <button class="modal-btn primary" onclick="savePipelineProjectNotes(${index})">Save</button>
             </div>
         </div>

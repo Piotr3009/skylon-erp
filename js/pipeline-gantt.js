@@ -175,7 +175,7 @@ function renderPipelineProjects() {
                     `<a href="${project.google_drive_url}" target="_blank" class="action-btn gdrive" title="Open in Google Drive">📁</a>` :
                     `<button class="action-btn gdrive-add" onclick="openPipelineGoogleDrivePicker(${index})" title="Add Google Drive link">➕</button>`
                 }
-                <button class="action-btn" onclick="openPipelineProjectNotes(${index})" title="Project Notes">${project.notes ? '📝' : '📄'}</button>
+                <button class="action-btn" onclick="openPipelineProjectNotes(${index})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
             </div>
         `;
         
