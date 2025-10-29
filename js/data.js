@@ -338,6 +338,8 @@ async function loadPipelineFromSupabase() {
                     name: dbProject.name,
                     client_id: dbProject.client_id,
                     estimated_value: dbProject.estimated_value || 0,
+                    notes: dbProject.notes || null,
+                    pdf_url: dbProject.pdf_url || null,
                     phases: projectPhases.map(phase => {
                         // Napraw format daty DD/MM/YYYY na YYYY-MM-DD
                         const fixDate = (dateStr) => {
