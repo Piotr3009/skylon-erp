@@ -246,6 +246,11 @@ async function savePipelineProject() {
                     );
                 }
                 
+                // CREATE FOLDER STRUCTURE IN STORAGE (only for NEW projects)
+                if (currentEditProject === null) {
+                    await createProjectFolders('pipeline', projectData.projectNumber);
+                }
+                
                 // Update client's project count
                 await updateClientProjectCount(clientId);
             } else {
@@ -1209,5 +1214,40 @@ async function exportPipelineProjectNotesPDF(index) {
     
     function downloadLocally() {
         doc.save(filename);
+    }
+}
+
+// ========== AUTO-CREATE FOLDER STRUCTURE IN STORAGE ==========
+async function createProjectFolders(stage, projectNumber) {
+    // stage = 'pipeline' | 'production' | 'archive'
+    // projectNumber = 'PL001/2025' | '001/2025'
+    
+    // Convert slash to dash for folder name
+    const folderName = projectNumber.replace(/\//g, '-');
+    
+    const subfolders = ['quotes', 'drawings', 'photos', 'emails', 'notes'];
+    
+    console.log(`📁 Creating folders for ${stage}/${folderName}...`);
+    
+    try {
+        for (const subfolder of subfolders) {
+            const folderPath = `${stage}/${folderName}/${subfolder}/.keep`;
+            
+            // Upload empty .keep file to create folder structure
+            const { error } = await supabaseClient.storage
+                .from('project-documents')
+                .upload(folderPath, new Blob([''], { type: 'text/plain' }), {
+                    contentType: 'text/plain',
+                    upsert: false
+                });
+            
+            if (error && error.message !== 'The resource already exists') {
+                console.warn(`Warning creating ${folderPath}:`, error.message);
+            }
+        }
+        
+        console.log(`✅ Folders created: ${stage}/${folderName}/`);
+    } catch (err) {
+        console.error('Error creating folders:', err);
     }
 }
