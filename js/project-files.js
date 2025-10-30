@@ -45,20 +45,20 @@ async function openProjectFilesModal(projectIndex, stage) {
     modal.style.display = 'flex';
     
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 900px; height: 80vh;">
-            <div class="modal-header">
+        <div class="modal-content" style="max-width: 900px; height: 80vh; background: #1a1a1a; border: 1px solid #404040;">
+            <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff;">
                 <div>
-                    <div style="font-size: 18px; font-weight: 600;">📁 Project Files</div>
-                    <div style="font-size: 14px; color: #666; margin-top: 4px;">
+                    <div style="font-size: 18px; font-weight: 600; color: #fff;">📁 Project Files</div>
+                    <div style="font-size: 14px; color: #999; margin-top: 4px;">
                         ${projectNumber} - ${project.name}
                     </div>
                 </div>
-                <button class="modal-close" onclick="closeProjectFilesModal()">✕</button>
+                <button class="modal-close" onclick="closeProjectFilesModal()" style="color: #fff;">✕</button>
             </div>
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px; overflow: hidden;">
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px; overflow: hidden; background: #1a1a1a;">
                 <!-- Breadcrumb -->
-                <div id="filesBreadcrumb" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f5f5f5; border-radius: 6px;">
-                    <span style="cursor: pointer; color: #0066cc;" onclick="showFolderList()">📁 Folders</span>
+                <div id="filesBreadcrumb" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #252525; border-radius: 6px; border: 1px solid #404040;">
+                    <span style="cursor: pointer; color: #4a9eff;" onclick="showFolderList()">📁 Folders</span>
                 </div>
                 
                 <!-- Content Area -->
@@ -85,27 +85,28 @@ function showFolderList() {
     
     const breadcrumb = document.getElementById('filesBreadcrumb');
     breadcrumb.innerHTML = `
-        <span style="color: #333; font-weight: 500;">📁 Folders</span>
+        <span style="color: #fff; font-weight: 500;">📁 Folders</span>
     `;
     
     const content = document.getElementById('filesContent');
     content.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; padding: 8px;">
             ${projectFolders.map(folder => `
                 <div class="folder-card" onclick="openFolder('${folder}')" style="
-                    padding: 24px;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 8px;
+                    padding: 24px 20px;
+                    border: 2px solid #404040;
+                    border-radius: 12px;
                     cursor: pointer;
                     text-align: center;
                     transition: all 0.2s;
-                    background: white;
-                " onmouseover="this.style.borderColor='#0066cc'; this.style.transform='translateY(-2px)'" 
-                   onmouseout="this.style.borderColor='#e0e0e0'; this.style.transform='translateY(0)'">
-                    <div style="font-size: 48px; margin-bottom: 8px;">
+                    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                " onmouseover="this.style.borderColor='#0066cc'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 12px rgba(0,102,204,0.3)'" 
+                   onmouseout="this.style.borderColor='#404040'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.3)'">
+                    <div style="font-size: 56px; margin-bottom: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
                         ${getFolderIcon(folder)}
                     </div>
-                    <div style="font-weight: 500; text-transform: capitalize;">
+                    <div style="font-weight: 600; text-transform: capitalize; color: #e0e0e0; font-size: 15px; letter-spacing: 0.5px;">
                         ${folder}
                     </div>
                 </div>
@@ -116,11 +117,11 @@ function showFolderList() {
 
 function getFolderIcon(folderName) {
     const icons = {
-        quotes: '💼',
+        quotes: '📋',
         drawings: '📐',
-        photos: '📸',
-        emails: '📧',
-        notes: '📝'
+        photos: '🖼️',
+        emails: '✉️',
+        notes: '📄'
     };
     return icons[folderName] || '📁';
 }
@@ -131,9 +132,9 @@ async function openFolder(folderName) {
     
     const breadcrumb = document.getElementById('filesBreadcrumb');
     breadcrumb.innerHTML = `
-        <span style="cursor: pointer; color: #0066cc;" onclick="showFolderList()">📁 Folders</span>
-        <span style="color: #999;"> / </span>
-        <span style="color: #333; font-weight: 500;">${getFolderIcon(folderName)} ${folderName}</span>
+        <span style="cursor: pointer; color: #4a9eff;" onclick="showFolderList()">📁 Folders</span>
+        <span style="color: #666;"> / </span>
+        <span style="color: #e0e0e0; font-weight: 500;">${getFolderIcon(folderName)} ${folderName}</span>
     `;
     
     const content = document.getElementById('filesContent');
@@ -192,7 +193,7 @@ function renderFilesList(files, folderName) {
         content.innerHTML = `
             <div style="text-align: center; padding: 40px;">
                 <div style="font-size: 64px; margin-bottom: 16px;">📭</div>
-                <div style="font-size: 18px; color: #666; margin-bottom: 24px;">No files yet</div>
+                <div style="font-size: 18px; color: #999; margin-bottom: 24px;">No files yet</div>
                 <button class="modal-btn primary" onclick="triggerFileUpload()">
                     📤 Upload Files
                 </button>
@@ -204,7 +205,7 @@ function renderFilesList(files, folderName) {
     
     content.innerHTML = `
         <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-weight: 500; color: #666;">${files.length} file(s)</div>
+            <div style="font-weight: 500; color: #999;">${files.length} file(s)</div>
             <button class="modal-btn primary" onclick="triggerFileUpload()">
                 📤 Upload Files
             </button>
@@ -217,28 +218,28 @@ function renderFilesList(files, folderName) {
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    padding: 12px;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-                    background: white;
-                    transition: background 0.2s;
-                " onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='white'">
-                    <div style="font-size: 24px;">
+                    padding: 12px 16px;
+                    border: 1px solid #404040;
+                    border-radius: 8px;
+                    background: #252525;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
+                    <div style="font-size: 28px;">
                         ${getFileIcon(file.file_type)}
                     </div>
                     <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e0e0e0;">
                             ${file.file_name}
                         </div>
-                        <div style="font-size: 12px; color: #999;">
+                        <div style="font-size: 12px; color: #888;">
                             ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <button class="action-btn" onclick="downloadFile('${file.id}', '${file.file_path}', '${file.file_name}')" title="Download">
+                        <button class="action-btn" onclick="downloadFile('${file.id}', '${file.file_path}', '${file.file_name}')" title="Download" style="background: #2a2a2a; border: 1px solid #404040; color: #4a9eff; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#333'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#2a2a2a'; this.style.borderColor='#404040'">
                             ⬇️
                         </button>
-                        <button class="action-btn" onclick="deleteFile('${file.id}', '${file.file_path}')" title="Delete" style="color: #dc3545;">
+                        <button class="action-btn" onclick="deleteFile('${file.id}', '${file.file_path}')" title="Delete" style="background: #2a2a2a; border: 1px solid #404040; color: #ff4444; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3a1a1a'; this.style.borderColor='#ff4444'" onmouseout="this.style.background='#2a2a2a'; this.style.borderColor='#404040'">
                             🗑️
                         </button>
                     </div>
@@ -251,10 +252,12 @@ function renderFilesList(files, folderName) {
 function getFileIcon(fileType) {
     if (!fileType) return '📄';
     const type = fileType.toLowerCase();
-    if (type.includes('pdf')) return '📕';
+    if (type.includes('pdf')) return '📄';
     if (type.includes('image') || type.includes('jpg') || type.includes('png')) return '🖼️';
-    if (type.includes('excel') || type.includes('spreadsheet')) return '📊';
-    if (type.includes('word') || type.includes('document')) return '📘';
+    if (type.includes('excel') || type.includes('spreadsheet') || type.includes('sheet')) return '📊';
+    if (type.includes('word') || type.includes('document')) return '📝';
+    if (type.includes('zip') || type.includes('rar')) return '📦';
+    if (type.includes('video') || type.includes('mp4')) return '🎬';
     return '📄';
 }
 
