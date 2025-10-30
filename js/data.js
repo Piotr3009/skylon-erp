@@ -679,7 +679,8 @@ async function saveData() {
                 client_id: p.client_id || null,
                 estimated_value: p.estimated_value || 0,
                 status: 'active',
-                notes: null
+                notes: p.notes || null,
+                pdf_url: p.pdf_url || null
             }));
             
             const { data, error } = await supabaseClient
