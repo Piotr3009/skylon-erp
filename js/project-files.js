@@ -149,14 +149,15 @@ async function showFolderList() {
                             position: absolute;
                             top: 8px;
                             right: 8px;
-                            background: #4a9eff;
-                            color: #fff;
+                            background: linear-gradient(135deg, #88d498 0%, #6fb880 100%);
+                            color: #1a1a1a;
                             font-size: 11px;
-                            font-weight: 600;
+                            font-weight: 700;
                             padding: 3px 7px;
                             border-radius: 10px;
                             min-width: 20px;
                             text-align: center;
+                            box-shadow: 0 2px 4px rgba(136,212,152,0.4);
                         ">${count}</div>
                     ` : ''}
                     <div style="font-size: 42px; margin-bottom: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
@@ -167,6 +168,29 @@ async function showFolderList() {
                     </div>
                 </div>
             `}).join('')}
+            
+            <!-- Add New Folder Button -->
+            <div class="folder-card" onclick="createNewFolder()" style="
+                padding: 18px 16px;
+                border: 2px dashed #555;
+                border-radius: 8px;
+                cursor: pointer;
+                text-align: center;
+                transition: all 0.2s;
+                background: transparent;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            " onmouseover="this.style.borderColor='#88d498'; this.style.background='rgba(136,212,152,0.05)'" 
+               onmouseout="this.style.borderColor='#555'; this.style.background='transparent'">
+                <div style="font-size: 42px; margin-bottom: 8px; color: #666;">
+                    ➕
+                </div>
+                <div style="font-weight: 600; color: #888; font-size: 13px; letter-spacing: 0.3px;">
+                    New Folder
+                </div>
+            </div>
         </div>
     `;
 }
@@ -547,4 +571,52 @@ function getFolderPath(stage, projectNumber, folderName) {
     // Convert PL001/2025 → PL001-2025
     const folderSafeNumber = projectNumber.replace(/\//g, '-');
     return `${stage}/${folderSafeNumber}/${folderName}`;
+}
+
+// ========== CREATE NEW CUSTOM FOLDER ==========
+async function createNewFolder() {
+    const folderName = prompt('Enter new folder name (lowercase, no spaces):');
+    
+    if (!folderName) return;
+    
+    // Validate folder name
+    const sanitized = folderName.toLowerCase().trim().replace(/\s+/g, '-');
+    
+    if (!sanitized) {
+        alert('Invalid folder name');
+        return;
+    }
+    
+    // Check if folder already exists
+    if (projectFolders.includes(sanitized)) {
+        alert('Folder already exists!');
+        return;
+    }
+    
+    try {
+        // Create folder in storage
+        const folderPath = getFolderPath(currentProjectFiles.stage, currentProjectFiles.projectNumber, sanitized);
+        const keepFilePath = `${folderPath}/.keep`;
+        
+        const { error } = await supabaseClient.storage
+            .from('project-documents')
+            .upload(keepFilePath, new Blob([''], { type: 'text/plain' }), {
+                contentType: 'text/plain',
+                upsert: false
+            });
+        
+        if (error) throw error;
+        
+        // Add to projectFolders array
+        projectFolders.push(sanitized);
+        
+        console.log(`✅ Folder created: ${sanitized}`);
+        
+        // Reload folder list
+        await showFolderList();
+        
+    } catch (err) {
+        console.error('Error creating folder:', err);
+        alert('Error creating folder. Please try again.');
+    }
 }
