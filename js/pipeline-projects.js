@@ -1084,38 +1084,63 @@ async function exportPipelineProjectNotesPDF(index) {
         return;
     }
     
-    // Create PDF content as HTML
-    const pdfContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body { font-family: Arial, sans-serif; padding: 40px; }
-                .header { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-                .logo-placeholder { width: 80px; height: 80px; border: 2px dashed #999; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; }
-                .project-info h1 { margin: 0; font-size: 24px; }
-                .project-info p { margin: 5px 0; color: #666; }
-                .notes { white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <div class="logo-placeholder">LOGO</div>
-                <div class="project-info">
-                    <h1>Project Notes</h1>
-                    <p><strong>${project.projectNumber}</strong> - ${project.name}</p>
-                    <p>Generated: ${new Date().toLocaleDateString('en-GB')}</p>
-                </div>
-            </div>
-            <div class="notes">${notes}</div>
-        </body>
-        </html>
-    `;
+    // Access jsPDF from global scope
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
     
-    // Convert HTML to PDF using browser print (simple approach)
-    // For production, consider using jsPDF or pdfmake
-    const blob = new Blob([pdfContent], { type: 'text/html' });
+    // PDF Settings
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (2 * margin);
+    
+    // Logo placeholder (rectangle)
+    doc.setDrawColor(150);
+    doc.setLineWidth(1);
+    doc.rect(margin, margin, 30, 30);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('LOGO', margin + 15, margin + 17, { align: 'center' });
+    
+    // Header - Project Info
+    doc.setFontSize(20);
+    doc.setTextColor(0);
+    doc.setFont(undefined, 'bold');
+    doc.text('Project Notes', margin + 40, margin + 10);
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(100);
+    doc.text(`${project.projectNumber} - ${project.name}`, margin + 40, margin + 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, margin + 40, margin + 28);
+    
+    // Line separator
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(margin, margin + 35, pageWidth - margin, margin + 35);
+    
+    // Notes content
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+    doc.setFont(undefined, 'normal');
+    
+    const splitNotes = doc.splitTextToSize(notes, contentWidth);
+    let yPosition = margin + 45;
+    
+    splitNotes.forEach((line) => {
+        if (yPosition > pageHeight - margin) {
+            doc.addPage();
+            yPosition = margin;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += 7;
+    });
+    
+    // Generate PDF as blob
+    const pdfBlob = doc.output('blob');
     
     // Generate filename
     const filename = `${project.projectNumber.replace(/\//g, '-')}-notes.pdf`;
@@ -1125,11 +1150,13 @@ async function exportPipelineProjectNotesPDF(index) {
         try {
             const filePath = `pipeline/${filename}`;
             
+            console.log('📤 Uploading PDF to Storage...');
+            
             // Upload file
             const { data: uploadData, error: uploadError } = await supabaseClient.storage
                 .from('project-documents')
-                .upload(filePath, blob, {
-                    contentType: 'text/html',
+                .upload(filePath, pdfBlob, {
+                    contentType: 'application/pdf',
                     upsert: true
                 });
             
@@ -1139,6 +1166,8 @@ async function exportPipelineProjectNotesPDF(index) {
                 downloadLocally();
                 return;
             }
+            
+            console.log('✅ PDF uploaded successfully');
             
             // Get public URL
             const { data: urlData } = supabaseClient.storage
@@ -1159,7 +1188,12 @@ async function exportPipelineProjectNotesPDF(index) {
             
             project.pdf_url = pdfUrl;
             
-            alert('PDF uploaded successfully!\n\nYou can access it anytime from the project.');
+            console.log('✅ PDF URL saved to database');
+            
+            // Re-render to show "Open PDF" button
+            renderPipeline();
+            
+            alert('PDF generated and saved successfully!\n\nYou can now access it anytime using the "Open PDF" button.');
             
             // Open PDF in new tab
             window.open(pdfUrl, '_blank');
@@ -1174,11 +1208,6 @@ async function exportPipelineProjectNotesPDF(index) {
     }
     
     function downloadLocally() {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename.replace('.pdf', '.html');
-        a.click();
-        URL.revokeObjectURL(url);
+        doc.save(filename);
     }
 }
