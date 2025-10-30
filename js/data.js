@@ -340,6 +340,8 @@ async function loadPipelineFromSupabase() {
                     estimated_value: dbProject.estimated_value || 0,
                     notes: dbProject.notes || null,
                     pdf_url: dbProject.pdf_url || null,
+                    google_drive_url: dbProject.google_drive_url || null,
+                    google_drive_folder_id: dbProject.google_drive_folder_id || null,
                     phases: projectPhases.map(phase => {
                         // Napraw format daty DD/MM/YYYY na YYYY-MM-DD
                         const fixDate = (dateStr) => {
@@ -680,7 +682,9 @@ async function saveData() {
                 estimated_value: p.estimated_value || 0,
                 status: 'active',
                 notes: p.notes || null,
-                pdf_url: p.pdf_url || null
+                pdf_url: p.pdf_url || null,
+                google_drive_url: p.google_drive_url || null,
+                google_drive_folder_id: p.google_drive_folder_id || null
             }));
             
             const { data, error } = await supabaseClient
