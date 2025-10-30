@@ -252,7 +252,8 @@ function renderFilesList(files, folderName) {
                     border-radius: 8px;
                     background: #252525;
                     transition: all 0.2s;
-                " onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
+                    cursor: pointer;
+                " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
                     <div style="font-size: 28px;">
                         ${getFileIcon(file.file_type)}
                     </div>
@@ -264,7 +265,7 @@ function renderFilesList(files, folderName) {
                             ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; gap: 8px;" onclick="event.stopPropagation()">
                         <button class="action-btn" onclick="downloadFile('${file.id}', '${file.file_path}', '${file.file_name}')" title="Download" style="background: #2a2a2a; border: 1px solid #404040; color: #4a9eff; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#333'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#2a2a2a'; this.style.borderColor='#404040'">
                             ⬇️
                         </button>
@@ -379,6 +380,46 @@ async function uploadSingleFile(file, folderName) {
     if (dbError) throw dbError;
     
     console.log('✅ File uploaded:', file.name);
+}
+
+// ========== FILE PREVIEW ==========
+async function previewFile(filePath, fileType, fileName) {
+    try {
+        // Get public URL
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(filePath);
+        
+        const publicUrl = urlData.publicUrl;
+        
+        // Check if file can be previewed in browser
+        if (!fileType) {
+            // Unknown type - download instead
+            window.open(publicUrl, '_blank');
+            return;
+        }
+        
+        const type = fileType.toLowerCase();
+        
+        // PDF, images, text - open in new tab
+        if (type.includes('pdf') || 
+            type.includes('image') || 
+            type.includes('jpg') || 
+            type.includes('jpeg') || 
+            type.includes('png') || 
+            type.includes('gif') || 
+            type.includes('webp') ||
+            type.includes('text')) {
+            window.open(publicUrl, '_blank');
+        } else {
+            // Other files - download
+            window.open(publicUrl, '_blank');
+        }
+        
+    } catch (err) {
+        console.error('Preview error:', err);
+        alert('Error opening file');
+    }
 }
 
 // ========== FILE DOWNLOAD ==========
