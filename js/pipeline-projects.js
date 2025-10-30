@@ -1225,7 +1225,7 @@ async function createProjectFolders(stage, projectNumber) {
     // Convert slash to dash for folder name
     const folderName = projectNumber.replace(/\//g, '-');
     
-    const subfolders = ['quotes', 'drawings', 'photos', 'emails', 'notes'];
+    const subfolders = ['quotes', 'drawings', 'photos', 'emails', 'notes', 'others'];
     
     console.log(`📁 Creating folders for ${stage}/${folderName}...`);
     

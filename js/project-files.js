@@ -8,7 +8,7 @@ let currentProjectFiles = {
     currentFolder: null
 };
 
-const projectFolders = ['quotes', 'drawings', 'photos', 'emails', 'notes'];
+const projectFolders = ['quotes', 'drawings', 'photos', 'emails', 'notes', 'others'];
 
 // ========== OPEN FILES MODAL ==========
 async function openProjectFilesModal(projectIndex, stage) {
@@ -45,17 +45,30 @@ async function openProjectFilesModal(projectIndex, stage) {
     modal.style.display = 'flex';
     
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 900px; height: 80vh; background: #1a1a1a; border: 1px solid #404040;">
-            <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff;">
+        <div class="modal-content" style="max-width: 900px; height: 80vh; background: #1a1a1a; border: 1px solid #404040; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;">
                 <div>
                     <div style="font-size: 18px; font-weight: 600; color: #fff;">📁 Project Files</div>
                     <div style="font-size: 14px; color: #999; margin-top: 4px;">
                         ${projectNumber} - ${project.name}
                     </div>
                 </div>
-                <button class="modal-close" onclick="closeProjectFilesModal()" style="color: #fff;">✕</button>
+                <button onclick="closeProjectFilesModal()" style="
+                    background: #333;
+                    border: 1px solid #555;
+                    color: #fff;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    font-size: 18px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#ff4444'; this.style.borderColor='#ff4444'" onmouseout="this.style.background='#333'; this.style.borderColor='#555'">✕</button>
             </div>
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px; overflow: hidden; background: #1a1a1a;">
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px; overflow: hidden; background: #1a1a1a; flex: 1; padding: 16px;">
                 <!-- Breadcrumb -->
                 <div id="filesBreadcrumb" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #252525; border-radius: 6px; border: 1px solid #404040;">
                     <span style="cursor: pointer; color: #4a9eff;" onclick="showFolderList()">📁 Folders</span>
@@ -65,6 +78,21 @@ async function openProjectFilesModal(projectIndex, stage) {
                 <div id="filesContent" style="flex: 1; overflow-y: auto; padding: 0 4px;">
                     <!-- Folders or Files will be rendered here -->
                 </div>
+            </div>
+            <div style="padding: 16px 20px; background: #252525; border-top: 1px solid #404040; display: flex; justify-content: flex-end;">
+                <button class="modal-btn" onclick="closeProjectFilesModal()" style="
+                    background: #333;
+                    border: 1px solid #555;
+                    color: #e0e0e0;
+                    padding: 10px 24px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#404040'; this.style.borderColor='#666'" onmouseout="this.style.background='#333'; this.style.borderColor='#555'">
+                    Close
+                </button>
             </div>
         </div>
     `;
@@ -121,7 +149,8 @@ function getFolderIcon(folderName) {
         drawings: '📐',
         photos: '🖼️',
         emails: '✉️',
-        notes: '📄'
+        notes: '📄',
+        others: '📁'
     };
     return icons[folderName] || '📁';
 }
