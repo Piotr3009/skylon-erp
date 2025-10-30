@@ -1032,27 +1032,40 @@ function closePipelineProjectNotes() {
 
 async function savePipelineProjectNotes(index) {
     const project = pipelineProjects[index];
-    if (!project) return;
+    if (!project) {
+        console.error('❌ Project not found at index:', index);
+        return;
+    }
+    
+    console.log('💾 Saving notes for project:', project.projectNumber);
+    console.log('📊 Project object:', project);
     
     const notes = document.getElementById('pipelineProjectNotesText').value.trim();
     project.notes = notes || null;
     
+    console.log('📝 Notes to save:', notes);
+    
     // Save to Supabase
     if (typeof supabaseClient !== 'undefined') {
         try {
-            const { error } = await supabaseClient
+            console.log('🔄 Updating Supabase...');
+            const { data, error } = await supabaseClient
                 .from('pipeline_projects')
                 .update({ notes: notes || null })
                 .eq('project_number', project.projectNumber);
             
             if (error) {
-                console.error('Error saving notes:', error);
+                console.error('❌ Error saving notes:', error);
                 alert('Error saving notes to database');
                 return;
             }
+            
+            console.log('✅ Notes saved to Supabase!', data);
         } catch (err) {
-            console.error('Database error:', err);
+            console.error('❌ Database error:', err);
         }
+    } else {
+        console.warn('⚠️ supabaseClient not defined');
     }
     
     saveDataQueued();
