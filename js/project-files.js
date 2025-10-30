@@ -8,7 +8,7 @@ let currentProjectFiles = {
     currentFolder: null
 };
 
-const projectFolders = ['quotes', 'drawings', 'photos', 'emails', 'notes', 'others'];
+const projectFolders = ['estimates', 'drawings', 'photos', 'emails', 'notes', 'others'];
 
 // ========== OPEN FILES MODAL ==========
 async function openProjectFilesModal(projectIndex, stage) {
@@ -108,7 +108,7 @@ function closeProjectFilesModal() {
 }
 
 // ========== SHOW FOLDER LIST ==========
-function showFolderList() {
+async function showFolderList() {
     currentProjectFiles.currentFolder = null;
     
     const breadcrumb = document.getElementById('filesBreadcrumb');
@@ -118,34 +118,98 @@ function showFolderList() {
     
     const content = document.getElementById('filesContent');
     content.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; padding: 8px;">
-            ${projectFolders.map(folder => `
+        <div style="text-align: center; padding: 20px; color: #999;">
+            <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
+            <div style="font-size: 14px;">Loading folders...</div>
+        </div>
+    `;
+    
+    // Get file counts for each folder
+    const folderCounts = await getFolderFileCounts();
+    
+    content.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding: 8px;">
+            ${projectFolders.map(folder => {
+                const count = folderCounts[folder] || 0;
+                return `
                 <div class="folder-card" onclick="openFolder('${folder}')" style="
-                    padding: 24px 20px;
-                    border: 2px solid #404040;
-                    border-radius: 12px;
+                    padding: 18px 16px;
+                    border: 1px solid #404040;
+                    border-radius: 8px;
                     cursor: pointer;
                     text-align: center;
                     transition: all 0.2s;
                     background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                " onmouseover="this.style.borderColor='#0066cc'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 12px rgba(0,102,204,0.3)'" 
-                   onmouseout="this.style.borderColor='#404040'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.3)'">
-                    <div style="font-size: 56px; margin-bottom: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    position: relative;
+                " onmouseover="this.style.borderColor='#4a9eff'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(74,158,255,0.3)'" 
+                   onmouseout="this.style.borderColor='#404040'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.3)'">
+                    ${count > 0 ? `
+                        <div style="
+                            position: absolute;
+                            top: 8px;
+                            right: 8px;
+                            background: #4a9eff;
+                            color: #fff;
+                            font-size: 11px;
+                            font-weight: 600;
+                            padding: 3px 7px;
+                            border-radius: 10px;
+                            min-width: 20px;
+                            text-align: center;
+                        ">${count}</div>
+                    ` : ''}
+                    <div style="font-size: 42px; margin-bottom: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
                         ${getFolderIcon(folder)}
                     </div>
-                    <div style="font-weight: 600; text-transform: capitalize; color: #e0e0e0; font-size: 15px; letter-spacing: 0.5px;">
+                    <div style="font-weight: 600; text-transform: capitalize; color: #e0e0e0; font-size: 13px; letter-spacing: 0.3px;">
                         ${folder}
                     </div>
                 </div>
-            `).join('')}
+            `}).join('')}
         </div>
     `;
 }
 
+// ========== GET FILE COUNTS FOR FOLDERS ==========
+async function getFolderFileCounts() {
+    try {
+        let query = supabaseClient
+            .from('project_files')
+            .select('folder_name');
+        
+        if (currentProjectFiles.stage === 'pipeline') {
+            query = query.eq('pipeline_project_id', currentProjectFiles.projectId);
+        } else if (currentProjectFiles.stage === 'production') {
+            query = query.eq('production_project_id', currentProjectFiles.projectId);
+        }
+        
+        const { data: files, error } = await query;
+        
+        if (error) throw error;
+        
+        // Count files per folder
+        const counts = {};
+        projectFolders.forEach(folder => counts[folder] = 0);
+        
+        if (files) {
+            files.forEach(file => {
+                if (file.folder_name && counts.hasOwnProperty(file.folder_name)) {
+                    counts[file.folder_name]++;
+                }
+            });
+        }
+        
+        return counts;
+    } catch (err) {
+        console.error('Error getting folder counts:', err);
+        return {};
+    }
+}
+
 function getFolderIcon(folderName) {
     const icons = {
-        quotes: '📋',
+        estimates: '📊',
         drawings: '📐',
         photos: '🖼️',
         emails: '✉️',
@@ -241,35 +305,35 @@ function renderFilesList(files, folderName) {
             <input type="file" id="fileUploadInput" multiple style="display: none;" onchange="handleFileUpload(event)">
         </div>
         
-        <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
             ${files.map(file => `
                 <div class="file-row" style="
                     display: flex;
                     align-items: center;
-                    gap: 12px;
-                    padding: 12px 16px;
+                    gap: 10px;
+                    padding: 10px 12px;
                     border: 1px solid #404040;
-                    border-radius: 8px;
+                    border-radius: 6px;
                     background: #252525;
                     transition: all 0.2s;
                     cursor: pointer;
                 " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
-                    <div style="font-size: 28px;">
+                    <div style="font-size: 22px;">
                         ${getFileIcon(file.file_type)}
                     </div>
                     <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e0e0e0;">
+                        <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e0e0e0; font-size: 13px;">
                             ${file.file_name}
                         </div>
-                        <div style="font-size: 12px; color: #888;">
+                        <div style="font-size: 11px; color: #888; margin-top: 2px;">
                             ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px;" onclick="event.stopPropagation()">
-                        <button class="action-btn" onclick="downloadFile('${file.id}', '${file.file_path}', '${file.file_name}')" title="Download" style="background: #2a2a2a; border: 1px solid #404040; color: #4a9eff; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#333'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#2a2a2a'; this.style.borderColor='#404040'">
+                    <div style="display: flex; gap: 6px;" onclick="event.stopPropagation()">
+                        <button class="action-btn" onclick="downloadFile('${file.id}', '${file.file_path}', '${file.file_name}')" title="Download" style="background: #2a2a2a; border: 1px solid #404040; color: #4a9eff; padding: 6px 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s; font-size: 14px;" onmouseover="this.style.background='#333'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#2a2a2a'; this.style.borderColor='#404040'">
                             ⬇️
                         </button>
-                        <button class="action-btn" onclick="deleteFile('${file.id}', '${file.file_path}')" title="Delete" style="background: #2a2a2a; border: 1px solid #404040; color: #ff4444; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3a1a1a'; this.style.borderColor='#ff4444'" onmouseout="this.style.background='#2a2a2a'; this.style.borderColor='#404040'">
+                        <button class="action-btn" onclick="deleteFile('${file.id}', '${file.file_path}')" title="Delete" style="background: #2a2a2a; border: 1px solid #404040; color: #ff4444; padding: 6px 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s; font-size: 14px;" onmouseover="this.style.background='#3a1a1a'; this.style.borderColor='#ff4444'" onmouseout="this.style.background='#2a2a2a'; this.style.borderColor='#404040'">
                             🗑️
                         </button>
                     </div>
