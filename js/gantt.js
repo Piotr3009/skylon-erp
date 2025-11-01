@@ -425,14 +425,6 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     container.style.width = (duration * dayWidth) + 'px';
     container.style.borderColor = phaseConfig.color;
     
-    // DIAGNOSTYKA
-    if (daysDiff < -10 || daysDiff > 200) {
-        console.warn(`⚠️ Faza "${phase.key}" poza widocznym obszarem! Left: ${daysDiff * dayWidth}px, Projekt: ${project.name}`);
-    }
-    if (duration <= 0) {
-        console.error(`❌ Faza "${phase.key}" ma zerową szerokość! Duration: ${duration}, Projekt: ${project.name}`);
-    }
-    
     // Top part - colored
     const topDiv = document.createElement('div');
     topDiv.className = 'phase-top';
