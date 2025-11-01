@@ -561,24 +561,29 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         console.log(`💾 Saving ${phases.length} phases for project ${projectId}`);
 
         // 2. PRZYGOTUJ NOWE FAZY
-        const phasesForDB = phases.map((phase, index) => {
-            // Oblicz end_date jeśli nie istnieje
-            let endDate = phase.end;
-            if (!endDate && phase.start && phase.workDays) {
+        // NAJPIERW - zaktualizuj phase.end dla wszystkich faz (żeby były spójne w pamięci)
+        phases.forEach(phase => {
+            if (phase.start && phase.workDays) {
                 try {
                     const computedEnd = computeEnd(phase);
-                    endDate = formatDate(computedEnd);
+                    phase.end = formatDate(computedEnd);
                 } catch (err) {
-                    console.warn('Could not compute end date for phase:', phase.key, err);
-                    endDate = null;
+                    console.warn('⚠️ Could not compute end date for phase:', phase.key, err);
                 }
+            }
+        });
+        
+        const phasesForDB = phases.map((phase, index) => {
+            // Walidacja: sprawdź czy end >= start
+            if (phase.start && phase.end && new Date(phase.end) < new Date(phase.start)) {
+                console.error(`❌ BŁĘDNE DATY w fazie ${phase.key}: start=${phase.start}, end=${phase.end}, workDays=${phase.workDays}`);
             }
 
             const phaseData = {
                 [projectIdField]: projectId,
                 phase_key: phase.key,
                 start_date: phase.start,
-                end_date: endDate || null,
+                end_date: phase.end || null,  // już przeliczone powyżej
                 work_days: phase.workDays || 4,
                 status: phase.status || 'notStarted',
                 notes: phase.notes || null,
