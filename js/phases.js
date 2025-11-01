@@ -1,6 +1,8 @@
 // ========== PHASE MANAGEMENT ==========
 function updatePhasesLegend() {
     const legend = document.getElementById('phasesLegend');
+    if (!legend) return; // Element nie istnieje - wyjdź bez błędu
+    
     legend.innerHTML = '';
     
     // ZMIANA 2 - Pokazuj tylko production phases w widoku production
