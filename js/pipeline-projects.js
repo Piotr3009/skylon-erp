@@ -1278,14 +1278,19 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
     }
     
     try {
+        // Pipeline używa formatu "PL039-2025" w Storage, ale "PL039/2025" w bazie
+        // Musimy przekonwertować slash na myślnik dla ścieżki Storage
+        const oldStoragePath = oldProjectNumber.replace('/', '-');
+        const newStoragePath = newProjectNumber.replace('/', '-');
+        
         console.log('📦 Starting file move...');
-        console.log('   From:', `pipeline/${oldProjectNumber}/`);
-        console.log('   To:', `production/${newProjectNumber}/`);
+        console.log('   From:', `pipeline/${oldStoragePath}/`);
+        console.log('   To:', `production/${newStoragePath}/`);
         
         // 1. Lista wszystkich plików w folderze pipeline
         const { data: filesList, error: listError } = await supabaseClient.storage
             .from('project-documents')
-            .list(`pipeline/${oldProjectNumber}`, {
+            .list(`pipeline/${oldStoragePath}`, {
                 limit: 1000,
                 sortBy: { column: 'name', order: 'asc' }
             });
@@ -1310,7 +1315,7 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
                 const subfolderName = item.name;
                 const { data: subFiles, error: subError } = await supabaseClient.storage
                     .from('project-documents')
-                    .list(`pipeline/${oldProjectNumber}/${subfolderName}`, {
+                    .list(`pipeline/${oldStoragePath}/${subfolderName}`, {
                         limit: 1000
                     });
                 
@@ -1323,8 +1328,8 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
                 for (const file of subFiles) {
                     if (file.id === null) continue; // Skip subfolders
                     
-                    const oldPath = `pipeline/${oldProjectNumber}/${subfolderName}/${file.name}`;
-                    const newPath = `production/${newProjectNumber}/${subfolderName}/${file.name}`;
+                    const oldPath = `pipeline/${oldStoragePath}/${subfolderName}/${file.name}`;
+                    const newPath = `production/${newStoragePath}/${subfolderName}/${file.name}`;
                     
                     const { error: moveError } = await supabaseClient.storage
                         .from('project-documents')
@@ -1339,8 +1344,8 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
                 }
             } else {
                 // To jest plik w głównym folderze
-                const oldPath = `pipeline/${oldProjectNumber}/${item.name}`;
-                const newPath = `production/${newProjectNumber}/${item.name}`;
+                const oldPath = `pipeline/${oldStoragePath}/${item.name}`;
+                const newPath = `production/${newStoragePath}/${item.name}`;
                 
                 const { error: moveError } = await supabaseClient.storage
                     .from('project-documents')
@@ -1373,8 +1378,8 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
             
             for (const record of fileRecords) {
                 const newFilePath = record.file_path.replace(
-                    `pipeline/${oldProjectNumber}`,
-                    `production/${newProjectNumber}`
+                    `pipeline/${oldStoragePath}`,
+                    `production/${newStoragePath}`
                 );
                 
                 const { error: updateError } = await supabaseClient
