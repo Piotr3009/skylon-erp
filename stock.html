@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skylon Joinery - Stock Management</title>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <script>
+        const SUPABASE_URL = 'https://iszkquzpoktokmkjmuuq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzemtxdXpwb2t0b2tta2ptdXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0Mzg3NTksImV4cCI6MjA2ODAxNDc1OX0.hijtNZIitJkc3BIQsYUkUTi3_l8OlCGSiJZdM9G3ywA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase ready:', supabaseClient);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="app-title">Skylon Joinery - Stock Management</div>
+            <div class="navigation-links">
+                <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
+                <a href="pipeline.html" class="nav-link nav-link-pipeline">📋 Pipeline</a>
+                <a href="archive.html" class="nav-link nav-link-archive">📦 Archive</a>
+                <a href="accounting.html" class="nav-link nav-link-accounting">💰 Accounting</a>
+                <a href="team.html" class="nav-link nav-link-team">👥 Team Management</a>
+                <a href="clients.html" class="nav-link nav-link-clients">👤 Clients</a>
+                <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="toolbar-btn primary" onclick="alert('Coming soon!')">+ Add Stock Item</button>
+            <button class="toolbar-btn" onclick="alert('Coming soon!')">🔄 Refresh</button>
+        </div>
+
+        <!-- Main Content -->
+        <div style="padding: 40px; text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
+            <h2 style="color: #e0e0e0; margin-bottom: 10px;">Stock Management</h2>
+            <p style="color: #999; font-size: 16px;">This module is under development</p>
+        </div>
+    </div>
+</body>
+</html>

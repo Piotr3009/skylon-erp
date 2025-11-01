@@ -24,13 +24,13 @@
             <div class="app-title">Skylon Joinery - Pipeline Manager</div>
             <div class="navigation-links">
                 <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
+                <a href="pipeline.html" class="nav-link nav-link-pipeline">📋 Pipeline</a>
                 <a href="archive.html" class="nav-link nav-link-archive">📦 Archive</a>
                 <a href="accounting.html" class="nav-link nav-link-accounting">💰 Accounting</a>
+                <a href="team.html" class="nav-link nav-link-team">👥 Team Management</a>
+                <a href="clients.html" class="nav-link nav-link-clients">👤 Clients</a>
+                <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
             </div>
-            <div class="phases-legend" id="phasesLegend">
-                <!-- Phases will be added here -->
-            </div>
-            <button class="add-phase-btn" onclick="openPhaseManager()">+ Manage Phases</button>
         </div>
 
         <!-- Toolbar -->
@@ -40,6 +40,7 @@
             <button class="toolbar-btn success" onclick="openPipelineFinishedModal()">✅ Pipeline Finished</button>
             <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
             <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
+            <button class="toolbar-btn" onclick="openPhaseManager()">⚙️ Manage Phases</button>
             
             <div class="export-dropdown">
                 <button class="toolbar-btn">Export ▼</button>
@@ -51,13 +52,6 @@
             </div>
 
             <button class="toolbar-btn danger" onclick="clearAllPipeline()">Clear All</button>
-            
-           <button class="toolbar-btn" onclick="window.location.href='clients.html'" style="margin-left: auto;">
-    👤 Baza Klientów
-</button>
-<button class="toolbar-btn" onclick="window.location.href='team.html'">
-    🧑‍🤝‍🧑 Team Management
-</button>
         </div>
 
         <!-- Chart -->
