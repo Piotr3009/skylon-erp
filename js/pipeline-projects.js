@@ -600,6 +600,24 @@ async function convertToProduction() {
             }
             
             await updateClientProjectCount(productionProject.client_id);
+            
+            // PRZENIEŚ PLIKI Z PIPELINE DO PRODUCTION
+            console.log('📦 Moving project files...');
+            const { data: pipelineDbProject } = await supabaseClient
+                .from('pipeline_projects')
+                .select('id')
+                .eq('project_number', pipelineProject.projectNumber)
+                .single();
+            
+            if (pipelineDbProject && projectToSave) {
+                await moveProjectFiles(
+                    pipelineDbProject.id,           // pipeline project ID
+                    projectToSave.id,               // production project ID
+                    pipelineProject.projectNumber,  // PL001-2025
+                    productionProjectNumber         // 001/2025
+                );
+            }
+            
         } catch (err) {
             console.error('Error saving production project:', err);
         }
@@ -1249,5 +1267,138 @@ async function createProjectFolders(stage, projectNumber) {
         console.log(`✅ Folders created: ${stage}/${folderName}/`);
     } catch (err) {
         console.error('Error creating folders:', err);
+    }
+}
+
+// ========== MOVE PROJECT FILES BETWEEN STAGES ==========
+async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProjectNumber, newProjectNumber) {
+    if (typeof supabaseClient === 'undefined') {
+        console.log('⚠️ Supabase not available - skipping file move');
+        return;
+    }
+    
+    try {
+        console.log('📦 Starting file move...');
+        console.log('   From:', `pipeline/${oldProjectNumber}/`);
+        console.log('   To:', `production/${newProjectNumber}/`);
+        
+        // 1. Lista wszystkich plików w folderze pipeline
+        const { data: filesList, error: listError } = await supabaseClient.storage
+            .from('project-documents')
+            .list(`pipeline/${oldProjectNumber}`, {
+                limit: 1000,
+                sortBy: { column: 'name', order: 'asc' }
+            });
+        
+        if (listError) {
+            console.error('❌ Error listing files:', listError);
+            return;
+        }
+        
+        if (!filesList || filesList.length === 0) {
+            console.log('ℹ️ No files to move');
+            return;
+        }
+        
+        console.log(`📄 Found ${filesList.length} items in pipeline folder`);
+        
+        // 2. Przenoszenie plików rekursywnie
+        let movedCount = 0;
+        for (const item of filesList) {
+            if (item.id === null) {
+                // To jest folder - lista plików w środku
+                const subfolderName = item.name;
+                const { data: subFiles, error: subError } = await supabaseClient.storage
+                    .from('project-documents')
+                    .list(`pipeline/${oldProjectNumber}/${subfolderName}`, {
+                        limit: 1000
+                    });
+                
+                if (subError) {
+                    console.error(`❌ Error listing ${subfolderName}:`, subError);
+                    continue;
+                }
+                
+                // Przenieś każdy plik w subfolderze
+                for (const file of subFiles) {
+                    if (file.id === null) continue; // Skip subfolders
+                    
+                    const oldPath = `pipeline/${oldProjectNumber}/${subfolderName}/${file.name}`;
+                    const newPath = `production/${newProjectNumber}/${subfolderName}/${file.name}`;
+                    
+                    const { error: moveError } = await supabaseClient.storage
+                        .from('project-documents')
+                        .move(oldPath, newPath);
+                    
+                    if (moveError) {
+                        console.error(`❌ Error moving ${file.name}:`, moveError);
+                    } else {
+                        console.log(`✅ Moved: ${file.name}`);
+                        movedCount++;
+                    }
+                }
+            } else {
+                // To jest plik w głównym folderze
+                const oldPath = `pipeline/${oldProjectNumber}/${item.name}`;
+                const newPath = `production/${newProjectNumber}/${item.name}`;
+                
+                const { error: moveError } = await supabaseClient.storage
+                    .from('project-documents')
+                    .move(oldPath, newPath);
+                
+                if (moveError) {
+                    console.error(`❌ Error moving ${item.name}:`, moveError);
+                } else {
+                    console.log(`✅ Moved: ${item.name}`);
+                    movedCount++;
+                }
+            }
+        }
+        
+        console.log(`✅ Moved ${movedCount} files from pipeline to production`);
+        
+        // 3. Aktualizuj rekordy w tabeli project_files
+        const { data: fileRecords, error: recordsError } = await supabaseClient
+            .from('project_files')
+            .select('*')
+            .eq('pipeline_project_id', pipelineProjectId);
+        
+        if (recordsError) {
+            console.error('❌ Error fetching file records:', recordsError);
+            return;
+        }
+        
+        if (fileRecords && fileRecords.length > 0) {
+            console.log(`📊 Updating ${fileRecords.length} file records in database...`);
+            
+            for (const record of fileRecords) {
+                const newFilePath = record.file_path.replace(
+                    `pipeline/${oldProjectNumber}`,
+                    `production/${newProjectNumber}`
+                );
+                
+                const { error: updateError } = await supabaseClient
+                    .from('project_files')
+                    .update({
+                        production_project_id: productionProjectId,
+                        pipeline_project_id: null,
+                        file_path: newFilePath
+                    })
+                    .eq('id', record.id);
+                
+                if (updateError) {
+                    console.error(`❌ Error updating record ${record.id}:`, updateError);
+                } else {
+                    console.log(`✅ Updated record: ${record.file_name}`);
+                }
+            }
+            
+            console.log('✅ All file records updated');
+        }
+        
+        console.log('✅ File move completed successfully');
+        
+    } catch (err) {
+        console.error('❌ Error moving project files:', err);
     }
 }
