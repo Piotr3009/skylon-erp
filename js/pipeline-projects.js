@@ -563,8 +563,8 @@ async function convertToProduction() {
                         client_id: productionProject.client_id,
                         deadline: productionProject.deadline,
                         status: 'active',
-                        notes: null,
-                        contract_value: 0
+                        notes: pipelineProject.notes || null,
+                        contract_value: pipelineProject.estimated_value || 0
                     }])
                     .select()
                     .single();
