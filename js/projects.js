@@ -704,9 +704,28 @@ async function confirmMoveToArchive() {
 }
 
 // ========== PROJECT NOTES ==========
-function openProductionProjectNotes(index) {
+async function openProductionProjectNotes(index) {
     const project = projects[index];
     if (!project) return;
+    
+    // Pobierz najnowsze notes z bazy
+    let currentNotes = project.notes || '';
+    if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('projects')
+                .select('notes')
+                .eq('project_number', project.projectNumber)
+                .single();
+            
+            if (!error && data) {
+                currentNotes = data.notes || '';
+                project.notes = currentNotes; // Aktualizuj lokalnie
+            }
+        } catch (err) {
+            console.warn('Could not fetch notes from database:', err);
+        }
+    }
     
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -729,7 +748,7 @@ function openProductionProjectNotes(index) {
             <div class="modal-body">
                 <div class="form-group">
                     <label>Notes</label>
-                    <textarea id="productionProjectNotesText" placeholder="Add notes about this production project..." style="min-height: 400px; font-size: 14px;">${project.notes || ''}</textarea>
+                    <textarea id="productionProjectNotesText" placeholder="Add notes about this production project..." style="min-height: 400px; font-size: 14px;">${currentNotes}</textarea>
                 </div>
             </div>
             <div class="modal-footer">
