@@ -81,6 +81,63 @@
     border-color: #f59e0b !important;
 }
 
+/* Team Management button - delikatny cyjan */
+.nav-link-team {
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #06b6d4 !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-team:hover {
+    background: #27272a !important;
+    border-color: #06b6d4 !important;
+}
+
+/* Clients button - delikatny różowy */
+.nav-link-clients {
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #ec4899 !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-clients:hover {
+    background: #27272a !important;
+    border-color: #ec4899 !important;
+}
+
+/* Stock button - delikatny fiolet */
+.nav-link-stock {
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #8b5cf6 !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-stock:hover {
+    background: #27272a !important;
+    border-color: #8b5cf6 !important;
+}
+
 /* Zmniejszona wysokość headera */
 .header {
     padding: 8px 18px !important;
