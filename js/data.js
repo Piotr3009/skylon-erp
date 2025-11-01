@@ -258,7 +258,8 @@ async function loadProjectsFromSupabase() {
                     contract_value: dbProject.contract_value || 0,
                     project_cost: dbProject.project_cost || 0,
                     google_drive_url: dbProject.google_drive_url,
-                    google_drive_folder_id: dbProject.google_drive_folder_id,  
+                    google_drive_folder_id: dbProject.google_drive_folder_id,
+                    notes: dbProject.notes,  
 
                     phases: projectPhases.map(phase => {
                         
