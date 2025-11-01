@@ -420,38 +420,7 @@ async function updateClientProjectCount(clientId) {
     }
 }
 
-async function deleteProject(index) {
-    if (confirm('Delete project "' + projects[index].name + '"?')) {
-        const projectNumber = projects[index].projectNumber;
-        const clientId = projects[index].client_id;
-        
-        // Usuń z Supabase jeśli jest połączenie
-        if (projectNumber && typeof supabaseClient !== 'undefined') {
-            try {
-                const { error } = await supabaseClient
-                    .from('projects')
-                    .delete()
-                    .eq('project_number', projectNumber);
-                    
-                if (error) {
-                    console.error('Błąd usuwania z DB:', error);
-                } else {
-                    console.log('✅ Usunięte z bazy');
-                    
-                    // Update client project count
-                    await updateClientProjectCount(clientId);
-                }
-            } catch (err) {
-                console.log('Brak połączenia z DB, usuwam tylko lokalnie');
-            }
-        }
-        
-        // Usuń lokalnie
-        projects.splice(index, 1);
-        saveDataQueued();
-        render();
-    }
-}
+// deleteProject function removed - use "Move to Archive" instead (toolbar button)
 
 function updatePhasesList(projectPhases = [], checkAll = false) {
     const list = document.getElementById('phasesList');
@@ -732,4 +701,88 @@ async function confirmMoveToArchive() {
     
     const reasonText = document.querySelector(`#archiveReason option[value="${reason}"]`)?.textContent || reason;
     alert(`Project archived: ${project.projectNumber}\nReason: ${reasonText}`);
+}
+
+// ========== PROJECT NOTES ==========
+function openProductionProjectNotes(index) {
+    const project = projects[index];
+    if (!project) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'productionProjectNotesModal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 1000px; width: 90%;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div id="logoPlaceholder" style="width: 60px; height: 60px; border: 2px dashed #555; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #777; font-size: 10px; text-align: center;">
+                        LOGO
+                    </div>
+                    <div>
+                        <div style="font-size: 18px; font-weight: bold;">Project Notes</div>
+                        <div style="font-size: 14px; color: #999;">${project.projectNumber} - ${project.name}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="productionProjectNotesText" placeholder="Add notes about this production project..." style="min-height: 400px; font-size: 14px;">${project.notes || ''}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeProductionProjectNotes()">Cancel</button>
+                <button class="modal-btn primary" onclick="saveProductionProjectNotes(${index})">Save</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function closeProductionProjectNotes() {
+    const modal = document.getElementById('productionProjectNotesModal');
+    if (modal) modal.remove();
+}
+
+async function saveProductionProjectNotes(index) {
+    const project = projects[index];
+    if (!project) {
+        console.error('❌ Project not found at index:', index);
+        return;
+    }
+    
+    console.log('💾 Saving notes for project:', project.projectNumber);
+    
+    const notes = document.getElementById('productionProjectNotesText').value.trim();
+    project.notes = notes || null;
+    
+    console.log('📝 Notes to save:', notes);
+    
+    // Save to Supabase
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            console.log('🔄 Updating Supabase...');
+            const { data, error } = await supabaseClient
+                .from('projects')
+                .update({ notes: notes || null })
+                .eq('project_number', project.projectNumber);
+            
+            if (error) {
+                console.error('❌ Error saving notes:', error);
+                alert('Error saving notes to database');
+                return;
+            }
+            
+            console.log('✅ Notes saved to Supabase!', data);
+        } catch (err) {
+            console.error('❌ Database error:', err);
+        }
+    }
+    
+    saveDataQueued();
+    render();
+    closeProductionProjectNotes();
 }
