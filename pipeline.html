@@ -34,14 +34,19 @@
         </div>
 
         <!-- Toolbar -->
-        <div class="toolbar">
-            <button class="toolbar-btn primary" onclick="addPipelineProject()">+ Add Pipeline Project</button>
-            <button class="toolbar-btn success" onclick="openPipelineFinishedModal()">✅ Pipeline Finished</button>
-            <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
-            <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
-            <button class="toolbar-btn" onclick="openPhaseManager()">⚙️ Manage Phases</button>
+        <div class="toolbar" style="display: flex; align-items: center;">
+            <div style="display: flex; gap: 10px;">
+                <button class="toolbar-btn primary" onclick="addPipelineProject()">+ Add Pipeline Project</button>
+                <button class="toolbar-btn success" onclick="openPipelineFinishedModal()">✅ Pipeline Finished</button>
+                <button class="toolbar-btn" onclick="openPhaseManager()">⚙️ Manage Phases</button>
+            </div>
             
-            <div class="export-dropdown">
+            <div style="position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 10px;">
+                <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
+                <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
+            </div>
+            
+            <div class="export-dropdown" style="margin-left: auto;">
                 <button class="toolbar-btn">Export ▼</button>
                 <div class="export-menu">
                     <button onclick="exportPipelineJSON()">Export JSON</button>
