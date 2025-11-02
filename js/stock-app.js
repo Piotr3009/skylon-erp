@@ -19,27 +19,36 @@ const subcategories = {
 };
 
 // Update subcategory dropdown based on category
-function updateSubcategoryOptions() {
+async function updateSubcategoryOptions() {
     const category = document.getElementById('stockCategory').value;
     const subcategorySelect = document.getElementById('stockSubcategory');
     
     subcategorySelect.innerHTML = '<option value="">-- Select subcategory --</option>';
     
-    if (subcategories[category] && subcategories[category].length > 0) {
-        subcategories[category].forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.toLowerCase();
-            option.textContent = sub;
-            subcategorySelect.appendChild(option);
-        });
-        subcategorySelect.disabled = false;
+    // Load subcategories from database
+    const categoryObj = stockCategories.find(c => c.name.toLowerCase() === category && c.type === 'category');
+    
+    if (categoryObj) {
+        const subcats = stockCategories.filter(s => s.type === 'subcategory' && s.parent_category_id === categoryObj.id);
+        
+        if (subcats.length > 0) {
+            subcats.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.name.toLowerCase();
+                option.textContent = sub.name;
+                subcategorySelect.appendChild(option);
+            });
+            subcategorySelect.disabled = false;
+        } else {
+            subcategorySelect.disabled = true;
+        }
     } else {
         subcategorySelect.disabled = true;
     }
 }
 
 // Update subcategory dropdown for edit modal
-function updateEditSubcategoryOptions() {
+async function updateEditSubcategoryOptions() {
     const category = document.getElementById('editStockCategory').value;
     const subcategorySelect = document.getElementById('editStockSubcategory');
     
@@ -302,7 +311,10 @@ async function refreshStock() {
 }
 
 // Open modals
-function openAddStockModal() {
+async function openAddStockModal() {
+    // Load categories first
+    await loadStockCategories();
+    
     document.getElementById('stockName').value = '';
     document.getElementById('stockSize').value = '';
     document.getElementById('stockSizeUnit').value = 'mm';
@@ -324,6 +336,9 @@ function openAddStockModal() {
         option.textContent = sup.name;
         supplierSelect.appendChild(option);
     });
+    
+    // Update subcategories for default category
+    updateSubcategoryOptions();
     
     document.getElementById('addStockModal').classList.add('active');
 }
