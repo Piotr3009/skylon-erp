@@ -566,18 +566,27 @@ async function downloadArchiveFile(filePath, fileName) {
     }
     
     try {
-        // Get public URL and trigger download
-        const { data } = supabaseClient.storage
+        // Download file from Supabase Storage
+        const { data, error } = await supabaseClient.storage
             .from('project-documents')
-            .getPublicUrl(filePath);
+            .download(filePath);
         
-        if (data && data.publicUrl) {
+        if (error) {
+            console.error('Error downloading file:', error);
+            alert('Error downloading file: ' + error.message);
+            return;
+        }
+        
+        if (data) {
+            // Create blob URL and trigger download
+            const url = URL.createObjectURL(data);
             const a = document.createElement('a');
-            a.href = data.publicUrl;
+            a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
     } catch (error) {
         console.error('Error downloading file:', error);
