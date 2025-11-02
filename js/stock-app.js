@@ -237,10 +237,34 @@ function openAddStockModal() {
 }
 
 function openStockInModal(itemId = null) {
+    // Reset category filter
+    document.getElementById('stockInCategoryFilter').value = '';
+    
+    // Populate all items initially
+    populateStockInItems(stockItems, itemId);
+    
+    document.getElementById('stockInQty').value = '';
+    document.getElementById('stockInCostPerUnit').value = '';
+    document.getElementById('stockInInvoice').value = '';
+    document.getElementById('stockInCost').value = '';
+    document.getElementById('stockInNotes').value = '';
+    
+    document.getElementById('stockInModal').classList.add('active');
+}
+
+// Filter stock items by category in Stock IN
+function filterStockInItems() {
+    const category = document.getElementById('stockInCategoryFilter').value;
+    const filtered = category ? stockItems.filter(item => item.category === category) : stockItems;
+    populateStockInItems(filtered);
+}
+
+// Populate Stock IN items dropdown
+function populateStockInItems(items, selectedId = null) {
     const select = document.getElementById('stockInItem');
     select.innerHTML = '<option value="">Select stock item...</option>';
     
-    stockItems.forEach(item => {
+    items.forEach(item => {
         const option = document.createElement('option');
         option.value = item.id;
         
@@ -253,34 +277,27 @@ function openStockInModal(itemId = null) {
         desc += ` (${item.current_quantity} ${item.unit})`;
         
         option.textContent = desc;
-        if (itemId && item.id === itemId) option.selected = true;
+        if (selectedId && item.id === selectedId) option.selected = true;
         select.appendChild(option);
     });
     
-    document.getElementById('stockInQty').value = '';
-    document.getElementById('stockInCostPerUnit').value = '';
-    document.getElementById('stockInInvoice').value = '';
-    document.getElementById('stockInCost').value = '';
-    document.getElementById('stockInNotes').value = '';
-    
-    // Set cost per unit when item selected
-    if (itemId) {
-        const item = stockItems.find(i => i.id === itemId);
+    // If item was preselected, set cost
+    if (selectedId) {
+        const item = items.find(i => i.id === selectedId);
         if (item) {
             document.getElementById('stockInCostPerUnit').value = (item.cost_per_unit || 0).toFixed(2);
         }
     }
-    
-    // Add event listener for item selection
-    select.addEventListener('change', function() {
-        const item = stockItems.find(i => i.id === this.value);
-        if (item) {
-            document.getElementById('stockInCostPerUnit').value = (item.cost_per_unit || 0).toFixed(2);
-            calculateStockInCost();
-        }
-    });
-    
-    document.getElementById('stockInModal').classList.add('active');
+}
+
+// Handle item selection change
+function onStockInItemChange() {
+    const itemId = document.getElementById('stockInItem').value;
+    const item = stockItems.find(i => i.id === itemId);
+    if (item) {
+        document.getElementById('stockInCostPerUnit').value = (item.cost_per_unit || 0).toFixed(2);
+        calculateStockInCost();
+    }
 }
 
 // Calculate total cost for Stock IN
@@ -363,6 +380,7 @@ async function saveStockItem() {
     const supplierId = document.getElementById('stockSupplier').value || null;
     const link = document.getElementById('stockLink').value.trim();
     const notes = document.getElementById('stockNotes').value.trim();
+    const imageFile = document.getElementById('stockImage').files[0];
     
     if (!name) {
         alert('Please enter item name');
@@ -387,6 +405,12 @@ async function saveStockItem() {
         
         const itemNumber = `MAT-${String(nextNumber).padStart(3, '0')}`;
         
+        // Upload image if provided
+        let imageUrl = null;
+        if (imageFile) {
+            imageUrl = await uploadStockImage(imageFile, itemNumber);
+        }
+        
         const { data, error } = await supabaseClient
             .from('stock_items')
             .insert([{
@@ -402,6 +426,7 @@ async function saveStockItem() {
                 cost_per_unit: cost,
                 supplier_id: supplierId,
                 material_link: link || null,
+                image_url: imageUrl,
                 notes: notes || null
             }])
             .select();
@@ -567,6 +592,15 @@ function editStockItem(itemId) {
     document.getElementById('editStockCost').value = item.cost_per_unit || 0;
     document.getElementById('editStockLink').value = item.material_link || '';
     document.getElementById('editStockNotes').value = item.notes || '';
+    document.getElementById('editStockImageUrl').value = item.image_url || '';
+    
+    // Show existing image
+    const preview = document.getElementById('editStockImagePreview');
+    if (item.image_url) {
+        preview.innerHTML = `<img src="${item.image_url}" style="max-width: 200px; max-height: 200px; border-radius: 5px;">`;
+    } else {
+        preview.innerHTML = '';
+    }
     
     // Populate suppliers dropdown
     const supplierSelect = document.getElementById('editStockSupplier');
@@ -670,6 +704,69 @@ function openAddSupplierModal() {
     document.getElementById('supplierNotes').value = '';
     
     document.getElementById('addSupplierModal').classList.add('active');
+}
+
+// ========== IMAGE UPLOAD ==========
+
+function previewStockImage(input) {
+    const preview = document.getElementById('stockImagePreview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" style="max-width: 200px; max-height: 200px; border-radius: 5px;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+function previewEditStockImage(input) {
+    const preview = document.getElementById('editStockImagePreview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" style="max-width: 200px; max-height: 200px; border-radius: 5px;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+async function uploadStockImage(file, itemNumber) {
+    if (!file) return null;
+    
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${itemNumber}.${fileExt}`;
+        const filePath = `${fileName}`;
+        
+        console.log('📤 Uploading image:', filePath);
+        
+        // Upload to Supabase Storage
+        const { data, error } = await supabaseClient.storage
+            .from('stock-images')
+            .upload(filePath, file, {
+                upsert: true,
+                contentType: file.type
+            });
+        
+        if (error) throw error;
+        
+        // Get public URL
+        const { data: urlData } = supabaseClient.storage
+            .from('stock-images')
+            .getPublicUrl(filePath);
+        
+        console.log('✅ Image uploaded:', urlData.publicUrl);
+        return urlData.publicUrl;
+        
+    } catch (err) {
+        console.error('Error uploading image:', err);
+        alert('Error uploading image: ' + err.message);
+        return null;
+    }
 }
 
 async function saveSupplier() {

@@ -166,6 +166,12 @@
                 </div>
                 
                 <div class="form-group">
+                    <label>Material Image</label>
+                    <input type="file" id="stockImage" accept="image/*" onchange="previewStockImage(this)">
+                    <div id="stockImagePreview" style="margin-top: 10px;"></div>
+                </div>
+                
+                <div class="form-group">
                     <label>Notes</label>
                     <textarea id="stockNotes" rows="2" placeholder="Additional notes..."></textarea>
                 </div>
@@ -183,15 +189,28 @@
             <div class="modal-header">Stock IN - Add Delivery</div>
             <div class="modal-body">
                 <div class="form-group">
+                    <label>Filter by Category</label>
+                    <select id="stockInCategoryFilter" onchange="filterStockInItems()">
+                        <option value="">All Categories</option>
+                        <option value="timber">Timber</option>
+                        <option value="hardware">Hardware</option>
+                        <option value="sheet">Sheet Materials</option>
+                        <option value="glass">Glass</option>
+                        <option value="paint">Paint/Finish</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
                     <label>Select Item *</label>
-                    <select id="stockInItem">
+                    <select id="stockInItem" onchange="onStockInItemChange()">
                         <option value="">Select stock item...</option>
                     </select>
                 </div>
                 
                 <div class="form-group">
                     <label>Quantity *</label>
-                    <input type="number" id="stockInQty" step="0.01" min="0" onchange="calculateStockInCost()">
+                    <input type="number" id="stockInQty" step="0.01" min="0" oninput="calculateStockInCost()">
                 </div>
                 
                 <div class="form-group">
@@ -386,6 +405,13 @@
                 <div class="form-group">
                     <label>Material Link (URL)</label>
                     <input type="url" id="editStockLink">
+                </div>
+                
+                <div class="form-group">
+                    <label>Material Image</label>
+                    <input type="file" id="editStockImage" accept="image/*" onchange="previewEditStockImage(this)">
+                    <div id="editStockImagePreview" style="margin-top: 10px;"></div>
+                    <input type="hidden" id="editStockImageUrl">
                 </div>
                 
                 <div class="form-group">
