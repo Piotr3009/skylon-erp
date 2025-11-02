@@ -44,12 +44,17 @@
 
 
         <!-- Toolbar -->
-        <div class="toolbar">
-            <button class="toolbar-btn primary" onclick="addProject()" id="addProjectBtn">+ Add Project</button>
-            <button class="toolbar-btn success" onclick="openMoveToArchiveModal()">📦 Move to Archive</button>
-            <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
-            <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
-            <button class="toolbar-btn" onclick="openPhaseManager()">⚙️ Manage Phases</button>
+        <div class="toolbar" style="display: flex; align-items: center;">
+            <div style="display: flex; gap: 10px;">
+                <button class="toolbar-btn primary" onclick="addProject()" id="addProjectBtn">+ Add Project</button>
+                <button class="toolbar-btn success" onclick="openMoveToArchiveModal()">📦 Move to Archive</button>
+                <button class="toolbar-btn" onclick="openPhaseManager()">⚙️ Manage Phases</button>
+            </div>
+            
+            <div style="position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 10px;">
+                <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
+                <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
+            </div>
         </div>
         
         <!-- Sort & Filter Bar -->
