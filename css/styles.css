@@ -3,7 +3,7 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-right: 35%;  /* Przesuń menu w lewo (bardziej na środek) */
+    margin-right: 10%;  /* Przesuń menu bardziej w prawo */
 }
 
 /* Pipeline button - delikatny niebieski */
@@ -137,6 +137,44 @@
 .nav-link-stock:hover {
     background: #27272a !important;
     border-color: #8b5cf6 !important;
+}
+
+/* Equipment button - pomarańczowy */
+.nav-link-equipment {
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #f97316 !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-equipment:hover {
+    background: #27272a !important;
+    border-color: #f97316 !important;
+}
+
+/* Suppliers button - żółty */
+.nav-link-suppliers {
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #eab308 !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-suppliers:hover {
+    background: #27272a !important;
+    border-color: #eab308 !important;
 }
 
 /* Zmniejszona wysokość headera */
