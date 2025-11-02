@@ -236,10 +236,6 @@ function createProjectCard(project) {
     const deadlineDate = project.deadline ? 
         new Date(project.deadline).toLocaleDateString('en-GB') : '-';
     
-    const gdLink = project.google_drive_url ? 
-        `<a href="${project.google_drive_url}" target="_blank" style="color: #4a9eff; text-decoration: none;">📁 Open Folder</a>` : 
-        '<span style="color: #666;">No GD Link</span>';
-    
     return `
         <div class="project-card ${reasonClass}">
             <div class="project-header-row">
@@ -259,6 +255,7 @@ function createProjectCard(project) {
                     </div>
                     <div style="margin-bottom: 10px;">Archived: ${archivedDate}</div>
                     <div style="display: flex; gap: 8px;">
+                        <button class="toolbar-btn" style="padding: 6px 12px; font-size: 12px;" onclick="openArchiveFilesModal('${project.project_number}')">📁 Files</button>
                         <button class="toolbar-btn" style="padding: 6px 12px; font-size: 12px;" onclick="openEditModal('${project.id}')">✏️ Edit</button>
                         <button class="toolbar-btn danger" style="padding: 6px 12px; font-size: 12px;" onclick="openDeleteModal('${project.id}')">🗑️ Delete</button>
                     </div>
@@ -281,11 +278,6 @@ function createProjectCard(project) {
                 <div class="detail-item">
                     <div class="detail-label">${project.source === 'production' ? 'Contract Value' : 'Estimated Value'}</div>
                     <div class="detail-value">£${(project.contract_value || 0).toLocaleString()}</div>
-                </div>
-                
-                <div class="detail-item">
-                    <div class="detail-label">Google Drive</div>
-                    <div class="detail-value">${gdLink}</div>
                 </div>
                 
                 ${timberWorker ? `
@@ -440,5 +432,155 @@ window.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal')) {
         closeEditModal();
         closeDeleteModal();
+        closeArchiveFilesModal();
     }
 });
+
+// ========== FILES FUNCTIONALITY ==========
+
+async function openArchiveFilesModal(projectNumber) {
+    document.getElementById('archiveFilesProjectNumber').textContent = projectNumber;
+    document.getElementById('archiveFilesModal').style.display = 'flex';
+    
+    await loadArchiveFiles(projectNumber);
+}
+
+function closeArchiveFilesModal() {
+    document.getElementById('archiveFilesModal').style.display = 'none';
+}
+
+async function loadArchiveFiles(projectNumber) {
+    const container = document.getElementById('archiveFilesContainer');
+    const noFiles = document.getElementById('archiveNoFiles');
+    
+    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Loading files...</div>';
+    
+    try {
+        const { data: files, error } = await supabaseClient
+            .from('archived_project_files')
+            .select('*')
+            .eq('project_number', projectNumber)
+            .order('uploaded_at', { ascending: false });
+        
+        if (error) {
+            console.error('Error loading archived files:', error);
+            container.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading files</div>';
+            return;
+        }
+        
+        if (!files || files.length === 0) {
+            container.style.display = 'none';
+            noFiles.style.display = 'block';
+            return;
+        }
+        
+        container.style.display = 'block';
+        noFiles.style.display = 'none';
+        
+        container.innerHTML = files.map(file => createArchiveFileCard(file)).join('');
+        
+    } catch (err) {
+        console.error('Error:', err);
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading files</div>';
+    }
+}
+
+function createArchiveFileCard(file) {
+    const fileIcon = getFileIcon(file.file_type);
+    const fileSize = formatFileSize(file.file_size);
+    const uploadDate = file.uploaded_at ? new Date(file.uploaded_at).toLocaleString('en-GB') : '-';
+    
+    return `
+        <div style="background: #252525; border: 1px solid #404040; border-radius: 8px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+            <div style="font-size: 32px;">${fileIcon}</div>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 4px;">${file.file_name}</div>
+                <div style="font-size: 12px; color: #999;">
+                    ${fileSize} • Uploaded: ${uploadDate}
+                    ${file.uploaded_by ? ` • By: ${file.uploaded_by}` : ''}
+                    ${file.folder_name ? ` • Folder: ${file.folder_name}` : ''}
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="toolbar-btn" onclick="previewArchiveFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" style="padding: 6px 12px; font-size: 12px;">
+                    👁️ Preview
+                </button>
+                <button class="toolbar-btn" onclick="downloadArchiveFile('${file.file_path}', '${file.file_name}')" style="padding: 6px 12px; font-size: 12px;">
+                    📥 Download
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function getFileIcon(fileType) {
+    if (!fileType) return '📄';
+    const type = fileType.toLowerCase();
+    if (type.includes('pdf')) return '📕';
+    if (type.includes('image') || type.includes('png') || type.includes('jpg') || type.includes('jpeg')) return '🖼️';
+    if (type.includes('word') || type.includes('doc')) return '📘';
+    if (type.includes('excel') || type.includes('sheet') || type.includes('csv')) return '📊';
+    if (type.includes('zip') || type.includes('rar')) return '🗜️';
+    return '📄';
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+async function previewArchiveFile(filePath, fileType, fileName) {
+    if (!filePath) {
+        alert('File path not available');
+        return;
+    }
+    
+    try {
+        // Get public URL from Supabase Storage
+        const { data } = supabaseClient.storage
+            .from('project-files')
+            .getPublicUrl(filePath);
+        
+        if (data && data.publicUrl) {
+            // Open preview in new window
+            if (fileType && (fileType.includes('image') || fileType.includes('pdf'))) {
+                window.open(data.publicUrl, '_blank');
+            } else {
+                // For other files, just download
+                downloadArchiveFile(filePath, fileName);
+            }
+        }
+    } catch (error) {
+        console.error('Error previewing file:', error);
+        alert('Error previewing file');
+    }
+}
+
+async function downloadArchiveFile(filePath, fileName) {
+    if (!filePath) {
+        alert('File path not available');
+        return;
+    }
+    
+    try {
+        // Get public URL and trigger download
+        const { data } = supabaseClient.storage
+            .from('project-files')
+            .getPublicUrl(filePath);
+        
+        if (data && data.publicUrl) {
+            const a = document.createElement('a');
+            a.href = data.publicUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        alert('Error downloading file');
+    }
+}

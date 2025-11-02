@@ -707,6 +707,49 @@ async function archiveAsFailed() {
             
             console.log('✅ Pipeline project archived to database');
             
+            // Skopiuj pliki z project_files do archived_project_files
+            const { data: projectFiles, error: fetchFilesError } = await supabaseClient
+                .from('project_files')
+                .select('*')
+                .eq('pipeline_project_id', pipelineProject.id);
+            
+            if (fetchFilesError) {
+                console.error('Error fetching project files:', fetchFilesError);
+            } else if (projectFiles && projectFiles.length > 0) {
+                // Przygotuj pliki do zapisu w archived_project_files
+                const archivedFiles = projectFiles.map(file => ({
+                    project_number: pipelineProject.projectNumber,
+                    file_name: file.file_name,
+                    file_path: file.file_path,
+                    file_size: file.file_size,
+                    file_type: file.file_type,
+                    folder_name: file.folder_name,
+                    uploaded_at: file.uploaded_at,
+                    uploaded_by: file.uploaded_by
+                }));
+                
+                // Zapisz do archived_project_files
+                const { error: archiveFilesError } = await supabaseClient
+                    .from('archived_project_files')
+                    .insert(archivedFiles);
+                
+                if (archiveFilesError) {
+                    console.error('Error archiving project files:', archiveFilesError);
+                } else {
+                    console.log(`✅ ${projectFiles.length} files copied to archived_project_files`);
+                }
+                
+                // Usuń pliki z project_files
+                const { error: deleteFilesError } = await supabaseClient
+                    .from('project_files')
+                    .delete()
+                    .eq('pipeline_project_id', pipelineProject.id);
+                
+                if (deleteFilesError) {
+                    console.error('Error deleting project files:', deleteFilesError);
+                }
+            }
+            
             // Usuń projekt z tabeli pipeline_projects
             const { error: deleteError } = await supabaseClient
                 .from('pipeline_projects')
@@ -791,6 +834,49 @@ async function archiveAsCanceled() {
             }
             
             console.log('✅ Pipeline project archived as canceled');
+            
+            // Skopiuj pliki z project_files do archived_project_files
+            const { data: projectFiles, error: fetchFilesError } = await supabaseClient
+                .from('project_files')
+                .select('*')
+                .eq('pipeline_project_id', pipelineProject.id);
+            
+            if (fetchFilesError) {
+                console.error('Error fetching project files:', fetchFilesError);
+            } else if (projectFiles && projectFiles.length > 0) {
+                // Przygotuj pliki do zapisu w archived_project_files
+                const archivedFiles = projectFiles.map(file => ({
+                    project_number: pipelineProject.projectNumber,
+                    file_name: file.file_name,
+                    file_path: file.file_path,
+                    file_size: file.file_size,
+                    file_type: file.file_type,
+                    folder_name: file.folder_name,
+                    uploaded_at: file.uploaded_at,
+                    uploaded_by: file.uploaded_by
+                }));
+                
+                // Zapisz do archived_project_files
+                const { error: archiveFilesError } = await supabaseClient
+                    .from('archived_project_files')
+                    .insert(archivedFiles);
+                
+                if (archiveFilesError) {
+                    console.error('Error archiving project files:', archiveFilesError);
+                } else {
+                    console.log(`✅ ${projectFiles.length} files copied to archived_project_files`);
+                }
+                
+                // Usuń pliki z project_files
+                const { error: deleteFilesError } = await supabaseClient
+                    .from('project_files')
+                    .delete()
+                    .eq('pipeline_project_id', pipelineProject.id);
+                
+                if (deleteFilesError) {
+                    console.error('Error deleting project files:', deleteFilesError);
+                }
+            }
             
             // Usuń projekt z tabeli pipeline_projects
             const { error: deleteError } = await supabaseClient
