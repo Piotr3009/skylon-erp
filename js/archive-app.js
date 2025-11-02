@@ -541,7 +541,7 @@ async function previewArchiveFile(filePath, fileType, fileName) {
     try {
         // Get public URL from Supabase Storage
         const { data } = supabaseClient.storage
-            .from('project-files')
+            .from('project-documents')
             .getPublicUrl(filePath);
         
         if (data && data.publicUrl) {
@@ -568,7 +568,7 @@ async function downloadArchiveFile(filePath, fileName) {
     try {
         // Get public URL and trigger download
         const { data } = supabaseClient.storage
-            .from('project-files')
+            .from('project-documents')
             .getPublicUrl(filePath);
         
         if (data && data.publicUrl) {
