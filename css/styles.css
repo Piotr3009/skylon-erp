@@ -3,6 +3,7 @@
     display: flex;
     gap: 8px;
     align-items: center;
+    margin-right: 35%;  /* Przesuń menu w lewo (bardziej na środek) */
 }
 
 /* Pipeline button - delikatny niebieski */
@@ -274,7 +275,7 @@ body.pipeline-theme .project-column-divider {
     padding: 11px 18px;
     border-bottom: 1px solid #3e3e42;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
     transition: all 0.3s;
 }
