@@ -103,7 +103,6 @@ function exportPipelineJSON() {
         failedArchive,
         pipelinePhases,
         teamMembers,
-        daysOff,
         lastPipelineNumber,
         exportDate: new Date().toISOString()
     };
@@ -173,7 +172,6 @@ function importPipelineJSON() {
                     pipelinePhases = { ...pipelinePhases, ...data.pipelinePhases };
                 }
                 teamMembers = data.teamMembers || teamMembers;
-                daysOff = data.daysOff || daysOff;
                 lastPipelineNumber = data.lastPipelineNumber || 0;
                 
                 // Migrate old projects

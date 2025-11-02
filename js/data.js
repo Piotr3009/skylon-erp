@@ -166,7 +166,6 @@ const sprayMaterialsList = [
 ];
 
 let teamMembers = [];
-let daysOff = [];
 
 let visibleStartDate = new Date();
 visibleStartDate.setDate(visibleStartDate.getDate() - 7); // Start tydzień wcześniej
@@ -819,7 +818,6 @@ function exportJSON() {
         projects,
         phases,
         teamMembers,
-        daysOff,
         lastProjectNumber,
         exportDate: new Date().toISOString()
     };
@@ -892,7 +890,6 @@ function importJSON() {
                 projects = data.projects || [];
                 phases = data.phases || phases;
                 teamMembers = data.teamMembers || [];
-                daysOff = data.daysOff || data.sickDays || [];
                 lastProjectNumber = data.lastProjectNumber || 0;
                 
                 projects.forEach(project => {

@@ -295,14 +295,6 @@ function renderProjects() {
                 const rawEnd = dUTC(computeEnd(phase));
                 let endAdj = rawEnd;
                 
-                const teamMember = phase.assignedTo ? teamMembers.find(m => m.id === phase.assignedTo) : null;
-                if (teamMember) {
-                    const daysOffCount = countDaysOffBetween(teamMember.name, start, rawEnd);
-                    if (daysOffCount > 0) {
-                        endAdj = addDaysUTC(rawEnd, daysOffCount);
-                    }
-                }
-                
                 phase.adjustedEnd = formatDate(endAdj);
             });
             
@@ -537,10 +529,6 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     container.dataset.projectIndex = projectIndex;
     container.dataset.phaseIndex = phaseIndex;
     
-    if (teamMember) {
-        renderDaysOffOnBar(container, teamMember.name, start, adjustedEnd);
-    }
-    
     const endDateStr = phase.adjustedEnd || formatDate(adjustedEnd);
     let tooltipText = `${phaseConfig.name}: ${phase.start} to ${endDateStr} (${displayDays} work days)`;
     tooltipText += `\nStatus: ${status.name}`;
@@ -574,31 +562,6 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     };
     
     return container;
-}
-
-function renderDaysOffOnBar(bar, memberName, startDate, endDate) {
-    const markersContainer = document.createElement('div');
-    markersContainer.className = 'days-off-markers';
-    
-    daysOff.forEach(dayOff => {
-        if (dayOff.member !== memberName) return;
-        
-        const offDate = new Date(dayOff.date);
-        if (offDate >= startDate && offDate <= endDate) {
-            const daysDiff = Math.round((offDate - startDate) / (1000 * 60 * 60 * 24));
-            const xPosition = daysDiff * dayWidth;
-            
-            const marker = document.createElement('div');
-            marker.className = 'day-off-x';
-            marker.style.left = xPosition + 'px';
-            marker.innerHTML = '✕';
-            marker.title = `${memberName} - Day off ${dayOff.date}`;
-            
-            markersContainer.appendChild(marker);
-        }
-    });
-    
-    bar.appendChild(markersContainer);
 }
 
 function renderTodayLine() {

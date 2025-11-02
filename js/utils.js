@@ -62,15 +62,6 @@ function zoomReset() {
     renderUniversal();
 }
 
-// Count days off between dates for a specific member (BEZ pomijania niedziel)
-function countDaysOffBetween(memberName, startDate, endDate) {
-    return daysOff.filter(dayOff => {
-        if (dayOff.member !== memberName) return false;
-        const offDate = new Date(dayOff.date);
-        return offDate >= startDate && offDate <= endDate;
-    }).length;
-}
-
 // Calculate ALL calendar days between dates (BEZ pomijania niedziel)
 function calculateWorkDays(startDate, endDate) {
     const days = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
@@ -99,19 +90,6 @@ function addWorkDays(startDate, days) {
 // Calculate calendar days (BEZ pomijania niedziel)
 function calculateCalendarDaysForWorkDays(startDate, workDays) {
     return workDays; // Prosto zwracamy tę samą liczbę
-}
-
-// Adjust end date for team member days off (BEZ pomijania niedziel)
-function adjustEndDateForDaysOff(startDate, endDate, memberName) {
-    let adjustedEnd = new Date(endDate);
-    const daysOffCount = countDaysOffBetween(memberName, startDate, endDate);
-    
-    if (daysOffCount > 0) {
-        // Dodajemy dni wolne bezpośrednio
-        adjustedEnd.setDate(adjustedEnd.getDate() + daysOffCount);
-    }
-    
-    return adjustedEnd;
 }
 
 // Na samym końcu utils.js

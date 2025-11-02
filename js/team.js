@@ -59,9 +59,6 @@ function removeTeamMember(index) {
             }
         });
         
-        // Remove days off for this member
-        daysOff = daysOff.filter(d => d.member !== member.name);
-        
         saveDataQueued();
         updateTeamMembersList();
         render();
