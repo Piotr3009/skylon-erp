@@ -714,13 +714,14 @@ async function openProductionProjectNotes(index) {
         try {
             const { data, error } = await supabaseClient
                 .from('projects')
-                .select('notes')
+                .select('notes, pdf_url')
                 .eq('project_number', project.projectNumber)
                 .single();
             
             if (!error && data) {
                 currentNotes = data.notes || '';
-                project.notes = currentNotes; // Aktualizuj lokalnie
+                project.notes = currentNotes;
+                project.pdf_url = data.pdf_url; // Pobierz też pdf_url
             }
         } catch (err) {
             console.warn('Could not fetch notes from database:', err);
@@ -753,6 +754,10 @@ async function openProductionProjectNotes(index) {
             </div>
             <div class="modal-footer">
                 <button class="modal-btn" onclick="closeProductionProjectNotes()">Cancel</button>
+                ${project.pdf_url ? 
+                    `<button class="modal-btn" onclick="window.open('${project.pdf_url}', '_blank')" style="background: #4a90e2;">📄 Open PDF</button>` : ''
+                }
+                <button class="modal-btn success" onclick="exportProductionProjectNotesPDF(${index})">📥 Export PDF</button>
                 <button class="modal-btn primary" onclick="saveProductionProjectNotes(${index})">Save</button>
             </div>
         </div>
@@ -804,4 +809,154 @@ async function saveProductionProjectNotes(index) {
     saveDataQueued();
     render();
     closeProductionProjectNotes();
+}
+
+async function exportProductionProjectNotesPDF(index) {
+    const project = projects[index];
+    if (!project) return;
+    
+    const notes = document.getElementById('productionProjectNotesText').value.trim();
+    
+    if (!notes) {
+        alert('No notes to export. Please add some notes first.');
+        return;
+    }
+    
+    // Access jsPDF from global scope
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // PDF Settings
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (2 * margin);
+    
+    // Logo placeholder (rectangle)
+    doc.setDrawColor(150);
+    doc.setLineWidth(1);
+    doc.rect(margin, margin, 30, 30);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('LOGO', margin + 15, margin + 17, { align: 'center' });
+    
+    // Header - Project Info
+    doc.setFontSize(20);
+    doc.setTextColor(0);
+    doc.setFont(undefined, 'bold');
+    doc.text('Project Notes', margin + 40, margin + 10);
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(100);
+    doc.text(`${project.projectNumber} - ${project.name}`, margin + 40, margin + 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, margin + 40, margin + 28);
+    
+    // Line separator
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(margin, margin + 35, pageWidth - margin, margin + 35);
+    
+    // Notes content
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+    doc.setFont(undefined, 'normal');
+    
+    const splitNotes = doc.splitTextToSize(notes, contentWidth);
+    let yPosition = margin + 45;
+    
+    splitNotes.forEach((line) => {
+        if (yPosition > pageHeight - margin) {
+            doc.addPage();
+            yPosition = margin;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += 7;
+    });
+    
+    // Generate PDF as blob
+    const pdfBlob = doc.output('blob');
+    
+    // Generate filename
+    const filename = `${project.projectNumber.replace(/\//g, '-')}-notes.pdf`;
+    
+    // Helper function for local download
+    function downloadLocally() {
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert('PDF downloaded locally!');
+    }
+    
+    // Upload to Supabase Storage
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const filePath = `production/${filename}`;
+            
+            console.log('📤 Uploading PDF to Storage...');
+            
+            // Upload file
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                .from('project-documents')
+                .upload(filePath, pdfBlob, {
+                    contentType: 'application/pdf',
+                    upsert: true
+                });
+            
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                alert('Error uploading PDF. Downloading locally instead.');
+                downloadLocally();
+                return;
+            }
+            
+            console.log('✅ PDF uploaded successfully');
+            
+            // Get public URL
+            const { data: urlData } = supabaseClient.storage
+                .from('project-documents')
+                .getPublicUrl(filePath);
+            
+            const pdfUrl = urlData.publicUrl;
+            
+            // Save URL to database
+            const { error: updateError } = await supabaseClient
+                .from('projects')
+                .update({ pdf_url: pdfUrl })
+                .eq('project_number', project.projectNumber);
+            
+            if (updateError) {
+                console.error('Error updating PDF URL:', updateError);
+            }
+            
+            project.pdf_url = pdfUrl;
+            
+            console.log('✅ PDF URL saved to database');
+            
+            // Re-render to show "Open PDF" button
+            render();
+            
+            alert('PDF generated and saved successfully!\n\nYou can now access it anytime using the "Open PDF" button.');
+            
+            // Refresh modal to show Open PDF button
+            closeProductionProjectNotes();
+            openProductionProjectNotes(index);
+            
+        } catch (err) {
+            console.error('Storage error:', err);
+            alert('Error uploading to storage. Downloading locally instead.');
+            downloadLocally();
+        }
+    } else {
+        // No Supabase - download locally
+        downloadLocally();
+    }
 }
