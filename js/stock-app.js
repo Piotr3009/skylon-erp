@@ -690,6 +690,8 @@ async function updateStockItem() {
     const supplierId = document.getElementById('editStockSupplier').value || null;
     const link = document.getElementById('editStockLink').value.trim();
     const notes = document.getElementById('editStockNotes').value.trim();
+    const imageFile = document.getElementById('editStockImage').files[0];
+    const currentImageUrl = document.getElementById('editStockImageUrl').value;
     
     if (!name) {
         alert('Please enter item name');
@@ -697,6 +699,14 @@ async function updateStockItem() {
     }
     
     try {
+        const item = stockItems.find(i => i.id === id);
+        
+        // Upload new image if provided
+        let imageUrl = currentImageUrl; // Keep existing if no new upload
+        if (imageFile) {
+            imageUrl = await uploadStockImage(imageFile, item.item_number);
+        }
+        
         const { error } = await supabaseClient
             .from('stock_items')
             .update({
@@ -710,6 +720,7 @@ async function updateStockItem() {
                 cost_per_unit: cost,
                 supplier_id: supplierId,
                 material_link: link || null,
+                image_url: imageUrl,
                 notes: notes || null
             })
             .eq('id', id);
