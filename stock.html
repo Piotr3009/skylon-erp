@@ -39,7 +39,7 @@
             <button class="toolbar-btn danger" onclick="openStockOutModal()">📤 Stock OUT</button>
             <button class="toolbar-btn" onclick="refreshStock()">🔄 Refresh</button>
             
-            <div style="margin-left: auto; display: flex; gap: 10px;">
+            <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
                 <select id="categoryFilter" onchange="filterStock()" style="padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
                     <option value="">All Categories</option>
                     <option value="timber">Timber</option>
@@ -52,6 +52,7 @@
                         <option value="consumables">Consumables</option>
                         <option value="other">Other</option>
                 </select>
+                <button class="toolbar-btn" onclick="openManageCategoriesModal()" style="font-size: 12px;">⚙️ Manage Categories</button>
             </div>
         </div>
 
@@ -473,6 +474,75 @@
                 <button class="modal-btn danger" onclick="deleteStockItem()" style="margin-right: auto;">Delete</button>
                 <button class="modal-btn" onclick="closeModal('editStockModal')">Cancel</button>
                 <button class="modal-btn primary" onclick="updateStockItem()">Update</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Categories Modal -->
+    <div class="modal" id="manageCategoriesModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Manage Categories & Subcategories</h2>
+                <button class="close-btn" onclick="closeModal('manageCategoriesModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <button class="modal-btn primary" onclick="openAddCategoryModal()">+ Add Category</button>
+                    <button class="modal-btn" onclick="openAddSubcategoryModal()">+ Add Subcategory</button>
+                </div>
+                
+                <div id="categoriesList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Categories będą tutaj ładowane dynamicznie -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('manageCategoriesModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div class="modal" id="addCategoryModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Add Category</h2>
+                <button class="close-btn" onclick="closeModal('addCategoryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Category Name *</label>
+                    <input type="text" id="newCategoryName" placeholder="e.g. Timber, Hardware...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('addCategoryModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveNewCategory()">Add Category</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Subcategory Modal -->
+    <div class="modal" id="addSubcategoryModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Add Subcategory</h2>
+                <button class="close-btn" onclick="closeModal('addSubcategoryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Parent Category *</label>
+                    <select id="subcategoryParent">
+                        <option value="">-- Select category --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subcategory Name *</label>
+                    <input type="text" id="newSubcategoryName" placeholder="e.g. Hinges, Locks...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('addSubcategoryModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveNewSubcategory()">Add Subcategory</button>
             </div>
         </div>
     </div>
