@@ -453,10 +453,10 @@ function openStockOutModal(itemId = null) {
         projectSelect.appendChild(option);
     });
     
-    // Populate workers (admin only)
+    // Populate workers (Admin or Management)
     const workerSelect = document.getElementById('stockOutWorker');
     workerSelect.innerHTML = '<option value="">-- Select worker --</option>';
-    teamMembers.filter(w => w.type === 'Admin').forEach(worker => {
+    teamMembers.filter(w => w.type === 'Admin' || w.type === 'Management').forEach(worker => {
         const option = document.createElement('option');
         option.value = worker.id;
         option.textContent = worker.name;
