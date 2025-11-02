@@ -255,8 +255,26 @@ function openStockInModal(itemId = null) {
     // Reset category filter
     document.getElementById('stockInCategoryFilter').value = '';
     
+    // Populate suppliers
+    const supplierSelect = document.getElementById('stockInSupplier');
+    supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
+    suppliers.forEach(sup => {
+        const option = document.createElement('option');
+        option.value = sup.id;
+        option.textContent = sup.name;
+        supplierSelect.appendChild(option);
+    });
+    
     // Populate all items initially
     populateStockInItems(stockItems, itemId);
+    
+    // If itemId provided, preselect default supplier
+    if (itemId) {
+        const item = stockItems.find(i => i.id === itemId);
+        if (item && item.supplier_id) {
+            supplierSelect.value = item.supplier_id;
+        }
+    }
     
     document.getElementById('stockInQty').value = '';
     document.getElementById('stockInCostPerUnit').value = '';
@@ -461,13 +479,19 @@ async function saveStockItem() {
 // Save stock IN
 async function saveStockIn() {
     const itemId = document.getElementById('stockInItem').value;
+    const supplierId = document.getElementById('stockInSupplier').value;
     const qty = parseFloat(document.getElementById('stockInQty').value);
+    const costPerUnit = parseFloat(document.getElementById('stockInCostPerUnit').value);
     const invoice = document.getElementById('stockInInvoice').value.trim();
-    const cost = parseFloat(document.getElementById('stockInCost').value) || 0;
     const notes = document.getElementById('stockInNotes').value.trim();
     
     if (!itemId) {
         alert('Please select an item');
+        return;
+    }
+    
+    if (!supplierId) {
+        alert('Please select a supplier');
         return;
     }
     
@@ -476,33 +500,53 @@ async function saveStockIn() {
         return;
     }
     
+    if (!costPerUnit || costPerUnit <= 0) {
+        alert('Please enter cost per unit');
+        return;
+    }
+    
     try {
         const item = stockItems.find(i => i.id === itemId);
+        const totalCost = qty * costPerUnit;
         
-        // Create transaction
+        // Calculate weighted average
+        const oldQty = item.current_quantity || 0;
+        const oldCost = item.cost_per_unit || 0;
+        const newQty = oldQty + qty;
+        const newAvgCost = ((oldQty * oldCost) + (qty * costPerUnit)) / newQty;
+        
+        console.log('📊 Weighted Average Calculation:');
+        console.log('Old:', oldQty, 'units @', oldCost);
+        console.log('New:', qty, 'units @', costPerUnit);
+        console.log('Result:', newQty, 'units @', newAvgCost.toFixed(2));
+        
+        // Create transaction with supplier
         const { error: txError } = await supabaseClient
             .from('stock_transactions')
             .insert([{
                 stock_item_id: itemId,
                 type: 'IN',
                 quantity: qty,
+                supplier_id: supplierId,
                 invoice_number: invoice || null,
-                cost: cost,
+                cost: totalCost,
                 notes: notes || null
             }]);
         
         if (txError) throw txError;
         
-        // Update stock quantity
-        const newQty = (item.current_quantity || 0) + qty;
+        // Update stock quantity AND weighted average cost
         const { error: updateError } = await supabaseClient
             .from('stock_items')
-            .update({ current_quantity: newQty })
+            .update({ 
+                current_quantity: newQty,
+                cost_per_unit: newAvgCost
+            })
             .eq('id', itemId);
         
         if (updateError) throw updateError;
         
-        console.log('✅ Stock IN recorded');
+        console.log('✅ Stock IN recorded with supplier');
         closeModal('stockInModal');
         await loadStockItems();
         
