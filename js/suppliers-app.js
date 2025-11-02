@@ -64,6 +64,15 @@ function renderSuppliersTable() {
 
 // Create supplier row
 function createSupplierRow(supplier) {
+    // Fix website URL - ensure it has protocol
+    let websiteUrl = supplier.website;
+    if (websiteUrl) {
+        // If doesn't start with http:// or https://, add https://
+        if (!/^https?:\/\//i.test(websiteUrl)) {
+            websiteUrl = 'https://' + websiteUrl;
+        }
+    }
+    
     return `
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">
@@ -80,7 +89,7 @@ function createSupplierRow(supplier) {
                 ${supplier.phone || '-'}
             </td>
             <td style="padding: 12px;">
-                ${supplier.website ? `<a href="${supplier.website}" target="_blank" style="color: #2196F3; text-decoration: none;">🔗 Visit</a>` : '-'}
+                ${websiteUrl ? `<a href="${websiteUrl}" target="_blank" rel="noopener noreferrer" style="color: #2196F3; text-decoration: none;">🔗 Visit</a>` : '-'}
             </td>
             <td style="padding: 12px; text-align: center;">
                 <button onclick="editSupplier('${supplier.id}')" class="toolbar-btn" style="padding: 6px 12px; font-size: 11px;">✏️ Edit</button>
