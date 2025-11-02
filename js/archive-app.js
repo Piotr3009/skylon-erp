@@ -87,6 +87,10 @@ async function loadArchivedProjects() {
         if (error) throw error;
         
         archivedProjects = data || [];
+        
+        // Load file sizes for each project
+        await loadProjectFileSizes();
+        
         filteredProjects = [...archivedProjects];
         
         console.log('✅ Loaded', archivedProjects.length, 'archived projects');
@@ -101,6 +105,42 @@ async function loadArchivedProjects() {
         console.error('Error loading archived projects:', err);
         archivedProjects = [];
         filteredProjects = [];
+    }
+}
+
+// Load file sizes for all projects
+async function loadProjectFileSizes() {
+    try {
+        // Get all files with their sizes
+        const { data: allFiles, error } = await supabaseClient
+            .from('archived_project_files')
+            .select('project_number, file_size');
+        
+        if (error) {
+            console.error('Error loading file sizes:', error);
+            return;
+        }
+        
+        // Calculate total size per project
+        const sizesByProject = {};
+        if (allFiles) {
+            allFiles.forEach(file => {
+                if (!sizesByProject[file.project_number]) {
+                    sizesByProject[file.project_number] = 0;
+                }
+                sizesByProject[file.project_number] += file.file_size || 0;
+            });
+        }
+        
+        // Add storage_size to each project
+        archivedProjects.forEach(project => {
+            project.storage_size = sizesByProject[project.project_number] || 0;
+        });
+        
+        console.log('✅ Loaded file sizes for projects');
+        
+    } catch (err) {
+        console.error('Error calculating file sizes:', err);
     }
 }
 
@@ -278,6 +318,11 @@ function createProjectCard(project) {
                 <div class="detail-item">
                     <div class="detail-label">${project.source === 'production' ? 'Contract Value' : 'Estimated Value'}</div>
                     <div class="detail-value">£${(project.contract_value || 0).toLocaleString()}</div>
+                </div>
+                
+                <div class="detail-item">
+                    <div class="detail-label">Storage Used</div>
+                    <div class="detail-value">${formatFileSize(project.storage_size || 0)}</div>
                 </div>
                 
                 ${timberWorker ? `
