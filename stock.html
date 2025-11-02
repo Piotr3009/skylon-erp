@@ -28,6 +28,7 @@
                 <a href="team.html" class="nav-link nav-link-team">🧑‍🤝‍🧑 Team Management</a>
                 <a href="clients.html" class="nav-link nav-link-clients">👤 Clients</a>
                 <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
+                <a href="suppliers.html" class="nav-link nav-link-stock">🚚 Suppliers</a>
             </div>
         </div>
 
@@ -287,6 +288,95 @@
             <div class="modal-footer">
                 <button class="modal-btn" onclick="closeModal('addSupplierModal')">Cancel</button>
                 <button class="modal-btn primary" onclick="saveSupplier()">Save Supplier</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Stock Item Modal -->
+    <div class="modal" id="editStockModal">
+        <div class="modal-content">
+            <div class="modal-header">Edit Stock Item</div>
+            <div class="modal-body">
+                <input type="hidden" id="editStockId">
+                
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" id="editStockName">
+                </div>
+                
+                <div class="form-group">
+                    <label>Size/Dimensions</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="editStockSize" style="flex: 1;">
+                        <select id="editStockSizeUnit" style="width: 120px;">
+                            <option value="mm">mm</option>
+                            <option value="mm×mm">mm×mm</option>
+                            <option value="inch">inch</option>
+                            <option value="inch×inch">inch×inch</option>
+                            <option value="m">m</option>
+                            <option value="kg">kg</option>
+                            <option value="ml">ml</option>
+                            <option value="litres">litres</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Category *</label>
+                    <select id="editStockCategory">
+                        <option value="timber">Timber</option>
+                        <option value="hardware">Hardware</option>
+                        <option value="sheet">Sheet Materials</option>
+                        <option value="glass">Glass</option>
+                        <option value="paint">Paint/Finish</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Unit *</label>
+                    <select id="editStockUnit">
+                        <option value="pcs">Pieces (pcs)</option>
+                        <option value="m">Meters (m)</option>
+                        <option value="m2">Square Meters (m²)</option>
+                        <option value="m3">Cubic Meters (m³)</option>
+                        <option value="sheets">Sheets</option>
+                        <option value="litres">Litres</option>
+                        <option value="kg">Kilograms (kg)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Minimum Stock Level *</label>
+                    <input type="number" id="editStockMinQty" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label>Cost per Unit (£)</label>
+                    <input type="number" id="editStockCost" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label>Supplier</label>
+                    <select id="editStockSupplier">
+                        <option value="">-- Select supplier --</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Material Link (URL)</label>
+                    <input type="url" id="editStockLink">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="editStockNotes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn danger" onclick="deleteStockItem()" style="margin-right: auto;">Delete</button>
+                <button class="modal-btn" onclick="closeModal('editStockModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="updateStockItem()">Update</button>
             </div>
         </div>
     </div>

@@ -469,7 +469,122 @@ async function saveStockOut() {
 }
 
 function editStockItem(itemId) {
-    alert('Edit Modal - Coming in next commit (5 min)');
+    const item = stockItems.find(i => i.id === itemId);
+    if (!item) {
+        alert('Item not found');
+        return;
+    }
+    
+    document.getElementById('editStockId').value = item.id;
+    document.getElementById('editStockName').value = item.name || '';
+    
+    // Parse size (e.g. "63x120mm" -> "63x120" + "mm")
+    if (item.size) {
+        const sizeMatch = item.size.match(/^(.+?)(mm×mm|mm|inch×inch|inch|m|kg|ml|litres)$/);
+        if (sizeMatch) {
+            document.getElementById('editStockSize').value = sizeMatch[1];
+            document.getElementById('editStockSizeUnit').value = sizeMatch[2];
+        } else {
+            document.getElementById('editStockSize').value = item.size;
+            document.getElementById('editStockSizeUnit').value = 'mm';
+        }
+    } else {
+        document.getElementById('editStockSize').value = '';
+        document.getElementById('editStockSizeUnit').value = 'mm';
+    }
+    
+    document.getElementById('editStockCategory').value = item.category || 'timber';
+    document.getElementById('editStockUnit').value = item.unit || 'pcs';
+    document.getElementById('editStockMinQty').value = item.min_quantity || 0;
+    document.getElementById('editStockCost').value = item.cost_per_unit || 0;
+    document.getElementById('editStockLink').value = item.material_link || '';
+    document.getElementById('editStockNotes').value = item.notes || '';
+    
+    // Populate suppliers dropdown
+    const supplierSelect = document.getElementById('editStockSupplier');
+    supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
+    suppliers.forEach(sup => {
+        const option = document.createElement('option');
+        option.value = sup.id;
+        option.textContent = sup.name;
+        if (item.supplier_id === sup.id) option.selected = true;
+        supplierSelect.appendChild(option);
+    });
+    
+    document.getElementById('editStockModal').classList.add('active');
+}
+
+async function updateStockItem() {
+    const id = document.getElementById('editStockId').value;
+    const name = document.getElementById('editStockName').value.trim();
+    const sizeValue = document.getElementById('editStockSize').value.trim();
+    const sizeUnit = document.getElementById('editStockSizeUnit').value;
+    const size = sizeValue ? `${sizeValue}${sizeUnit}` : null;
+    const category = document.getElementById('editStockCategory').value;
+    const unit = document.getElementById('editStockUnit').value;
+    const minQty = parseFloat(document.getElementById('editStockMinQty').value) || 0;
+    const cost = parseFloat(document.getElementById('editStockCost').value) || 0;
+    const supplierId = document.getElementById('editStockSupplier').value || null;
+    const link = document.getElementById('editStockLink').value.trim();
+    const notes = document.getElementById('editStockNotes').value.trim();
+    
+    if (!name) {
+        alert('Please enter item name');
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('stock_items')
+            .update({
+                name,
+                size,
+                category,
+                unit,
+                min_quantity: minQty,
+                cost_per_unit: cost,
+                supplier_id: supplierId,
+                material_link: link || null,
+                notes: notes || null
+            })
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Stock item updated');
+        closeModal('editStockModal');
+        await loadStockItems();
+        
+    } catch (err) {
+        console.error('Error updating stock item:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+async function deleteStockItem() {
+    const id = document.getElementById('editStockId').value;
+    const item = stockItems.find(i => i.id === id);
+    
+    if (!confirm(`Delete "${item.name}"?\n\nThis will also delete all transaction history for this item.`)) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('stock_items')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Stock item deleted');
+        closeModal('editStockModal');
+        await loadStockItems();
+        
+    } catch (err) {
+        console.error('Error deleting stock item:', err);
+        alert('Error: ' + err.message);
+    }
 }
 
 // ========== SUPPLIER MANAGEMENT ==========
