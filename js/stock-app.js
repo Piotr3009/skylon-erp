@@ -5,6 +5,59 @@ let filteredItems = [];
 let suppliers = [];
 let projects = [];
 
+// Subcategory mapping
+const subcategories = {
+    doors: ['Hinges', 'Locks', 'Handles', 'Seals', 'Other'],
+    windows: ['Lead', 'Rope', 'Seals', 'Beads', 'Other'],
+    consumables: ['Glue', 'Screws', 'Dowels', 'Biscuits', 'Tape', 'Other'],
+    timber: [],
+    hardware: [],
+    sheet: [],
+    glass: [],
+    paint: [],
+    other: []
+};
+
+// Update subcategory dropdown based on category
+function updateSubcategoryOptions() {
+    const category = document.getElementById('stockCategory').value;
+    const subcategorySelect = document.getElementById('stockSubcategory');
+    
+    subcategorySelect.innerHTML = '<option value="">-- Select subcategory --</option>';
+    
+    if (subcategories[category] && subcategories[category].length > 0) {
+        subcategories[category].forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub.toLowerCase();
+            option.textContent = sub;
+            subcategorySelect.appendChild(option);
+        });
+        subcategorySelect.disabled = false;
+    } else {
+        subcategorySelect.disabled = true;
+    }
+}
+
+// Update subcategory dropdown for edit modal
+function updateEditSubcategoryOptions() {
+    const category = document.getElementById('editStockCategory').value;
+    const subcategorySelect = document.getElementById('editStockSubcategory');
+    
+    subcategorySelect.innerHTML = '<option value="">-- Select subcategory --</option>';
+    
+    if (subcategories[category] && subcategories[category].length > 0) {
+        subcategories[category].forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub.toLowerCase();
+            option.textContent = sub;
+            subcategorySelect.appendChild(option);
+        });
+        subcategorySelect.disabled = false;
+    } else {
+        subcategorySelect.disabled = true;
+    }
+}
+
 // Initialize
 window.addEventListener('DOMContentLoaded', async () => {
     await loadSuppliers();
@@ -420,6 +473,7 @@ async function saveStockItem() {
     const thickness = document.getElementById('stockThickness').value.trim();
     const color = document.getElementById('stockColor').value.trim();
     const category = document.getElementById('stockCategory').value;
+    const subcategory = document.getElementById('stockSubcategory').value || null;
     const unit = document.getElementById('stockUnit').value;
     const minQty = parseFloat(document.getElementById('stockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('stockCost').value) || 0;
@@ -466,6 +520,7 @@ async function saveStockItem() {
                 thickness: thickness || null,
                 color: color || null,
                 category,
+                subcategory: subcategory,
                 unit,
                 current_quantity: 0,
                 min_quantity: minQty,
@@ -659,6 +714,11 @@ function editStockItem(itemId) {
     document.getElementById('editStockThickness').value = item.thickness || '';
     document.getElementById('editStockColor').value = item.color || '';
     document.getElementById('editStockCategory').value = item.category || 'timber';
+    
+    // Update subcategory options and set value
+    updateEditSubcategoryOptions();
+    document.getElementById('editStockSubcategory').value = item.subcategory || '';
+    
     document.getElementById('editStockUnit').value = item.unit || 'pcs';
     document.getElementById('editStockMinQty').value = item.min_quantity || 0;
     document.getElementById('editStockCost').value = item.cost_per_unit || 0;
@@ -697,6 +757,7 @@ async function updateStockItem() {
     const thickness = document.getElementById('editStockThickness').value.trim();
     const color = document.getElementById('editStockColor').value.trim();
     const category = document.getElementById('editStockCategory').value;
+    const subcategory = document.getElementById('editStockSubcategory').value || null;
     const unit = document.getElementById('editStockUnit').value;
     const minQty = parseFloat(document.getElementById('editStockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('editStockCost').value) || 0;
@@ -728,6 +789,7 @@ async function updateStockItem() {
                 thickness: thickness || null,
                 color: color || null,
                 category,
+                subcategory: subcategory,
                 unit,
                 min_quantity: minQty,
                 cost_per_unit: cost,
