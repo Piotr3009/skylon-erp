@@ -209,14 +209,22 @@
                 </div>
                 
                 <div class="form-group">
+                    <label>Supplier *</label>
+                    <select id="stockInSupplier">
+                        <option value="">-- Select supplier --</option>
+                    </select>
+                    <div style="font-size: 11px; color: #999; margin-top: 3px;">Who is delivering this material?</div>
+                </div>
+                
+                <div class="form-group">
                     <label>Quantity *</label>
                     <input type="number" id="stockInQty" step="0.01" min="0" oninput="calculateStockInCost()">
                 </div>
                 
                 <div class="form-group">
-                    <label>Cost per Unit (£)</label>
-                    <input type="number" id="stockInCostPerUnit" step="0.01" min="0" readonly style="background: #252526;">
-                    <div style="font-size: 11px; color: #999; margin-top: 3px;">From item record</div>
+                    <label>Cost per Unit (£) *</label>
+                    <input type="number" id="stockInCostPerUnit" step="0.01" min="0" oninput="calculateStockInCost()">
+                    <div style="font-size: 11px; color: #999; margin-top: 3px;">Default from item, can be changed for this delivery</div>
                 </div>
                 
                 <div class="form-group">
