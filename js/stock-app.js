@@ -1019,3 +1019,189 @@ async function saveSupplier() {
         alert('Error saving supplier: ' + err.message);
     }
 }
+
+// ========== CATEGORIES MANAGEMENT ==========
+
+let stockCategories = [];
+
+// Load categories from database
+async function loadStockCategories() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('stock_categories')
+            .select('*')
+            .order('display_order');
+        
+        if (error) throw error;
+        
+        stockCategories = data || [];
+        console.log('✅ Loaded', stockCategories.length, 'stock categories');
+        
+    } catch (err) {
+        console.error('Error loading stock categories:', err);
+    }
+}
+
+// Open manage categories modal
+async function openManageCategoriesModal() {
+    await loadStockCategories();
+    displayCategoriesList();
+    document.getElementById('manageCategoriesModal').classList.add('active');
+}
+
+// Display categories list
+function displayCategoriesList() {
+    const container = document.getElementById('categoriesList');
+    
+    const categories = stockCategories.filter(c => c.type === 'category');
+    
+    let html = '';
+    
+    categories.forEach(cat => {
+        const subcats = stockCategories.filter(s => s.type === 'subcategory' && s.parent_category_id === cat.id);
+        
+        html += `
+            <div style="background: #3e3e42; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="font-size: 14px;">${cat.name}</strong>
+                    <button class="modal-btn danger" onclick="deleteCategory('${cat.id}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
+                </div>
+                ${subcats.length > 0 ? `
+                    <div style="padding-left: 15px; font-size: 12px; color: #aaa;">
+                        ${subcats.map(s => `
+                            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                                <span>↳ ${s.name}</span>
+                                <button class="modal-btn danger" onclick="deleteCategory('${s.id}')" style="padding: 2px 6px; font-size: 10px;">Delete</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html || '<p style="color: #999;">No categories yet.</p>';
+}
+
+// Open add category modal
+function openAddCategoryModal() {
+    document.getElementById('newCategoryName').value = '';
+    document.getElementById('addCategoryModal').classList.add('active');
+}
+
+// Open add subcategory modal
+async function openAddSubcategoryModal() {
+    await loadStockCategories();
+    
+    const select = document.getElementById('subcategoryParent');
+    select.innerHTML = '<option value="">-- Select category --</option>';
+    
+    stockCategories.filter(c => c.type === 'category').forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        select.appendChild(option);
+    });
+    
+    document.getElementById('newSubcategoryName').value = '';
+    document.getElementById('addSubcategoryModal').classList.add('active');
+}
+
+// Save new category
+async function saveNewCategory() {
+    const name = document.getElementById('newCategoryName').value.trim();
+    
+    if (!name) {
+        alert('Please enter category name');
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('stock_categories')
+            .insert([{
+                name,
+                type: 'category',
+                display_order: stockCategories.filter(c => c.type === 'category').length + 1
+            }]);
+        
+        if (error) throw error;
+        
+        alert('Category added successfully!');
+        closeModal('addCategoryModal');
+        await loadStockCategories();
+        displayCategoriesList();
+        
+    } catch (err) {
+        console.error('Error saving category:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// Save new subcategory
+async function saveNewSubcategory() {
+    const name = document.getElementById('newSubcategoryName').value.trim();
+    const parentId = document.getElementById('subcategoryParent').value;
+    
+    if (!name || !parentId) {
+        alert('Please fill all fields');
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('stock_categories')
+            .insert([{
+                name,
+                type: 'subcategory',
+                parent_category_id: parentId,
+                display_order: stockCategories.filter(c => c.type === 'subcategory' && c.parent_category_id === parentId).length + 1
+            }]);
+        
+        if (error) throw error;
+        
+        alert('Subcategory added successfully!');
+        closeModal('addSubcategoryModal');
+        await loadStockCategories();
+        displayCategoriesList();
+        
+    } catch (err) {
+        console.error('Error saving subcategory:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// Delete category
+async function deleteCategory(categoryId) {
+    // Check if any stock items use this category
+    const category = stockCategories.find(c => c.id === categoryId);
+    
+    const { data: stockCheck } = await supabaseClient
+        .from('stock_items')
+        .select('id')
+        .eq('category', category.name.toLowerCase())
+        .limit(1);
+    
+    if (stockCheck && stockCheck.length > 0) {
+        alert('Cannot delete - products are using this category!');
+        return;
+    }
+    
+    if (!confirm(`Delete "${category.name}"?`)) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('stock_categories')
+            .delete()
+            .eq('id', categoryId);
+        
+        if (error) throw error;
+        
+        await loadStockCategories();
+        displayCategoriesList();
+        
+    } catch (err) {
+        console.error('Error deleting category:', err);
+        alert('Error: ' + err.message);
+    }
+}
