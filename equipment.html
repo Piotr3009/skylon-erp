@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment & Machines - Skylon ERP</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="app-title">Skylon Joinery - Equipment & Machines</div>
+            <div class="navigation-links">
+                <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
+                <a href="pipeline.html" class="nav-link nav-link-pipeline">📋 Pipeline</a>
+                <a href="archive.html" class="nav-link nav-link-archive">📦 Archive</a>
+                <a href="accounting.html" class="nav-link nav-link-accounting">💰 Accounting</a>
+                <a href="team.html" class="nav-link nav-link-team">🧑‍🤝‍🧑 Team Management</a>
+                <a href="clients.html" class="nav-link nav-link-clients">👤 Clients</a>
+                <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
+                <a href="suppliers.html" class="nav-link nav-link-suppliers">🚚 Suppliers</a>
+                <a href="equipment.html" class="nav-link nav-link-equipment">🔧 Equipment</a>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+            <h1 style="color: #e8e2d5; margin-bottom: 30px;">🔧 Equipment & Machines Management</h1>
+            
+            <div style="background: #2d2d30; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
+                <h2 style="color: #4ec9b0; margin-bottom: 20px;">📋 Planned Features</h2>
+                
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🏭 Machines Management</h3>
+                    <ul style="color: #e8e2d5; line-height: 1.8;">
+                        <li>Database of all machines (CNC, Table Saw, etc.)</li>
+                        <li>Purchase date, cost, current value (depreciation tracking)</li>
+                        <li>Manufacturer, model, serial number</li>
+                        <li>Location in workshop</li>
+                        <li>Status: Working / Under Repair / Decommissioned</li>
+                        <li>Warranty expiry date tracking</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">📄 Documents & Manuals</h3>
+                    <ul style="color: #e8e2d5; line-height: 1.8;">
+                        <li>Upload & link documents (Google Drive integration)</li>
+                        <li>Data sheets, user manuals, certificates</li>
+                        <li>Purchase invoices and warranties</li>
+                        <li>Safety documentation</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🔧 Service & Maintenance</h3>
+                    <ul style="color: #e8e2d5; line-height: 1.8;">
+                        <li><strong>Hard Service:</strong> Major repairs, parts replacement</li>
+                        <li><strong>Soft Service:</strong> Regular maintenance, cleaning, lubrication</li>
+                        <li>Service history tracking with dates and costs</li>
+                        <li>Next service date with alerts (7 days before)</li>
+                        <li>Service interval configuration (e.g. every 90 days)</li>
+                        <li>Who performed the service (worker tracking)</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🪚 Tool Sharpening</h3>
+                    <ul style="color: #e8e2d5; line-height: 1.8;">
+                        <li>Track sharpening schedule for blades and bits</li>
+                        <li>Last sharpening date</li>
+                        <li>Next sharpening due date with alerts</li>
+                        <li>Sharpening cost tracking</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🔩 Small Tools Inventory</h3>
+                    <ul style="color: #e8e2d5; line-height: 1.8;">
+                        <li>Database of small tools: saw blades, drill bits, clamps, measuring tools</li>
+                        <li>Quantity tracking (similar to Stock module)</li>
+                        <li>Minimum stock level alerts</li>
+                        <li>Location tracking (which toolbox/storage)</li>
+                        <li>Categories: Blades, Bits, Clamps, Measuring Tools, Other</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">📊 Dashboard & Alerts</h3>
+                    <ul style="color: #e8e2d5; line-height: 1.8;">
+                        <li>Upcoming service dates</li>
+                        <li>Tools requiring sharpening</li>
+                        <li>Low stock alerts for small tools</li>
+                        <li>Total asset value tracking</li>
+                        <li>Maintenance cost statistics</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="background: #3e3e42; padding: 20px; border-radius: 8px; border-left: 4px solid #4ec9b0;">
+                <h3 style="color: #4ec9b0; margin-bottom: 10px;">🗂️ Database Structure</h3>
+                <p style="color: #e8e2d5; line-height: 1.6;">
+                    <strong>Tables to create:</strong><br>
+                    1. <code>machines</code> - Main machines database<br>
+                    2. <code>machine_documents</code> - Manuals, certificates, invoices<br>
+                    3. <code>machine_service_history</code> - Service records<br>
+                    4. <code>small_tools</code> - Small tools inventory<br>
+                    5. <code>tool_sharpening_history</code> - Sharpening records
+                </p>
+            </div>
+
+            <div style="margin-top: 30px; padding: 20px; background: #1e1e1e; border-radius: 8px; text-align: center;">
+                <p style="color: #999; font-size: 14px;">
+                    🚀 <strong>Status:</strong> Planning phase - Implementation starts tomorrow!
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
