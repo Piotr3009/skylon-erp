@@ -77,7 +77,9 @@ function createStockRow(item) {
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">
                 <div style="font-weight: 600; color: #e8e2d5;">${item.name}</div>
+                ${item.size ? `<div style="font-size: 11px; color: #4a9eff;">📏 ${item.size}</div>` : ''}
                 ${item.supplier ? `<div style="font-size: 11px; color: #999;">Supplier: ${item.supplier}</div>` : ''}
+                ${item.material_link ? `<div style="font-size: 11px;"><a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a></div>` : ''}
             </td>
             <td style="padding: 12px;">
                 <span style="padding: 4px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; text-transform: uppercase;">
@@ -136,12 +138,14 @@ function filterStock() {
 // Open modals
 function openAddStockModal() {
     document.getElementById('stockName').value = '';
+    document.getElementById('stockSize').value = '';
     document.getElementById('stockCategory').value = 'timber';
     document.getElementById('stockUnit').value = 'pcs';
     document.getElementById('stockInitialQty').value = '0';
     document.getElementById('stockMinQty').value = '0';
     document.getElementById('stockCost').value = '0';
     document.getElementById('stockSupplier').value = '';
+    document.getElementById('stockLink').value = '';
     document.getElementById('stockNotes').value = '';
     
     document.getElementById('addStockModal').classList.add('active');
@@ -160,11 +164,37 @@ function openStockInModal(itemId = null) {
     });
     
     document.getElementById('stockInQty').value = '';
+    document.getElementById('stockInCostPerUnit').value = '';
     document.getElementById('stockInInvoice').value = '';
     document.getElementById('stockInCost').value = '';
     document.getElementById('stockInNotes').value = '';
     
+    // Set cost per unit when item selected
+    if (itemId) {
+        const item = stockItems.find(i => i.id === itemId);
+        if (item) {
+            document.getElementById('stockInCostPerUnit').value = (item.cost_per_unit || 0).toFixed(2);
+        }
+    }
+    
+    // Add event listener for item selection
+    select.addEventListener('change', function() {
+        const item = stockItems.find(i => i.id === this.value);
+        if (item) {
+            document.getElementById('stockInCostPerUnit').value = (item.cost_per_unit || 0).toFixed(2);
+            calculateStockInCost();
+        }
+    });
+    
     document.getElementById('stockInModal').classList.add('active');
+}
+
+// Calculate total cost for Stock IN
+function calculateStockInCost() {
+    const qty = parseFloat(document.getElementById('stockInQty').value) || 0;
+    const costPerUnit = parseFloat(document.getElementById('stockInCostPerUnit').value) || 0;
+    const totalCost = qty * costPerUnit;
+    document.getElementById('stockInCost').value = totalCost.toFixed(2);
 }
 
 function openStockOutModal(itemId = null) {
@@ -208,12 +238,14 @@ function closeModal(modalId) {
 // Save stock item
 async function saveStockItem() {
     const name = document.getElementById('stockName').value.trim();
+    const size = document.getElementById('stockSize').value.trim();
     const category = document.getElementById('stockCategory').value;
     const unit = document.getElementById('stockUnit').value;
     const initialQty = parseFloat(document.getElementById('stockInitialQty').value) || 0;
     const minQty = parseFloat(document.getElementById('stockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('stockCost').value) || 0;
     const supplier = document.getElementById('stockSupplier').value.trim();
+    const link = document.getElementById('stockLink').value.trim();
     const notes = document.getElementById('stockNotes').value.trim();
     
     if (!name) {
@@ -226,12 +258,14 @@ async function saveStockItem() {
             .from('stock_items')
             .insert([{
                 name,
+                size: size || null,
                 category,
                 unit,
                 current_quantity: initialQty,
                 min_quantity: minQty,
                 cost_per_unit: cost,
                 supplier: supplier || null,
+                material_link: link || null,
                 notes: notes || null
             }])
             .select();
@@ -246,6 +280,7 @@ async function saveStockItem() {
                     stock_item_id: data[0].id,
                     type: 'IN',
                     quantity: initialQty,
+                    cost: initialQty * cost,
                     notes: 'Initial stock'
                 }]);
         }
