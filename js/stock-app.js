@@ -2,12 +2,62 @@
 
 let stockItems = [];
 let filteredItems = [];
+let suppliers = [];
+let projects = [];
 
 // Initialize
 window.addEventListener('DOMContentLoaded', async () => {
+    await loadSuppliers();
+    await loadProjects();
     await loadStockItems();
     updateStats();
 });
+
+// Load suppliers
+async function loadSuppliers() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('suppliers')
+            .select('*')
+            .order('name');
+        
+        if (error) throw error;
+        
+        suppliers = data || [];
+        console.log('✅ Loaded', suppliers.length, 'suppliers');
+        
+    } catch (err) {
+        console.error('Error loading suppliers:', err);
+    }
+}
+
+// Load projects from production and pipeline
+async function loadProjects() {
+    try {
+        const { data: prodProjects, error: prodError } = await supabaseClient
+            .from('projects')
+            .select('id, project_number, name')
+            .order('project_number', { ascending: false });
+        
+        const { data: pipeProjects, error: pipeError } = await supabaseClient
+            .from('pipeline_projects')
+            .select('id, project_number, name')
+            .order('project_number', { ascending: false});
+        
+        if (prodError) console.error('Error loading production projects:', prodError);
+        if (pipeError) console.error('Error loading pipeline projects:', pipeError);
+        
+        projects = [
+            ...(prodProjects || []).map(p => ({ ...p, source: 'production' })),
+            ...(pipeProjects || []).map(p => ({ ...p, source: 'pipeline' }))
+        ];
+        
+        console.log('✅ Loaded', projects.length, 'projects');
+        
+    } catch (err) {
+        console.error('Error loading projects:', err);
+    }
+}
 
 // Load stock items
 async function loadStockItems() {
@@ -139,14 +189,23 @@ function filterStock() {
 function openAddStockModal() {
     document.getElementById('stockName').value = '';
     document.getElementById('stockSize').value = '';
+    document.getElementById('stockSizeUnit').value = 'mm';
     document.getElementById('stockCategory').value = 'timber';
     document.getElementById('stockUnit').value = 'pcs';
-    document.getElementById('stockInitialQty').value = '0';
     document.getElementById('stockMinQty').value = '0';
     document.getElementById('stockCost').value = '0';
-    document.getElementById('stockSupplier').value = '';
     document.getElementById('stockLink').value = '';
     document.getElementById('stockNotes').value = '';
+    
+    // Populate suppliers
+    const supplierSelect = document.getElementById('stockSupplier');
+    supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
+    suppliers.forEach(sup => {
+        const option = document.createElement('option');
+        option.value = sup.id;
+        option.textContent = sup.name;
+        supplierSelect.appendChild(option);
+    });
     
     document.getElementById('addStockModal').classList.add('active');
 }
@@ -209,6 +268,17 @@ function openStockOutModal(itemId = null) {
         select.appendChild(option);
     });
     
+    // Populate projects
+    const projectSelect = document.getElementById('stockOutProject');
+    projectSelect.innerHTML = '<option value="">-- Select project --</option>';
+    projects.forEach(proj => {
+        const option = document.createElement('option');
+        option.value = proj.project_number;
+        const source = proj.source === 'production' ? '🏭' : '📋';
+        option.textContent = `${source} ${proj.project_number} - ${proj.name}`;
+        projectSelect.appendChild(option);
+    });
+    
     if (itemId) {
         const item = stockItems.find(i => i.id === itemId);
         if (item) {
@@ -217,7 +287,6 @@ function openStockOutModal(itemId = null) {
     }
     
     document.getElementById('stockOutQty').value = '';
-    document.getElementById('stockOutProject').value = '';
     document.getElementById('stockOutNotes').value = '';
     
     document.getElementById('stockOutModal').classList.add('active');
@@ -238,13 +307,14 @@ function closeModal(modalId) {
 // Save stock item
 async function saveStockItem() {
     const name = document.getElementById('stockName').value.trim();
-    const size = document.getElementById('stockSize').value.trim();
+    const sizeValue = document.getElementById('stockSize').value.trim();
+    const sizeUnit = document.getElementById('stockSizeUnit').value;
+    const size = sizeValue ? `${sizeValue}${sizeUnit}` : null;
     const category = document.getElementById('stockCategory').value;
     const unit = document.getElementById('stockUnit').value;
-    const initialQty = parseFloat(document.getElementById('stockInitialQty').value) || 0;
     const minQty = parseFloat(document.getElementById('stockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('stockCost').value) || 0;
-    const supplier = document.getElementById('stockSupplier').value.trim();
+    const supplierId = document.getElementById('stockSupplier').value || null;
     const link = document.getElementById('stockLink').value.trim();
     const notes = document.getElementById('stockNotes').value.trim();
     
@@ -258,32 +328,19 @@ async function saveStockItem() {
             .from('stock_items')
             .insert([{
                 name,
-                size: size || null,
+                size: size,
                 category,
                 unit,
-                current_quantity: initialQty,
+                current_quantity: 0, // Start with 0, add via Stock IN
                 min_quantity: minQty,
                 cost_per_unit: cost,
-                supplier: supplier || null,
+                supplier_id: supplierId,
                 material_link: link || null,
                 notes: notes || null
             }])
             .select();
         
         if (error) throw error;
-        
-        // If initial quantity > 0, create IN transaction
-        if (initialQty > 0 && data && data[0]) {
-            await supabaseClient
-                .from('stock_transactions')
-                .insert([{
-                    stock_item_id: data[0].id,
-                    type: 'IN',
-                    quantity: initialQty,
-                    cost: initialQty * cost,
-                    notes: 'Initial stock'
-                }]);
-        }
         
         console.log('✅ Stock item added');
         closeModal('addStockModal');
@@ -353,7 +410,7 @@ async function saveStockIn() {
 async function saveStockOut() {
     const itemId = document.getElementById('stockOutItem').value;
     const qty = parseFloat(document.getElementById('stockOutQty').value);
-    const projectNumber = document.getElementById('stockOutProject').value.trim();
+    const projectNumber = document.getElementById('stockOutProject').value;
     const notes = document.getElementById('stockOutNotes').value.trim();
     
     if (!itemId) {
@@ -367,7 +424,7 @@ async function saveStockOut() {
     }
     
     if (!projectNumber) {
-        alert('Please enter project number');
+        alert('Please select a project');
         return;
     }
     
@@ -413,4 +470,62 @@ async function saveStockOut() {
 
 function editStockItem(itemId) {
     alert('Edit Modal - Coming in next commit (5 min)');
+}
+
+// ========== SUPPLIER MANAGEMENT ==========
+
+function openAddSupplierModal() {
+    document.getElementById('supplierName').value = '';
+    document.getElementById('supplierContact').value = '';
+    document.getElementById('supplierEmail').value = '';
+    document.getElementById('supplierPhone').value = '';
+    document.getElementById('supplierWebsite').value = '';
+    document.getElementById('supplierNotes').value = '';
+    
+    document.getElementById('addSupplierModal').classList.add('active');
+}
+
+async function saveSupplier() {
+    const name = document.getElementById('supplierName').value.trim();
+    const contact = document.getElementById('supplierContact').value.trim();
+    const email = document.getElementById('supplierEmail').value.trim();
+    const phone = document.getElementById('supplierPhone').value.trim();
+    const website = document.getElementById('supplierWebsite').value.trim();
+    const notes = document.getElementById('supplierNotes').value.trim();
+    
+    if (!name) {
+        alert('Please enter supplier name');
+        return;
+    }
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('suppliers')
+            .insert([{
+                name,
+                contact_person: contact || null,
+                email: email || null,
+                phone: phone || null,
+                website: website || null,
+                notes: notes || null
+            }])
+            .select();
+        
+        if (error) throw error;
+        
+        console.log('✅ Supplier added');
+        closeModal('addSupplierModal');
+        
+        // Reload suppliers and update dropdown
+        await loadSuppliers();
+        
+        // Select the newly added supplier
+        if (data && data[0]) {
+            document.getElementById('stockSupplier').value = data[0].id;
+        }
+        
+    } catch (err) {
+        console.error('Error saving supplier:', err);
+        alert('Error saving supplier: ' + err.message);
+    }
 }

@@ -84,12 +84,24 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Item Name *</label>
-                    <input type="text" id="stockName" placeholder="e.g. Red Grandis 63x63">
+                    <input type="text" id="stockName" placeholder="e.g. Red Grandis Engineering Wood">
                 </div>
                 
                 <div class="form-group">
                     <label>Size/Dimensions</label>
-                    <input type="text" id="stockSize" placeholder="e.g. 63x63mm, 330ml, 2070x2800mm">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="stockSize" placeholder="e.g. 63x120" style="flex: 1;">
+                        <select id="stockSizeUnit" style="width: 120px;">
+                            <option value="mm">mm</option>
+                            <option value="mm×mm">mm×mm</option>
+                            <option value="inch">inch</option>
+                            <option value="inch×inch">inch×inch</option>
+                            <option value="m">m</option>
+                            <option value="kg">kg</option>
+                            <option value="ml">ml</option>
+                            <option value="litres">litres</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -118,11 +130,6 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Initial Quantity</label>
-                    <input type="number" id="stockInitialQty" value="0" step="0.01">
-                </div>
-                
-                <div class="form-group">
                     <label>Minimum Stock Level *</label>
                     <input type="number" id="stockMinQty" value="0" step="0.01">
                 </div>
@@ -134,7 +141,12 @@
                 
                 <div class="form-group">
                     <label>Supplier</label>
-                    <input type="text" id="stockSupplier" placeholder="Supplier name">
+                    <div style="display: flex; gap: 10px;">
+                        <select id="stockSupplier" style="flex: 1;">
+                            <option value="">-- Select supplier --</option>
+                        </select>
+                        <button type="button" onclick="openAddSupplierModal()" class="toolbar-btn primary" style="padding: 8px 12px; white-space: nowrap;">+ Add Supplier</button>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -220,7 +232,9 @@
                 
                 <div class="form-group">
                     <label>Project Number *</label>
-                    <input type="text" id="stockOutProject" placeholder="e.g. 001/2025">
+                    <select id="stockOutProject">
+                        <option value="">-- Select project --</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
@@ -231,6 +245,48 @@
             <div class="modal-footer">
                 <button class="modal-btn" onclick="closeModal('stockOutModal')">Cancel</button>
                 <button class="modal-btn danger" onclick="saveStockOut()">Use from Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Supplier Modal -->
+    <div class="modal" id="addSupplierModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">Add Supplier</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Supplier Name *</label>
+                    <input type="text" id="supplierName" placeholder="Company name">
+                </div>
+                
+                <div class="form-group">
+                    <label>Contact Person</label>
+                    <input type="text" id="supplierContact" placeholder="Contact name">
+                </div>
+                
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="supplierEmail" placeholder="email@supplier.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="supplierPhone" placeholder="+44 ...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Website</label>
+                    <input type="url" id="supplierWebsite" placeholder="https://supplier.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="supplierNotes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('addSupplierModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveSupplier()">Save Supplier</button>
             </div>
         </div>
     </div>
