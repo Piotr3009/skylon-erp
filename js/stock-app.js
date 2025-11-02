@@ -102,7 +102,11 @@ function renderStockTable() {
         <table style="width: 100%; border-collapse: collapse;">
             <thead style="background: #252526;">
                 <tr>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">ITEM #</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">NAME</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">SIZE</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">THICKNESS</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">COLOR</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">CATEGORY</th>
                     <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">QTY</th>
                     <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">MIN</th>
@@ -126,10 +130,21 @@ function createStockRow(item) {
     return `
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">
+                <span style="font-family: monospace; color: #4a9eff; font-weight: 600;">${item.item_number || '-'}</span>
+            </td>
+            <td style="padding: 12px;">
                 <div style="font-weight: 600; color: #e8e2d5;">${item.name}</div>
-                ${item.size ? `<div style="font-size: 11px; color: #4a9eff;">📏 ${item.size}</div>` : ''}
-                ${item.supplier ? `<div style="font-size: 11px; color: #999;">Supplier: ${item.supplier}</div>` : ''}
+                ${item.supplier_id ? `<div style="font-size: 11px; color: #999;">Supplier: ${getSupplierName(item.supplier_id)}</div>` : ''}
                 ${item.material_link ? `<div style="font-size: 11px;"><a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a></div>` : ''}
+            </td>
+            <td style="padding: 12px;">
+                <span style="color: #4a9eff; font-weight: 500;">${item.size || '-'}</span>
+            </td>
+            <td style="padding: 12px;">
+                <span style="color: #9C27B0; font-weight: 500;">${item.thickness || '-'}</span>
+            </td>
+            <td style="padding: 12px;">
+                ${item.color ? `<span style="padding: 3px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; color: #e8e2d5;">${item.color}</span>` : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px;">
                 <span style="padding: 4px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; text-transform: uppercase;">
@@ -158,6 +173,12 @@ function createStockRow(item) {
             </td>
         </tr>
     `;
+}
+
+// Helper: Get supplier name by ID
+function getSupplierName(supplierId) {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    return supplier ? supplier.name : 'Unknown';
 }
 
 // Update stats
@@ -190,6 +211,8 @@ function openAddStockModal() {
     document.getElementById('stockName').value = '';
     document.getElementById('stockSize').value = '';
     document.getElementById('stockSizeUnit').value = 'mm';
+    document.getElementById('stockThickness').value = '';
+    document.getElementById('stockColor').value = '';
     document.getElementById('stockCategory').value = 'timber';
     document.getElementById('stockUnit').value = 'pcs';
     document.getElementById('stockMinQty').value = '0';
@@ -310,6 +333,8 @@ async function saveStockItem() {
     const sizeValue = document.getElementById('stockSize').value.trim();
     const sizeUnit = document.getElementById('stockSizeUnit').value;
     const size = sizeValue ? `${sizeValue}${sizeUnit}` : null;
+    const thickness = document.getElementById('stockThickness').value.trim();
+    const color = document.getElementById('stockColor').value.trim();
     const category = document.getElementById('stockCategory').value;
     const unit = document.getElementById('stockUnit').value;
     const minQty = parseFloat(document.getElementById('stockMinQty').value) || 0;
@@ -324,14 +349,34 @@ async function saveStockItem() {
     }
     
     try {
+        // Generate item_number
+        const { data: lastItem, error: lastError } = await supabaseClient
+            .from('stock_items')
+            .select('item_number')
+            .order('item_number', { ascending: false })
+            .limit(1);
+        
+        let nextNumber = 1;
+        if (lastItem && lastItem.length > 0 && lastItem[0].item_number) {
+            const match = lastItem[0].item_number.match(/^MAT-(\d+)$/);
+            if (match && match[1]) {
+                nextNumber = parseInt(match[1]) + 1;
+            }
+        }
+        
+        const itemNumber = `MAT-${String(nextNumber).padStart(3, '0')}`;
+        
         const { data, error } = await supabaseClient
             .from('stock_items')
             .insert([{
+                item_number: itemNumber,
                 name,
                 size: size,
+                thickness: thickness || null,
+                color: color || null,
                 category,
                 unit,
-                current_quantity: 0, // Start with 0, add via Stock IN
+                current_quantity: 0,
                 min_quantity: minQty,
                 cost_per_unit: cost,
                 supplier_id: supplierId,
@@ -342,7 +387,7 @@ async function saveStockItem() {
         
         if (error) throw error;
         
-        console.log('✅ Stock item added');
+        console.log('✅ Stock item added:', itemNumber);
         closeModal('addStockModal');
         await loadStockItems();
         
@@ -493,6 +538,8 @@ function editStockItem(itemId) {
         document.getElementById('editStockSizeUnit').value = 'mm';
     }
     
+    document.getElementById('editStockThickness').value = item.thickness || '';
+    document.getElementById('editStockColor').value = item.color || '';
     document.getElementById('editStockCategory').value = item.category || 'timber';
     document.getElementById('editStockUnit').value = item.unit || 'pcs';
     document.getElementById('editStockMinQty').value = item.min_quantity || 0;
@@ -520,6 +567,8 @@ async function updateStockItem() {
     const sizeValue = document.getElementById('editStockSize').value.trim();
     const sizeUnit = document.getElementById('editStockSizeUnit').value;
     const size = sizeValue ? `${sizeValue}${sizeUnit}` : null;
+    const thickness = document.getElementById('editStockThickness').value.trim();
+    const color = document.getElementById('editStockColor').value.trim();
     const category = document.getElementById('editStockCategory').value;
     const unit = document.getElementById('editStockUnit').value;
     const minQty = parseFloat(document.getElementById('editStockMinQty').value) || 0;
@@ -539,6 +588,8 @@ async function updateStockItem() {
             .update({
                 name,
                 size,
+                thickness: thickness || null,
+                color: color || null,
                 category,
                 unit,
                 min_quantity: minQty,
