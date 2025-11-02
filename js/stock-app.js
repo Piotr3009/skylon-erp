@@ -127,10 +127,13 @@ function createStockRow(item) {
     const isLowStock = item.current_quantity <= item.min_quantity;
     const value = (item.current_quantity || 0) * (item.cost_per_unit || 0);
     
+    // Format date
+    const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB') : 'N/A';
+    
     return `
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">
-                <span style="font-family: monospace; color: #4a9eff; font-weight: 600;">${item.item_number || '-'}</span>
+                <span style="font-family: monospace; color: #4a9eff; font-weight: 600;" title="Added: ${createdDate}">${item.item_number || '-'}</span>
             </td>
             <td style="padding: 12px;">
                 <div style="font-weight: 600; color: #e8e2d5;">${item.name}</div>
@@ -240,7 +243,16 @@ function openStockInModal(itemId = null) {
     stockItems.forEach(item => {
         const option = document.createElement('option');
         option.value = item.id;
-        option.textContent = `${item.name} (${item.current_quantity} ${item.unit})`;
+        
+        // Build detailed description
+        let desc = item.item_number || 'NO-NUM';
+        desc += ` | ${item.name}`;
+        if (item.size) desc += ` | ${item.size}`;
+        if (item.thickness) desc += ` | ${item.thickness}`;
+        if (item.color) desc += ` | ${item.color}`;
+        desc += ` (${item.current_quantity} ${item.unit})`;
+        
+        option.textContent = desc;
         if (itemId && item.id === itemId) option.selected = true;
         select.appendChild(option);
     });
@@ -286,7 +298,16 @@ function openStockOutModal(itemId = null) {
     stockItems.forEach(item => {
         const option = document.createElement('option');
         option.value = item.id;
-        option.textContent = `${item.name} (Available: ${item.current_quantity} ${item.unit})`;
+        
+        // Build detailed description
+        let desc = item.item_number || 'NO-NUM';
+        desc += ` | ${item.name}`;
+        if (item.size) desc += ` | ${item.size}`;
+        if (item.thickness) desc += ` | ${item.thickness}`;
+        if (item.color) desc += ` | ${item.color}`;
+        desc += ` (Available: ${item.current_quantity} ${item.unit})`;
+        
+        option.textContent = desc;
         if (itemId && item.id === itemId) option.selected = true;
         select.appendChild(option);
     });
