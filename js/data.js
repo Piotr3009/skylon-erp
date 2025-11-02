@@ -653,7 +653,7 @@ async function saveData() {
                 name: p.name,
                 deadline: p.deadline || null,
                 status: 'active',
-                notes: p.client || null,
+                notes: p.notes || null,
                 contract_value: p.contract_value || 0,
                 project_cost: p.project_cost || 0,
                 client_id: p.client_id || null,

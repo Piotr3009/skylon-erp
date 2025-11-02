@@ -704,29 +704,9 @@ async function confirmMoveToArchive() {
 }
 
 // ========== PROJECT NOTES ==========
-async function openProductionProjectNotes(index) {
+function openProductionProjectNotes(index) {
     const project = projects[index];
     if (!project) return;
-    
-    // Pobierz najnowsze notes z bazy
-    let currentNotes = project.notes || '';
-    if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
-        try {
-            const { data, error } = await supabaseClient
-                .from('projects')
-                .select('notes, pdf_url')
-                .eq('project_number', project.projectNumber)
-                .single();
-            
-            if (!error && data) {
-                currentNotes = data.notes || '';
-                project.notes = currentNotes;
-                project.pdf_url = data.pdf_url; // Pobierz też pdf_url
-            }
-        } catch (err) {
-            console.warn('Could not fetch notes from database:', err);
-        }
-    }
     
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -749,7 +729,7 @@ async function openProductionProjectNotes(index) {
             <div class="modal-body">
                 <div class="form-group">
                     <label>Notes</label>
-                    <textarea id="productionProjectNotesText" placeholder="Add notes about this production project..." style="min-height: 400px; font-size: 14px;">${currentNotes}</textarea>
+                    <textarea id="productionProjectNotesText" placeholder="Add notes about this production project..." style="min-height: 400px; font-size: 14px;">${project.notes || ''}</textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -779,6 +759,7 @@ async function saveProductionProjectNotes(index) {
     }
     
     console.log('💾 Saving notes for project:', project.projectNumber);
+    console.log('📊 Project object:', project);
     
     const notes = document.getElementById('productionProjectNotesText').value.trim();
     project.notes = notes || null;
@@ -804,6 +785,8 @@ async function saveProductionProjectNotes(index) {
         } catch (err) {
             console.error('❌ Database error:', err);
         }
+    } else {
+        console.warn('⚠️ supabaseClient not defined');
     }
     
     saveDataQueued();
