@@ -233,6 +233,14 @@
                 </div>
                 
                 <div class="form-group">
+                    <label>Received by (Worker) *</label>
+                    <select id="stockInWorker">
+                        <option value="">-- Select worker --</option>
+                    </select>
+                    <div style="font-size: 11px; color: #999; margin-top: 3px;">Who received this delivery?</div>
+                </div>
+                
+                <div class="form-group">
                     <label>Quantity *</label>
                     <input type="number" id="stockInQty" step="0.01" min="0" oninput="calculateStockInCost()">
                 </div>

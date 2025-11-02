@@ -162,6 +162,7 @@ function renderStockTable() {
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">THICKNESS</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">COLOR</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">CATEGORY</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">SUBCATEGORY</th>
                     <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">QTY</th>
                     <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">MIN</th>
                     <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">COST/UNIT</th>
@@ -212,6 +213,9 @@ function createStockRow(item) {
                 <span style="padding: 4px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; text-transform: uppercase;">
                     ${item.category}
                 </span>
+            </td>
+            <td style="padding: 12px;">
+                ${item.subcategory ? `<span style="padding: 3px 8px; background: #2d2d30; border-radius: 3px; font-size: 11px; color: #ffa500; text-transform: capitalize;">${item.subcategory}</span>` : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px; text-align: right;">
                 <span style="font-weight: 600; color: ${isLowStock ? '#ff9800' : '#4CAF50'};">
