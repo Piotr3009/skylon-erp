@@ -393,13 +393,22 @@ body.pipeline-theme .project-column-divider {
     background: #005a9e;
 }
 
+.toolbar-btn.success {
+    background: #2d5016;
+    color: white;
+}
+
+.toolbar-btn.success:hover {
+    background: #3d6b1f;
+}
+
 .toolbar-btn.danger {
-    background: #d32f2f;
+    background: #7f1d1d;
     color: white;
 }
 
 .toolbar-btn.danger:hover {
-    background: #b71c1c;
+    background: #991b1b;
 }
 
 /* Theme toggle button */

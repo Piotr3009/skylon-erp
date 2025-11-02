@@ -209,6 +209,15 @@ function filterStock() {
     renderStockTable();
 }
 
+// Refresh stock
+async function refreshStock() {
+    await loadStockItems();
+    await loadSuppliers();
+    await loadProjects();
+    updateStats();
+    alert('Stock refreshed!');
+}
+
 // Open modals
 function openAddStockModal() {
     document.getElementById('stockName').value = '';
