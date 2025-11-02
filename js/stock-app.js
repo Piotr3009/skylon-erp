@@ -102,6 +102,7 @@ function renderStockTable() {
         <table style="width: 100%; border-collapse: collapse;">
             <thead style="background: #252526;">
                 <tr>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">IMAGE</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">ITEM #</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">NAME</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">SIZE</th>
@@ -132,6 +133,11 @@ function createStockRow(item) {
     
     return `
         <tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 12px;">
+                ${item.image_url ? 
+                    `<img src="${item.image_url}" onclick="openImageModal('${item.image_url}')" style="width: 50px; height: 50px; object-fit: cover; border-radius: 3px; cursor: pointer;" title="Click to enlarge">` 
+                    : '<div style="width: 50px; height: 50px; background: #3e3e42; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #666;">📦</div>'}
+            </td>
             <td style="padding: 12px;">
                 <span style="font-family: monospace; color: #4a9eff; font-weight: 600;" title="Added: ${createdDate}">${item.item_number || '-'}</span>
             </td>
@@ -716,6 +722,23 @@ function openAddSupplierModal() {
 }
 
 // ========== IMAGE UPLOAD ==========
+
+function openImageModal(imageUrl) {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.style.display = 'flex';
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90%; max-height: 90%; padding: 0; background: transparent; box-shadow: none;">
+            <img src="${imageUrl}" style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 5px;">
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
 
 function previewStockImage(input) {
     const preview = document.getElementById('stockImagePreview');
