@@ -322,6 +322,16 @@ function openStockInModal(itemId = null) {
         supplierSelect.appendChild(option);
     });
     
+    // Populate workers (admin only)
+    const workerSelect = document.getElementById('stockInWorker');
+    workerSelect.innerHTML = '<option value="">-- Select worker --</option>';
+    teamMembers.filter(w => w.type === 'Admin').forEach(worker => {
+        const option = document.createElement('option');
+        option.value = worker.id;
+        option.textContent = worker.name;
+        workerSelect.appendChild(option);
+    });
+    
     // Populate all items initially
     populateStockInItems(stockItems, itemId);
     
@@ -441,6 +451,16 @@ function openStockOutModal(itemId = null) {
         
         option.textContent = `${icon} ${proj.project_number} - ${proj.name}`;
         projectSelect.appendChild(option);
+    });
+    
+    // Populate workers (admin only)
+    const workerSelect = document.getElementById('stockOutWorker');
+    workerSelect.innerHTML = '<option value="">-- Select worker --</option>';
+    teamMembers.filter(w => w.type === 'Admin').forEach(worker => {
+        const option = document.createElement('option');
+        option.value = worker.id;
+        option.textContent = worker.name;
+        workerSelect.appendChild(option);
     });
     
     if (itemId) {
