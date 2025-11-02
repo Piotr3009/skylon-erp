@@ -362,14 +362,27 @@ function openStockOutModal(itemId = null) {
         select.appendChild(option);
     });
     
-    // Populate projects
+    // Populate ONLY production projects with type icons
     const projectSelect = document.getElementById('stockOutProject');
     projectSelect.innerHTML = '<option value="">-- Select project --</option>';
-    projects.forEach(proj => {
+    
+    // Filter only production projects
+    const productionProjects = projects.filter(proj => proj.source === 'production');
+    
+    productionProjects.forEach(proj => {
         const option = document.createElement('option');
         option.value = proj.project_number;
-        const source = proj.source === 'production' ? '🏭' : '📋';
-        option.textContent = `${source} ${proj.project_number} - ${proj.name}`;
+        
+        // Get project type icon
+        let icon = '📦'; // default
+        if (proj.type === 'doors') icon = '🚪';
+        else if (proj.type === 'sash') icon = '🪟';
+        else if (proj.type === 'casement') icon = '🪟';
+        else if (proj.type === 'kitchen') icon = '🏠';
+        else if (proj.type === 'wardrobe') icon = '👔';
+        else if (proj.type === 'furniture') icon = '🪑';
+        
+        option.textContent = `${icon} ${proj.project_number} - ${proj.name}`;
         projectSelect.appendChild(option);
     });
     
