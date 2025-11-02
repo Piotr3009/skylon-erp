@@ -3,7 +3,7 @@
 let stockItems = [];
 let filteredItems = [];
 let suppliers = [];
-let projects = [];
+// projects i teamMembers są w data.js
 
 // Subcategory mapping
 const subcategories = {
