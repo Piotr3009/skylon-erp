@@ -33,16 +33,51 @@
 
         <!-- Toolbar -->
         <div class="toolbar">
-            <button class="toolbar-btn primary" onclick="alert('Coming soon!')">+ Add Stock Item</button>
-            <button class="toolbar-btn" onclick="alert('Coming soon!')">🔄 Refresh</button>
+            <button class="toolbar-btn primary" onclick="openAddStockModal()">+ Add Stock Item</button>
+            <button class="toolbar-btn success" onclick="openStockInModal()">📥 Stock IN</button>
+            <button class="toolbar-btn danger" onclick="openStockOutModal()">📤 Stock OUT</button>
+            <button class="toolbar-btn" onclick="loadStockItems()">🔄 Refresh</button>
+            
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <select id="categoryFilter" onchange="filterStock()" style="padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                    <option value="">All Categories</option>
+                    <option value="timber">Timber</option>
+                    <option value="hardware">Hardware</option>
+                    <option value="sheet">Sheet Materials</option>
+                    <option value="glass">Glass</option>
+                    <option value="paint">Paint/Finish</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
         </div>
 
-        <!-- Main Content -->
-        <div style="padding: 40px; text-align: center;">
-            <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
-            <h2 style="color: #e0e0e0; margin-bottom: 10px;">Stock Management</h2>
-            <p style="color: #999; font-size: 16px;">This module is under development</p>
+        <!-- Stats -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 20px;">
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #4CAF50;" id="totalItems">0</div>
+                <div style="font-size: 12px; color: #999;">Total Items</div>
+            </div>
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #ff9800;" id="lowStockCount">0</div>
+                <div style="font-size: 12px; color: #999;">Low Stock</div>
+            </div>
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #2196F3;" id="totalValue">£0</div>
+                <div style="font-size: 12px; color: #999;">Total Value</div>
+            </div>
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #9C27B0;" id="recentTransactions">0</div>
+                <div style="font-size: 12px; color: #999;">Today's Transactions</div>
+            </div>
+        </div>
+
+        <!-- Stock Table -->
+        <div style="padding: 0 20px 20px;">
+            <div id="stockContainer"></div>
         </div>
     </div>
+
+    <!-- Modals will go here -->
+    <script src="js/stock-app.js"></script>
 </body>
 </html>
