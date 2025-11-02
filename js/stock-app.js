@@ -60,11 +60,31 @@ function updateEditSubcategoryOptions() {
 
 // Initialize
 window.addEventListener('DOMContentLoaded', async () => {
+    await loadTeamMembers();
     await loadSuppliers();
     await loadProjects();
     await loadStockItems();
     updateStats();
 });
+
+// Load team members
+async function loadTeamMembers() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('team_members')
+            .select('*')
+            .eq('active', true)
+            .order('name');
+        
+        if (error) throw error;
+        
+        teamMembers = data || [];
+        console.log('✅ Loaded', teamMembers.length, 'team members');
+        
+    } catch (err) {
+        console.error('Error loading team members:', err);
+    }
+}
 
 // Load suppliers
 async function loadSuppliers() {
