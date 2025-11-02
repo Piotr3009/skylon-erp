@@ -135,15 +135,245 @@ function filterStock() {
 
 // Open modals
 function openAddStockModal() {
-    alert('Add Stock Modal - Coming in next commit (5 min)');
+    document.getElementById('stockName').value = '';
+    document.getElementById('stockCategory').value = 'timber';
+    document.getElementById('stockUnit').value = 'pcs';
+    document.getElementById('stockInitialQty').value = '0';
+    document.getElementById('stockMinQty').value = '0';
+    document.getElementById('stockCost').value = '0';
+    document.getElementById('stockSupplier').value = '';
+    document.getElementById('stockNotes').value = '';
+    
+    document.getElementById('addStockModal').classList.add('active');
 }
 
-function openStockInModal(itemId) {
-    alert('Stock IN Modal - Coming in next commit (5 min)');
+function openStockInModal(itemId = null) {
+    const select = document.getElementById('stockInItem');
+    select.innerHTML = '<option value="">Select stock item...</option>';
+    
+    stockItems.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.name} (${item.current_quantity} ${item.unit})`;
+        if (itemId && item.id === itemId) option.selected = true;
+        select.appendChild(option);
+    });
+    
+    document.getElementById('stockInQty').value = '';
+    document.getElementById('stockInInvoice').value = '';
+    document.getElementById('stockInCost').value = '';
+    document.getElementById('stockInNotes').value = '';
+    
+    document.getElementById('stockInModal').classList.add('active');
 }
 
-function openStockOutModal(itemId) {
-    alert('Stock OUT Modal - Coming in next commit (5 min)');
+function openStockOutModal(itemId = null) {
+    const select = document.getElementById('stockOutItem');
+    select.innerHTML = '<option value="">Select stock item...</option>';
+    
+    stockItems.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = `${item.name} (Available: ${item.current_quantity} ${item.unit})`;
+        if (itemId && item.id === itemId) option.selected = true;
+        select.appendChild(option);
+    });
+    
+    if (itemId) {
+        const item = stockItems.find(i => i.id === itemId);
+        if (item) {
+            document.getElementById('stockOutAvailable').textContent = `Available: ${item.current_quantity} ${item.unit}`;
+        }
+    }
+    
+    document.getElementById('stockOutQty').value = '';
+    document.getElementById('stockOutProject').value = '';
+    document.getElementById('stockOutNotes').value = '';
+    
+    document.getElementById('stockOutModal').classList.add('active');
+    
+    // Update available quantity on item change
+    select.addEventListener('change', function() {
+        const item = stockItems.find(i => i.id === this.value);
+        if (item) {
+            document.getElementById('stockOutAvailable').textContent = `Available: ${item.current_quantity} ${item.unit}`;
+        }
+    });
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+// Save stock item
+async function saveStockItem() {
+    const name = document.getElementById('stockName').value.trim();
+    const category = document.getElementById('stockCategory').value;
+    const unit = document.getElementById('stockUnit').value;
+    const initialQty = parseFloat(document.getElementById('stockInitialQty').value) || 0;
+    const minQty = parseFloat(document.getElementById('stockMinQty').value) || 0;
+    const cost = parseFloat(document.getElementById('stockCost').value) || 0;
+    const supplier = document.getElementById('stockSupplier').value.trim();
+    const notes = document.getElementById('stockNotes').value.trim();
+    
+    if (!name) {
+        alert('Please enter item name');
+        return;
+    }
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('stock_items')
+            .insert([{
+                name,
+                category,
+                unit,
+                current_quantity: initialQty,
+                min_quantity: minQty,
+                cost_per_unit: cost,
+                supplier: supplier || null,
+                notes: notes || null
+            }])
+            .select();
+        
+        if (error) throw error;
+        
+        // If initial quantity > 0, create IN transaction
+        if (initialQty > 0 && data && data[0]) {
+            await supabaseClient
+                .from('stock_transactions')
+                .insert([{
+                    stock_item_id: data[0].id,
+                    type: 'IN',
+                    quantity: initialQty,
+                    notes: 'Initial stock'
+                }]);
+        }
+        
+        console.log('✅ Stock item added');
+        closeModal('addStockModal');
+        await loadStockItems();
+        
+    } catch (err) {
+        console.error('Error saving stock item:', err);
+        alert('Error saving stock item: ' + err.message);
+    }
+}
+
+// Save stock IN
+async function saveStockIn() {
+    const itemId = document.getElementById('stockInItem').value;
+    const qty = parseFloat(document.getElementById('stockInQty').value);
+    const invoice = document.getElementById('stockInInvoice').value.trim();
+    const cost = parseFloat(document.getElementById('stockInCost').value) || 0;
+    const notes = document.getElementById('stockInNotes').value.trim();
+    
+    if (!itemId) {
+        alert('Please select an item');
+        return;
+    }
+    
+    if (!qty || qty <= 0) {
+        alert('Please enter valid quantity');
+        return;
+    }
+    
+    try {
+        const item = stockItems.find(i => i.id === itemId);
+        
+        // Create transaction
+        const { error: txError } = await supabaseClient
+            .from('stock_transactions')
+            .insert([{
+                stock_item_id: itemId,
+                type: 'IN',
+                quantity: qty,
+                invoice_number: invoice || null,
+                cost: cost,
+                notes: notes || null
+            }]);
+        
+        if (txError) throw txError;
+        
+        // Update stock quantity
+        const newQty = (item.current_quantity || 0) + qty;
+        const { error: updateError } = await supabaseClient
+            .from('stock_items')
+            .update({ current_quantity: newQty })
+            .eq('id', itemId);
+        
+        if (updateError) throw updateError;
+        
+        console.log('✅ Stock IN recorded');
+        closeModal('stockInModal');
+        await loadStockItems();
+        
+    } catch (err) {
+        console.error('Error recording stock IN:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// Save stock OUT
+async function saveStockOut() {
+    const itemId = document.getElementById('stockOutItem').value;
+    const qty = parseFloat(document.getElementById('stockOutQty').value);
+    const projectNumber = document.getElementById('stockOutProject').value.trim();
+    const notes = document.getElementById('stockOutNotes').value.trim();
+    
+    if (!itemId) {
+        alert('Please select an item');
+        return;
+    }
+    
+    if (!qty || qty <= 0) {
+        alert('Please enter valid quantity');
+        return;
+    }
+    
+    if (!projectNumber) {
+        alert('Please enter project number');
+        return;
+    }
+    
+    const item = stockItems.find(i => i.id === itemId);
+    
+    if (qty > item.current_quantity) {
+        alert(`Not enough stock! Available: ${item.current_quantity} ${item.unit}`);
+        return;
+    }
+    
+    try {
+        // Create transaction
+        const { error: txError } = await supabaseClient
+            .from('stock_transactions')
+            .insert([{
+                stock_item_id: itemId,
+                type: 'OUT',
+                quantity: qty,
+                project_number: projectNumber,
+                notes: notes || null
+            }]);
+        
+        if (txError) throw txError;
+        
+        // Update stock quantity
+        const newQty = item.current_quantity - qty;
+        const { error: updateError } = await supabaseClient
+            .from('stock_items')
+            .update({ current_quantity: newQty })
+            .eq('id', itemId);
+        
+        if (updateError) throw updateError;
+        
+        console.log('✅ Stock OUT recorded');
+        closeModal('stockOutModal');
+        await loadStockItems();
+        
+    } catch (err) {
+        console.error('Error recording stock OUT:', err);
+        alert('Error: ' + err.message);
+    }
 }
 
 function editStockItem(itemId) {

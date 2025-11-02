@@ -77,6 +77,147 @@
         </div>
     </div>
 
+    <!-- Add Stock Item Modal -->
+    <div class="modal" id="addStockModal">
+        <div class="modal-content">
+            <div class="modal-header">Add Stock Item</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" id="stockName" placeholder="e.g. Red Grandis 63x63">
+                </div>
+                
+                <div class="form-group">
+                    <label>Category *</label>
+                    <select id="stockCategory">
+                        <option value="timber">Timber</option>
+                        <option value="hardware">Hardware</option>
+                        <option value="sheet">Sheet Materials</option>
+                        <option value="glass">Glass</option>
+                        <option value="paint">Paint/Finish</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Unit *</label>
+                    <select id="stockUnit">
+                        <option value="pcs">Pieces (pcs)</option>
+                        <option value="m">Meters (m)</option>
+                        <option value="m2">Square Meters (m²)</option>
+                        <option value="m3">Cubic Meters (m³)</option>
+                        <option value="sheets">Sheets</option>
+                        <option value="litres">Litres</option>
+                        <option value="kg">Kilograms (kg)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Initial Quantity</label>
+                    <input type="number" id="stockInitialQty" value="0" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label>Minimum Stock Level *</label>
+                    <input type="number" id="stockMinQty" value="0" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label>Cost per Unit (£)</label>
+                    <input type="number" id="stockCost" value="0" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label>Supplier</label>
+                    <input type="text" id="stockSupplier" placeholder="Supplier name">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="stockNotes" rows="2" placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('addStockModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveStockItem()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock IN Modal -->
+    <div class="modal" id="stockInModal">
+        <div class="modal-content">
+            <div class="modal-header">Stock IN - Add Delivery</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Item *</label>
+                    <select id="stockInItem">
+                        <option value="">Select stock item...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" id="stockInQty" step="0.01" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Invoice Number</label>
+                    <input type="text" id="stockInInvoice" placeholder="INV-12345">
+                </div>
+                
+                <div class="form-group">
+                    <label>Total Cost (£)</label>
+                    <input type="number" id="stockInCost" step="0.01" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="stockInNotes" rows="2" placeholder="Delivery notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('stockInModal')">Cancel</button>
+                <button class="modal-btn success" onclick="saveStockIn()">Add to Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock OUT Modal -->
+    <div class="modal" id="stockOutModal">
+        <div class="modal-content">
+            <div class="modal-header">Stock OUT - Use for Project</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Item *</label>
+                    <select id="stockOutItem">
+                        <option value="">Select stock item...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" id="stockOutQty" step="0.01" min="0">
+                    <div id="stockOutAvailable" style="font-size: 11px; color: #999; margin-top: 5px;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Project Number *</label>
+                    <input type="text" id="stockOutProject" placeholder="e.g. 001/2025">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="stockOutNotes" rows="2" placeholder="Usage notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('stockOutModal')">Cancel</button>
+                <button class="modal-btn danger" onclick="saveStockOut()">Use from Stock</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals will go here -->
     <script src="js/stock-app.js"></script>
 </body>
