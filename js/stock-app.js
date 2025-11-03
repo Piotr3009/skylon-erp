@@ -54,14 +54,24 @@ async function updateEditSubcategoryOptions() {
     
     subcategorySelect.innerHTML = '<option value="">-- Select subcategory --</option>';
     
-    if (subcategories[category] && subcategories[category].length > 0) {
-        subcategories[category].forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.toLowerCase();
-            option.textContent = sub;
-            subcategorySelect.appendChild(option);
-        });
-        subcategorySelect.disabled = false;
+    // Find category in stockCategories
+    const categoryObj = stockCategories.find(c => c.type === 'category' && c.name === category);
+    
+    if (categoryObj) {
+        // Load subcategories from database
+        const subcats = stockCategories.filter(s => s.type === 'subcategory' && s.parent_category_id === categoryObj.id);
+        
+        if (subcats.length > 0) {
+            subcats.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.name.toLowerCase();
+                option.textContent = sub.name;
+                subcategorySelect.appendChild(option);
+            });
+            subcategorySelect.disabled = false;
+        } else {
+            subcategorySelect.disabled = true;
+        }
     } else {
         subcategorySelect.disabled = true;
     }
@@ -357,10 +367,10 @@ function openStockInModal(itemId = null) {
         supplierSelect.appendChild(option);
     });
     
-    // Populate workers (admin only)
+    // Populate workers (active workers only)
     const workerSelect = document.getElementById('stockInWorker');
     workerSelect.innerHTML = '<option value="">-- Select worker --</option>';
-    teamMembers.filter(w => w.type === 'Admin').forEach(worker => {
+    teamMembers.filter(w => w.active === true).forEach(worker => {
         const option = document.createElement('option');
         option.value = worker.id;
         option.textContent = worker.name;
@@ -488,10 +498,10 @@ function openStockOutModal(itemId = null) {
         projectSelect.appendChild(option);
     });
     
-    // Populate workers (Admin or Management)
+    // Populate workers (active workers only)
     const workerSelect = document.getElementById('stockOutWorker');
     workerSelect.innerHTML = '<option value="">-- Select worker --</option>';
-    teamMembers.filter(w => w.type === 'Admin' || w.type === 'Management').forEach(worker => {
+    teamMembers.filter(w => w.active === true).forEach(worker => {
         const option = document.createElement('option');
         option.value = worker.id;
         option.textContent = worker.name;
