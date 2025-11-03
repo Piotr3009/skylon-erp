@@ -676,6 +676,7 @@ async function saveStockItem() {
 async function saveStockIn() {
     const itemId = document.getElementById('stockInItem').value;
     const supplierId = document.getElementById('stockInSupplier').value;
+    const workerId = document.getElementById('stockInWorker').value;
     const qty = parseFloat(document.getElementById('stockInQty').value);
     const costPerUnit = parseFloat(document.getElementById('stockInCostPerUnit').value);
     const invoice = document.getElementById('stockInInvoice').value.trim();
@@ -688,6 +689,12 @@ async function saveStockIn() {
     
     if (!supplierId) {
         alert('Please select a supplier');
+        return;
+    }
+    
+    // WALIDACJA: Worker MUSI być wybrany
+    if (!workerId) {
+        alert('Please select who received this delivery');
         return;
     }
     
@@ -716,7 +723,7 @@ async function saveStockIn() {
         console.log('New:', qty, 'units @', costPerUnit);
         console.log('Result:', newQty, 'units @', newAvgCost.toFixed(2));
         
-        // Create transaction with supplier
+        // Create transaction with supplier AND worker
         const { error: txError } = await supabaseClient
             .from('stock_transactions')
             .insert([{
@@ -724,6 +731,7 @@ async function saveStockIn() {
                 type: 'IN',
                 quantity: qty,
                 supplier_id: supplierId,
+                worker_id: workerId,
                 invoice_number: invoice || null,
                 cost: totalCost,
                 notes: notes || null
@@ -757,6 +765,7 @@ async function saveStockOut() {
     const itemId = document.getElementById('stockOutItem').value;
     const qty = parseFloat(document.getElementById('stockOutQty').value);
     const projectNumber = document.getElementById('stockOutProject').value;
+    const workerId = document.getElementById('stockOutWorker').value;
     const notes = document.getElementById('stockOutNotes').value.trim();
     
     if (!itemId) {
@@ -774,6 +783,12 @@ async function saveStockOut() {
         return;
     }
     
+    // WALIDACJA: Worker MUSI być wybrany
+    if (!workerId) {
+        alert('Please select who is taking this material');
+        return;
+    }
+    
     const item = stockItems.find(i => i.id === itemId);
     
     if (qty > item.current_quantity) {
@@ -782,7 +797,7 @@ async function saveStockOut() {
     }
     
     try {
-        // Create transaction
+        // Create transaction with worker
         const { error: txError } = await supabaseClient
             .from('stock_transactions')
             .insert([{
@@ -790,6 +805,7 @@ async function saveStockOut() {
                 type: 'OUT',
                 quantity: qty,
                 project_number: projectNumber,
+                worker_id: workerId,
                 notes: notes || null
             }]);
         
