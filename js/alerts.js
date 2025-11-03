@@ -9,10 +9,13 @@ const OFFICE_STAFF = [
 // Pobierz aktywne alerty z Supabase
 async function loadActiveAlerts() {
     try {
+        const now = new Date().toISOString();
+        
         const { data, error } = await supabaseClient
             .from('project_alerts')
             .select('*')
             .eq('status', 'active')
+            .or(`snoozed_until.is.null,snoozed_until.lt.${now}`)
             .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -107,8 +110,11 @@ function createAlertHTML(alert) {
                     <button class="alert-btn alert-btn-dismiss" onclick="dismissAlert('${alert.id}')">
                         Dismiss
                     </button>
+                    <button class="alert-btn alert-btn-snooze" onclick="snoozeAlert('${alert.id}')">
+                        ⏰ Remind Later
+                    </button>
                     <button class="alert-btn alert-btn-confirm" onclick="confirmAlert('${alert.id}')">
-                        ✓ Confirm Order Completed
+                        ✓ Confirm Order
                     </button>
                 </div>
             </div>
@@ -248,3 +254,48 @@ document.addEventListener('DOMContentLoaded', () => {
     // Odświeżaj alerty co 5 minut
     setInterval(loadActiveAlerts, 5 * 60 * 1000);
 });
+
+// Snooze alert (remind me later)
+async function snoozeAlert(alertId) {
+    const hours = prompt('Remind me in how many hours? (1-48)', '4');
+    
+    if (!hours || isNaN(hours) || hours < 1 || hours > 48) {
+        return;
+    }
+    
+    try {
+        const snoozeUntil = new Date();
+        snoozeUntil.setHours(snoozeUntil.getHours() + parseInt(hours));
+        
+        const { error } = await supabaseClient
+            .from('project_alerts')
+            .update({ 
+                snoozed_until: snoozeUntil.toISOString()
+            })
+            .eq('id', alertId);
+        
+        if (error) throw error;
+        
+        // Usuń alert z UI
+        const alertElement = document.querySelector(`[data-alert-id="${alertId}"]`);
+        if (alertElement) {
+            alertElement.style.transition = 'opacity 0.3s, transform 0.3s';
+            alertElement.style.opacity = '0';
+            alertElement.style.transform = 'translateY(-20px)';
+            
+            setTimeout(() => {
+                alertElement.remove();
+                
+                const container = document.getElementById('alertsContainer');
+                if (container && container.children.length === 0) {
+                    hideAlerts();
+                }
+            }, 300);
+        }
+        
+        console.log(`Alert snoozed for ${hours} hours:`, alertId);
+    } catch (error) {
+        console.error('Error snoozing alert:', error);
+        alert('Error snoozing alert. Please try again.');
+    }
+}

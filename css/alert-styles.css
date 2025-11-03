@@ -13,17 +13,17 @@
 }
 
 .alert-banner {
-    margin: 10px auto;
-    max-width: 900px;
+    margin: 8px auto;
+    max-width: 700px;
     background: #18181b;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Żółto-czarna taśma (animowana) */
 .alert-tape {
-    height: 40px;
+    height: 32px;
     background: repeating-linear-gradient(
         45deg,
         #fbbf24,
@@ -34,10 +34,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
+    font-weight: 600;
     color: #000;
-    font-size: 14px;
-    letter-spacing: 1px;
+    font-size: 12px;
+    letter-spacing: 0.8px;
     animation: slide 2s linear infinite;
 }
 
@@ -48,26 +48,26 @@
 
 /* Zawartość alertu */
 .alert-content {
-    padding: 20px 25px;
+    padding: 15px 20px;
     color: #fff;
 }
 
 .alert-project-title {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: #fbbf24;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 .alert-phases-list {
-    margin: 15px 0;
-    padding-left: 20px;
+    margin: 12px 0;
+    padding-left: 15px;
 }
 
 .alert-phase-item {
-    margin: 8px 0;
+    margin: 6px 0;
     color: #e5e7eb;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .alert-phase-item strong {
@@ -75,12 +75,12 @@
 }
 
 .alert-deadline {
-    margin: 15px 0;
-    padding: 12px;
+    margin: 12px 0;
+    padding: 10px;
     background: rgba(251, 191, 36, 0.1);
     border-left: 3px solid #fbbf24;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
     color: #fbbf24;
 }
 
@@ -117,16 +117,16 @@
 /* Przyciski */
 .alert-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 8px;
+    margin-top: 15px;
 }
 
 .alert-btn {
     flex: 1;
-    padding: 12px 20px;
+    padding: 10px 16px;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 5px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -139,6 +139,15 @@
 
 .alert-btn-dismiss:hover {
     background: #52525b;
+}
+
+.alert-btn-snooze {
+    background: #f59e0b;
+    color: #fff;
+}
+
+.alert-btn-snooze:hover {
+    background: #d97706;
 }
 
 .alert-btn-confirm {
