@@ -551,34 +551,23 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
         const projectIdField = isProduction ? 'project_id' : 'pipeline_project_id';
 
-        // WALIDACJA: Sprawdź czy phases jest prawidłową tablicą
         if (!phases || !Array.isArray(phases)) {
-            console.error('❌ CRITICAL: phases is not an array!', phases);
-            console.error('❌ Aborting save to prevent data loss');
+            console.error('CRITICAL: phases is not an array!', phases);
             return false;
         }
 
-        console.log(`💾 Saving ${phases.length} phases for project ${projectId}`);
-
-        // 2. PRZYGOTUJ NOWE FAZY
-        // NAJPIERW - zaktualizuj phase.end dla wszystkich faz (żeby były spójne w pamięci)
         phases.forEach(phase => {
             if (phase.start && phase.workDays) {
                 try {
                     const computedEnd = computeEnd(phase);
                     phase.end = formatDate(computedEnd);
                 } catch (err) {
-                    console.warn('⚠️ Could not compute end date for phase:', phase.key, err);
+                    // Ignore compute errors
                 }
             }
         });
         
         const phasesForDB = phases.map((phase, index) => {
-            // Walidacja: sprawdź czy end >= start
-            if (phase.start && phase.end && new Date(phase.end) < new Date(phase.start)) {
-                console.error(`❌ BŁĘDNE DATY w fazie ${phase.key}: start=${phase.start}, end=${phase.end}, workDays=${phase.workDays}`);
-            }
-
             const phaseData = {
                 [projectIdField]: projectId,
                 phase_key: phase.key,
@@ -599,13 +588,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             return phaseData;
         });
 
-        // WALIDACJA: Upewnij się że phasesForDB jest poprawne
-        if (!phasesForDB || phasesForDB.length === 0) {
-            console.warn('⚠️ No phases to save - skipping database update to preserve existing phases');
-            return true; // Zwróć true żeby nie zgłaszać błędu
-        }
-
-        // 1. USUŃ STARE FAZY - TYLKO JEŚLI MAMY NOWE DO WSTAWIENIA!
+        // 1. USUŃ STARE FAZY
         const { error: deleteError } = await supabaseClient
             .from(tableName)
             .delete()
@@ -614,6 +597,11 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         if (deleteError) {
             console.error('Error deleting old phases:', deleteError);
             return false;
+        }
+
+        // 2. JEŚLI BRAK FAZ - zakończ (stare już usunięte)
+        if (!phasesForDB || phasesForDB.length === 0) {
+            return true;
         }
 
         // 3. WSTAW NOWE FAZY
@@ -626,7 +614,6 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             return false;
         }
 
-        console.log(`✅ Successfully saved ${phasesForDB.length} phases`);
         return true;
 
     } catch (err) {
@@ -641,11 +628,6 @@ async function saveData() {
     try {
         // PRODUCTION PROJECTS
         if (projects.length > 0 && typeof supabaseClient !== 'undefined') {
-            // DEBUG: Sprawdź co jest w projects[] przed zapisem
-            projects.forEach(p => {
-            });
-            
-            // Zapisz TYLKO dane projektów (bez faz)
             const projectsForDB = projects.map(p => ({
                 project_number: p.projectNumber,
                 type: p.type,
@@ -660,24 +642,16 @@ async function saveData() {
                 google_drive_folder_id: p.google_drive_folder_id || null
             }));
             
-            // DEBUG: Sprawdź co idzie do bazy
-            const project018 = projectsForDB.find(p => p.project_number === '018/2025');
-            if (project018) {
-            }
-            
             const { data, error } = await supabaseClient
                 .from('projects')
                 .upsert(projectsForDB, { onConflict: 'project_number' });
                 
             if (error) {
                 console.error('Error saving projects:', error);
-            } else {
-                // FAZY NIE SĄ ZAPISYWANE TUTAJ!
-                // Fazy zapisywane tylko przy edycji fazy (modals.js, drag.js)
             }
         }
         
-        // PIPELINE PROJECTS - NAPRAWIONE!
+        // PIPELINE PROJECTS
         if (pipelineProjects.length > 0 && typeof supabaseClient !== 'undefined') {
             const pipelineForDB = pipelineProjects.map(p => ({
                 project_number: p.projectNumber,
@@ -700,10 +674,10 @@ async function saveData() {
                 console.error('Error saving pipeline:', error);
             } else {
                 
-                // ZAPISZ FAZY PIPELINE - ZAWSZE, nawet jeśli [] (pusta tablica)
+                // ZAPISZ FAZY PIPELINE
                 for (const project of pipelineProjects) {
-                    // Normalizuj fazy - zawsze tablica
                     const phases = Array.isArray(project.phases) ? project.phases : [];
+                    const phasesCopy = JSON.parse(JSON.stringify(phases));
                     
                     const { data: projectData } = await supabaseClient
                         .from('pipeline_projects')
@@ -714,8 +688,8 @@ async function saveData() {
                     if (projectData) {
                         await savePhasesToSupabase(
                             projectData.id, 
-                            phases,  // zawsze przekazuj tablicę (może być [])
-                            false // false = pipeline
+                            phasesCopy,
+                            false
                         );
                     }
                 }
@@ -765,11 +739,11 @@ function startAutoSave() {
     
     autoSaveInterval = setInterval(() => {
         if (hasUnsavedChanges) {
-            saveDataQueued();  // Użyj kolejkowanej wersji
+            saveDataQueued();
             hasUnsavedChanges = false;
             document.title = "Skylon Joinery - Production Manager";
         }
-    }, 5000); // CO 5 SEKUND
+    }, 2000);
 }
 
 function markAsChanged() {

@@ -18,8 +18,7 @@ function dedupeProjectPhases(phases) {
     if (!Array.isArray(phases)) return phases;
     const seen = new Set();
     return phases.filter(p => {
-        // Unikalność fazy: klucz + data startu + status
-        const k = p.key;
+        const k = `${p.key}|${p.start || ''}|${p.end || ''}`;
         if (seen.has(k)) return false;
         seen.add(k);
         return true;
