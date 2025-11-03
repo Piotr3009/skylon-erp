@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipment & Machines - Skylon ERP</title>
     <link rel="stylesheet" href="css/styles.css?v=10">
+    
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <script>
+        const SUPABASE_URL = 'https://iszkquzpoktokmkjmuuq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzemtxdXpwb2t0b2tta2ptdXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0Mzg3NTksImV4cCI6MjA2ODAxNDc1OX0.hijtNZIitJkc3BIQsYUkUTi3_l8OlCGSiJZdM9G3ywA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase ready:', supabaseClient);
+    </script>
     <script src="js/menu.js"></script>
 </head>
 <body>
-    <div class="app-container">
+    <div class="container">
         <!-- Header -->
         <div class="header">
             <div class="app-title">Skylon Joinery - Equipment & Machines</div>
@@ -17,112 +26,79 @@
             </div>
         </div>
 
-        <!-- Content -->
-        <div style="padding: 40px; max-width: 1200px; margin: 0 auto; height: calc(100vh - 60px); overflow-y: auto;">
-            <h1 style="color: #e8e2d5; margin-bottom: 30px;">🔧 Zarządzanie maszynami i narzędziami</h1>
+        <!-- View Selector -->
+        <div class="toolbar" style="border-bottom: 2px solid #444; padding-bottom: 10px;">
+            <button class="toolbar-btn view-btn active" onclick="switchView('machines')">🔧 Machines</button>
+            <button class="toolbar-btn view-btn" onclick="switchView('vans')">🚐 Vans</button>
+            <button class="toolbar-btn view-btn" onclick="switchView('tools')">🔩 Small Tools</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div id="machinesToolbar" style="display: flex; gap: 10px;">
+                <button class="toolbar-btn primary" onclick="openAddMachineModal()">+ Add Machine</button>
+                <button class="toolbar-btn" onclick="generateMachinesReport()">📊 Machines Report</button>
+            </div>
             
-            <div style="background: #2d2d30; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
-                <h2 style="color: #4ec9b0; margin-bottom: 20px;">📋 Co tu będzie</h2>
-                
-                <div style="margin-bottom: 25px;">
-                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🏭 Maszyny</h3>
-                    <ul style="color: #e8e2d5; line-height: 1.8;">
-                        <li>Baza wszystkich maszyn (CNC, pilarki, frezarki itd)</li>
-                        <li>Kiedy kupione, ile kosztowały, jaka wartość teraz</li>
-                        <li>Producent, model, numer seryjny</li>
-                        <li>Zdjęcia maszyn (storage w bazie danych)</li>
-                        <li>Status - działa, w naprawie, wyrzucone</li>
-                        <li>Kiedy kończy sie gwarancja</li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🚐 Vany / Pojazdy</h3>
-                    <ul style="color: #e8e2d5; line-height: 1.8;">
-                        <li>Baza wszystkich vanow i pojazdow firmowych</li>
-                        <li>Ubezpieczenie - kiedy konczy sie polisa</li>
-                        <li>MOT - kiedy nastepny przeglad techniczny</li>
-                        <li>Serwisy - wymiana oleju, filtrow, opon</li>
-                        <li>Historia napraw i koszty</li>
-                        <li>Przebieg i spalanie</li>
-                        <li>Kto jedzi jakim vanem</li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">📄 Dokumenty i instrukcje</h3>
-                    <ul style="color: #e8e2d5; line-height: 1.8;">
-                        <li>Wgrywanie dokumentów z Google Drive</li>
-                        <li>Karty techniczne, instrukcje obsługi, certyfikaty</li>
-                        <li>Faktury zakupu i dokumenty gwarancyjne</li>
-                        <li>Instrukcje BHP</li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🔧 Serwis i konserwacja</h3>
-                    <ul style="color: #e8e2d5; line-height: 1.8;">
-                        <li><strong>Duży serwis:</strong> poważne naprawy, wymiana części</li>
-                        <li><strong>Mały serwis:</strong> regularna konserwacja, czyszczenie, smarowanie</li>
-                        <li>Historia serwisów z datami i kosztami</li>
-                        <li>Kiedy nastepny serwis - alert 7 dni wczesniej</li>
-                        <li>Ile dni między serwisami (np co 90 dni)</li>
-                        <li>Kto robił serwis</li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🪚 Ostrzenie narzędzi</h3>
-                    <ul style="color: #e8e2d5; line-height: 1.8;">
-                        <li>Kiedy ostatnio ostrzone piły i frezy</li>
-                        <li>Kiedy trzeba naostrzycz znowu - z alertem</li>
-                        <li>Ile kosztowało ostrzenie</li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">🔩 Drobne narzedzia</h3>
-                    <ul style="color: #e8e2d5; line-height: 1.8;">
-                        <li>Baza drobnych narzedzi - pily, bity, klampy, miarki</li>
-                        <li>Ile sztuk jest - jak w Stock</li>
-                        <li>Alert jak za malo</li>
-                        <li>Gdzie leza - w ktorej skrzynce</li>
-                        <li>Kategorie - pily, bity, klampy, miarki, inne</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 style="color: #dcdcaa; margin-bottom: 10px;">📊 Panel i alerty</h3>
-                    <ul style="color: #e8e2d5; line-height: 1.8;">
-                        <li>Nadchodzace serwisy</li>
-                        <li>Co trzeba naostrzycz</li>
-                        <li>Czego jest za malo w magazynie</li>
-                        <li>Ile sa warte wszystkie maszyny</li>
-                        <li>Ile wydajemy na serwisy</li>
-                    </ul>
-                </div>
+            <div id="vansToolbar" style="display: none; gap: 10px;">
+                <button class="toolbar-btn primary" onclick="openAddVanModal()">+ Add Van</button>
+                <button class="toolbar-btn" onclick="generateVansReport()">📊 Vans Report</button>
             </div>
-
-            <div style="background: #3e3e42; padding: 20px; border-radius: 8px; border-left: 4px solid #4ec9b0;">
-                <h3 style="color: #4ec9b0; margin-bottom: 10px;">🗂️ Baza danych</h3>
-                <p style="color: #e8e2d5; line-height: 1.6;">
-                    <strong>Tabele do zrobienia:</strong><br>
-                    1. machines - glowna baza maszyn (ze zdjęciami)<br>
-                    2. vans - baza vanow i pojazdow<br>
-                    3. machine_documents - instrukcje, certyfikaty, faktury<br>
-                    4. machine_service_history - historia serwisow<br>
-                    5. small_tools - drobne narzedzia<br>
-                    6. tool_sharpening_history - historia ostrzenia
-                </p>
-            </div>
-
-            <div style="margin-top: 30px; padding: 20px; background: #1e1e1e; border-radius: 8px; text-align: center;">
-                <p style="color: #ff6b6b; font-size: 16px; font-weight: bold;">
-                    🚀 Piter wez sie do roboty i skoncz ten program w koncu!<br>
-                    <span style="color: #999; font-size: 14px; margin-top: 10px; display: block;">Ja pierdole co jeszcze nie wymyslimy?</span>
-                </p>
+            
+            <div id="toolsToolbar" style="display: none; gap: 10px;">
+                <button class="toolbar-btn primary" onclick="openAddToolModal()">+ Add Tool</button>
+                <button class="toolbar-btn" onclick="generateToolsReport()">📊 Tools Remanent</button>
             </div>
         </div>
+
+        <!-- Stats -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 20px;">
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #4CAF50;" id="stat1Value">0</div>
+                <div style="font-size: 12px; color: #999;" id="stat1Label">Total</div>
+            </div>
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #ff9800;" id="stat2Value">0</div>
+                <div style="font-size: 12px; color: #999;" id="stat2Label">Active</div>
+            </div>
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #2196F3;" id="stat3Value">£0</div>
+                <div style="font-size: 12px; color: #999;" id="stat3Label">Value</div>
+            </div>
+            <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                <div style="font-size: 24px; font-weight: bold; color: #9C27B0;" id="stat4Value">0</div>
+                <div style="font-size: 12px; color: #999;" id="stat4Label">Alerts</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div style="padding: 0 20px 20px;">
+            <div id="equipmentContainer"></div>
+        </div>
     </div>
+
+    <!-- Scripts -->
+    <script src="js/equipment-app.js?v=1"></script>
+    
+    <script>
+        // Switch toolbar based on view
+        function switchView(view) {
+            currentView = view;
+            
+            // Update active button
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update toolbar
+            document.getElementById('machinesToolbar').style.display = view === 'machines' ? 'flex' : 'none';
+            document.getElementById('vansToolbar').style.display = view === 'vans' ? 'flex' : 'none';
+            document.getElementById('toolsToolbar').style.display = view === 'tools' ? 'flex' : 'none';
+            
+            renderView();
+            updateStats();
+        }
+    </script>
 </body>
 </html>
