@@ -5,6 +5,7 @@ function loadUnifiedMenu() {
     const menuHTML = `
         <div class="navigation-links">
             <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
+            <a href="office.html" class="nav-link nav-link-office">🗂️ Office</a>
             <a href="pipeline.html" class="nav-link nav-link-pipeline">📋 Pipeline</a>
             <a href="archive.html" class="nav-link nav-link-archive">📦 Archive</a>
             <a href="accounting.html" class="nav-link nav-link-accounting">💰 Accounting</a>
