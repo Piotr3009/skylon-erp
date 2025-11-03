@@ -58,6 +58,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // TERAZ ładuj dane i renderuj TYLKO RAZ
     await loadData(); // Czekaj na załadowanie
+    
+    // MIGRACJA: Uzupełnij phase_category dla starych danych
+    migratePhaseCategories();
+    
     updatePhasesLegend();
     render(); // Renderuj TYLKO RAZ po załadowaniu
 });
@@ -79,3 +83,37 @@ document.addEventListener('keydown', (e) => {
         });
     }
 });
+
+// MIGRACJA: Automatycznie uzupełnij phase_category dla starych danych
+function migratePhaseCategories() {
+    const PRODUCTION_PHASES = ['timber', 'spray', 'glazing', 'qc'];
+    const OFFICE_PHASES = ['md', 'siteSurvey', 'order', 'orderGlazing', 'orderSpray', 'dispatch', 'installation'];
+    
+    let migrated = 0;
+    
+    projects.forEach(project => {
+        if (project.phases) {
+            project.phases.forEach(phase => {
+                if (!phase.category) {
+                    // Uzupełnij category na podstawie phase_key
+                    if (PRODUCTION_PHASES.includes(phase.key)) {
+                        phase.category = 'production';
+                        migrated++;
+                    } else if (OFFICE_PHASES.includes(phase.key)) {
+                        phase.category = 'office';
+                        migrated++;
+                    } else {
+                        // Domyślnie production dla nieznanych faz
+                        phase.category = 'production';
+                        migrated++;
+                    }
+                }
+            });
+        }
+    });
+    
+    if (migrated > 0) {
+        console.log(`✅ Migrated ${migrated} phases with missing category`);
+        saveData(); // Zapisz zmigrowane dane
+    }
+}
