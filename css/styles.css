@@ -44,6 +44,25 @@
     border-color: #10b981 !important;
 }
 
+/* Office button - pomarańczowy */
+.nav-link-office {
+    padding: 8px 14px !important;
+    background: #18181b !important;
+    color: #f97316 !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #27272a;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-office:hover {
+    background: #27272a !important;
+    border-color: #f97316 !important;
+}
+
 /* Archive button - delikatny szary */
 .nav-link-archive {
     padding: 8px 14px !important;
