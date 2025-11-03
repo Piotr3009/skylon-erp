@@ -65,7 +65,7 @@ function sortStockItems(column) {
         }
     });
     
-    renderStock();
+    renderStockTable();
 }
 
 
