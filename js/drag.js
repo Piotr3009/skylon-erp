@@ -99,7 +99,7 @@ function checkMaxTwoOverlaps(phases) {
 
 function startDrag(e, bar, phase, projectIndex, phaseIndex) {
     // PRODUCTION GANTT: Blokuj drag dla office phases
-    if (!PRODUCTION_PHASES.includes(phase.key) && phase.category !== 'production') {
+    if (phase.category === 'office') {
         return;
     }
     
@@ -119,7 +119,7 @@ function startDrag(e, bar, phase, projectIndex, phaseIndex) {
 
 function startResize(e, bar, phase, side) {
     // PRODUCTION GANTT: Blokuj resize dla office phases
-    if (!PRODUCTION_PHASES.includes(phase.key) && phase.category !== 'production') {
+    if (phase.category === 'office') {
         return;
     }
     
