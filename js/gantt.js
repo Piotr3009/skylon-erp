@@ -1,4 +1,8 @@
 // Minimal CSS injection for dual-overlay
+// PRODUCTION GANTT - Kategorie faz
+const PRODUCTION_PHASES = ['timber', 'spray', 'glazing', 'qc'];
+const OFFICE_PHASES = ['md', 'siteSurvey', 'order', 'orderGlazing', 'orderSpray', 'dispatch', 'installation'];
+
 (function ensureDualOverlayCSS(){
     if (document.getElementById('dual-overlay-style')) return;
     const style = document.createElement('style');
@@ -285,31 +289,51 @@ function renderProjects() {
         timelineCell.style.minWidth = (daysToShow * dayWidth) + 'px';
         
         if (project.phases) {
-            const sortedPhases = [...project.phases].sort((a, b) => {
+            // PRODUCTION GANTT: Rozdziel fazy na production i office
+            const productionPhases = project.phases.filter(p => 
+                PRODUCTION_PHASES.includes(p.key) || p.category === 'production'
+            );
+            const officePhases = project.phases.filter(p => 
+                OFFICE_PHASES.includes(p.key) || p.category === 'office'
+            );
+            
+            // 1. Renderuj OFFICE jako ledwo widoczny cień (read-only)
+            const sortedOffice = [...officePhases].sort((a, b) => {
                 return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
             });
             
-            // PRE-PASS: oblicz adjustedEnd dla wszystkich faz
-            sortedPhases.forEach(phase => {
+            sortedOffice.forEach(phase => {
                 const start = dUTC(phase.start);
                 const rawEnd = dUTC(computeEnd(phase));
-                let endAdj = rawEnd;
-                
-                phase.adjustedEnd = formatDate(endAdj);
+                phase.adjustedEnd = formatDate(rawEnd);
             });
             
-            // Teraz detekcja overlap na spójnych danych
-            const overlaps = detectPhaseOverlaps(sortedPhases);
-            
-            let renderedCount = 0;
-            sortedPhases.forEach((phase, sortedIndex) => {
+            sortedOffice.forEach((phase) => {
                 const originalIndex = project.phases.findIndex(p => p === phase);
-                const phaseBar = createPhaseBar(phase, project, index, originalIndex, overlaps);
+                const phaseBar = createPhaseBar(phase, project, index, originalIndex, [], true);
                 if (phaseBar) {
                     timelineCell.appendChild(phaseBar);
-                    renderedCount++;
-                } else {
-                    console.error(`❌ Faza ${phase.key} NIE utworzona dla projektu "${project.name}"`);
+                }
+            });
+            
+            // 2. Renderuj PRODUCTION jako normalne (edytowalne)
+            const sortedProduction = [...productionPhases].sort((a, b) => {
+                return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+            });
+            
+            sortedProduction.forEach(phase => {
+                const start = dUTC(phase.start);
+                const rawEnd = dUTC(computeEnd(phase));
+                phase.adjustedEnd = formatDate(rawEnd);
+            });
+            
+            const overlaps = detectPhaseOverlaps(sortedProduction);
+            
+            sortedProduction.forEach((phase) => {
+                const originalIndex = project.phases.findIndex(p => p === phase);
+                const phaseBar = createPhaseBar(phase, project, index, originalIndex, overlaps, false);
+                if (phaseBar) {
+                    timelineCell.appendChild(phaseBar);
                 }
             });
         }
@@ -361,7 +385,7 @@ function detectPhaseOverlaps(phases) {
     return overlaps;
 }
 
-function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
+function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps, isReadOnly = false) {
     const container = document.createElement('div');
     let phaseConfig = productionPhases[phase.key];
     
@@ -413,6 +437,22 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps) {
     container.style.left = (daysDiff * dayWidth) + 'px';
     container.style.width = (duration * dayWidth) + 'px';
     container.style.borderColor = phaseConfig.color;
+    
+    // PRODUCTION GANTT: Jeśli read-only (office phases), ustaw jako ledwo widoczny cień
+    if (isReadOnly) {
+        container.style.opacity = '0.05';
+        container.style.pointerEvents = 'none';
+        container.style.cursor = 'default';
+        container.style.zIndex = '1';
+        
+        const topDiv = document.createElement('div');
+        topDiv.className = 'phase-top';
+        topDiv.style.background = '#555';
+        topDiv.innerHTML = '<span>' + phaseConfig.name + '</span>';
+        container.appendChild(topDiv);
+        
+        return container;
+    }
     
     // Top part - colored
     const topDiv = document.createElement('div');
