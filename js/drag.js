@@ -1,4 +1,5 @@
 // ========== DRAG & RESIZE - NAPRAWIONA WERSJA ==========
+
 // Helper
 function daysInclusive(startStr, endStr){const s=new Date(startStr+'T00:00:00');const e=new Date(endStr+'T00:00:00');return Math.max(1,Math.round((e-s)/(1000*60*60*24))+1);}
 let dragOriginalDurationDays=null;
@@ -97,6 +98,11 @@ function checkMaxTwoOverlaps(phases) {
 }
 
 function startDrag(e, bar, phase, projectIndex, phaseIndex) {
+    // PRODUCTION GANTT: Blokuj drag dla office phases
+    if (!PRODUCTION_PHASES.includes(phase.key) && phase.category !== 'production') {
+        return;
+    }
+    
     e.preventDefault();
     draggedElement = bar;
     draggedPhase = phase;
@@ -112,6 +118,11 @@ function startDrag(e, bar, phase, projectIndex, phaseIndex) {
 }
 
 function startResize(e, bar, phase, side) {
+    // PRODUCTION GANTT: Blokuj resize dla office phases
+    if (!PRODUCTION_PHASES.includes(phase.key) && phase.category !== 'production') {
+        return;
+    }
+    
     const phaseOriginalEnd = phase.adjustedEnd || phase.end;
     e.preventDefault();
     e.stopPropagation();

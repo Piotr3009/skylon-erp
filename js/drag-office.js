@@ -1,6 +1,4 @@
 // ========== DRAG & RESIZE - NAPRAWIONA WERSJA ==========
-// OFFICE GANTT - Tylko fazy office można przeciągać
-const OFFICE_PHASES = ['md', 'siteSurvey', 'order', 'orderGlazing', 'orderSpray', 'dispatch', 'installation'];
 
 // Helper
 function daysInclusive(startStr, endStr){const s=new Date(startStr+'T00:00:00');const e=new Date(endStr+'T00:00:00');return Math.max(1,Math.round((e-s)/(1000*60*60*24))+1);}
