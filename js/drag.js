@@ -219,8 +219,11 @@ async function stopDrag(e) {
         // KROK 1: Układaj wszystkie fazy żeby nie było nakładania
         autoArrangeFromPhase(projectIndex, 0);
         
-        // KROK 1.5: Sprawdź czy nie ma więcej niż 2 nakładających się faz
-        if (!checkMaxTwoOverlaps(project.phases)) {
+        // KROK 1.5: Sprawdź overlap TYLKO dla faz production
+        const productionPhasesOnly = project.phases.filter(p => 
+            !p.category || p.category === 'production'
+        );
+        if (!checkMaxTwoOverlaps(productionPhasesOnly)) {
             alert('Cannot move/resize: More than 2 phases would overlap at the same time!');
             
             // Przywróć oryginalne fazy
