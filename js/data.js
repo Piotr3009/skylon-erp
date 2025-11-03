@@ -458,8 +458,6 @@ async function loadData() {
     const savedTeam = localStorage.getItem('joineryTeam');
     if (savedTeam) teamMembers = JSON.parse(savedTeam);
 
-    const savedDaysOff = localStorage.getItem('joineryDaysOff');
-    if (savedDaysOff) daysOff = JSON.parse(savedDaysOff);
     
     const savedLastNumber = localStorage.getItem('joineryLastProjectNumber');
     if (savedLastNumber) lastProjectNumber = parseInt(savedLastNumber);
@@ -526,8 +524,6 @@ function loadFromLocalStorage() {
     const savedTeam = localStorage.getItem('joineryTeam');
     if (savedTeam) teamMembers = JSON.parse(savedTeam);
 
-    const savedDaysOff = localStorage.getItem('joineryDaysOff');
-    if (savedDaysOff) daysOff = JSON.parse(savedDaysOff);
     
     const savedLastNumber = localStorage.getItem('joineryLastProjectNumber');
     if (savedLastNumber) lastProjectNumber = parseInt(savedLastNumber);
@@ -707,7 +703,6 @@ async function saveData() {
     localStorage.setItem('joineryCompletedArchive', JSON.stringify(completedArchive));
     localStorage.setItem('joineryPhases', JSON.stringify(phases));
     localStorage.setItem('joineryTeam', JSON.stringify(teamMembers));
-    localStorage.setItem('joineryDaysOff', JSON.stringify(daysOff));
     localStorage.setItem('joineryLastProjectNumber', lastProjectNumber);
     localStorage.setItem('joineryLastPipelineNumber', lastPipelineNumber);
     localStorage.setItem('joineryCurrentView', currentView);
