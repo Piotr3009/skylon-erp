@@ -9,7 +9,7 @@ const OFFICE_STAFF = [
 // Pobierz aktywne alerty z Supabase
 async function loadActiveAlerts() {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('project_alerts')
             .select('*')
             .eq('status', 'active')
@@ -127,7 +127,7 @@ function hideAlerts() {
 // Dismiss alert (usuń bez potwierdzenia)
 async function dismissAlert(alertId) {
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('project_alerts')
             .update({ 
                 status: 'dismissed',
@@ -174,7 +174,7 @@ async function confirmAlert(alertId) {
     
     try {
         // 1. Update alert status
-        const { error: alertError } = await supabase
+        const { error: alertError } = await supabaseClient
             .from('project_alerts')
             .update({ 
                 status: 'confirmed',
@@ -186,7 +186,7 @@ async function confirmAlert(alertId) {
         if (alertError) throw alertError;
         
         // 2. Get alert data to find project
-        const { data: alertData, error: fetchError } = await supabase
+        const { data: alertData, error: fetchError } = await supabaseClient
             .from('project_alerts')
             .select('project_id, metadata')
             .eq('id', alertId)
@@ -198,7 +198,7 @@ async function confirmAlert(alertId) {
         const phaseKey = alertData.metadata?.phase_key;
         
         if (phaseKey) {
-            const { error: phaseError } = await supabase
+            const { error: phaseError } = await supabaseClient
                 .from('project_phases')
                 .update({
                     materials_ordered_confirmed: true,
