@@ -5,6 +5,10 @@ let filteredItems = [];
 let suppliers = [];
 // projects i teamMembers są w data.js
 
+// Sortowanie
+let currentSortColumn = null;
+let currentSortDirection = 'asc'; // 'asc' lub 'desc'
+
 // Subcategory mapping
 const subcategories = {
     doors: ['Hinges', 'Locks', 'Handles', 'Seals', 'Other'],
@@ -17,6 +21,53 @@ const subcategories = {
     paint: [],
     other: []
 };
+
+// Sortowanie stock items
+function sortStockItems(column) {
+    // Jeśli kliknięto tę samą kolumnę - zmień kierunek
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+    }
+    
+    filteredItems.sort((a, b) => {
+        let valA, valB;
+        
+        switch(column) {
+            case 'item_number':
+                valA = a.item_number || '';
+                valB = b.item_number || '';
+                break;
+            case 'qty':
+                valA = parseFloat(a.current_quantity) || 0;
+                valB = parseFloat(b.current_quantity) || 0;
+                break;
+            case 'cost':
+                valA = parseFloat(a.cost_per_unit) || 0;
+                valB = parseFloat(b.cost_per_unit) || 0;
+                break;
+            case 'value':
+                valA = (parseFloat(a.current_quantity) || 0) * (parseFloat(a.cost_per_unit) || 0);
+                valB = (parseFloat(b.current_quantity) || 0) * (parseFloat(b.cost_per_unit) || 0);
+                break;
+            default:
+                return 0;
+        }
+        
+        // Sortowanie numeryczne lub alfabetyczne
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            return currentSortDirection === 'asc' ? valA - valB : valB - valA;
+        } else {
+            const comparison = String(valA).localeCompare(String(valB));
+            return currentSortDirection === 'asc' ? comparison : -comparison;
+        }
+    });
+    
+    renderStock();
+}
+
 
 // Update subcategory dropdown based on category
 async function updateSubcategoryOptions() {
@@ -195,17 +246,25 @@ function renderStockTable() {
             <thead style="background: #252526;">
                 <tr>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">IMAGE</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">ITEM #</th>
+                    <th onclick="sortStockItems('item_number')" style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
+                        ITEM # ${currentSortColumn === 'item_number' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                    </th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">NAME</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">SIZE</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">THICKNESS</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">COLOR</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">CATEGORY</th>
                     <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">SUBCATEGORY</th>
-                    <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">QTY</th>
+                    <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
+                        QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                    </th>
                     <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">MIN</th>
-                    <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">COST/UNIT</th>
-                    <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">VALUE</th>
+                    <th onclick="sortStockItems('cost')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
+                        COST/UNIT ${currentSortColumn === 'cost' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                    </th>
+                    <th onclick="sortStockItems('value')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
+                        VALUE ${currentSortColumn === 'value' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                    </th>
                     <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999;">ACTIONS</th>
                 </tr>
             </thead>
