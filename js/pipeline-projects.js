@@ -689,7 +689,9 @@ async function archiveAsFailed() {
         archived_date: new Date().toISOString(),
         archive_reason: 'failed',
         archive_notes: failedReason || 'Pipeline failed',
-        source: 'pipeline'
+        source: 'pipeline',
+        // NAPRAWA PROBLEM #3: completed_date = null dla failed projects
+        completed_date: null
     };
     
     // Zapisz do bazy
@@ -817,7 +819,9 @@ async function archiveAsCanceled() {
         archived_date: new Date().toISOString(),
         archive_reason: 'canceled',
         archive_notes: canceledReason || 'Client canceled',
-        source: 'pipeline'
+        source: 'pipeline',
+        // NAPRAWA PROBLEM #3: completed_date = null dla canceled
+        completed_date: null
     };
     
     // Zapisz do bazy

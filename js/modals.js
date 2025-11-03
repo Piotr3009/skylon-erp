@@ -74,12 +74,6 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
         return;
     }
     
-    // PUNKT 5 - Special handling for Delivery Glazing phase
-    if (phase.key === 'deliveryGlazing') {
-        openDeliveryGlazingModal(projectIndex, phaseIndex);
-        return;
-    }
-    
     // Calculate work days - USE phase.workDays if available
     const workDays = phase.workDays || calculateWorkDays(new Date(phase.start), new Date(phase.end));
     
@@ -135,39 +129,6 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
 }
 
 // PUNKT 5 - Open Delivery Glazing modal
-function openDeliveryGlazingModal(projectIndex, phaseIndex) {
-    currentEditPhase = { projectIndex, phaseIndex };
-    const project = projects[projectIndex];
-    const phase = project.phases[phaseIndex];
-    
-    // Set modal title
-    document.getElementById('phaseEditTitle').textContent = 'Edit Delivery Glazing';
-    
-    // Calculate work days for duration field
-    const workDays = phase.workDays || calculateWorkDays(new Date(phase.start), new Date(phase.end));
-    
-    // Fill fields
-    document.getElementById('phaseDuration').value = workDays;
-    document.getElementById('phaseNotes').value = phase.notes || '';
-    
-    // Set phase status
-    const statusSelect = document.getElementById('phaseStatus');
-    statusSelect.value = phase.status || 'notStarted';
-    
-    // Hide team assignment for delivery
-    const assignSection = document.getElementById('assignSection');
-    if (assignSection) {
-        assignSection.style.display = 'none';
-    }
-    
-    // Show delete button
-    const deleteBtn = document.getElementById('deletePhaseBtn');
-    if (deleteBtn) {
-        deleteBtn.style.display = 'inline-block';
-    }
-    
-    openModal('phaseEditModal');
-}
 
 // Delete Phase
 async function deleteCurrentPhase() {
@@ -458,24 +419,6 @@ async function savePhaseChanges() {
             delete phase.assignedTo;
             delete phase.assignedToName;
             delete phase.assignedToColor;
-        }
-    }
-    
-    // PUNKT 5 - Auto-shift glazing if delivery glazing is moved
-    if (phase.key === 'deliveryGlazing') {
-        const glazingPhaseIndex = project.phases.findIndex(p => p.key === 'glazing');
-        if (glazingPhaseIndex !== -1) {
-            // Move glazing to start after delivery ends
-            const deliveryEnd = computeEnd(phase);
-            const glazingStartDate = new Date(deliveryEnd);
-            glazingStartDate.setDate(glazingStartDate.getDate() + 1);
-            
-            // Skip Sundays
-            while (isWeekend(glazingStartDate)) {
-                glazingStartDate.setDate(glazingStartDate.getDate() + 1);
-            }
-            
-            project.phases[glazingPhaseIndex].start = formatDate(glazingStartDate);
         }
     }
     

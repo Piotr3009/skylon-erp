@@ -204,12 +204,24 @@ async function saveProject() {
                     new Date(phaseStart) :
                     addWorkingDays(phaseStart, phaseDuration - 1);
 
+                // NAPRAWA PROBLEM #1: Ustaw category dla nowej fazy
+                const PRODUCTION_PHASES = ['timber', 'spray', 'glazing', 'qc'];
+                const OFFICE_PHASES = ['md', 'siteSurvey', 'order', 'orderGlazing', 'orderSpray', 'dispatch', 'installation'];
+                
+                let phaseCategory = 'production'; // default
+                if (PRODUCTION_PHASES.includes(phaseKey)) {
+                    phaseCategory = 'production';
+                } else if (OFFICE_PHASES.includes(phaseKey)) {
+                    phaseCategory = 'office';
+                }
+
                 newPhase = {
                     key: phaseKey,
                     start: formatDate(phaseStart),
                     end: formatDate(phaseEnd),
                     workDays: phaseDuration,
-                    status: 'notStarted'
+                    status: 'notStarted',
+                    category: phaseCategory
                 };
 
                 // NAPRAWA: Aktualizuj currentDate RÓWNIEŻ dla edycji nowych faz
@@ -229,12 +241,24 @@ async function saveProject() {
                 new Date(phaseStart) :
                 addWorkingDays(phaseStart, phaseDuration - 1);
 
+            // NAPRAWA PROBLEM #1: Ustaw category dla nowej fazy
+            const PRODUCTION_PHASES = ['timber', 'spray', 'glazing', 'qc'];
+            const OFFICE_PHASES = ['md', 'siteSurvey', 'order', 'orderGlazing', 'orderSpray', 'dispatch', 'installation'];
+            
+            let phaseCategory = 'production'; // default
+            if (PRODUCTION_PHASES.includes(phaseKey)) {
+                phaseCategory = 'production';
+            } else if (OFFICE_PHASES.includes(phaseKey)) {
+                phaseCategory = 'office';
+            }
+
             newPhase = {
                 key: phaseKey,
                 start: formatDate(phaseStart),
                 end: formatDate(phaseEnd),
                 workDays: phaseDuration,
-                status: 'notStarted'
+                status: 'notStarted',
+                category: phaseCategory
             };
 
             // Aktualizuj currentDate dla nowych projektów
@@ -650,9 +674,9 @@ async function confirmMoveToArchive() {
         archived_date: new Date().toISOString(),
         archive_reason: reason,
         archive_notes: notes || null,
-        source: 'production'
-        // TODO: Dodaj kolumnę 'completed_date' do tabeli archived_projects w Supabase
-        // completed_date: reason === 'completed' ? new Date().toISOString() : null
+        source: 'production',
+        // NAPRAWA PROBLEM #3: Dodaj completed_date
+        completed_date: reason === 'completed' ? new Date().toISOString() : null
     };
     
     // Zapisz do bazy
