@@ -1,3 +1,11 @@
+/* Global button reset */
+button {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+}
+
 /* Navigation links container */
 .navigation-links {
     display: flex;
@@ -1681,4 +1689,44 @@ textarea:focus {
 }
 .action-btn.archive:hover {
     background: #f57c00;
+}
+/* Detail rows */
+.detail-row {
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+}
+
+.detail-label {
+    color: #999;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 140px;
+}
+
+.detail-value {
+    color: #e8e2d5;
+    font-size: 14px;
+}
+
+/* Icon buttons - compact with SVG icons */
+.icon-btn {
+    background: transparent;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.icon-btn svg {
+    flex-shrink: 0;
 }
