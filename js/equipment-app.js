@@ -14,6 +14,103 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateStats();
 });
 
+// ========== IMAGE UPLOAD FUNCTION ==========
+async function uploadImage(file, folder = 'equipment') {
+    if (!file) return null;
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File too large! Max 5MB for images');
+        return null;
+    }
+    
+    // Check file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type! Only JPG, PNG, WEBP allowed');
+        return null;
+    }
+    
+    try {
+        const timestamp = Date.now();
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${folder}_${timestamp}.${fileExt}`;
+        const filePath = `${folder}/${fileName}`;
+        
+        console.log('Uploading image:', filePath);
+        
+        const { data, error } = await supabaseClient.storage
+            .from('equipment-images')
+            .upload(filePath, file);
+        
+        if (error) throw error;
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabaseClient.storage
+            .from('equipment-images')
+            .getPublicUrl(filePath);
+        
+        console.log('✅ Image uploaded:', publicUrl);
+        return publicUrl;
+        
+    } catch (err) {
+        console.error('Error uploading image:', err);
+        alert('Error uploading image: ' + err.message);
+        return null;
+    }
+}
+
+// ========== DOCUMENT UPLOAD FUNCTION ==========
+async function uploadDocument(file, folder = 'equipment') {
+    if (!file) return null;
+    
+    // Check file size (max 20MB)
+    if (file.size > 20 * 1024 * 1024) {
+        alert('File too large! Max 20MB for documents');
+        return null;
+    }
+    
+    // Check file type
+    const allowedTypes = [
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type! Only PDF, DOC, DOCX, JPG, PNG allowed');
+        return null;
+    }
+    
+    try {
+        const timestamp = Date.now();
+        const fileName = `${folder}_${timestamp}_${file.name}`;
+        const filePath = `${folder}/${fileName}`;
+        
+        console.log('Uploading document:', filePath);
+        
+        const { data, error } = await supabaseClient.storage
+            .from('equipment-documents')
+            .upload(filePath, file);
+        
+        if (error) throw error;
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabaseClient.storage
+            .from('equipment-documents')
+            .getPublicUrl(filePath);
+        
+        console.log('✅ Document uploaded:', publicUrl);
+        return publicUrl;
+        
+    } catch (err) {
+        console.error('Error uploading document:', err);
+        alert('Error uploading document: ' + err.message);
+        return null;
+    }
+}
+
 // ========== AUTH CHECK ==========
 async function checkAuth() {
     if (typeof supabaseClient !== 'undefined') {
@@ -199,9 +296,9 @@ function createMachineRow(machine) {
                     : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px; text-align: center;">
-                <button onclick="viewMachineDetails('${machine.id}')" class="action-btn" style="background: #4a9eff; margin-right: 5px;">📋 Details</button>
-                <button onclick="editMachine('${machine.id}')" class="action-btn" style="background: #4ec9b0;">✏️ Edit</button>
-                <button onclick="deleteMachine('${machine.id}')" class="action-btn delete" style="background: #f44336;">🗑️</button>
+                <button onclick="viewMachineDetails('${machine.id}')" class="action-btn" style="background: #0d47a1; color: white; padding: 6px 12px; margin-right: 5px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Details</button>
+                <button onclick="editMachine('${machine.id}')" class="action-btn" style="background: #2e7d32; color: white; padding: 6px 12px; margin-right: 5px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Edit</button>
+                <button onclick="deleteMachine('${machine.id}')" class="action-btn delete" style="background: #c62828; color: white; padding: 6px 12px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Delete</button>
             </td>
         </tr>
     `;
@@ -448,6 +545,20 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
 
+// Handle custom category input
+function handleCategoryChange() {
+    const select = document.getElementById('toolCategory');
+    const customInput = document.getElementById('toolCustomCategory');
+    
+    if (select.value === 'custom') {
+        customInput.style.display = 'block';
+        customInput.focus();
+    } else {
+        customInput.style.display = 'none';
+        customInput.value = '';
+    }
+}
+
 // ========== ADD MACHINE ==========
 function openAddMachineModal() {
     currentEditItem = null;
@@ -463,7 +574,8 @@ function openAddMachineModal() {
     document.getElementById('machinePurchaseCost').value = '';
     document.getElementById('machineCurrentValue').value = '';
     document.getElementById('machineStatus').value = 'working';
-    document.getElementById('machineImage').value = '';
+    document.getElementById('machineImageFile').value = '';
+    document.getElementById('machineImagePreview').innerHTML = '';
     document.getElementById('machineNotes').value = '';
     
     document.getElementById('machineModal').classList.add('active');
@@ -477,6 +589,14 @@ async function saveMachine() {
         return;
     }
     
+    // Upload image if selected
+    let imageUrl = null;
+    const imageFile = document.getElementById('machineImageFile').files[0];
+    if (imageFile) {
+        imageUrl = await uploadImage(imageFile, 'machines');
+        if (!imageUrl) return; // Upload failed
+    }
+    
     const machineData = {
         name: name,
         manufacturer: document.getElementById('machineManufacturer').value.trim() || null,
@@ -487,9 +607,13 @@ async function saveMachine() {
         purchase_cost: parseFloat(document.getElementById('machinePurchaseCost').value) || null,
         current_value: parseFloat(document.getElementById('machineCurrentValue').value) || null,
         status: document.getElementById('machineStatus').value,
-        image_url: document.getElementById('machineImage').value.trim() || null,
         notes: document.getElementById('machineNotes').value.trim() || null
     };
+    
+    // Add image URL only if we uploaded one
+    if (imageUrl) {
+        machineData.image_url = imageUrl;
+    }
     
     try {
         if (currentEditItem) {
@@ -557,7 +681,8 @@ async function openAddVanModal() {
     document.getElementById('vanCurrentValue').value = '';
     document.getElementById('vanAssignedWorker').value = '';
     document.getElementById('vanStatus').value = 'active';
-    document.getElementById('vanImage').value = '';
+    document.getElementById('vanImageFile').value = '';
+    document.getElementById('vanImagePreview').innerHTML = '';
     document.getElementById('vanNotes').value = '';
     
     document.getElementById('vanModal').classList.add('active');
@@ -577,6 +702,14 @@ async function saveVan() {
         return;
     }
     
+    // Upload image if selected
+    let imageUrl = null;
+    const imageFile = document.getElementById('vanImageFile').files[0];
+    if (imageFile) {
+        imageUrl = await uploadImage(imageFile, 'vans');
+        if (!imageUrl) return; // Upload failed
+    }
+    
     const vanData = {
         name: name,
         registration_plate: regPlate,
@@ -588,9 +721,13 @@ async function saveVan() {
         current_value: parseFloat(document.getElementById('vanCurrentValue').value) || null,
         assigned_to_worker_id: document.getElementById('vanAssignedWorker').value || null,
         status: document.getElementById('vanStatus').value,
-        image_url: document.getElementById('vanImage').value.trim() || null,
         notes: document.getElementById('vanNotes').value.trim() || null
     };
+    
+    // Add image URL only if we uploaded one
+    if (imageUrl) {
+        vanData.image_url = imageUrl;
+    }
     
     try {
         if (currentEditItem) {
@@ -631,11 +768,14 @@ function openAddToolModal() {
     // Clear form
     document.getElementById('toolName').value = '';
     document.getElementById('toolCategory').value = 'other';
+    document.getElementById('toolCustomCategory').value = '';
+    document.getElementById('toolCustomCategory').style.display = 'none';
     document.getElementById('toolQuantity').value = '0';
     document.getElementById('toolMinQuantity').value = '0';
     document.getElementById('toolLocation').value = '';
     document.getElementById('toolCostPerUnit').value = '';
-    document.getElementById('toolImage').value = '';
+    document.getElementById('toolImageFile').value = '';
+    document.getElementById('toolImagePreview').innerHTML = '';
     document.getElementById('toolNotes').value = '';
     
     document.getElementById('toolModal').classList.add('active');
@@ -649,16 +789,39 @@ async function saveTool() {
         return;
     }
     
+    // Get category - check if custom
+    let category = document.getElementById('toolCategory').value;
+    if (category === 'custom') {
+        const customCategory = document.getElementById('toolCustomCategory').value.trim().toLowerCase();
+        if (!customCategory) {
+            alert('Please enter custom category name');
+            return;
+        }
+        category = customCategory;
+    }
+    
+    // Upload image if selected
+    let imageUrl = null;
+    const imageFile = document.getElementById('toolImageFile').files[0];
+    if (imageFile) {
+        imageUrl = await uploadImage(imageFile, 'tools');
+        if (!imageUrl) return; // Upload failed
+    }
+    
     const toolData = {
         name: name,
-        category: document.getElementById('toolCategory').value,
+        category: category,
         quantity: parseInt(document.getElementById('toolQuantity').value) || 0,
         min_quantity: parseInt(document.getElementById('toolMinQuantity').value) || 0,
         location: document.getElementById('toolLocation').value.trim() || null,
         cost_per_unit: parseFloat(document.getElementById('toolCostPerUnit').value) || null,
-        image_url: document.getElementById('toolImage').value.trim() || null,
         notes: document.getElementById('toolNotes').value.trim() || null
     };
+    
+    // Add image URL only if we uploaded one
+    if (imageUrl) {
+        toolData.image_url = imageUrl;
+    }
     
     try {
         if (currentEditItem) {
@@ -709,8 +872,22 @@ async function editMachine(id) {
     document.getElementById('machinePurchaseCost').value = machine.purchase_cost || '';
     document.getElementById('machineCurrentValue').value = machine.current_value || '';
     document.getElementById('machineStatus').value = machine.status;
-    document.getElementById('machineImage').value = machine.image_url || '';
+    document.getElementById('machineImageFile').value = '';
     document.getElementById('machineNotes').value = machine.notes || '';
+    
+    // Show current image if exists
+    const preview = document.getElementById('machineImagePreview');
+    if (machine.image_url) {
+        preview.innerHTML = `
+            <div style="margin-top: 10px;">
+                <div style="color: #999; font-size: 11px; margin-bottom: 5px;">Current image:</div>
+                <img src="${machine.image_url}" style="max-width: 200px; max-height: 150px; border-radius: 3px;">
+                <div style="color: #999; font-size: 11px; margin-top: 5px;">Upload new image to replace</div>
+            </div>
+        `;
+    } else {
+        preview.innerHTML = '';
+    }
     
     document.getElementById('machineModal').classList.add('active');
 }
