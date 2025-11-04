@@ -1401,16 +1401,616 @@ async function deleteDocument(docId) {
     }
 }
 
-function generateMachinesReport() {
-    alert('Generate Machines Report - TODO');
+async function generateMachinesReport() {
+    // Load ALL service history for all machines
+    const { data: allServices, error } = await supabaseClient
+        .from('machine_service_history')
+        .select('*')
+        .order('service_date', { ascending: false });
+    
+    if (error) {
+        console.error('Error loading services:', error);
+        alert('Error loading service data');
+        return;
+    }
+    
+    const today = new Date();
+    
+    // Calculate service costs per machine
+    const serviceCostsByMachine = {};
+    const sharpeningCostsByMachine = {};
+    const nextServicesByMachine = {};
+    
+    (allServices || []).forEach(service => {
+        if (!serviceCostsByMachine[service.machine_id]) {
+            serviceCostsByMachine[service.machine_id] = 0;
+            sharpeningCostsByMachine[service.machine_id] = 0;
+        }
+        serviceCostsByMachine[service.machine_id] += service.total_cost || 0;
+        if (service.tool_sharpening && service.sharpening_cost) {
+            sharpeningCostsByMachine[service.machine_id] += service.sharpening_cost;
+        }
+        
+        // Track next service date
+        if (service.next_service_date) {
+            if (!nextServicesByMachine[service.machine_id] || 
+                new Date(service.next_service_date) < new Date(nextServicesByMachine[service.machine_id])) {
+                nextServicesByMachine[service.machine_id] = service.next_service_date;
+            }
+        }
+    });
+    
+    const reportContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Machines Report - ${new Date().toLocaleDateString('en-GB')}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px;
+                    background: white;
+                    color: #000;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 20px;
+                }
+                .header h1 {
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                .summary {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                    border-left: 4px solid #000;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 15px;
+                }
+                .summary-box {
+                    padding: 10px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                    font-size: 11px;
+                }
+                thead {
+                    background: #333;
+                    color: white;
+                }
+                th, td {
+                    padding: 8px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }
+                .status-working { background: #c8e6c9; }
+                .status-repair { background: #fff9c4; }
+                .status-retired { background: #ffcdd2; }
+                .warranty-expired { color: #f44336; font-weight: bold; }
+                .warranty-expiring { color: #ff9800; }
+                .service-due { background: #fff9c4; }
+                .service-overdue { background: #ffebee; font-weight: bold; }
+                @media print {
+                    body { padding: 20px; font-size: 10px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🔧 MACHINES REPORT</h1>
+                <div>Skylon Joinery - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-box">
+                    <h3>📊 Fleet Overview</h3>
+                    <p><strong>Total Machines:</strong> ${machines.length}</p>
+                    <p><strong>Working:</strong> ${machines.filter(m => m.status === 'working').length}</p>
+                    <p><strong>In Repair:</strong> ${machines.filter(m => m.status === 'repair').length}</p>
+                    <p><strong>Retired:</strong> ${machines.filter(m => m.status === 'retired').length}</p>
+                </div>
+                <div class="summary-box">
+                    <h3>💰 Financial</h3>
+                    <p><strong>Total Value:</strong> £${machines.reduce((sum, m) => sum + (m.current_value || 0), 0).toLocaleString()}</p>
+                    <p><strong>Original Cost:</strong> £${machines.reduce((sum, m) => sum + (m.purchase_cost || 0), 0).toLocaleString()}</p>
+                    <p><strong>Total Service Costs:</strong> £${Object.values(serviceCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
+                    <p><strong>Sharpening Costs:</strong> £${Object.values(sharpeningCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
+                </div>
+            </div>
+
+            <h2>Machine Details</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Manufacturer</th>
+                        <th>Status</th>
+                        <th>Purchase Date</th>
+                        <th>Value (£)</th>
+                        <th>Warranty</th>
+                        <th>Service Costs</th>
+                        <th>Sharpening</th>
+                        <th>Next Service</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${machines.map(machine => {
+                        const warrantyDate = machine.warranty_end_date ? new Date(machine.warranty_end_date) : null;
+                        const warrantyExpired = warrantyDate && warrantyDate < today;
+                        const warrantyExpiring = warrantyDate && !warrantyExpired && Math.floor((warrantyDate - today) / (1000 * 60 * 60 * 24)) <= 90;
+                        
+                        const nextServiceDate = nextServicesByMachine[machine.id] ? new Date(nextServicesByMachine[machine.id]) : null;
+                        const serviceDaysLeft = nextServiceDate ? Math.floor((nextServiceDate - today) / (1000 * 60 * 60 * 24)) : null;
+                        const serviceClass = serviceDaysLeft !== null ? (serviceDaysLeft < 0 ? 'service-overdue' : (serviceDaysLeft <= 30 ? 'service-due' : '')) : '';
+                        
+                        return `
+                            <tr>
+                                <td><strong>${machine.name}</strong></td>
+                                <td>${machine.manufacturer || '-'}</td>
+                                <td class="status-${machine.status}">${machine.status.toUpperCase()}</td>
+                                <td>${machine.purchase_date ? new Date(machine.purchase_date).toLocaleDateString('en-GB') : '-'}</td>
+                                <td style="text-align: right;">£${(machine.current_value || 0).toLocaleString()}</td>
+                                <td class="${warrantyExpired ? 'warranty-expired' : (warrantyExpiring ? 'warranty-expiring' : '')}">
+                                    ${warrantyDate ? warrantyDate.toLocaleDateString('en-GB') : '-'}
+                                    ${warrantyExpired ? '<br><small>(EXPIRED)</small>' : ''}
+                                </td>
+                                <td style="text-align: right;">£${(serviceCostsByMachine[machine.id] || 0).toFixed(2)}</td>
+                                <td style="text-align: right;">£${(sharpeningCostsByMachine[machine.id] || 0).toFixed(2)}</td>
+                                <td class="${serviceClass}">
+                                    ${nextServiceDate ? 
+                                        `${nextServiceDate.toLocaleDateString('en-GB')}<br><small>(${serviceDaysLeft < 0 ? 'OVERDUE' : serviceDaysLeft + ' days'})</small>` 
+                                        : '-'}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+
+            <h2>Service Summary by Machine</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Machine</th>
+                        <th>Total Services</th>
+                        <th>Major Services</th>
+                        <th>Minor Services</th>
+                        <th>Blade Replacements</th>
+                        <th>Times Sharpened</th>
+                        <th>Last Service Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${machines.map(machine => {
+                        const machineServices = (allServices || []).filter(s => s.machine_id === machine.id);
+                        const majorServices = machineServices.filter(s => s.service_type === 'major_service').length;
+                        const minorServices = machineServices.filter(s => s.service_type === 'minor_service').length;
+                        const bladeReplacements = machineServices.filter(s => s.service_type === 'blade_replacement').length;
+                        const sharpenings = machineServices.filter(s => s.tool_sharpening).length;
+                        const lastService = machineServices.length > 0 ? new Date(machineServices[0].service_date) : null;
+                        
+                        return `
+                            <tr>
+                                <td><strong>${machine.name}</strong></td>
+                                <td style="text-align: center;">${machineServices.length}</td>
+                                <td style="text-align: center;">${majorServices}</td>
+                                <td style="text-align: center;">${minorServices}</td>
+                                <td style="text-align: center;">${bladeReplacements}</td>
+                                <td style="text-align: center;">${sharpenings}</td>
+                                <td>${lastService ? lastService.toLocaleDateString('en-GB') : 'Never'}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+
+            <div style="margin-top: 30px; padding: 15px; background: #f5f5f5;">
+                <h3>Legend:</h3>
+                <p><span style="background: #ffebee; padding: 3px 8px;">Red highlight</span> = Service overdue or warranty expired</p>
+                <p><span style="background: #fff9c4; padding: 3px 8px;">Yellow highlight</span> = Service due within 30 days</p>
+            </div>
+
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="background: #1b5e20; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Print Report</button>
+                <button onclick="window.close()" style="background: #666; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    const reportWindow = window.open('', '_blank');
+    reportWindow.document.write(reportContent);
+    reportWindow.document.close();
 }
 
 function generateVansReport() {
-    alert('Generate Vans Report - TODO');
+    const today = new Date();
+    
+    // Calculate alerts
+    const motExpiring = vans.filter(v => {
+        if (!v.mot_due_date) return false;
+        const daysLeft = Math.floor((new Date(v.mot_due_date) - today) / (1000 * 60 * 60 * 24));
+        return daysLeft > 0 && daysLeft <= 60;
+    });
+    
+    const insuranceExpiring = vans.filter(v => {
+        if (!v.insurance_due_date) return false;
+        const daysLeft = Math.floor((new Date(v.insurance_due_date) - today) / (1000 * 60 * 60 * 24));
+        return daysLeft > 0 && daysLeft <= 60;
+    });
+    
+    const reportContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Vans Report - ${new Date().toLocaleDateString('en-GB')}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px;
+                    background: white;
+                    color: #000;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 20px;
+                }
+                .header h1 {
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                .summary {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                    border-left: 4px solid #000;
+                }
+                .alerts {
+                    background: #ffebee;
+                    border-left: 4px solid #f44336;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                }
+                .alerts h3 {
+                    margin: 0 0 10px 0;
+                    color: #c62828;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+                thead {
+                    background: #333;
+                    color: white;
+                }
+                th, td {
+                    padding: 10px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                    font-size: 12px;
+                }
+                .status-active { background: #c8e6c9; }
+                .status-repair { background: #fff9c4; }
+                .status-retired { background: #ffcdd2; }
+                .alert-critical { background: #ffebee; font-weight: bold; }
+                .alert-warning { background: #fff9c4; }
+                @media print {
+                    body { padding: 20px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🚐 VANS FLEET REPORT</h1>
+                <div class="date">Skylon Joinery - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            </div>
+
+            <div class="summary">
+                <h3>📊 Fleet Summary</h3>
+                <p><strong>Total Vans:</strong> ${vans.length}</p>
+                <p><strong>Active:</strong> ${vans.filter(v => v.status === 'active').length}</p>
+                <p><strong>In Repair:</strong> ${vans.filter(v => v.status === 'repair').length}</p>
+                <p><strong>Retired:</strong> ${vans.filter(v => v.status === 'retired').length}</p>
+                <p><strong>Total Fleet Value:</strong> £${vans.reduce((sum, v) => sum + (v.current_value || 0), 0).toLocaleString()}</p>
+                <p><strong>Total Mileage:</strong> ${vans.reduce((sum, v) => sum + (v.mileage || 0), 0).toLocaleString()} miles</p>
+            </div>
+
+            ${(motExpiring.length > 0 || insuranceExpiring.length > 0) ? `
+            <div class="alerts">
+                <h3>⚠️ URGENT ALERTS - Action Required</h3>
+                ${motExpiring.length > 0 ? `
+                <p><strong>MOT Expiring Soon (next 60 days):</strong></p>
+                <ul>
+                    ${motExpiring.map(v => {
+                        const daysLeft = Math.floor((new Date(v.mot_due_date) - today) / (1000 * 60 * 60 * 24));
+                        return `<li><strong>${v.name} (${v.registration_plate})</strong> - ${daysLeft} days left (${new Date(v.mot_due_date).toLocaleDateString('en-GB')})</li>`;
+                    }).join('')}
+                </ul>
+                ` : ''}
+                ${insuranceExpiring.length > 0 ? `
+                <p><strong>Insurance Expiring Soon (next 60 days):</strong></p>
+                <ul>
+                    ${insuranceExpiring.map(v => {
+                        const daysLeft = Math.floor((new Date(v.insurance_due_date) - today) / (1000 * 60 * 60 * 24));
+                        return `<li><strong>${v.name} (${v.registration_plate})</strong> - ${daysLeft} days left (${new Date(v.insurance_due_date).toLocaleDateString('en-GB')})</li>`;
+                    }).join('')}
+                </ul>
+                ` : ''}
+            </div>
+            ` : ''}
+
+            <h2>Fleet Details</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Van Name</th>
+                        <th>Reg Plate</th>
+                        <th>Status</th>
+                        <th>MOT Due</th>
+                        <th>Insurance Due</th>
+                        <th>Mileage</th>
+                        <th>Assigned To</th>
+                        <th>Value (£)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${vans.map(van => {
+                        const motDate = van.mot_due_date ? new Date(van.mot_due_date) : null;
+                        const insuranceDate = van.insurance_due_date ? new Date(van.insurance_due_date) : null;
+                        const motDaysLeft = motDate ? Math.floor((motDate - today) / (1000 * 60 * 60 * 24)) : null;
+                        const insuranceDaysLeft = insuranceDate ? Math.floor((insuranceDate - today) / (1000 * 60 * 60 * 24)) : null;
+                        
+                        const motClass = motDaysLeft !== null ? (motDaysLeft <= 30 ? 'alert-critical' : (motDaysLeft <= 60 ? 'alert-warning' : '')) : '';
+                        const insuranceClass = insuranceDaysLeft !== null ? (insuranceDaysLeft <= 30 ? 'alert-critical' : (insuranceDaysLeft <= 60 ? 'alert-warning' : '')) : '';
+                        
+                        return `
+                            <tr>
+                                <td><strong>${van.name}</strong></td>
+                                <td style="font-family: monospace; font-weight: bold;">${van.registration_plate}</td>
+                                <td class="status-${van.status}">${van.status.toUpperCase()}</td>
+                                <td class="${motClass}">
+                                    ${motDate ? `${motDate.toLocaleDateString('en-GB')}<br><small>(${motDaysLeft} days)</small>` : '-'}
+                                </td>
+                                <td class="${insuranceClass}">
+                                    ${insuranceDate ? `${insuranceDate.toLocaleDateString('en-GB')}<br><small>(${insuranceDaysLeft} days)</small>` : '-'}
+                                </td>
+                                <td>${(van.mileage || 0).toLocaleString()}</td>
+                                <td>${van.team_members ? van.team_members.name : 'Unassigned'}</td>
+                                <td style="text-align: right;">£${(van.current_value || 0).toLocaleString()}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+
+            <div style="margin-top: 30px; padding: 15px; background: #f5f5f5;">
+                <h3>Legend:</h3>
+                <p><span style="background: #ffebee; padding: 3px 8px;">Red highlight</span> = Expires within 30 days (CRITICAL)</p>
+                <p><span style="background: #fff9c4; padding: 3px 8px;">Yellow highlight</span> = Expires within 60 days (WARNING)</p>
+            </div>
+
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="background: #1b5e20; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Print Report</button>
+                <button onclick="window.close()" style="background: #666; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    const reportWindow = window.open('', '_blank');
+    reportWindow.document.write(reportContent);
+    reportWindow.document.close();
 }
 
 function generateToolsReport() {
-    alert('Generate Tools Remanent Report - TODO');
+    // Generate tools remanent report (inventory checklist)
+    const reportContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Tools Remanent Checklist - ${new Date().toLocaleDateString('en-GB')}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px;
+                    background: white;
+                    color: #000;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 20px;
+                }
+                .header h1 {
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                .header .date {
+                    font-size: 14px;
+                    color: #666;
+                }
+                .summary {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                    border-left: 4px solid #000;
+                }
+                .summary h3 {
+                    margin: 0 0 10px 0;
+                }
+                .alerts {
+                    background: #fff3cd;
+                    border-left: 4px solid #ffc107;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                }
+                .alerts h3 {
+                    margin: 0 0 10px 0;
+                    color: #856404;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+                thead {
+                    background: #333;
+                    color: white;
+                }
+                th, td {
+                    padding: 12px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }
+                th {
+                    font-size: 12px;
+                    text-transform: uppercase;
+                }
+                .checkbox {
+                    width: 30px;
+                    height: 30px;
+                    border: 2px solid #333;
+                    display: inline-block;
+                    margin-right: 10px;
+                }
+                .low-stock {
+                    background: #ffebee;
+                }
+                .category-header {
+                    background: #e0e0e0;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                }
+                .footer {
+                    margin-top: 50px;
+                    padding-top: 20px;
+                    border-top: 2px solid #ddd;
+                }
+                .signature-line {
+                    margin-top: 40px;
+                    border-top: 1px solid #000;
+                    width: 300px;
+                    padding-top: 5px;
+                    font-size: 12px;
+                }
+                @media print {
+                    body { padding: 20px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🔩 TOOLS INVENTORY REMANENT</h1>
+                <div class="date">Skylon Joinery - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            </div>
+
+            <div class="summary">
+                <h3>📊 Summary</h3>
+                <p><strong>Total Items:</strong> ${smallTools.length}</p>
+                <p><strong>Total Quantity:</strong> ${smallTools.reduce((sum, t) => sum + (t.quantity || 0), 0)} units</p>
+                <p><strong>Total Value:</strong> £${smallTools.reduce((sum, t) => sum + ((t.quantity || 0) * (t.cost_per_unit || 0)), 0).toFixed(2)}</p>
+                <p><strong>Low Stock Alerts:</strong> ${smallTools.filter(t => t.quantity <= t.min_quantity).length} items</p>
+            </div>
+
+            ${smallTools.filter(t => t.quantity <= t.min_quantity).length > 0 ? `
+            <div class="alerts">
+                <h3>⚠️ Low Stock Alerts - Action Required</h3>
+                <ul>
+                    ${smallTools.filter(t => t.quantity <= t.min_quantity).map(tool => 
+                        `<li><strong>${tool.name}</strong> - Current: ${tool.quantity}, Min: ${tool.min_quantity} (Need: ${Math.max(0, tool.min_quantity - tool.quantity + 2)})</li>`
+                    ).join('')}
+                </ul>
+            </div>
+            ` : ''}
+
+            <h2 style="margin-bottom: 20px;">Inventory Checklist</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">✓</th>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Location</th>
+                        <th style="text-align: center;">Expected Qty</th>
+                        <th style="text-align: center;">Counted Qty</th>
+                        <th style="text-align: right;">Value (£)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.entries(
+                        smallTools.reduce((acc, tool) => {
+                            if (!acc[tool.category]) acc[tool.category] = [];
+                            acc[tool.category].push(tool);
+                            return acc;
+                        }, {})
+                    ).map(([category, tools]) => `
+                        <tr class="category-header">
+                            <td colspan="7">${category.toUpperCase()}</td>
+                        </tr>
+                        ${tools.map(tool => `
+                            <tr ${tool.quantity <= tool.min_quantity ? 'class="low-stock"' : ''}>
+                                <td><span class="checkbox"></span></td>
+                                <td><strong>${tool.name}</strong></td>
+                                <td>${category}</td>
+                                <td>${tool.location || '-'}</td>
+                                <td style="text-align: center; font-weight: bold;">${tool.quantity}</td>
+                                <td style="text-align: center; border-left: 2px solid #333;">_______</td>
+                                <td style="text-align: right;">£${((tool.quantity || 0) * (tool.cost_per_unit || 0)).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    `).join('')}
+                </tbody>
+            </table>
+
+            <div class="footer">
+                <p><strong>Instructions:</strong></p>
+                <ol>
+                    <li>Check each item in its designated location</li>
+                    <li>Count actual quantity and write in "Counted Qty" column</li>
+                    <li>Mark checkbox (✓) when verified</li>
+                    <li>Items highlighted in <span style="background: #ffebee; padding: 2px 5px;">pink</span> are below minimum stock</li>
+                    <li>Report any discrepancies to management</li>
+                </ol>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+                    <div>
+                        <div class="signature-line">Checked by (Name & Signature)</div>
+                    </div>
+                    <div>
+                        <div class="signature-line">Date & Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="background: #1b5e20; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Print Report</button>
+                <button onclick="window.close()" style="background: #666; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    // Open in new window
+    const reportWindow = window.open('', '_blank');
+    reportWindow.document.write(reportContent);
+    reportWindow.document.close();
 }
 
 function viewImage(url) {
