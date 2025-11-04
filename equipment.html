@@ -138,9 +138,10 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Image URL (optional)</label>
-                    <input type="url" id="machineImage" placeholder="https://...">
-                    <small style="color: #999;">Link to image in Google Drive or other storage</small>
+                    <label>Machine Image</label>
+                    <input type="file" id="machineImageFile" accept="image/*" style="padding: 8px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #e8e2d5;">
+                    <small style="color: #999;">Max 5MB - JPG, PNG, WEBP</small>
+                    <div id="machineImagePreview" style="margin-top: 10px;"></div>
                 </div>
                 
                 <div class="form-group">
@@ -223,8 +224,10 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Image URL (optional)</label>
-                    <input type="url" id="vanImage" placeholder="https://...">
+                    <label>Van Image</label>
+                    <input type="file" id="vanImageFile" accept="image/*" style="padding: 8px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #e8e2d5;">
+                    <small style="color: #999;">Max 5MB - JPG, PNG, WEBP</small>
+                    <div id="vanImagePreview" style="margin-top: 10px;"></div>
                 </div>
                 
                 <div class="form-group">
@@ -251,13 +254,15 @@
                 
                 <div class="form-group">
                     <label>Category</label>
-                    <select id="toolCategory">
+                    <select id="toolCategory" onchange="handleCategoryChange()">
                         <option value="saws">Saws</option>
                         <option value="bits">Bits</option>
                         <option value="clamps">Clamps</option>
                         <option value="measuring">Measuring Tools</option>
                         <option value="other">Other</option>
+                        <option value="custom">➕ Add New Category...</option>
                     </select>
+                    <input type="text" id="toolCustomCategory" placeholder="Enter new category name" style="display: none; margin-top: 10px;">
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -284,8 +289,10 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Image URL (optional)</label>
-                    <input type="url" id="toolImage" placeholder="https://...">
+                    <label>Tool Image</label>
+                    <input type="file" id="toolImageFile" accept="image/*" style="padding: 8px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #e8e2d5;">
+                    <small style="color: #999;">Max 5MB - JPG, PNG, WEBP</small>
+                    <div id="toolImagePreview" style="margin-top: 10px;"></div>
                 </div>
                 
                 <div class="form-group">
