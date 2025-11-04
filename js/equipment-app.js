@@ -1028,13 +1028,345 @@ async function deleteTool(id) {
     }
 }
 
-// ========== DETAILS/REPORTS (TODO) ==========
-function viewMachineDetails(id) {
-    alert('View Machine Details - TODO: Service history, documents');
+// ========== DETAILS/DOCUMENTS ==========
+let currentDetailsItem = null;
+let currentDocuments = [];
+
+async function viewMachineDetails(id) {
+    const machine = machines.find(m => m.id === id);
+    if (!machine) return;
+    
+    currentDetailsItem = { type: 'machine', id: id, data: machine };
+    
+    // Load documents for this machine
+    await loadDocuments('machine', id);
+    
+    // Show modal
+    document.getElementById('detailsModalTitle').textContent = machine.name;
+    document.getElementById('detailsContent').innerHTML = renderMachineDetailsContent(machine);
+    document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
+    document.getElementById('detailsModal').classList.add('active');
 }
 
-function viewVanDetails(id) {
-    alert('View Van Details - TODO: Service history, documents');
+async function viewVanDetails(id) {
+    const van = vans.find(v => v.id === id);
+    if (!van) return;
+    
+    currentDetailsItem = { type: 'van', id: id, data: van };
+    
+    // Load documents for this van
+    await loadDocuments('van', id);
+    
+    // Show modal
+    document.getElementById('detailsModalTitle').textContent = van.name;
+    document.getElementById('detailsContent').innerHTML = renderVanDetailsContent(van);
+    document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
+    document.getElementById('detailsModal').classList.add('active');
+}
+
+async function loadDocuments(type, itemId) {
+    try {
+        const tableName = type === 'machine' ? 'machine_documents' : 'van_documents';
+        const idField = type === 'machine' ? 'machine_id' : 'van_id';
+        
+        const { data, error } = await supabaseClient
+            .from(tableName)
+            .select('*')
+            .eq(idField, itemId)
+            .order('uploaded_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        currentDocuments = data || [];
+        console.log('✅ Loaded', currentDocuments.length, 'documents');
+        
+    } catch (err) {
+        console.error('Error loading documents:', err);
+        currentDocuments = [];
+    }
+}
+
+function renderMachineDetailsContent(machine) {
+    return `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <div class="detail-row">
+                    <span class="detail-label">Manufacturer:</span>
+                    <span class="detail-value">${machine.manufacturer || '-'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Model:</span>
+                    <span class="detail-value">${machine.model || '-'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Serial Number:</span>
+                    <span class="detail-value">${machine.serial_number || '-'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Purchase Date:</span>
+                    <span class="detail-value">${machine.purchase_date ? new Date(machine.purchase_date).toLocaleDateString('en-GB') : '-'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Purchase Cost:</span>
+                    <span class="detail-value">£${(machine.purchase_cost || 0).toLocaleString()}</span>
+                </div>
+            </div>
+            <div>
+                <div class="detail-row">
+                    <span class="detail-label">Current Value:</span>
+                    <span class="detail-value">£${(machine.current_value || 0).toLocaleString()}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value" style="text-transform: capitalize;">${machine.status}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Warranty End:</span>
+                    <span class="detail-value">${machine.warranty_end_date ? new Date(machine.warranty_end_date).toLocaleDateString('en-GB') : '-'}</span>
+                </div>
+                ${machine.notes ? `
+                <div class="detail-row">
+                    <span class="detail-label">Notes:</span>
+                    <span class="detail-value">${machine.notes}</span>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        ${machine.image_url ? `
+        <div style="margin-top: 20px;">
+            <img src="${machine.image_url}" style="max-width: 100%; max-height: 300px; border-radius: 5px;">
+        </div>
+        ` : ''}
+    `;
+}
+
+function renderVanDetailsContent(van) {
+    const motDate = van.mot_due_date ? new Date(van.mot_due_date) : null;
+    const insuranceDate = van.insurance_due_date ? new Date(van.insurance_due_date) : null;
+    const today = new Date();
+    
+    const motDaysLeft = motDate ? Math.floor((motDate - today) / (1000 * 60 * 60 * 24)) : null;
+    const insuranceDaysLeft = insuranceDate ? Math.floor((insuranceDate - today) / (1000 * 60 * 60 * 24)) : null;
+    
+    const motColor = motDaysLeft <= 30 ? '#f44336' : (motDaysLeft <= 60 ? '#ff9800' : '#4CAF50');
+    const insuranceColor = insuranceDaysLeft <= 30 ? '#f44336' : (insuranceDaysLeft <= 60 ? '#ff9800' : '#4CAF50');
+    
+    return `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <div class="detail-row">
+                    <span class="detail-label">Registration Plate:</span>
+                    <span class="detail-value" style="font-weight: 700; font-family: monospace;">${van.registration_plate}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">MOT Due:</span>
+                    <span class="detail-value" style="color: ${motColor}; font-weight: 600;">
+                        ${motDate ? `${motDate.toLocaleDateString('en-GB')} (${motDaysLeft} days)` : '-'}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Insurance Due:</span>
+                    <span class="detail-value" style="color: ${insuranceColor}; font-weight: 600;">
+                        ${insuranceDate ? `${insuranceDate.toLocaleDateString('en-GB')} (${insuranceDaysLeft} days)` : '-'}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Mileage:</span>
+                    <span class="detail-value">${(van.mileage || 0).toLocaleString()} miles</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Assigned To:</span>
+                    <span class="detail-value">${van.team_members ? van.team_members.name : 'Unassigned'}</span>
+                </div>
+            </div>
+            <div>
+                <div class="detail-row">
+                    <span class="detail-label">Purchase Date:</span>
+                    <span class="detail-value">${van.purchase_date ? new Date(van.purchase_date).toLocaleDateString('en-GB') : '-'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Purchase Cost:</span>
+                    <span class="detail-value">£${(van.purchase_cost || 0).toLocaleString()}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Current Value:</span>
+                    <span class="detail-value">£${(van.current_value || 0).toLocaleString()}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value" style="text-transform: capitalize;">${van.status}</span>
+                </div>
+                ${van.notes ? `
+                <div class="detail-row">
+                    <span class="detail-label">Notes:</span>
+                    <span class="detail-value">${van.notes}</span>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        ${van.image_url ? `
+        <div style="margin-top: 20px;">
+            <img src="${van.image_url}" style="max-width: 100%; max-height: 300px; border-radius: 5px;">
+        </div>
+        ` : ''}
+    `;
+}
+
+function renderDocumentsList() {
+    if (currentDocuments.length === 0) {
+        return `
+            <div style="padding: 40px; text-align: center; color: #666;">
+                <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+                <div>No documents uploaded</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div style="display: grid; gap: 10px;">
+            ${currentDocuments.map(doc => `
+                <div style="background: #2d2d30; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 5px;">${doc.file_name}</div>
+                        <div style="font-size: 11px; color: #999;">
+                            <span style="text-transform: uppercase; background: #3e3e42; padding: 2px 6px; border-radius: 2px; margin-right: 10px;">${doc.document_type.replace(/_/g, ' ')}</span>
+                            Uploaded: ${new Date(doc.uploaded_at).toLocaleDateString('en-GB')}
+                            ${doc.expiry_date ? ` • Expires: <span style="color: ${new Date(doc.expiry_date) < new Date() ? '#f44336' : '#4CAF50'}">${new Date(doc.expiry_date).toLocaleDateString('en-GB')}</span>` : ''}
+                        </div>
+                        ${doc.notes ? `<div style="font-size: 11px; color: #999; margin-top: 5px;">${doc.notes}</div>` : ''}
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="${doc.file_url}" target="_blank" style="background: #1a237e; color: white; padding: 8px 12px; border-radius: 3px; text-decoration: none; font-size: 11px; font-weight: 600;">View</a>
+                        <button onclick="deleteDocument('${doc.id}')" style="background: #b71c1c; color: white; padding: 8px 12px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Delete</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// ========== UPLOAD DOCUMENT ==========
+function openUploadDocumentModal() {
+    if (!currentDetailsItem) return;
+    
+    const docTypeSelect = document.getElementById('docType');
+    
+    if (currentDetailsItem.type === 'machine') {
+        docTypeSelect.innerHTML = `
+            <option value="manual">Manual / Instruction</option>
+            <option value="certificate">Certificate</option>
+            <option value="warranty">Warranty</option>
+            <option value="invoice">Purchase Invoice</option>
+            <option value="technical_sheet">Technical Sheet</option>
+            <option value="other">Other</option>
+        `;
+    } else if (currentDetailsItem.type === 'van') {
+        docTypeSelect.innerHTML = `
+            <option value="v5_certificate">V5 Certificate</option>
+            <option value="insurance_policy">Insurance Policy</option>
+            <option value="mot_certificate">MOT Certificate</option>
+            <option value="service_book">Service Book</option>
+            <option value="repair_invoice">Repair Invoice</option>
+            <option value="purchase_invoice">Purchase Invoice</option>
+            <option value="other">Other</option>
+        `;
+    }
+    
+    // Clear form
+    document.getElementById('docFile').value = '';
+    document.getElementById('docExpiry').value = '';
+    document.getElementById('docNotes').value = '';
+    document.getElementById('docExpiryGroup').style.display = 'none';
+    
+    // Show expiry for insurance/MOT
+    docTypeSelect.onchange = () => {
+        const type = docTypeSelect.value;
+        const expiryGroup = document.getElementById('docExpiryGroup');
+        if (type === 'insurance_policy' || type === 'mot_certificate') {
+            expiryGroup.style.display = 'block';
+        } else {
+            expiryGroup.style.display = 'none';
+        }
+    };
+    
+    document.getElementById('uploadDocModal').classList.add('active');
+}
+
+async function saveDocument() {
+    const file = document.getElementById('docFile').files[0];
+    const docType = document.getElementById('docType').value;
+    const expiry = document.getElementById('docExpiry').value;
+    const notes = document.getElementById('docNotes').value.trim();
+    
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
+    
+    if (!currentDetailsItem) return;
+    
+    try {
+        // Upload file to storage
+        const fileUrl = await uploadDocument(file, currentDetailsItem.type + 's');
+        if (!fileUrl) return; // Upload failed
+        
+        // Save to database
+        const tableName = currentDetailsItem.type === 'machine' ? 'machine_documents' : 'van_documents';
+        const idField = currentDetailsItem.type === 'machine' ? 'machine_id' : 'van_id';
+        
+        const docData = {
+            [idField]: currentDetailsItem.id,
+            document_type: docType,
+            file_name: file.name,
+            file_url: fileUrl,
+            expiry_date: expiry || null,
+            notes: notes || null
+        };
+        
+        const { error } = await supabaseClient
+            .from(tableName)
+            .insert([docData]);
+        
+        if (error) throw error;
+        
+        console.log('✅ Document uploaded');
+        closeModal('uploadDocModal');
+        
+        // Reload documents
+        await loadDocuments(currentDetailsItem.type, currentDetailsItem.id);
+        document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
+        
+    } catch (err) {
+        console.error('Error saving document:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+async function deleteDocument(docId) {
+    if (!confirm('Delete this document? This cannot be undone!')) return;
+    
+    if (!currentDetailsItem) return;
+    
+    try {
+        const tableName = currentDetailsItem.type === 'machine' ? 'machine_documents' : 'van_documents';
+        
+        const { error } = await supabaseClient
+            .from(tableName)
+            .delete()
+            .eq('id', docId);
+        
+        if (error) throw error;
+        
+        console.log('✅ Document deleted');
+        
+        // Reload documents
+        await loadDocuments(currentDetailsItem.type, currentDetailsItem.id);
+        document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
+        
+    } catch (err) {
+        console.error('Error deleting document:', err);
+        alert('Error: ' + err.message);
+    }
 }
 
 function generateMachinesReport() {

@@ -77,6 +77,64 @@
         </div>
     </div>
 
+    <!-- Details Modal (Machine/Van) -->
+    <div class="modal" id="detailsModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header" id="detailsModalTitle">Details</div>
+            <div class="modal-body">
+                <!-- Details Content -->
+                <div id="detailsContent" style="margin-bottom: 30px;"></div>
+                
+                <!-- Documents Section -->
+                <div style="border-top: 2px solid #444; padding-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: #4ec9b0; margin: 0;">📄 Documents</h3>
+                        <button onclick="openUploadDocumentModal()" style="background: #1b5e20; color: white; padding: 8px 16px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: 600;">+ Upload Document</button>
+                    </div>
+                    <div id="detailsDocuments"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('detailsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Document Modal -->
+    <div class="modal" id="uploadDocModal">
+        <div class="modal-content">
+            <div class="modal-header">Upload Document</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Document Type *</label>
+                    <select id="docType">
+                        <!-- Options will be populated based on machine/van -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select File * (Max 20MB)</label>
+                    <input type="file" id="docFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="padding: 8px; background: #3e3e42; border: 1px solid #555; border-radius: 3px; color: #e8e2d5;">
+                    <small style="color: #999;">Allowed: PDF, DOC, DOCX, JPG, PNG</small>
+                </div>
+                
+                <div class="form-group" id="docExpiryGroup" style="display: none;">
+                    <label>Expiry Date (for MOT/Insurance)</label>
+                    <input type="date" id="docExpiry">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="docNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('uploadDocModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveDocument()">Upload</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add/Edit Machine Modal -->
     <div class="modal" id="machineModal">
         <div class="modal-content">
