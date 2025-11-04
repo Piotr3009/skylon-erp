@@ -296,9 +296,11 @@ function createMachineRow(machine) {
                     : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px; text-align: center;">
-                <button onclick="viewMachineDetails('${machine.id}')" class="action-btn" style="background: #0d47a1; color: white; padding: 6px 12px; margin-right: 5px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Details</button>
-                <button onclick="editMachine('${machine.id}')" class="action-btn" style="background: #2e7d32; color: white; padding: 6px 12px; margin-right: 5px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Edit</button>
-                <button onclick="deleteMachine('${machine.id}')" class="action-btn delete" style="background: #c62828; color: white; padding: 6px 12px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Delete</button>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button onclick="viewMachineDetails('${machine.id}')" style="background: #1a237e; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Details</button>
+                    <button onclick="editMachine('${machine.id}')" style="background: #1b5e20; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Edit</button>
+                    <button onclick="deleteMachine('${machine.id}')" style="background: #b71c1c; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Delete</button>
+                </div>
             </td>
         </tr>
     `;
@@ -393,9 +395,11 @@ function createVanRow(van) {
                 </span>
             </td>
             <td style="padding: 12px; text-align: center;">
-                <button onclick="viewVanDetails('${van.id}')" class="action-btn" style="background: #4a9eff; margin-right: 5px;">📋 Details</button>
-                <button onclick="editVan('${van.id}')" class="action-btn" style="background: #4ec9b0;">✏️ Edit</button>
-                <button onclick="deleteVan('${van.id}')" class="action-btn delete" style="background: #f44336;">🗑️</button>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button onclick="viewVanDetails('${van.id}')" style="background: #1a237e; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Details</button>
+                    <button onclick="editVan('${van.id}')" style="background: #1b5e20; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Edit</button>
+                    <button onclick="deleteVan('${van.id}')" style="background: #b71c1c; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Delete</button>
+                </div>
             </td>
         </tr>
     `;
@@ -464,8 +468,10 @@ function createToolRow(tool) {
                 £${(tool.cost_per_unit || 0).toFixed(2)}
             </td>
             <td style="padding: 12px; text-align: center;">
-                <button onclick="editTool('${tool.id}')" class="action-btn" style="background: #4ec9b0; margin-right: 5px;">✏️ Edit</button>
-                <button onclick="deleteTool('${tool.id}')" class="action-btn delete" style="background: #f44336;">🗑️</button>
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button onclick="editTool('${tool.id}')" style="background: #1b5e20; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Edit</button>
+                    <button onclick="deleteTool('${tool.id}')" style="background: #b71c1c; color: white; padding: 8px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap;">Delete</button>
+                </div>
             </td>
         </tr>
     `;
