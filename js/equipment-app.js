@@ -5,11 +5,13 @@ let vans = [];
 let smallTools = [];
 let currentView = 'machines'; // machines / vans / tools
 let currentEditItem = null;
+let toolCategories = ['saws', 'bits', 'clamps', 'measuring', 'other']; // default categories
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
     await loadAllEquipment();
+    await loadToolCategories(); // Load unique categories from DB
     renderView();
     updateStats();
 });
@@ -193,6 +195,32 @@ async function loadAllEquipment() {
     } catch (err) {
         console.error('Error loading equipment:', err);
         alert('Error loading data: ' + err.message);
+    }
+}
+
+// ========== LOAD TOOL CATEGORIES FROM DB ==========
+async function loadToolCategories() {
+    try {
+        // Get all unique categories from small_tools
+        const { data, error } = await supabaseClient
+            .from('small_tools')
+            .select('category');
+        
+        if (error) throw error;
+        
+        // Extract unique categories
+        const uniqueCategories = [...new Set((data || []).map(t => t.category))];
+        
+        // Merge with default categories (ensure defaults are always present)
+        const defaults = ['saws', 'bits', 'clamps', 'measuring', 'other'];
+        toolCategories = [...new Set([...defaults, ...uniqueCategories])].sort();
+        
+        console.log('✅ Loaded categories:', toolCategories);
+        
+    } catch (err) {
+        console.error('Error loading categories:', err);
+        // Keep default categories on error
+        toolCategories = ['saws', 'bits', 'clamps', 'measuring', 'other'];
     }
 }
 
@@ -795,9 +823,15 @@ function openAddToolModal() {
     currentEditItem = null;
     document.getElementById('toolModalTitle').textContent = 'Add Tool';
     
+    // Populate categories dropdown dynamically
+    const categorySelect = document.getElementById('toolCategory');
+    categorySelect.innerHTML = toolCategories.map(cat => 
+        `<option value="${cat}">${cat.charAt(0).toUpperCase() + cat.slice(1)}</option>`
+    ).join('') + '<option value="custom">➕ Add New Category...</option>';
+    
     // Clear form
     document.getElementById('toolName').value = '';
-    document.getElementById('toolCategory').value = 'other';
+    document.getElementById('toolCategory').value = toolCategories[0] || 'other';
     document.getElementById('toolCustomCategory').value = '';
     document.getElementById('toolCustomCategory').style.display = 'none';
     document.getElementById('toolQuantity').value = '0';
@@ -875,6 +909,7 @@ async function saveTool() {
         
         closeModal('toolModal');
         await loadAllEquipment();
+        await loadToolCategories(); // Reload categories to include new custom category
         renderView();
         updateStats();
         
@@ -985,6 +1020,12 @@ async function editTool(id) {
     
     currentEditItem = id;
     document.getElementById('toolModalTitle').textContent = 'Edit Tool';
+    
+    // Populate categories dropdown dynamically
+    const categorySelect = document.getElementById('toolCategory');
+    categorySelect.innerHTML = toolCategories.map(cat => 
+        `<option value="${cat}">${cat.charAt(0).toUpperCase() + cat.slice(1)}</option>`
+    ).join('') + '<option value="custom">➕ Add New Category...</option>';
     
     // Fill form
     document.getElementById('toolName').value = tool.name || '';
