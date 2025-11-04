@@ -935,8 +935,22 @@ async function editVan(id) {
     document.getElementById('vanCurrentValue').value = van.current_value || '';
     document.getElementById('vanAssignedWorker').value = van.assigned_to_worker_id || '';
     document.getElementById('vanStatus').value = van.status;
-    document.getElementById('vanImage').value = van.image_url || '';
+    document.getElementById('vanImageFile').value = '';
     document.getElementById('vanNotes').value = van.notes || '';
+    
+    // Show current image if exists
+    const preview = document.getElementById('vanImagePreview');
+    if (van.image_url) {
+        preview.innerHTML = `
+            <div style="margin-top: 10px;">
+                <div style="color: #999; font-size: 11px; margin-bottom: 5px;">Current image:</div>
+                <img src="${van.image_url}" style="max-width: 200px; max-height: 150px; border-radius: 3px;">
+                <div style="color: #999; font-size: 11px; margin-top: 5px;">Upload new image to replace</div>
+            </div>
+        `;
+    } else {
+        preview.innerHTML = '';
+    }
     
     document.getElementById('vanModal').classList.add('active');
 }
@@ -955,8 +969,22 @@ async function editTool(id) {
     document.getElementById('toolMinQuantity').value = tool.min_quantity || 0;
     document.getElementById('toolLocation').value = tool.location || '';
     document.getElementById('toolCostPerUnit').value = tool.cost_per_unit || '';
-    document.getElementById('toolImage').value = tool.image_url || '';
+    document.getElementById('toolImageFile').value = '';
     document.getElementById('toolNotes').value = tool.notes || '';
+    
+    // Show current image if exists
+    const preview = document.getElementById('toolImagePreview');
+    if (tool.image_url) {
+        preview.innerHTML = `
+            <div style="margin-top: 10px;">
+                <div style="color: #999; font-size: 11px; margin-bottom: 5px;">Current image:</div>
+                <img src="${tool.image_url}" style="max-width: 200px; max-height: 150px; border-radius: 3px;">
+                <div style="color: #999; font-size: 11px; margin-top: 5px;">Upload new image to replace</div>
+            </div>
+        `;
+    } else {
+        preview.innerHTML = '';
+    }
     
     document.getElementById('toolModal').classList.add('active');
 }
