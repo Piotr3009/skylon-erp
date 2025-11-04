@@ -86,12 +86,21 @@
                 <div id="detailsContent" style="margin-bottom: 30px;"></div>
                 
                 <!-- Documents Section -->
-                <div style="border-top: 2px solid #444; padding-top: 20px;">
+                <div style="border-top: 2px solid #444; padding-top: 20px; margin-bottom: 30px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 style="color: #4ec9b0; margin: 0;">📄 Documents</h3>
                         <button onclick="openUploadDocumentModal()" style="background: #1b5e20; color: white; padding: 8px 16px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: 600;">+ Upload Document</button>
                     </div>
                     <div id="detailsDocuments"></div>
+                </div>
+                
+                <!-- Service History Section (only for machines) -->
+                <div id="serviceHistorySection" style="border-top: 2px solid #444; padding-top: 20px; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: #4ec9b0; margin: 0;">🔧 Service History</h3>
+                        <button onclick="openAddServiceModal()" style="background: #1b5e20; color: white; padding: 8px 16px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: 600;">+ Add Service Record</button>
+                    </div>
+                    <div id="serviceHistoryList"></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -131,6 +140,67 @@
             <div class="modal-footer">
                 <button class="modal-btn" onclick="closeModal('uploadDocModal')">Cancel</button>
                 <button class="modal-btn primary" onclick="saveDocument()">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Service Record Modal -->
+    <div class="modal" id="addServiceModal">
+        <div class="modal-content">
+            <div class="modal-header">Add Service Record</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Service Date *</label>
+                    <input type="date" id="serviceDate" value="">
+                </div>
+                
+                <div class="form-group">
+                    <label>Service Type *</label>
+                    <select id="serviceType">
+                        <option value="major_service">Major Service / Repair</option>
+                        <option value="minor_service">Minor Service / Maintenance</option>
+                        <option value="blade_replacement">Blade / Knife Replacement</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="background: #2d2d30; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="toolSharpening" onchange="toggleSharpeningCost()" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; font-weight: 600;">🪚 Tool Sharpening Included</span>
+                    </label>
+                    <small style="color: #999; display: block; margin-top: 5px; margin-left: 28px;">Check if saws/blades were sharpened during this service</small>
+                    
+                    <div id="sharpeningCostGroup" style="display: none; margin-top: 15px; margin-left: 28px;">
+                        <label style="font-size: 12px; color: #999;">Sharpening Cost (£)</label>
+                        <input type="number" id="sharpeningCost" step="0.01" min="0" placeholder="0.00" style="width: 150px; margin-top: 5px;">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Total Service Cost (£) *</label>
+                    <input type="number" id="serviceCost" step="0.01" min="0" placeholder="0.00">
+                    <small style="color: #999;">Include all costs (labor, parts, sharpening if applicable)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Performed By</label>
+                    <input type="text" id="servicePerformedBy" placeholder="e.g. John Smith, ABC Services Ltd">
+                </div>
+                
+                <div class="form-group">
+                    <label>Next Service Date (optional)</label>
+                    <input type="date" id="serviceNextDate">
+                    <small style="color: #999;">When should the next service be scheduled?</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="serviceNotes" rows="4" placeholder="What was done? Parts replaced? Issues found?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('addServiceModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveServiceRecord()">Save Service</button>
             </div>
         </div>
     </div>

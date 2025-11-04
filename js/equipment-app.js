@@ -1031,6 +1031,7 @@ async function deleteTool(id) {
 // ========== DETAILS/DOCUMENTS ==========
 let currentDetailsItem = null;
 let currentDocuments = [];
+let currentServiceHistory = [];
 
 async function viewMachineDetails(id) {
     const machine = machines.find(m => m.id === id);
@@ -1041,10 +1042,18 @@ async function viewMachineDetails(id) {
     // Load documents for this machine
     await loadDocuments('machine', id);
     
+    // Load service history for this machine
+    await loadServiceHistory(id);
+    
     // Show modal
     document.getElementById('detailsModalTitle').textContent = machine.name;
     document.getElementById('detailsContent').innerHTML = renderMachineDetailsContent(machine);
     document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
+    
+    // Show service history section (only for machines)
+    document.getElementById('serviceHistorySection').style.display = 'block';
+    document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
+    
     document.getElementById('detailsModal').classList.add('active');
 }
 
@@ -1061,7 +1070,30 @@ async function viewVanDetails(id) {
     document.getElementById('detailsModalTitle').textContent = van.name;
     document.getElementById('detailsContent').innerHTML = renderVanDetailsContent(van);
     document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
+    
+    // Hide service history for vans
+    document.getElementById('serviceHistorySection').style.display = 'none';
+    
     document.getElementById('detailsModal').classList.add('active');
+}
+
+async function loadServiceHistory(machineId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('machine_service_history')
+            .select('*')
+            .eq('machine_id', machineId)
+            .order('service_date', { ascending: false });
+        
+        if (error) throw error;
+        
+        currentServiceHistory = data || [];
+        console.log('✅ Loaded', currentServiceHistory.length, 'service records');
+        
+    } catch (err) {
+        console.error('Error loading service history:', err);
+        currentServiceHistory = [];
+    }
 }
 
 async function loadDocuments(type, itemId) {
@@ -1386,3 +1418,172 @@ function viewImage(url) {
 }
 
 console.log('✅ Equipment Management App loaded');
+
+// ========== SERVICE HISTORY ==========
+function renderServiceHistoryList() {
+    if (currentServiceHistory.length === 0) {
+        return `
+            <div style="padding: 40px; text-align: center; color: #666;">
+                <div style="font-size: 48px; margin-bottom: 10px;">🔧</div>
+                <div>No service history recorded</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div style="display: grid; gap: 10px;">
+            ${currentServiceHistory.map(service => {
+                const serviceDate = new Date(service.service_date);
+                const nextDate = service.next_service_date ? new Date(service.next_service_date) : null;
+                const today = new Date();
+                const daysUntilNext = nextDate ? Math.floor((nextDate - today) / (1000 * 60 * 60 * 24)) : null;
+                
+                const nextColor = daysUntilNext !== null ? (daysUntilNext <= 7 ? '#f44336' : (daysUntilNext <= 30 ? '#ff9800' : '#4CAF50')) : '#999';
+                
+                const serviceTypeNames = {
+                    'major_service': 'Major Service',
+                    'minor_service': 'Minor Service',
+                    'blade_replacement': 'Blade Replacement'
+                };
+                
+                return `
+                    <div style="background: #2d2d30; padding: 15px; border-radius: 5px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 5px;">
+                                    ${serviceDate.toLocaleDateString('en-GB')} - ${serviceTypeNames[service.service_type]}
+                                    ${service.tool_sharpening ? '<span style="background: #ff9800; color: #000; padding: 2px 6px; border-radius: 2px; font-size: 10px; margin-left: 8px;">🪚 SHARPENING</span>' : ''}
+                                </div>
+                                <div style="font-size: 12px; color: #999;">
+                                    <strong>Cost:</strong> £${(service.total_cost || 0).toFixed(2)}
+                                    ${service.tool_sharpening && service.sharpening_cost ? ` (incl. £${service.sharpening_cost.toFixed(2)} sharpening)` : ''}
+                                    ${service.performed_by ? ` • <strong>By:</strong> ${service.performed_by}` : ''}
+                                </div>
+                                ${nextDate ? `
+                                <div style="font-size: 12px; color: ${nextColor}; margin-top: 5px;">
+                                    <strong>Next Service:</strong> ${nextDate.toLocaleDateString('en-GB')} 
+                                    ${daysUntilNext !== null ? `(${daysUntilNext > 0 ? daysUntilNext + ' days' : 'OVERDUE'})` : ''}
+                                </div>
+                                ` : ''}
+                                ${service.notes ? `
+                                <div style="font-size: 12px; color: #b5cea8; margin-top: 8px; padding: 8px; background: #1e1e1e; border-radius: 3px;">
+                                    ${service.notes}
+                                </div>
+                                ` : ''}
+                            </div>
+                            <button onclick="deleteServiceRecord('${service.id}')" style="background: #b71c1c; color: white; padding: 6px 10px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600;">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function openAddServiceModal() {
+    if (!currentDetailsItem || currentDetailsItem.type !== 'machine') return;
+    
+    // Set today's date as default
+    document.getElementById('serviceDate').value = new Date().toISOString().split('T')[0];
+    
+    // Clear form
+    document.getElementById('serviceType').value = 'minor_service';
+    document.getElementById('toolSharpening').checked = false;
+    document.getElementById('sharpeningCost').value = '';
+    document.getElementById('sharpeningCostGroup').style.display = 'none';
+    document.getElementById('serviceCost').value = '';
+    document.getElementById('servicePerformedBy').value = '';
+    document.getElementById('serviceNextDate').value = '';
+    document.getElementById('serviceNotes').value = '';
+    
+    document.getElementById('addServiceModal').classList.add('active');
+}
+
+function toggleSharpeningCost() {
+    const checked = document.getElementById('toolSharpening').checked;
+    const costGroup = document.getElementById('sharpeningCostGroup');
+    costGroup.style.display = checked ? 'block' : 'none';
+    
+    if (!checked) {
+        document.getElementById('sharpeningCost').value = '';
+    }
+}
+
+async function saveServiceRecord() {
+    const serviceDate = document.getElementById('serviceDate').value;
+    const serviceType = document.getElementById('serviceType').value;
+    const toolSharpening = document.getElementById('toolSharpening').checked;
+    const sharpeningCost = parseFloat(document.getElementById('sharpeningCost').value) || null;
+    const totalCost = parseFloat(document.getElementById('serviceCost').value);
+    const performedBy = document.getElementById('servicePerformedBy').value.trim();
+    const nextDate = document.getElementById('serviceNextDate').value;
+    const notes = document.getElementById('serviceNotes').value.trim();
+    
+    if (!serviceDate) {
+        alert('Please enter service date');
+        return;
+    }
+    
+    if (!totalCost || totalCost <= 0) {
+        alert('Please enter total service cost');
+        return;
+    }
+    
+    if (!currentDetailsItem || currentDetailsItem.type !== 'machine') return;
+    
+    try {
+        const serviceData = {
+            machine_id: currentDetailsItem.id,
+            service_date: serviceDate,
+            service_type: serviceType,
+            tool_sharpening: toolSharpening,
+            sharpening_cost: toolSharpening ? sharpeningCost : null,
+            total_cost: totalCost,
+            performed_by: performedBy || null,
+            next_service_date: nextDate || null,
+            notes: notes || null
+        };
+        
+        const { error } = await supabaseClient
+            .from('machine_service_history')
+            .insert([serviceData]);
+        
+        if (error) throw error;
+        
+        console.log('✅ Service record added');
+        closeModal('addServiceModal');
+        
+        // Reload service history
+        await loadServiceHistory(currentDetailsItem.id);
+        document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
+        
+    } catch (err) {
+        console.error('Error saving service record:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+async function deleteServiceRecord(serviceId) {
+    if (!confirm('Delete this service record? This cannot be undone!')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('machine_service_history')
+            .delete()
+            .eq('id', serviceId);
+        
+        if (error) throw error;
+        
+        console.log('✅ Service record deleted');
+        
+        // Reload service history
+        if (currentDetailsItem && currentDetailsItem.type === 'machine') {
+            await loadServiceHistory(currentDetailsItem.id);
+            document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
+        }
+        
+    } catch (err) {
+        console.error('Error deleting service record:', err);
+        alert('Error: ' + err.message);
+    }
+}
