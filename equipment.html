@@ -77,6 +77,229 @@
         </div>
     </div>
 
+    <!-- Add/Edit Machine Modal -->
+    <div class="modal" id="machineModal">
+        <div class="modal-content">
+            <div class="modal-header" id="machineModalTitle">Add Machine</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Machine Name *</label>
+                    <input type="text" id="machineName" placeholder="e.g. CNC Router Biesse">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Manufacturer</label>
+                        <input type="text" id="machineManufacturer" placeholder="e.g. Biesse">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text" id="machineModel" placeholder="e.g. Rover A 1332">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input type="text" id="machineSerial" placeholder="e.g. SN-12345678">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Purchase Date</label>
+                        <input type="date" id="machinePurchaseDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Warranty End Date</label>
+                        <input type="date" id="machineWarrantyEnd">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Purchase Cost (£)</label>
+                        <input type="number" id="machinePurchaseCost" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Current Value (£)</label>
+                        <input type="number" id="machineCurrentValue" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="machineStatus">
+                        <option value="working">Working</option>
+                        <option value="repair">In Repair</option>
+                        <option value="retired">Retired</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Image URL (optional)</label>
+                    <input type="url" id="machineImage" placeholder="https://...">
+                    <small style="color: #999;">Link to image in Google Drive or other storage</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="machineNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('machineModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveMachine()">Save Machine</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Van Modal -->
+    <div class="modal" id="vanModal">
+        <div class="modal-content">
+            <div class="modal-header" id="vanModalTitle">Add Van</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Van Name *</label>
+                    <input type="text" id="vanName" placeholder="e.g. Mercedes Sprinter">
+                </div>
+                
+                <div class="form-group">
+                    <label>Registration Plate *</label>
+                    <input type="text" id="vanRegPlate" placeholder="e.g. AB12 XYZ" style="text-transform: uppercase;">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Purchase Date</label>
+                        <input type="date" id="vanPurchaseDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mileage</label>
+                        <input type="number" id="vanMileage" min="0" placeholder="0">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>MOT Due Date *</label>
+                        <input type="date" id="vanMotDue">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Insurance Due Date *</label>
+                        <input type="date" id="vanInsuranceDue">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Purchase Cost (£)</label>
+                        <input type="number" id="vanPurchaseCost" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Current Value (£)</label>
+                        <input type="number" id="vanCurrentValue" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Assigned To</label>
+                    <select id="vanAssignedWorker">
+                        <option value="">Unassigned</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="vanStatus">
+                        <option value="active">Active</option>
+                        <option value="repair">In Repair</option>
+                        <option value="retired">Retired</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Image URL (optional)</label>
+                    <input type="url" id="vanImage" placeholder="https://...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="vanNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('vanModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveVan()">Save Van</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Tool Modal -->
+    <div class="modal" id="toolModal">
+        <div class="modal-content">
+            <div class="modal-header" id="toolModalTitle">Add Tool</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tool Name *</label>
+                    <input type="text" id="toolName" placeholder="e.g. Piła ręczna Makita">
+                </div>
+                
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="toolCategory">
+                        <option value="saws">Saws</option>
+                        <option value="bits">Bits</option>
+                        <option value="clamps">Clamps</option>
+                        <option value="measuring">Measuring Tools</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Quantity *</label>
+                        <input type="number" id="toolQuantity" min="0" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Min Quantity *</label>
+                        <input type="number" id="toolMinQuantity" min="0" value="0">
+                        <small style="color: #999;">Alert when below this</small>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="toolLocation" placeholder="e.g. Toolbox A, Shelf 3">
+                </div>
+                
+                <div class="form-group">
+                    <label>Cost per Unit (£)</label>
+                    <input type="number" id="toolCostPerUnit" step="0.01" min="0" placeholder="0.00">
+                </div>
+                
+                <div class="form-group">
+                    <label>Image URL (optional)</label>
+                    <input type="url" id="toolImage" placeholder="https://...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="toolNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('toolModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveTool()">Save Tool</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/equipment-app.js?v=1"></script>
     

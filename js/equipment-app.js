@@ -442,55 +442,416 @@ function updateStats() {
     }
 }
 
-// ========== PLACEHOLDER FUNCTIONS (będziemy je robić) ==========
+// ========== MODAL FUNCTIONS ==========
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+// ========== ADD MACHINE ==========
 function openAddMachineModal() {
-    alert('Add Machine modal - TODO');
+    currentEditItem = null;
+    document.getElementById('machineModalTitle').textContent = 'Add Machine';
+    
+    // Clear form
+    document.getElementById('machineName').value = '';
+    document.getElementById('machineManufacturer').value = '';
+    document.getElementById('machineModel').value = '';
+    document.getElementById('machineSerial').value = '';
+    document.getElementById('machinePurchaseDate').value = '';
+    document.getElementById('machineWarrantyEnd').value = '';
+    document.getElementById('machinePurchaseCost').value = '';
+    document.getElementById('machineCurrentValue').value = '';
+    document.getElementById('machineStatus').value = 'working';
+    document.getElementById('machineImage').value = '';
+    document.getElementById('machineNotes').value = '';
+    
+    document.getElementById('machineModal').classList.add('active');
 }
 
-function openAddVanModal() {
-    alert('Add Van modal - TODO');
-}
-
-function openAddToolModal() {
-    alert('Add Tool modal - TODO');
-}
-
-function viewMachineDetails(id) {
-    alert('View Machine Details - TODO: ' + id);
-}
-
-function editMachine(id) {
-    alert('Edit Machine - TODO: ' + id);
-}
-
-function deleteMachine(id) {
-    if (confirm('Delete this machine?')) {
-        alert('Delete Machine - TODO: ' + id);
+async function saveMachine() {
+    const name = document.getElementById('machineName').value.trim();
+    
+    if (!name) {
+        alert('Please enter machine name');
+        return;
     }
+    
+    const machineData = {
+        name: name,
+        manufacturer: document.getElementById('machineManufacturer').value.trim() || null,
+        model: document.getElementById('machineModel').value.trim() || null,
+        serial_number: document.getElementById('machineSerial').value.trim() || null,
+        purchase_date: document.getElementById('machinePurchaseDate').value || null,
+        warranty_end_date: document.getElementById('machineWarrantyEnd').value || null,
+        purchase_cost: parseFloat(document.getElementById('machinePurchaseCost').value) || null,
+        current_value: parseFloat(document.getElementById('machineCurrentValue').value) || null,
+        status: document.getElementById('machineStatus').value,
+        image_url: document.getElementById('machineImage').value.trim() || null,
+        notes: document.getElementById('machineNotes').value.trim() || null
+    };
+    
+    try {
+        if (currentEditItem) {
+            // Update existing
+            const { error } = await supabaseClient
+                .from('machines')
+                .update(machineData)
+                .eq('id', currentEditItem);
+            
+            if (error) throw error;
+            console.log('✅ Machine updated');
+        } else {
+            // Insert new
+            const { error } = await supabaseClient
+                .from('machines')
+                .insert([machineData]);
+            
+            if (error) throw error;
+            console.log('✅ Machine added');
+        }
+        
+        closeModal('machineModal');
+        await loadAllEquipment();
+        renderView();
+        updateStats();
+        
+    } catch (err) {
+        console.error('Error saving machine:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// ========== ADD VAN ==========
+async function openAddVanModal() {
+    currentEditItem = null;
+    document.getElementById('vanModalTitle').textContent = 'Add Van';
+    
+    // Load team members for assignment
+    const { data: teamData } = await supabaseClient
+        .from('team_members')
+        .select('id, name')
+        .eq('active', true)
+        .order('name');
+    
+    const select = document.getElementById('vanAssignedWorker');
+    select.innerHTML = '<option value="">Unassigned</option>';
+    
+    if (teamData) {
+        teamData.forEach(member => {
+            const option = document.createElement('option');
+            option.value = member.id;
+            option.textContent = member.name;
+            select.appendChild(option);
+        });
+    }
+    
+    // Clear form
+    document.getElementById('vanName').value = '';
+    document.getElementById('vanRegPlate').value = '';
+    document.getElementById('vanPurchaseDate').value = '';
+    document.getElementById('vanMileage').value = '';
+    document.getElementById('vanMotDue').value = '';
+    document.getElementById('vanInsuranceDue').value = '';
+    document.getElementById('vanPurchaseCost').value = '';
+    document.getElementById('vanCurrentValue').value = '';
+    document.getElementById('vanAssignedWorker').value = '';
+    document.getElementById('vanStatus').value = 'active';
+    document.getElementById('vanImage').value = '';
+    document.getElementById('vanNotes').value = '';
+    
+    document.getElementById('vanModal').classList.add('active');
+}
+
+async function saveVan() {
+    const name = document.getElementById('vanName').value.trim();
+    const regPlate = document.getElementById('vanRegPlate').value.trim().toUpperCase();
+    
+    if (!name) {
+        alert('Please enter van name');
+        return;
+    }
+    
+    if (!regPlate) {
+        alert('Please enter registration plate');
+        return;
+    }
+    
+    const vanData = {
+        name: name,
+        registration_plate: regPlate,
+        purchase_date: document.getElementById('vanPurchaseDate').value || null,
+        mileage: parseInt(document.getElementById('vanMileage').value) || 0,
+        mot_due_date: document.getElementById('vanMotDue').value || null,
+        insurance_due_date: document.getElementById('vanInsuranceDue').value || null,
+        purchase_cost: parseFloat(document.getElementById('vanPurchaseCost').value) || null,
+        current_value: parseFloat(document.getElementById('vanCurrentValue').value) || null,
+        assigned_to_worker_id: document.getElementById('vanAssignedWorker').value || null,
+        status: document.getElementById('vanStatus').value,
+        image_url: document.getElementById('vanImage').value.trim() || null,
+        notes: document.getElementById('vanNotes').value.trim() || null
+    };
+    
+    try {
+        if (currentEditItem) {
+            // Update existing
+            const { error } = await supabaseClient
+                .from('vans')
+                .update(vanData)
+                .eq('id', currentEditItem);
+            
+            if (error) throw error;
+            console.log('✅ Van updated');
+        } else {
+            // Insert new
+            const { error } = await supabaseClient
+                .from('vans')
+                .insert([vanData]);
+            
+            if (error) throw error;
+            console.log('✅ Van added');
+        }
+        
+        closeModal('vanModal');
+        await loadAllEquipment();
+        renderView();
+        updateStats();
+        
+    } catch (err) {
+        console.error('Error saving van:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// ========== ADD TOOL ==========
+function openAddToolModal() {
+    currentEditItem = null;
+    document.getElementById('toolModalTitle').textContent = 'Add Tool';
+    
+    // Clear form
+    document.getElementById('toolName').value = '';
+    document.getElementById('toolCategory').value = 'other';
+    document.getElementById('toolQuantity').value = '0';
+    document.getElementById('toolMinQuantity').value = '0';
+    document.getElementById('toolLocation').value = '';
+    document.getElementById('toolCostPerUnit').value = '';
+    document.getElementById('toolImage').value = '';
+    document.getElementById('toolNotes').value = '';
+    
+    document.getElementById('toolModal').classList.add('active');
+}
+
+async function saveTool() {
+    const name = document.getElementById('toolName').value.trim();
+    
+    if (!name) {
+        alert('Please enter tool name');
+        return;
+    }
+    
+    const toolData = {
+        name: name,
+        category: document.getElementById('toolCategory').value,
+        quantity: parseInt(document.getElementById('toolQuantity').value) || 0,
+        min_quantity: parseInt(document.getElementById('toolMinQuantity').value) || 0,
+        location: document.getElementById('toolLocation').value.trim() || null,
+        cost_per_unit: parseFloat(document.getElementById('toolCostPerUnit').value) || null,
+        image_url: document.getElementById('toolImage').value.trim() || null,
+        notes: document.getElementById('toolNotes').value.trim() || null
+    };
+    
+    try {
+        if (currentEditItem) {
+            // Update existing
+            const { error } = await supabaseClient
+                .from('small_tools')
+                .update(toolData)
+                .eq('id', currentEditItem);
+            
+            if (error) throw error;
+            console.log('✅ Tool updated');
+        } else {
+            // Insert new
+            const { error } = await supabaseClient
+                .from('small_tools')
+                .insert([toolData]);
+            
+            if (error) throw error;
+            console.log('✅ Tool added');
+        }
+        
+        closeModal('toolModal');
+        await loadAllEquipment();
+        renderView();
+        updateStats();
+        
+    } catch (err) {
+        console.error('Error saving tool:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// ========== EDIT FUNCTIONS ==========
+async function editMachine(id) {
+    const machine = machines.find(m => m.id === id);
+    if (!machine) return;
+    
+    currentEditItem = id;
+    document.getElementById('machineModalTitle').textContent = 'Edit Machine';
+    
+    // Fill form
+    document.getElementById('machineName').value = machine.name || '';
+    document.getElementById('machineManufacturer').value = machine.manufacturer || '';
+    document.getElementById('machineModel').value = machine.model || '';
+    document.getElementById('machineSerial').value = machine.serial_number || '';
+    document.getElementById('machinePurchaseDate').value = machine.purchase_date || '';
+    document.getElementById('machineWarrantyEnd').value = machine.warranty_end_date || '';
+    document.getElementById('machinePurchaseCost').value = machine.purchase_cost || '';
+    document.getElementById('machineCurrentValue').value = machine.current_value || '';
+    document.getElementById('machineStatus').value = machine.status;
+    document.getElementById('machineImage').value = machine.image_url || '';
+    document.getElementById('machineNotes').value = machine.notes || '';
+    
+    document.getElementById('machineModal').classList.add('active');
+}
+
+async function editVan(id) {
+    const van = vans.find(v => v.id === id);
+    if (!van) return;
+    
+    currentEditItem = id;
+    document.getElementById('vanModalTitle').textContent = 'Edit Van';
+    
+    // Load team members
+    const { data: teamData } = await supabaseClient
+        .from('team_members')
+        .select('id, name')
+        .eq('active', true)
+        .order('name');
+    
+    const select = document.getElementById('vanAssignedWorker');
+    select.innerHTML = '<option value="">Unassigned</option>';
+    
+    if (teamData) {
+        teamData.forEach(member => {
+            const option = document.createElement('option');
+            option.value = member.id;
+            option.textContent = member.name;
+            select.appendChild(option);
+        });
+    }
+    
+    // Fill form
+    document.getElementById('vanName').value = van.name || '';
+    document.getElementById('vanRegPlate').value = van.registration_plate || '';
+    document.getElementById('vanPurchaseDate').value = van.purchase_date || '';
+    document.getElementById('vanMileage').value = van.mileage || '';
+    document.getElementById('vanMotDue').value = van.mot_due_date || '';
+    document.getElementById('vanInsuranceDue').value = van.insurance_due_date || '';
+    document.getElementById('vanPurchaseCost').value = van.purchase_cost || '';
+    document.getElementById('vanCurrentValue').value = van.current_value || '';
+    document.getElementById('vanAssignedWorker').value = van.assigned_to_worker_id || '';
+    document.getElementById('vanStatus').value = van.status;
+    document.getElementById('vanImage').value = van.image_url || '';
+    document.getElementById('vanNotes').value = van.notes || '';
+    
+    document.getElementById('vanModal').classList.add('active');
+}
+
+async function editTool(id) {
+    const tool = smallTools.find(t => t.id === id);
+    if (!tool) return;
+    
+    currentEditItem = id;
+    document.getElementById('toolModalTitle').textContent = 'Edit Tool';
+    
+    // Fill form
+    document.getElementById('toolName').value = tool.name || '';
+    document.getElementById('toolCategory').value = tool.category;
+    document.getElementById('toolQuantity').value = tool.quantity || 0;
+    document.getElementById('toolMinQuantity').value = tool.min_quantity || 0;
+    document.getElementById('toolLocation').value = tool.location || '';
+    document.getElementById('toolCostPerUnit').value = tool.cost_per_unit || '';
+    document.getElementById('toolImage').value = tool.image_url || '';
+    document.getElementById('toolNotes').value = tool.notes || '';
+    
+    document.getElementById('toolModal').classList.add('active');
+}
+
+// ========== DELETE FUNCTIONS ==========
+async function deleteMachine(id) {
+    if (!confirm('Delete this machine? This cannot be undone!')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('machines')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Machine deleted');
+        await loadAllEquipment();
+        renderView();
+        updateStats();
+        
+    } catch (err) {
+        console.error('Error deleting machine:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+async function deleteVan(id) {
+    if (!confirm('Delete this van? This cannot be undone!')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('vans')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Van deleted');
+        await loadAllEquipment();
+        renderView();
+        updateStats();
+        
+    } catch (err) {
+        console.error('Error deleting van:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+async function deleteTool(id) {
+    if (!confirm('Delete this tool? This cannot be undone!')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('small_tools')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        console.log('✅ Tool deleted');
+        await loadAllEquipment();
+        renderView();
+        updateStats();
+        
+    } catch (err) {
+        console.error('Error deleting tool:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// ========== DETAILS/REPORTS (TODO) ==========
+function viewMachineDetails(id) {
+    alert('View Machine Details - TODO: Service history, documents');
 }
 
 function viewVanDetails(id) {
-    alert('View Van Details - TODO: ' + id);
-}
-
-function editVan(id) {
-    alert('Edit Van - TODO: ' + id);
-}
-
-function deleteVan(id) {
-    if (confirm('Delete this van?')) {
-        alert('Delete Van - TODO: ' + id);
-    }
-}
-
-function editTool(id) {
-    alert('Edit Tool - TODO: ' + id);
-}
-
-function deleteTool(id) {
-    if (confirm('Delete this tool?')) {
-        alert('Delete Tool - TODO: ' + id);
-    }
+    alert('View Van Details - TODO: Service history, documents');
 }
 
 function generateMachinesReport() {
