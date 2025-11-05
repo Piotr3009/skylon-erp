@@ -556,7 +556,7 @@ body.pipeline-theme .chart-wrapper {
 }
 
 .header-name {
-    width: 234px;
+    width: 334px;
     justify-content: flex-start;
     padding: 0 9px;
 }
@@ -705,7 +705,7 @@ body.pipeline-theme .project-cell {
 }
 
 .project-name {
-   width: 234px;
+   width: 334px;
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
