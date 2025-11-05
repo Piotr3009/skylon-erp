@@ -482,7 +482,14 @@ function populateStockInItems(items, selectedId = null) {
     const select = document.getElementById('stockInItem');
     select.innerHTML = '<option value="">Select stock item...</option>';
     
-    items.forEach(item => {
+    // Sort by item_number numerically
+    const sortedItems = [...items].sort((a, b) => {
+        const numA = a.item_number ? parseInt(a.item_number.replace(/\D/g, '')) || 0 : 0;
+        const numB = b.item_number ? parseInt(b.item_number.replace(/\D/g, '')) || 0 : 0;
+        return numA - numB;
+    });
+    
+    sortedItems.forEach(item => {
         const option = document.createElement('option');
         option.value = item.id;
         
@@ -530,7 +537,14 @@ function openStockOutModal(itemId = null) {
     const select = document.getElementById('stockOutItem');
     select.innerHTML = '<option value="">Select stock item...</option>';
     
-    stockItems.forEach(item => {
+    // Sort by item_number numerically
+    const sortedItems = [...stockItems].sort((a, b) => {
+        const numA = a.item_number ? parseInt(a.item_number.replace(/\D/g, '')) || 0 : 0;
+        const numB = b.item_number ? parseInt(b.item_number.replace(/\D/g, '')) || 0 : 0;
+        return numA - numB;
+    });
+    
+    sortedItems.forEach(item => {
         const option = document.createElement('option');
         option.value = item.id;
         
