@@ -61,7 +61,7 @@ function renderPipelineGridPattern() {
         line.className = 'grid-line';
         line.style.cssText = `
             position: absolute;
-            left: ${400 + i * dayWidth}px;
+            left: ${640 + i * dayWidth}px;
             top: 50px;
             bottom: 0;
             width: 1px;
@@ -82,7 +82,7 @@ function renderPipelineGridPattern() {
             stripe.className = 'sunday-stripe';
             stripe.style.cssText = `
                 position: absolute;
-                left: ${400 + i * dayWidth}px;
+                left: ${640 + i * dayWidth}px;
                 top: 45px;
                 bottom: 0;
                 width: ${dayWidth}px;
@@ -460,7 +460,7 @@ function renderTodayLine() {
         line.className = 'today-line';
         line.style.cssText = `
             position: absolute;
-            left: ${400 + daysDiff * dayWidth}px;
+            left: ${640 + daysDiff * dayWidth}px;
             top: 0;
             bottom: 0;
             width: 2px;
