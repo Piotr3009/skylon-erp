@@ -244,7 +244,7 @@ function renderStockTable() {
     }
     
     container.innerHTML = `
-        <div style="overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 380px);">
+        <div style="overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 300px);">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead style="background: #252526; position: sticky; top: 0; z-index: 10;">
                     <tr>
