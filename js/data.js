@@ -342,6 +342,7 @@ async function loadPipelineFromSupabase() {
                     pdf_url: dbProject.pdf_url || null,
                     google_drive_url: dbProject.google_drive_url || null,
                     google_drive_folder_id: dbProject.google_drive_folder_id || null,
+                    created_at: dbProject.created_at,
                     phases: projectPhases.map(phase => {
                         // Napraw format daty DD/MM/YYYY na YYYY-MM-DD
                         const fixDate = (dateStr) => {
