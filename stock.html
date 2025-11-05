@@ -32,6 +32,7 @@
             <button class="toolbar-btn success" onclick="openStockInModal()">📥 Stock IN</button>
             <button class="toolbar-btn danger" onclick="openStockOutModal()">📤 Stock OUT</button>
             <button class="toolbar-btn" onclick="refreshStock()">🔄 Refresh</button>
+            <button class="toolbar-btn" onclick="openStockReportsModal()">📊 Stock Reports</button>
             
             <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
                 <select id="categoryFilter" onchange="filterStock()" style="padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
@@ -537,6 +538,86 @@
             <div class="modal-footer">
                 <button class="modal-btn" onclick="closeModal('addSubcategoryModal')">Cancel</button>
                 <button class="modal-btn primary" onclick="saveNewSubcategory()">Add Subcategory</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Reports Modal -->
+    <div class="modal" id="stockReportsModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>📊 Stock Reports</h2>
+                <button class="close-btn" onclick="closeModal('stockReportsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Report Type Selection -->
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 14px; margin-bottom: 10px; display: block;">Report Type</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; padding: 10px; background: #3e3e42; border-radius: 4px; cursor: pointer;">
+                            <input type="radio" name="reportType" value="in" checked onchange="updateReportFilters()" style="margin-right: 10px;">
+                            <span>📥 Stock IN - Deliveries</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: #3e3e42; border-radius: 4px; cursor: pointer;">
+                            <input type="radio" name="reportType" value="out" onchange="updateReportFilters()" style="margin-right: 10px;">
+                            <span>📤 Stock OUT - Usage</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: #3e3e42; border-radius: 4px; cursor: pointer;">
+                            <input type="radio" name="reportType" value="add" onchange="updateReportFilters()" style="margin-right: 10px;">
+                            <span>➕ New Items Added</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div style="border-top: 1px solid #555; margin: 20px 0; padding-top: 20px;">
+                    <h3 style="font-size: 14px; margin-bottom: 15px; color: #e8e2d5;">Filters</h3>
+                    
+                    <!-- Filter 1: Period -->
+                    <div class="form-group">
+                        <label>Period</label>
+                        <select id="reportPeriod" onchange="toggleCustomDateRange()" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="365">This Year</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+
+                    <!-- Custom Date Range -->
+                    <div id="customDateRange" style="display: none;">
+                        <div class="form-group">
+                            <label>Date From</label>
+                            <input type="date" id="reportDateFrom" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Date To</label>
+                            <input type="date" id="reportDateTo" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                        </div>
+                    </div>
+
+                    <!-- Filter 2: Worker -->
+                    <div class="form-group">
+                        <label>Worker</label>
+                        <select id="reportWorker" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                            <option value="">All Workers</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Filter 3: Category -->
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="reportCategory" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                            <option value="">All Categories</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('stockReportsModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="generateStockReport()">📊 Generate Report</button>
             </div>
         </div>
     </div>

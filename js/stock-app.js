@@ -1506,3 +1506,644 @@ async function deleteDocument(index) {
         alert('Error deleting document: ' + err.message);
     }
 }
+
+// ========== STOCK REPORTS ==========
+
+// Open stock reports modal
+async function openStockReportsModal() {
+    // Populate workers dropdown
+    const workerSelect = document.getElementById('reportWorker');
+    workerSelect.innerHTML = '<option value="">All Workers</option>';
+    teamMembers.forEach(worker => {
+        const option = document.createElement('option');
+        option.value = worker.id;
+        option.textContent = worker.name;
+        workerSelect.appendChild(option);
+    });
+    
+    // Populate categories dropdown
+    const categorySelect = document.getElementById('reportCategory');
+    categorySelect.innerHTML = '<option value="">All Categories</option>';
+    const categories = stockCategories.filter(c => c.type === 'category');
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.name.toLowerCase();
+        option.textContent = cat.name;
+        categorySelect.appendChild(option);
+    });
+    
+    // Set default dates for custom range
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    document.getElementById('reportDateFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+    document.getElementById('reportDateTo').value = today.toISOString().split('T')[0];
+    
+    document.getElementById('stockReportsModal').classList.add('active');
+}
+
+// Toggle custom date range visibility
+function toggleCustomDateRange() {
+    const period = document.getElementById('reportPeriod').value;
+    const customRange = document.getElementById('customDateRange');
+    customRange.style.display = period === 'custom' ? 'block' : 'none';
+}
+
+// Update report filters based on report type
+function updateReportFilters() {
+    // Currently all filters are the same for all report types
+    // This function can be extended if different types need different filters
+}
+
+// Generate stock report
+async function generateStockReport() {
+    const reportType = document.querySelector('input[name="reportType"]:checked').value;
+    const period = document.getElementById('reportPeriod').value;
+    const workerId = document.getElementById('reportWorker').value;
+    const category = document.getElementById('reportCategory').value;
+    
+    // Calculate date range
+    let dateFrom, dateTo;
+    const today = new Date();
+    
+    if (period === 'custom') {
+        dateFrom = new Date(document.getElementById('reportDateFrom').value);
+        dateTo = new Date(document.getElementById('reportDateTo').value);
+        dateTo.setHours(23, 59, 59, 999); // End of day
+    } else {
+        dateTo = new Date(today);
+        dateTo.setHours(23, 59, 59, 999);
+        dateFrom = new Date(today);
+        dateFrom.setDate(today.getDate() - parseInt(period));
+        dateFrom.setHours(0, 0, 0, 0);
+    }
+    
+    try {
+        let reportHTML = '';
+        
+        if (reportType === 'in') {
+            reportHTML = await generateStockInReport(dateFrom, dateTo, workerId, category);
+        } else if (reportType === 'out') {
+            reportHTML = await generateStockOutReport(dateFrom, dateTo, workerId, category);
+        } else if (reportType === 'add') {
+            reportHTML = await generateAddItemsReport(dateFrom, dateTo, workerId, category);
+        }
+        
+        // Open report in new window
+        const reportWindow = window.open('', '_blank');
+        reportWindow.document.write(reportHTML);
+        reportWindow.document.close();
+        
+        closeModal('stockReportsModal');
+        
+    } catch (err) {
+        console.error('Error generating report:', err);
+        alert('Error generating report: ' + err.message);
+    }
+}
+
+// Generate Stock IN Report
+async function generateStockInReport(dateFrom, dateTo, workerId, category) {
+    // Fetch transactions
+    let query = supabaseClient
+        .from('stock_transactions')
+        .select('*, stock_items(name, category, unit, item_number), team_members(name), suppliers(name)')
+        .eq('type', 'IN')
+        .gte('created_at', dateFrom.toISOString())
+        .lte('created_at', dateTo.toISOString())
+        .order('created_at', { ascending: false });
+    
+    if (workerId) {
+        query = query.eq('worker_id', workerId);
+    }
+    
+    const { data: transactions, error } = await query;
+    
+    if (error) throw error;
+    
+    // Filter by category if needed
+    let filteredTransactions = transactions || [];
+    if (category) {
+        filteredTransactions = filteredTransactions.filter(tx => 
+            tx.stock_items && tx.stock_items.category === category
+        );
+    }
+    
+    // Calculate totals
+    const totalQuantity = filteredTransactions.reduce((sum, tx) => sum + (parseFloat(tx.quantity) || 0), 0);
+    const totalCost = filteredTransactions.reduce((sum, tx) => sum + (parseFloat(tx.cost) || 0), 0);
+    
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Stock IN Report - ${new Date().toLocaleDateString('en-GB')}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px;
+                    background: white;
+                    color: #000;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 20px;
+                }
+                .logo-placeholder {
+                    width: 150px;
+                    height: 60px;
+                    background: #f0f0f0;
+                    border: 2px dashed #999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px;
+                    color: #999;
+                    font-size: 12px;
+                }
+                .header h1 {
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                .summary {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                    border-left: 4px solid #4CAF50;
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 15px;
+                }
+                .summary-box {
+                    padding: 10px;
+                }
+                .summary-box h3 {
+                    margin: 0 0 5px 0;
+                    font-size: 14px;
+                    color: #666;
+                }
+                .summary-box .value {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #4CAF50;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                    font-size: 11px;
+                }
+                thead {
+                    background: #333;
+                    color: white;
+                }
+                th, td {
+                    padding: 8px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }
+                tr:nth-child(even) {
+                    background: #f9f9f9;
+                }
+                .no-data {
+                    text-align: center;
+                    padding: 40px;
+                    color: #999;
+                    font-style: italic;
+                }
+                @media print {
+                    body { padding: 20px; font-size: 10px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="logo-placeholder">LOGO HERE</div>
+                <h1>📥 STOCK IN REPORT</h1>
+                <div>Skylon Joinery</div>
+                <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                    ${dateFrom.toLocaleDateString('en-GB')} - ${dateTo.toLocaleDateString('en-GB')}
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-box">
+                    <h3>Total Transactions</h3>
+                    <div class="value">${filteredTransactions.length}</div>
+                </div>
+                <div class="summary-box">
+                    <h3>Total Quantity</h3>
+                    <div class="value">${totalQuantity.toFixed(2)}</div>
+                </div>
+                <div class="summary-box">
+                    <h3>Total Cost</h3>
+                    <div class="value">£${totalCost.toFixed(2)}</div>
+                </div>
+            </div>
+
+            ${filteredTransactions.length > 0 ? `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Item #</th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Supplier</th>
+                            <th>Worker</th>
+                            <th>Invoice</th>
+                            <th>Cost</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredTransactions.map(tx => `
+                            <tr>
+                                <td>${new Date(tx.created_at).toLocaleString('en-GB', { 
+                                    day: '2-digit', 
+                                    month: '2-digit', 
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}</td>
+                                <td>${tx.stock_items?.item_number || '-'}</td>
+                                <td>${tx.stock_items?.name || 'Unknown'}</td>
+                                <td>${tx.quantity} ${tx.stock_items?.unit || ''}</td>
+                                <td>${tx.suppliers?.name || '-'}</td>
+                                <td>${tx.team_members?.name || '-'}</td>
+                                <td>${tx.invoice_number || '-'}</td>
+                                <td>£${(tx.cost || 0).toFixed(2)}</td>
+                                <td>${tx.notes || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<div class="no-data">No transactions found for selected criteria</div>'}
+
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Print Report</button>
+                <button onclick="window.close()" style="background: #666; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+// Generate Stock OUT Report
+async function generateStockOutReport(dateFrom, dateTo, workerId, category) {
+    // Fetch transactions
+    let query = supabaseClient
+        .from('stock_transactions')
+        .select('*, stock_items(name, category, unit, item_number), team_members(name)')
+        .eq('type', 'OUT')
+        .gte('created_at', dateFrom.toISOString())
+        .lte('created_at', dateTo.toISOString())
+        .order('created_at', { ascending: false });
+    
+    if (workerId) {
+        query = query.eq('worker_id', workerId);
+    }
+    
+    const { data: transactions, error } = await query;
+    
+    if (error) throw error;
+    
+    // Filter by category if needed
+    let filteredTransactions = transactions || [];
+    if (category) {
+        filteredTransactions = filteredTransactions.filter(tx => 
+            tx.stock_items && tx.stock_items.category === category
+        );
+    }
+    
+    // Calculate totals
+    const totalQuantity = filteredTransactions.reduce((sum, tx) => sum + (parseFloat(tx.quantity) || 0), 0);
+    
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Stock OUT Report - ${new Date().toLocaleDateString('en-GB')}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px;
+                    background: white;
+                    color: #000;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 20px;
+                }
+                .logo-placeholder {
+                    width: 150px;
+                    height: 60px;
+                    background: #f0f0f0;
+                    border: 2px dashed #999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px;
+                    color: #999;
+                    font-size: 12px;
+                }
+                .header h1 {
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                .summary {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                    border-left: 4px solid #f44336;
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 15px;
+                }
+                .summary-box {
+                    padding: 10px;
+                }
+                .summary-box h3 {
+                    margin: 0 0 5px 0;
+                    font-size: 14px;
+                    color: #666;
+                }
+                .summary-box .value {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #f44336;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                    font-size: 11px;
+                }
+                thead {
+                    background: #333;
+                    color: white;
+                }
+                th, td {
+                    padding: 8px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }
+                tr:nth-child(even) {
+                    background: #f9f9f9;
+                }
+                .no-data {
+                    text-align: center;
+                    padding: 40px;
+                    color: #999;
+                    font-style: italic;
+                }
+                @media print {
+                    body { padding: 20px; font-size: 10px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="logo-placeholder">LOGO HERE</div>
+                <h1>📤 STOCK OUT REPORT</h1>
+                <div>Skylon Joinery</div>
+                <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                    ${dateFrom.toLocaleDateString('en-GB')} - ${dateTo.toLocaleDateString('en-GB')}
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-box">
+                    <h3>Total Transactions</h3>
+                    <div class="value">${filteredTransactions.length}</div>
+                </div>
+                <div class="summary-box">
+                    <h3>Total Quantity Used</h3>
+                    <div class="value">${totalQuantity.toFixed(2)}</div>
+                </div>
+            </div>
+
+            ${filteredTransactions.length > 0 ? `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Item #</th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Project</th>
+                            <th>Worker</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredTransactions.map(tx => `
+                            <tr>
+                                <td>${new Date(tx.created_at).toLocaleString('en-GB', { 
+                                    day: '2-digit', 
+                                    month: '2-digit', 
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}</td>
+                                <td>${tx.stock_items?.item_number || '-'}</td>
+                                <td>${tx.stock_items?.name || 'Unknown'}</td>
+                                <td>${tx.quantity} ${tx.stock_items?.unit || ''}</td>
+                                <td>${tx.project_number || '-'}</td>
+                                <td>${tx.team_members?.name || '-'}</td>
+                                <td>${tx.notes || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<div class="no-data">No transactions found for selected criteria</div>'}
+
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="background: #f44336; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Print Report</button>
+                <button onclick="window.close()" style="background: #666; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+// Generate Add Items Report
+async function generateAddItemsReport(dateFrom, dateTo, workerId, category) {
+    // Fetch stock items
+    let query = supabaseClient
+        .from('stock_items')
+        .select('*')
+        .gte('created_at', dateFrom.toISOString())
+        .lte('created_at', dateTo.toISOString())
+        .order('created_at', { ascending: false });
+    
+    if (category) {
+        query = query.eq('category', category);
+    }
+    
+    // Note: created_by filtering will work after we add the column
+    if (workerId) {
+        query = query.eq('created_by', workerId);
+    }
+    
+    const { data: items, error } = await query;
+    
+    if (error) throw error;
+    
+    const filteredItems = items || [];
+    
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>New Items Added Report - ${new Date().toLocaleDateString('en-GB')}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px;
+                    background: white;
+                    color: #000;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 20px;
+                }
+                .logo-placeholder {
+                    width: 150px;
+                    height: 60px;
+                    background: #f0f0f0;
+                    border: 2px dashed #999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px;
+                    color: #999;
+                    font-size: 12px;
+                }
+                .header h1 {
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                .summary {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    margin-bottom: 30px;
+                    border-left: 4px solid #2196F3;
+                }
+                .summary-box {
+                    padding: 10px;
+                }
+                .summary-box h3 {
+                    margin: 0 0 5px 0;
+                    font-size: 14px;
+                    color: #666;
+                }
+                .summary-box .value {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #2196F3;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                    font-size: 11px;
+                }
+                thead {
+                    background: #333;
+                    color: white;
+                }
+                th, td {
+                    padding: 8px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }
+                tr:nth-child(even) {
+                    background: #f9f9f9;
+                }
+                .no-data {
+                    text-align: center;
+                    padding: 40px;
+                    color: #999;
+                    font-style: italic;
+                }
+                @media print {
+                    body { padding: 20px; font-size: 10px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="logo-placeholder">LOGO HERE</div>
+                <h1>➕ NEW ITEMS ADDED REPORT</h1>
+                <div>Skylon Joinery</div>
+                <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                    ${dateFrom.toLocaleDateString('en-GB')} - ${dateTo.toLocaleDateString('en-GB')}
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-box">
+                    <h3>Total New Items</h3>
+                    <div class="value">${filteredItems.length}</div>
+                </div>
+            </div>
+
+            ${filteredItems.length > 0 ? `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Item #</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Subcategory</th>
+                            <th>Unit</th>
+                            <th>Initial Qty</th>
+                            <th>Cost/Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredItems.map(item => `
+                            <tr>
+                                <td>${new Date(item.created_at).toLocaleString('en-GB', { 
+                                    day: '2-digit', 
+                                    month: '2-digit', 
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}</td>
+                                <td>${item.item_number || '-'}</td>
+                                <td>${item.name}</td>
+                                <td style="text-transform: uppercase;">${item.category}</td>
+                                <td>${item.subcategory || '-'}</td>
+                                <td>${item.unit}</td>
+                                <td>${item.current_quantity || 0}</td>
+                                <td>£${(item.cost_per_unit || 0).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : '<div class="no-data">No new items found for selected criteria</div>'}
+
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="background: #2196F3; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Print Report</button>
+                <button onclick="window.close()" style="background: #666; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+        </body>
+        </html>
+    `;
+}
