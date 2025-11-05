@@ -327,9 +327,12 @@ async function loadPipelineFromSupabase() {
                 .in('pipeline_project_id', projectIds)
                 .order('order_position');
             
+            console.log('📊 Loaded phases from DB:', phasesData?.length || 0);
+            
             // Merge projects with phases
             pipelineProjects = data.map(dbProject => {
                 const projectPhases = phasesData?.filter(p => p.pipeline_project_id === dbProject.id) || [];
+                console.log(`Project ${dbProject.project_number}: ${projectPhases.length} phases`);
                 
                 return {
                     id: dbProject.id,
