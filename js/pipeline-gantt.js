@@ -179,39 +179,7 @@ function renderPipelineProjects() {
     const body = document.getElementById('chartBody');
     body.innerHTML = '';
     
-    // Sort projects based on pipelineSortMode
-    let sortedProjects = [...pipelineProjects];
-    
-    if (pipelineSortMode === 'number') {
-        sortedProjects.sort((a, b) => {
-            const numA = a.projectNumber ? parseInt(a.projectNumber.replace(/\D/g, '')) || 0 : 0;
-            const numB = b.projectNumber ? parseInt(b.projectNumber.replace(/\D/g, '')) || 0 : 0;
-            return numA - numB;
-        });
-    } else if (pipelineSortMode === 'date') {
-        sortedProjects.sort((a, b) => {
-            const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-            const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-            return dateB - dateA; // Newest first
-        });
-    } else if (pipelineSortMode === 'leadtime') {
-        sortedProjects.sort((a, b) => {
-            const leadA = calculateLeadTime(a.created_at).weeks;
-            const leadB = calculateLeadTime(b.created_at).weeks;
-            return leadB - leadA; // Longest first
-        });
-    }
-    
-    sortedProjects.forEach((project) => {
-        // Get original index from pipelineProjects using ID or reference
-        const originalIndex = pipelineProjects.indexOf(project);
-        
-        // Fallback if sorting broke reference
-        if (originalIndex === -1) {
-            console.error('Cannot find project in original array:', project);
-            return;
-        }
-        
+    pipelineProjects.forEach((project, index) => {
         const phaseKeys = project.phases?.map(p => p.key) || [];
         const uniqueKeys = [...new Set(phaseKeys)];
         if (phaseKeys.length !== uniqueKeys.length) {
@@ -227,7 +195,7 @@ function renderPipelineProjects() {
         const projectType = projectTypes[project.type] || projectTypes.other;
         
         projectCell.innerHTML = `
-            <div class="project-column project-number" onclick="editPipelineProjectNumber(${originalIndex})" title="Click to edit number">
+            <div class="project-column project-number" onclick="editPipelineProjectNumber(${index})" title="Click to edit number">
                 ${project.projectNumber || '---'}
             </div>
             <div class="project-column-divider"></div>
@@ -248,9 +216,9 @@ function renderPipelineProjects() {
             </div>
             <div class="project-column-divider"></div>
             <div class="project-column project-actions">
-                <button class="action-btn" onclick="editPipelineProject(${originalIndex})" title="Edit">✏️</button>
-                <button class="action-btn" onclick="openProjectFilesModal(${originalIndex}, 'pipeline')" title="Project Files">📁</button>
-                <button class="action-btn" onclick="openPipelineProjectNotes(${originalIndex})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
+                <button class="action-btn" onclick="editPipelineProject(${index})" title="Edit">✏️</button>
+                <button class="action-btn" onclick="openProjectFilesModal(${index}, 'pipeline')" title="Project Files">📁</button>
+                <button class="action-btn" onclick="openPipelineProjectNotes(${index})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
             </div>
         `;
         
