@@ -2272,3 +2272,26 @@ async function deleteServiceRecord(serviceId) {
         alert('Error: ' + err.message);
     }
 }
+
+// Open image modal for enlarged view
+function openImageModal(imageUrl) {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.style.display = 'flex';
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90%; max-height: 90%; padding: 0; background: transparent; box-shadow: none;">
+            <img src="${imageUrl}" style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 5px;">
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Backward compatibility
+function viewImage(url) {
+    openImageModal(url);
+}
