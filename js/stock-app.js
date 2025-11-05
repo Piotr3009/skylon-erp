@@ -288,11 +288,14 @@ function createStockRow(item) {
     // Format date
     const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB') : 'N/A';
     
+    // Cache buster for images
+    const imageUrl = item.image_url ? `${item.image_url}?v=${Date.now()}` : null;
+    
     return `
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">
-                ${item.image_url ? 
-                    `<img src="${item.image_url}" onclick="openImageModal('${item.image_url}')" style="width: 50px; height: 50px; object-fit: cover; border-radius: 3px; cursor: pointer;" title="Click to enlarge">` 
+                ${imageUrl ? 
+                    `<img src="${imageUrl}" onclick="openImageModal('${item.image_url}')" style="width: 50px; height: 50px; object-fit: cover; border-radius: 3px; cursor: pointer;" title="Click to enlarge">` 
                     : '<div style="width: 50px; height: 50px; background: #3e3e42; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #666;">📦</div>'}
             </td>
             <td style="padding: 12px;">
