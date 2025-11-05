@@ -541,8 +541,50 @@
         </div>
     </div>
 
+    <!-- DS & Cert Modal -->
+    <div class="modal" id="documentsModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="documentsModalTitle">Data Sheets & Certificates</h2>
+                <button class="close-btn" onclick="closeModal('documentsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Upload Section -->
+                <div style="background: #2d2d30; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 14px; color: #e8e2d5;">Upload New Document</h3>
+                    <div class="form-group">
+                        <label>Document Type</label>
+                        <select id="documentType" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                            <option value="Certificate">Certificate</option>
+                            <option value="Data Sheet">Data Sheet</option>
+                            <option value="Manual">Manual</option>
+                            <option value="Specification">Specification</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>File</label>
+                        <input type="file" id="documentFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" style="width: 100%;">
+                    </div>
+                    <button class="modal-btn primary" onclick="uploadDocument()" style="width: 100%;">📤 Upload</button>
+                </div>
+                
+                <!-- Documents List -->
+                <div>
+                    <h3 style="margin: 0 0 15px 0; font-size: 14px; color: #e8e2d5;">Uploaded Documents</h3>
+                    <div id="documentsList" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Documents będą tutaj -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeModal('documentsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals will go here -->
     <script src="js/data.js"></script>
     <script src="js/stock-app.js"></script>
 </body>
-</html> 
+</html>

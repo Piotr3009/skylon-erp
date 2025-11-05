@@ -105,8 +105,8 @@ async function updateEditSubcategoryOptions() {
     
     subcategorySelect.innerHTML = '<option value="">-- Select subcategory --</option>';
     
-    // Find category in stockCategories
-    const categoryObj = stockCategories.find(c => c.type === 'category' && c.name === category);
+    // Find category in stockCategories - FIX: porównanie z toLowerCase()
+    const categoryObj = stockCategories.find(c => c.type === 'category' && c.name.toLowerCase() === category);
     
     if (categoryObj) {
         // Load subcategories from database
@@ -257,7 +257,7 @@ function renderStockTable() {
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 100px;">THICKNESS</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 100px;">COLOR</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 120px;">CATEGORY</th>
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 120px;">SUBCATEGORY</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 100px;">SUBCATEGORY</th>
                         <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
                             QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
@@ -269,6 +269,7 @@ function renderStockTable() {
                             VALUE ${currentSortColumn === 'value' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 220px;">ACTIONS</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 120px;">DS & CERT</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -338,6 +339,11 @@ function createStockRow(item) {
                 <button onclick="openStockInModal('${item.id}')" class="toolbar-btn success" style="padding: 6px 10px; font-size: 11px; margin-right: 5px;">📥 IN</button>
                 <button onclick="openStockOutModal('${item.id}')" class="toolbar-btn danger" style="padding: 6px 10px; font-size: 11px; margin-right: 5px;">📤 OUT</button>
                 <button onclick="editStockItem('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px;">✏️</button>
+            </td>
+            <td style="padding: 12px; text-align: center;">
+                <button onclick="openDocumentsModal('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px;" title="Data Sheets & Certificates">
+                    📎 ${item.documents && Array.isArray(item.documents) && item.documents.length > 0 ? `(${item.documents.length})` : ''}
+                </button>
             </td>
         </tr>
     `;
@@ -1346,5 +1352,155 @@ async function deleteCategory(categoryId) {
     } catch (err) {
         console.error('Error deleting category:', err);
         alert('Error: ' + err.message);
+    }
+}
+
+// ========== DOCUMENTS MANAGEMENT ==========
+
+let currentDocumentItemId = null;
+
+// Open documents modal
+async function openDocumentsModal(itemId) {
+    currentDocumentItemId = itemId;
+    
+    const item = stockItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    document.getElementById('documentsModalTitle').textContent = `DS & Cert: ${item.name}`;
+    
+    renderDocumentsList(item.documents || []);
+    
+    document.getElementById('documentsModal').classList.add('active');
+}
+
+// Render documents list
+function renderDocumentsList(documents) {
+    const container = document.getElementById('documentsList');
+    
+    if (!documents || documents.length === 0) {
+        container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No documents uploaded yet.</p>';
+        return;
+    }
+    
+    container.innerHTML = documents.map((doc, index) => `
+        <div style="background: #3e3e42; padding: 12px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 4px;">
+                    <a href="${doc.url}" target="_blank" style="color: #4CAF50; text-decoration: none;">
+                        📄 ${doc.name}
+                    </a>
+                </div>
+                <div style="font-size: 11px; color: #999;">
+                    ${doc.type || 'Document'} • Uploaded: ${new Date(doc.uploaded_at).toLocaleDateString('en-GB')}
+                </div>
+            </div>
+            <button onclick="deleteDocument(${index})" class="modal-btn danger" style="padding: 6px 12px; font-size: 11px;">Delete</button>
+        </div>
+    `).join('');
+}
+
+// Upload document
+async function uploadDocument() {
+    const fileInput = document.getElementById('documentFile');
+    const typeInput = document.getElementById('documentType');
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select a file');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const type = typeInput.value;
+    
+    try {
+        // Upload to Supabase Storage
+        const fileName = `${currentDocumentItemId}/${Date.now()}_${file.name}`;
+        
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('stock-documents')
+            .upload(fileName, file);
+        
+        if (uploadError) throw uploadError;
+        
+        // Get public URL
+        const { data: urlData } = supabaseClient.storage
+            .from('stock-documents')
+            .getPublicUrl(fileName);
+        
+        // Get current documents
+        const item = stockItems.find(i => i.id === currentDocumentItemId);
+        const documents = item.documents || [];
+        
+        // Add new document
+        documents.push({
+            name: file.name,
+            url: urlData.publicUrl,
+            type: type,
+            uploaded_at: new Date().toISOString()
+        });
+        
+        // Update database
+        const { error: updateError } = await supabaseClient
+            .from('stock_items')
+            .update({ documents: documents })
+            .eq('id', currentDocumentItemId);
+        
+        if (updateError) throw updateError;
+        
+        // Refresh
+        await loadStockItems();
+        const updatedItem = stockItems.find(i => i.id === currentDocumentItemId);
+        renderDocumentsList(updatedItem.documents);
+        
+        // Reset form
+        fileInput.value = '';
+        typeInput.value = 'Certificate';
+        
+        alert('Document uploaded successfully!');
+        
+    } catch (err) {
+        console.error('Error uploading document:', err);
+        alert('Error uploading document: ' + err.message);
+    }
+}
+
+// Delete document
+async function deleteDocument(index) {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    
+    try {
+        const item = stockItems.find(i => i.id === currentDocumentItemId);
+        const documents = [...(item.documents || [])];
+        const docToDelete = documents[index];
+        
+        // Delete from storage
+        const fileName = docToDelete.url.split('/stock-documents/')[1];
+        if (fileName) {
+            await supabaseClient.storage
+                .from('stock-documents')
+                .remove([fileName]);
+        }
+        
+        // Remove from array
+        documents.splice(index, 1);
+        
+        // Update database
+        const { error } = await supabaseClient
+            .from('stock_items')
+            .update({ documents: documents })
+            .eq('id', currentDocumentItemId);
+        
+        if (error) throw error;
+        
+        // Refresh
+        await loadStockItems();
+        const updatedItem = stockItems.find(i => i.id === currentDocumentItemId);
+        renderDocumentsList(updatedItem.documents);
+        
+        alert('Document deleted successfully!');
+        
+    } catch (err) {
+        console.error('Error deleting document:', err);
+        alert('Error deleting document: ' + err.message);
     }
 }
