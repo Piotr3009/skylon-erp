@@ -133,7 +133,13 @@ function editPipelineProject(index) {
 async function savePipelineProject() {
     const name = document.getElementById('projectName').value.trim();
     const clientId = document.getElementById('projectClient').value;
-    const startDate = document.getElementById('projectStartDate').value;
+    let startDate = document.getElementById('projectStartDate').value;
+    
+    // If no date selected, use today
+    if (!startDate) {
+        startDate = formatDate(new Date());
+    }
+    
     const projectNumber = document.getElementById('projectNumber').value.trim();
     const estimatedValue = parseFloat(document.getElementById('pipelineEstimatedValue').value) || 0;
     
