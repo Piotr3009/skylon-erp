@@ -341,8 +341,9 @@ function createStockRow(item) {
                 <button onclick="editStockItem('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px;">✏️</button>
             </td>
             <td style="padding: 12px; text-align: center;">
-                <button onclick="openDocumentsModal('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px;" title="Data Sheets & Certificates">
-                    📎 ${item.documents && Array.isArray(item.documents) && item.documents.length > 0 ? `(${item.documents.length})` : ''}
+                <button onclick="openDocumentsModal('${item.id}')" class="icon-btn" style="color: #dcdcaa; border: 1px solid #dcdcaa;" title="Data Sheets & Certificates">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path fill-rule="evenodd" d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/><path d="M4 11a1 1 0 1 1 2 0v1a1 1 0 1 1-2 0v-1zm6-4a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0V7zM7 9a1 1 0 0 1 2 0v3a1 1 0 1 1-2 0V9z"/></svg>
+                    ${item.documents && Array.isArray(item.documents) && item.documents.length > 0 ? `<span style="margin-left: 4px;">(${item.documents.length})</span>` : ''}
                 </button>
             </td>
         </tr>
@@ -1460,7 +1461,8 @@ async function uploadDocument() {
         
     } catch (err) {
         console.error('Error uploading document:', err);
-        alert('Error uploading document: ' + err.message);
+        console.error('Error details:', JSON.stringify(err, null, 2));
+        alert('Error uploading document: ' + (err.message || JSON.stringify(err)));
     }
 }
 
