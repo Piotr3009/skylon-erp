@@ -36,6 +36,19 @@
                 <button class="toolbar-btn" onclick="openPhaseManager()">⚙️ Manage Phases</button>
             </div>
             
+            <!-- Sort buttons -->
+            <div style="display: flex; gap: 10px; margin-left: 20px;">
+                <button class="toolbar-btn sort-btn active" data-sort="number" onclick="setPipelineSortMode('number')" title="Sort by project number">
+                    🔢
+                </button>
+                <button class="toolbar-btn sort-btn" data-sort="date" onclick="setPipelineSortMode('date')" title="Sort by date added">
+                    📅
+                </button>
+                <button class="toolbar-btn sort-btn" data-sort="leadtime" onclick="setPipelineSortMode('leadtime')" title="Sort by lead time">
+                    ⏱️
+                </button>
+            </div>
+            
             <div style="position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 10px;">
                 <button class="toolbar-btn" onclick="shiftWeek(-1)">← Week</button>
                 <button class="toolbar-btn" onclick="shiftWeek(1)">Week →</button>
@@ -51,20 +64,6 @@
             </div>
 
             <button class="toolbar-btn danger" onclick="clearAllPipeline()">Clear All</button>
-        </div>
-        
-        <!-- Sort & Filter Bar -->
-        <div class="toolbar" style="margin-top: 10px; padding: 8px 15px;">
-            <span style="font-size: 11px; color: #999; margin-right: 8px;">Sort:</span>
-            <button class="toolbar-btn sort-btn active" data-sort="number" onclick="setPipelineSortMode('number')" title="Sort by project number">
-                🔢 By Number
-            </button>
-            <button class="toolbar-btn sort-btn" data-sort="date" onclick="setPipelineSortMode('date')" title="Sort by date added">
-                📅 By Date Added
-            </button>
-            <button class="toolbar-btn sort-btn" data-sort="leadtime" onclick="setPipelineSortMode('leadtime')" title="Sort by lead time">
-                ⏱️ By Lead Time
-            </button>
         </div>
 
         <!-- Chart -->

@@ -203,8 +203,15 @@ function renderPipelineProjects() {
     }
     
     sortedProjects.forEach((project) => {
-        // Get original index from pipelineProjects
-        const originalIndex = pipelineProjects.findIndex(p => p === project);
+        // Get original index from pipelineProjects using ID or reference
+        const originalIndex = pipelineProjects.indexOf(project);
+        
+        // Fallback if sorting broke reference
+        if (originalIndex === -1) {
+            console.error('Cannot find project in original array:', project);
+            return;
+        }
+        
         const phaseKeys = project.phases?.map(p => p.key) || [];
         const uniqueKeys = [...new Set(phaseKeys)];
         if (phaseKeys.length !== uniqueKeys.length) {
