@@ -133,6 +133,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     await loadTeamMembers();
     await loadSuppliers();
     await loadProjects();
+    await loadStockCategories();
+    await populateCategoryDropdowns();
     await loadStockItems();
     updateStats();
 });
@@ -242,36 +244,38 @@ function renderStockTable() {
     }
     
     container.innerHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead style="background: #252526;">
-                <tr>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">IMAGE</th>
-                    <th onclick="sortStockItems('item_number')" style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
-                        ITEM # ${currentSortColumn === 'item_number' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
-                    </th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">NAME</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">SIZE</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">THICKNESS</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">COLOR</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">CATEGORY</th>
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999;">SUBCATEGORY</th>
-                    <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
-                        QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
-                    </th>
-                    <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">MIN</th>
-                    <th onclick="sortStockItems('cost')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
-                        COST/UNIT ${currentSortColumn === 'cost' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
-                    </th>
-                    <th onclick="sortStockItems('value')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none;">
-                        VALUE ${currentSortColumn === 'value' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
-                    </th>
-                    <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999;">ACTIONS</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${filteredItems.map(item => createStockRow(item)).join('')}
-            </tbody>
-        </table>
+        <div style="overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 380px);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #252526; position: sticky; top: 0; z-index: 10;">
+                    <tr>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 70px;">IMAGE</th>
+                        <th onclick="sortStockItems('item_number')" style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
+                            ITEM # ${currentSortColumn === 'item_number' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                        </th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 250px; max-width: 250px;">NAME</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 120px;">SIZE</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 100px;">THICKNESS</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 100px;">COLOR</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 120px;">CATEGORY</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 120px;">SUBCATEGORY</th>
+                        <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
+                            QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                        </th>
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">MIN</th>
+                        <th onclick="sortStockItems('cost')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
+                            COST/UNIT ${currentSortColumn === 'cost' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                        </th>
+                        <th onclick="sortStockItems('value')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
+                            VALUE ${currentSortColumn === 'value' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                        </th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 220px;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filteredItems.map(item => createStockRow(item)).join('')}
+                </tbody>
+            </table>
+        </div>
     `;
 }
 
@@ -293,9 +297,9 @@ function createStockRow(item) {
             <td style="padding: 12px;">
                 <span style="font-family: monospace; color: #4a9eff; font-weight: 600;" title="Added: ${createdDate}">${item.item_number || '-'}</span>
             </td>
-            <td style="padding: 12px;">
-                <div style="font-weight: 600; color: #e8e2d5;">${item.name}</div>
-                ${item.supplier_id ? `<div style="font-size: 11px; color: #999;">Supplier: ${getSupplierName(item.supplier_id)}</div>` : ''}
+            <td style="padding: 12px; max-width: 250px;">
+                <div style="font-weight: 600; color: #e8e2d5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.name}">${item.name}</div>
+                ${item.supplier_id ? `<div style="font-size: 11px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Supplier: ${getSupplierName(item.supplier_id)}</div>` : ''}
                 ${item.material_link ? `<div style="font-size: 11px;"><a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a></div>` : ''}
             </td>
             <td style="padding: 12px;">
@@ -1123,6 +1127,45 @@ async function saveSupplier() {
 // ========== CATEGORIES MANAGEMENT ==========
 
 let stockCategories = [];
+
+// Populate category dropdowns with data from database
+async function populateCategoryDropdowns() {
+    const categoryFilter = document.getElementById('categoryFilter');
+    const stockCategory = document.getElementById('stockCategory');
+    const editStockCategory = document.getElementById('editStockCategory');
+    
+    // Get all categories from database
+    const categories = stockCategories.filter(c => c.type === 'category');
+    
+    // Clear existing options (except "All Categories" in filter)
+    const filterFirstOption = categoryFilter.options[0];
+    categoryFilter.innerHTML = '';
+    categoryFilter.appendChild(filterFirstOption);
+    
+    stockCategory.innerHTML = '';
+    editStockCategory.innerHTML = '';
+    
+    // Populate all dropdowns
+    categories.forEach(cat => {
+        // Filter dropdown
+        const filterOption = document.createElement('option');
+        filterOption.value = cat.name.toLowerCase();
+        filterOption.textContent = cat.name;
+        categoryFilter.appendChild(filterOption);
+        
+        // Add modal dropdown
+        const addOption = document.createElement('option');
+        addOption.value = cat.name.toLowerCase();
+        addOption.textContent = cat.name;
+        stockCategory.appendChild(addOption);
+        
+        // Edit modal dropdown
+        const editOption = document.createElement('option');
+        editOption.value = cat.name.toLowerCase();
+        editOption.textContent = cat.name;
+        editStockCategory.appendChild(editOption);
+    });
+}
 
 // Load categories from database
 async function loadStockCategories() {
