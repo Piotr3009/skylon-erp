@@ -1,5 +1,22 @@
 // ========== PIPELINE PROJECT MANAGEMENT ==========
 
+// Sort mode for pipeline
+let pipelineSortMode = 'number'; // 'number', 'date', 'leadtime'
+
+// Set pipeline sort mode
+function setPipelineSortMode(mode) {
+    pipelineSortMode = mode;
+    
+    // Update active button
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`.sort-btn[data-sort="${mode}"]`)?.classList.add('active');
+    
+    // Re-render pipeline with new sort
+    renderPipeline();
+}
+
 // Load clients for dropdown
 async function loadClientsDropdown() {
     try {

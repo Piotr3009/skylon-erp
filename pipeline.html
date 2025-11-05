@@ -52,6 +52,20 @@
 
             <button class="toolbar-btn danger" onclick="clearAllPipeline()">Clear All</button>
         </div>
+        
+        <!-- Sort & Filter Bar -->
+        <div class="toolbar" style="margin-top: 10px; padding: 8px 15px;">
+            <span style="font-size: 11px; color: #999; margin-right: 8px;">Sort:</span>
+            <button class="toolbar-btn sort-btn active" data-sort="number" onclick="setPipelineSortMode('number')" title="Sort by project number">
+                🔢 By Number
+            </button>
+            <button class="toolbar-btn sort-btn" data-sort="date" onclick="setPipelineSortMode('date')" title="Sort by date added">
+                📅 By Date Added
+            </button>
+            <button class="toolbar-btn sort-btn" data-sort="leadtime" onclick="setPipelineSortMode('leadtime')" title="Sort by lead time">
+                ⏱️ By Lead Time
+            </button>
+        </div>
 
         <!-- Chart -->
         <div class="chart-wrapper">
@@ -62,6 +76,10 @@
                     <div class="header-column header-type">Type</div>
                     <div class="header-column-divider"></div>
                     <div class="header-column header-name">Project</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-date-added">Date Added</div>
+                    <div class="header-column-divider"></div>
+                    <div class="header-column header-lead-time">Lead Time</div>
                     <div class="header-column-divider"></div>
                     <div class="header-column header-actions">Actions</div>
                 </div>

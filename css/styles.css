@@ -561,6 +561,18 @@ body.pipeline-theme .chart-wrapper {
     padding: 0 9px;
 }
 
+.header-date-added {
+    width: 70px;
+    font-size: 10px;
+    justify-content: center;
+}
+
+.header-lead-time {
+    width: 60px;
+    font-size: 10px;
+    justify-content: center;
+}
+
 .header-deadline {
     width: 50px;
 }
@@ -701,6 +713,22 @@ body.pipeline-theme .project-cell {
     text-overflow: ellipsis;
     padding: 0 9px;
     justify-content: flex-start;
+}
+
+.project-date-added {
+    width: 70px;
+    font-size: 10px;
+    color: #9e9e9e;
+    text-align: center;
+    justify-content: center;
+}
+
+.project-lead-time {
+    width: 60px;
+    font-size: 11px;
+    text-align: center;
+    justify-content: center;
+    font-weight: 600;
 }
 
 .project-deadline {

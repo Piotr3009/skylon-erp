@@ -1,4 +1,48 @@
 // ========== PIPELINE RENDERING ==========
+
+// Helper: Format date as DD/MM/YY
+function formatShortDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
+}
+
+// Helper: Calculate lead time and return colored display
+function calculateLeadTime(createdAt) {
+    if (!createdAt) return { text: '-', color: '#999' };
+    
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffMs = now - created;
+    const diffWeeks = diffMs / (1000 * 60 * 60 * 24 * 7);
+    
+    let text = '';
+    let color = '';
+    
+    if (diffWeeks < 1) {
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        text = `${diffDays}d`;
+    } else {
+        text = `${Math.floor(diffWeeks)}w`;
+    }
+    
+    // Color coding: < 3w green, 3-6w yellow, 6-10w orange, > 10w red
+    if (diffWeeks < 3) {
+        color = '#4CAF50'; // green
+    } else if (diffWeeks < 6) {
+        color = '#FFC107'; // yellow
+    } else if (diffWeeks < 10) {
+        color = '#FF9800'; // orange
+    } else {
+        color = '#f44336'; // red
+    }
+    
+    return { text, color, weeks: diffWeeks };
+}
+
 function renderPipeline() {
     renderPipelineTimeline();
     renderPipelineProjects();
@@ -135,7 +179,32 @@ function renderPipelineProjects() {
     const body = document.getElementById('chartBody');
     body.innerHTML = '';
     
-    pipelineProjects.forEach((project, index) => {
+    // Sort projects based on pipelineSortMode
+    let sortedProjects = [...pipelineProjects];
+    
+    if (pipelineSortMode === 'number') {
+        sortedProjects.sort((a, b) => {
+            const numA = a.projectNumber ? parseInt(a.projectNumber.replace(/\D/g, '')) || 0 : 0;
+            const numB = b.projectNumber ? parseInt(b.projectNumber.replace(/\D/g, '')) || 0 : 0;
+            return numA - numB;
+        });
+    } else if (pipelineSortMode === 'date') {
+        sortedProjects.sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+            const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+            return dateB - dateA; // Newest first
+        });
+    } else if (pipelineSortMode === 'leadtime') {
+        sortedProjects.sort((a, b) => {
+            const leadA = calculateLeadTime(a.created_at).weeks;
+            const leadB = calculateLeadTime(b.created_at).weeks;
+            return leadB - leadA; // Longest first
+        });
+    }
+    
+    sortedProjects.forEach((project) => {
+        // Get original index from pipelineProjects
+        const originalIndex = pipelineProjects.findIndex(p => p === project);
         const phaseKeys = project.phases?.map(p => p.key) || [];
         const uniqueKeys = [...new Set(phaseKeys)];
         if (phaseKeys.length !== uniqueKeys.length) {
@@ -151,7 +220,7 @@ function renderPipelineProjects() {
         const projectType = projectTypes[project.type] || projectTypes.other;
         
         projectCell.innerHTML = `
-            <div class="project-column project-number" onclick="editPipelineProjectNumber(${index})" title="Click to edit number">
+            <div class="project-column project-number" onclick="editPipelineProjectNumber(${originalIndex})" title="Click to edit number">
                 ${project.projectNumber || '---'}
             </div>
             <div class="project-column-divider"></div>
@@ -163,10 +232,18 @@ function renderPipelineProjects() {
                 ${project.name}
             </div>
             <div class="project-column-divider"></div>
+            <div class="project-column project-date-added" title="Date Added">
+                ${formatShortDate(project.created_at)}
+            </div>
+            <div class="project-column-divider"></div>
+            <div class="project-column project-lead-time" title="Lead Time" style="color: ${calculateLeadTime(project.created_at).color}; font-weight: 600;">
+                ${calculateLeadTime(project.created_at).text}
+            </div>
+            <div class="project-column-divider"></div>
             <div class="project-column project-actions">
-                <button class="action-btn" onclick="editPipelineProject(${index})" title="Edit">✏️</button>
-                <button class="action-btn" onclick="openProjectFilesModal(${index}, 'pipeline')" title="Project Files">📁</button>
-                <button class="action-btn" onclick="openPipelineProjectNotes(${index})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
+                <button class="action-btn" onclick="editPipelineProject(${originalIndex})" title="Edit">✏️</button>
+                <button class="action-btn" onclick="openProjectFilesModal(${originalIndex}, 'pipeline')" title="Project Files">📁</button>
+                <button class="action-btn" onclick="openPipelineProjectNotes(${originalIndex})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
             </div>
         `;
         
