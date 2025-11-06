@@ -795,8 +795,14 @@ function openProductionProjectNotes(index) {
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Notes</label>
-                    <textarea id="productionProjectNotesText" placeholder="Add notes about this production project..." style="min-height: 400px; font-size: 14px;">${project.notes || ''}</textarea>
+                    <label>Notes History</label>
+                    <textarea id="productionProjectNotesHistory" readonly placeholder="No notes yet..." style="min-height: 300px; font-size: 14px; background: #2a2a2e; color: #e8e2d5; resize: vertical;">${formatNotesHistory(project.notes || '')}</textarea>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Add New Note</label>
+                    <textarea id="productionProjectNewNote" placeholder="Type your note here..." style="min-height: 80px; font-size: 14px;"></textarea>
+                    <button class="modal-btn" onclick="addProductionProjectNote(${index})" style="margin-top: 8px; background: #4a90e2;">➕ Add Note</button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -819,45 +825,8 @@ function closeProductionProjectNotes() {
 }
 
 async function saveProductionProjectNotes(index) {
-    const project = projects[index];
-    if (!project) {
-        console.error('❌ Project not found at index:', index);
-        return;
-    }
-    
-    console.log('💾 Saving notes for project:', project.projectNumber);
-    console.log('📊 Project object:', project);
-    
-    const notes = document.getElementById('productionProjectNotesText').value.trim();
-    project.notes = notes || null;
-    
-    console.log('📝 Notes to save:', notes);
-    
-    // Save to Supabase
-    if (typeof supabaseClient !== 'undefined') {
-        try {
-            console.log('🔄 Updating Supabase...');
-            const { data, error } = await supabaseClient
-                .from('projects')
-                .update({ notes: notes || null })
-                .eq('project_number', project.projectNumber);
-            
-            if (error) {
-                console.error('❌ Error saving notes:', error);
-                alert('Error saving notes to database');
-                return;
-            }
-            
-            console.log('✅ Notes saved to Supabase!', data);
-        } catch (err) {
-            console.error('❌ Database error:', err);
-        }
-    } else {
-        console.warn('⚠️ supabaseClient not defined');
-    }
-    
-    saveDataQueued();
-    render();
+    // Notes are now saved immediately when added
+    // This function just closes the modal
     closeProductionProjectNotes();
 }
 
@@ -1008,5 +977,109 @@ async function exportProductionProjectNotesPDF(index) {
     } else {
         // No Supabase - download locally
         downloadLocally();
+    }
+}
+
+// ========== NOTES TIMELINE FUNCTIONS ==========
+
+function formatNotesHistory(notesText) {
+    if (!notesText || notesText.trim() === '') {
+        return '';
+    }
+    
+    // Split by lines and format
+    const lines = notesText.split('\n');
+    let formatted = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check if line is author/timestamp (contains " : " and date pattern)
+        if (line.includes(' : ') && /\d{2}\/\d{2}\/\d{4}/.test(line)) {
+            // Author line - smaller font, not bold
+            formatted += line + '\n';
+        } else {
+            // Content line - normal
+            formatted += line + '\n';
+        }
+    }
+    
+    return formatted.trim();
+}
+
+function addProductionProjectNote(index) {
+    const project = projects[index];
+    if (!project) {
+        console.error('❌ Project not found at index:', index);
+        return;
+    }
+    
+    const newNoteText = document.getElementById('productionProjectNewNote').value.trim();
+    
+    if (!newNoteText) {
+        alert('Please enter a note before adding.');
+        return;
+    }
+    
+    // Get current user
+    const author = window.currentUser?.full_name || window.currentUser?.email || 'Unknown User';
+    
+    // Format timestamp: DD/MM/YYYY HH:MM
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timestamp = `${day}/${month}/${year} ${hours}:${minutes}`;
+    
+    // Create new note entry
+    const newEntry = `${author} : ${timestamp}\n${newNoteText}`;
+    
+    // Prepend to existing notes (newest on top)
+    const existingNotes = project.notes || '';
+    const updatedNotes = existingNotes ? `${newEntry}\n\n${existingNotes}` : newEntry;
+    
+    // Update project
+    project.notes = updatedNotes;
+    
+    // Save to database
+    saveProductionProjectNotesToDB(index, updatedNotes);
+    
+    // Clear input
+    document.getElementById('productionProjectNewNote').value = '';
+    
+    // Update history display
+    document.getElementById('productionProjectNotesHistory').value = formatNotesHistory(updatedNotes);
+}
+
+async function saveProductionProjectNotesToDB(index, notes) {
+    const project = projects[index];
+    
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { error } = await supabaseClient
+                .from('projects')
+                .update({ notes: notes || null })
+                .eq('project_number', project.projectNumber);
+            
+            if (error) {
+                console.error('❌ Error saving notes:', error);
+                alert('Error saving note to database');
+                return;
+            }
+            
+            console.log('✅ Note added successfully!');
+            
+            // Update render to show note indicator
+            render();
+            
+        } catch (err) {
+            console.error('❌ Error:', err);
+            alert('Error saving note');
+        }
+    } else {
+        console.log('💾 Saved to local data');
+        render();
     }
 }
