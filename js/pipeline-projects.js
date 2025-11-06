@@ -1182,7 +1182,7 @@ async function exportPipelineProjectNotesPDF(index) {
     const project = pipelineProjects[index];
     if (!project) return;
     
-    const notes = document.getElementById('pipelineProjectNotesText').value.trim();
+    const notes = document.getElementById('pipelineProjectNotesHistory').value.trim();
     
     if (!notes) {
         alert('No notes to export. Please add some notes first.');

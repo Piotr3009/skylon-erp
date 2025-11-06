@@ -834,7 +834,7 @@ async function exportProductionProjectNotesPDF(index) {
     const project = projects[index];
     if (!project) return;
     
-    const notes = document.getElementById('productionProjectNotesText').value.trim();
+    const notes = document.getElementById('productionProjectNotesHistory').value.trim();
     
     if (!notes) {
         alert('No notes to export. Please add some notes first.');
