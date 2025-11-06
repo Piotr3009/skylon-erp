@@ -796,7 +796,9 @@ function openProductionProjectNotes(index) {
             <div class="modal-body">
                 <div class="form-group">
                     <label>Notes History</label>
-                    <div id="productionProjectNotesHistory" style="min-height: 300px; max-height: 400px; overflow-y: auto; font-size: 14px; background: #2a2a2e; color: #e8e2d5; padding: 10px; border: 1px solid #3e3e42; border-radius: 3px;">${formatNotesHistoryHTML(project.notes || '')}</div>
+                    <div id="productionProjectNotesHistory" style="min-height: 300px; max-height: 400px; overflow-y: auto; font-size: 14px; background: #2a2a2e; color: #e8e2d5; padding: 10px; border: 1px solid #3e3e42; border-radius: 3px;">
+                        ${renderNotesHistoryHTML(project)}
+                    </div>
                 </div>
                 
                 <div class="form-group" style="margin-top: 15px;">
@@ -817,7 +819,7 @@ function openProductionProjectNotes(index) {
                     `<button class="modal-btn" onclick="window.open('${project.pdf_url}', '_blank')" style="background: #4a90e2;">📄 Open PDF</button>` : ''
                 }
                 <button class="modal-btn success" onclick="exportProductionProjectNotesPDF(${index})">📥 Export PDF</button>
-                <button class="modal-btn primary" onclick="saveProductionProjectNotes(${index})">Save</button>
+                <button class="modal-btn primary" onclick="closeProductionProjectNotes()">Close</button>
             </div>
         </div>
     `;
@@ -833,19 +835,144 @@ function closeProductionProjectNotes() {
     if (modal) modal.remove();
 }
 
-async function saveProductionProjectNotes(index) {
-    // Notes are now saved immediately when added
-    // This function just closes the modal
-    closeProductionProjectNotes();
+function parseProjectNotes(notesString) {
+    // Parse notes - handle both JSON and legacy TEXT format
+    if (!notesString || notesString.trim() === '') {
+        return [];
+    }
+    
+    try {
+        // Try to parse as JSON
+        const parsed = JSON.parse(notesString);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        // Legacy TEXT format - return empty (we're starting fresh)
+        return [];
+    }
+}
+
+function renderNotesHistoryHTML(project) {
+    const notes = parseProjectNotes(project.notes);
+    
+    if (notes.length === 0) {
+        return '<div style="color: #999; font-style: italic;">No notes yet...</div>';
+    }
+    
+    let html = '';
+    
+    // Notes are already sorted newest first when added
+    notes.forEach(note => {
+        html += '<div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #3e3e42;">';
+        
+        // Author line with optional important icon
+        html += '<div style="font-size: 11px; color: #999; margin-bottom: 5px;">';
+        if (note.important) {
+            html += '<span style="color: #ffa500; font-size: 14px; margin-right: 5px;">⚠️</span>';
+        }
+        html += `${note.author} : ${note.timestamp}`;
+        html += '</div>';
+        
+        // Note text - bigger and bold
+        html += `<div style="font-size: 15px; font-weight: bold; line-height: 1.4; white-space: pre-wrap;">${note.text}</div>`;
+        
+        html += '</div>';
+    });
+    
+    return html;
+}
+
+function addProductionProjectNote(index) {
+    const project = projects[index];
+    if (!project) {
+        console.error('❌ Project not found at index:', index);
+        return;
+    }
+    
+    const newNoteText = document.getElementById('productionProjectNewNote').value.trim();
+    
+    if (!newNoteText) {
+        alert('Please enter a note before adding.');
+        return;
+    }
+    
+    const isImportant = document.getElementById('productionNoteImportant').checked;
+    const author = window.currentUser?.full_name || window.currentUser?.email || 'Unknown User';
+    
+    // Format timestamp
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timestamp = `${day}/${month}/${year} ${hours}:${minutes}`;
+    
+    // Parse existing notes
+    const notes = parseProjectNotes(project.notes);
+    
+    // Create new note object
+    const newNote = {
+        id: crypto.randomUUID(),
+        author: author,
+        timestamp: timestamp,
+        text: newNoteText,
+        important: isImportant
+    };
+    
+    // Add to beginning (newest first)
+    notes.unshift(newNote);
+    
+    // Convert back to JSON string
+    const notesJSON = JSON.stringify(notes);
+    
+    // Update project
+    project.notes = notesJSON;
+    
+    // Save to database
+    saveProductionProjectNotesToDB(project, notesJSON);
+    
+    // Clear inputs
+    document.getElementById('productionProjectNewNote').value = '';
+    document.getElementById('productionNoteImportant').checked = false;
+    
+    // Update display
+    document.getElementById('productionProjectNotesHistory').innerHTML = renderNotesHistoryHTML(project);
+}
+
+async function saveProductionProjectNotesToDB(project, notesJSON) {
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { error } = await supabaseClient
+                .from('projects')
+                .update({ notes: notesJSON })
+                .eq('project_number', project.projectNumber);
+            
+            if (error) {
+                console.error('❌ Error saving notes:', error);
+                alert('Error saving note to database');
+                return;
+            }
+            
+            console.log('✅ Note added successfully!');
+            render();
+            
+        } catch (err) {
+            console.error('❌ Error:', err);
+            alert('Error saving note');
+        }
+    } else {
+        console.log('💾 Saved to local data');
+        render();
+    }
 }
 
 async function exportProductionProjectNotesPDF(index) {
     const project = projects[index];
     if (!project) return;
     
-    const notes = document.getElementById('productionProjectNotesHistory').value.trim();
+    const notes = parseProjectNotes(project.notes);
     
-    if (!notes) {
+    if (notes.length === 0) {
         alert('No notes to export. Please add some notes first.');
         return;
     }
@@ -889,20 +1016,53 @@ async function exportProductionProjectNotesPDF(index) {
     doc.line(margin, margin + 35, pageWidth - margin, margin + 35);
     
     // Notes content
-    doc.setFontSize(11);
-    doc.setTextColor(0);
-    doc.setFont(undefined, 'normal');
-    
-    const splitNotes = doc.splitTextToSize(notes, contentWidth);
     let yPosition = margin + 45;
     
-    splitNotes.forEach((line) => {
-        if (yPosition > pageHeight - margin) {
+    notes.forEach((note, idx) => {
+        // Check if need new page
+        if (yPosition > pageHeight - 40) {
             doc.addPage();
             yPosition = margin;
         }
-        doc.text(line, margin, yPosition);
-        yPosition += 7;
+        
+        // Important icon
+        if (note.important) {
+            doc.setFontSize(12);
+            doc.setTextColor(255, 165, 0); // Orange
+            doc.text('⚠️', margin, yPosition);
+        }
+        
+        // Author and timestamp - small grey
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.setFont(undefined, 'normal');
+        const authorText = `${note.author} : ${note.timestamp}`;
+        doc.text(authorText, margin + (note.important ? 8 : 0), yPosition);
+        yPosition += 6;
+        
+        // Note text - larger and bold
+        doc.setFontSize(11);
+        doc.setTextColor(0);
+        doc.setFont(undefined, 'bold');
+        const splitText = doc.splitTextToSize(note.text, contentWidth);
+        splitText.forEach((line) => {
+            if (yPosition > pageHeight - margin) {
+                doc.addPage();
+                yPosition = margin;
+            }
+            doc.text(line, margin, yPosition);
+            yPosition += 7;
+        });
+        
+        // Spacing between notes
+        yPosition += 8;
+        
+        // Separator line
+        if (idx < notes.length - 1) {
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.3);
+            doc.line(margin, yPosition - 4, pageWidth - margin, yPosition - 4);
+        }
     });
     
     // Generate PDF as blob
@@ -989,177 +1149,64 @@ async function exportProductionProjectNotesPDF(index) {
     }
 }
 
-// ========== NOTES TIMELINE FUNCTIONS ==========
-
-function formatNotesHistory(notesText) {
-    // Keep old function for PDF export (plain text)
-    if (!notesText || notesText.trim() === '') {
-        return '';
-    }
-    return notesText.trim();
-}
-
-function formatNotesHistoryHTML(notesText) {
-    if (!notesText || notesText.trim() === '') {
-        return '<div style="color: #999; font-style: italic;">No notes yet...</div>';
-    }
-    
-    const lines = notesText.split('\n');
-    let html = '';
-    let isAuthorLine = false;
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        if (!line) {
-            // Empty line - separator
-            html += '<div style="height: 10px;"></div>';
-            isAuthorLine = true; // Next line will be author
-            continue;
-        }
-        
-        // Check if line is author/timestamp (contains " : " and date pattern)
-        if (line.includes(' : ') && /\d{2}\/\d{2}\/\d{4}/.test(line)) {
-            // Check if important
-            const isImportant = line.startsWith('[IMPORTANT]');
-            const displayLine = isImportant ? line.replace('[IMPORTANT]', '').trim() : line;
-            
-            html += `<div style="font-size: 11px; color: #999; margin-top: ${i > 0 ? '15px' : '0'};">`;
-            if (isImportant) {
-                html += `<span style="color: #ffa500; font-size: 14px; margin-right: 5px;">⚠️</span>`;
-            }
-            html += `${displayLine}</div>`;
-            isAuthorLine = false;
-        } else {
-            // Content line - bigger and bold
-            html += `<div style="font-size: 15px; font-weight: bold; margin-top: 3px; line-height: 1.4;">${line}</div>`;
-        }
-    }
-    
-    return html;
-}
-
-function addProductionProjectNote(index) {
-    const project = projects[index];
-    if (!project) {
-        console.error('❌ Project not found at index:', index);
-        return;
-    }
-    
-    const newNoteText = document.getElementById('productionProjectNewNote').value.trim();
-    
-    if (!newNoteText) {
-        alert('Please enter a note before adding.');
-        return;
-    }
-    
-    // Check if important
-    const isImportant = document.getElementById('productionNoteImportant').checked;
-    
-    // Get current user
-    const author = window.currentUser?.full_name || window.currentUser?.email || 'Unknown User';
-    
-    // Format timestamp: DD/MM/YYYY HH:MM
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const timestamp = `${day}/${month}/${year} ${hours}:${minutes}`;
-    
-    // Create new note entry with optional IMPORTANT prefix
-    const prefix = isImportant ? '[IMPORTANT] ' : '';
-    const newEntry = `${prefix}${author} : ${timestamp}\n${newNoteText}`;
-    
-    // Prepend to existing notes (newest on top)
-    const existingNotes = project.notes || '';
-    const updatedNotes = existingNotes ? `${newEntry}\n\n${existingNotes}` : newEntry;
-    
-    // Update project
-    project.notes = updatedNotes;
-    
-    // Save to database
-    saveProductionProjectNotesToDB(index, updatedNotes);
-    
-    // Clear input
-    document.getElementById('productionProjectNewNote').value = '';
-    document.getElementById('productionNoteImportant').checked = false;
-    
-    // Update history display
-    document.getElementById('productionProjectNotesHistory').innerHTML = formatNotesHistoryHTML(updatedNotes);
-}
-
-async function saveProductionProjectNotesToDB(index, notes) {
-    const project = projects[index];
-    
-    if (typeof supabaseClient !== 'undefined') {
-        try {
-            const { error } = await supabaseClient
-                .from('projects')
-                .update({ notes: notes || null })
-                .eq('project_number', project.projectNumber);
-            
-            if (error) {
-                console.error('❌ Error saving notes:', error);
-                alert('Error saving note to database');
-                return;
-            }
-            
-            console.log('✅ Note added successfully!');
-            
-            // Update render to show note indicator
-            render();
-            
-        } catch (err) {
-            console.error('❌ Error:', err);
-            alert('Error saving note');
-        }
-    } else {
-        console.log('💾 Saved to local data');
-        render();
-    }
-}
+// ========== IMPORTANT NOTES TRACKING ==========
 
 async function markProductionNotesAsRead(projectId) {
     if (!window.currentUser || typeof supabaseClient === 'undefined') return;
     
     try {
-        const { error } = await supabaseClient
+        // First check if record exists
+        const { data: existing } = await supabaseClient
             .from('project_important_notes_reads')
-            .upsert({
-                project_id: projectId,
-                user_id: window.currentUser.id,
-                source_table: 'projects',
-                read_at: new Date().toISOString()
-            }, {
-                onConflict: 'project_id,user_id,source_table'
-            });
+            .select('id')
+            .eq('project_id', projectId)
+            .eq('user_id', window.currentUser.id)
+            .eq('source_table', 'projects')
+            .maybeSingle();
         
-        if (error) {
-            console.error('❌ Error marking notes as read:', error);
+        if (existing) {
+            // Update existing record
+            const { error } = await supabaseClient
+                .from('project_important_notes_reads')
+                .update({ read_at: new Date().toISOString() })
+                .eq('id', existing.id);
+            
+            if (error) {
+                console.error('❌ Error updating read status:', error);
+            } else {
+                console.log('✅ Notes marked as read (updated)');
+                render();
+            }
         } else {
-            console.log('✅ Notes marked as read');
-            // Re-render to remove pulsing icon
-            render();
+            // Insert new record
+            const { error } = await supabaseClient
+                .from('project_important_notes_reads')
+                .insert({
+                    project_id: projectId,
+                    user_id: window.currentUser.id,
+                    source_table: 'projects',
+                    read_at: new Date().toISOString()
+                });
+            
+            if (error) {
+                console.error('❌ Error marking notes as read:', error);
+            } else {
+                console.log('✅ Notes marked as read (inserted)');
+                render();
+            }
         }
     } catch (err) {
         console.error('❌ Error:', err);
     }
 }
 
-function hasUnreadImportantNotes(project) {
-    // Check if project has [IMPORTANT] notes
-    if (!project.notes || !project.notes.includes('[IMPORTANT]')) {
-        return false;
-    }
-    
-    // Check if user has read them (will be checked async in render)
-    return true; // Default to showing pulse, async check will update
-}
-
 async function checkUnreadImportantNotes(project) {
-    if (!project.notes || !project.notes.includes('[IMPORTANT]')) {
+    const notes = parseProjectNotes(project.notes);
+    
+    // Check if any notes are marked important
+    const hasImportantNotes = notes.some(note => note.important);
+    
+    if (!hasImportantNotes) {
         return false;
     }
     
@@ -1174,9 +1221,9 @@ async function checkUnreadImportantNotes(project) {
             .eq('project_id', project.id)
             .eq('user_id', window.currentUser.id)
             .eq('source_table', 'projects')
-            .single();
+            .maybeSingle();
         
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+        if (error && error.code !== 'PGRST116') {
             console.error('Error checking read status:', error);
             return false;
         }
