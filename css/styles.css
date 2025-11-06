@@ -519,8 +519,8 @@ body.pipeline-theme .chart-wrapper {
 
 /* Project header */
 .project-header {
-    width: 640px;
-    min-width: 640px;
+    width: 500px;
+    min-width: 500px;
     background: #252526;
     border-right: 1px solid #3e3e42;
     font-weight: bold;
@@ -652,8 +652,8 @@ body.pipeline-theme .project-row {
 
 /* Project cell */
 .project-cell {
-    width: 640px;
-    min-width: 640px;
+    width: 500px;
+    min-width: 500px;
     background: #2d2d30;
     border-right: 1px solid #3e3e42;
     display: flex;
