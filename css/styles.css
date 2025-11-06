@@ -1758,3 +1758,20 @@ textarea:focus {
 .icon-btn svg {
     flex-shrink: 0;
 }
+
+/* Pulsing icon for unread important notes */
+@keyframes pulse-important {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.15);
+    }
+}
+
+.pulse-important {
+    animation: pulse-important 1.5s ease-in-out infinite;
+    color: #ffa500 !important;
+}

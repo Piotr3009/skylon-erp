@@ -796,13 +796,19 @@ function openProductionProjectNotes(index) {
             <div class="modal-body">
                 <div class="form-group">
                     <label>Notes History</label>
-                    <textarea id="productionProjectNotesHistory" readonly placeholder="No notes yet..." style="min-height: 300px; font-size: 14px; background: #2a2a2e; color: #e8e2d5; resize: vertical;">${formatNotesHistory(project.notes || '')}</textarea>
+                    <div id="productionProjectNotesHistory" style="min-height: 300px; max-height: 400px; overflow-y: auto; font-size: 14px; background: #2a2a2e; color: #e8e2d5; padding: 10px; border: 1px solid #3e3e42; border-radius: 3px;">${formatNotesHistoryHTML(project.notes || '')}</div>
                 </div>
                 
                 <div class="form-group" style="margin-top: 15px;">
                     <label>Add New Note</label>
                     <textarea id="productionProjectNewNote" placeholder="Type your note here..." style="min-height: 80px; font-size: 14px;"></textarea>
-                    <button class="modal-btn" onclick="addProductionProjectNote(${index})" style="margin-top: 8px; background: #4a90e2;">➕ Add Note</button>
+                    <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                            <input type="checkbox" id="productionNoteImportant" style="cursor: pointer;">
+                            <span>⚠️ Mark as important</span>
+                        </label>
+                        <button class="modal-btn" onclick="addProductionProjectNote(${index})" style="background: #4a90e2;">➕ Add Note</button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -817,6 +823,9 @@ function openProductionProjectNotes(index) {
     `;
     
     document.body.appendChild(modal);
+    
+    // Mark important notes as read
+    markProductionNotesAsRead(project.id);
 }
 
 function closeProductionProjectNotes() {
@@ -983,28 +992,51 @@ async function exportProductionProjectNotesPDF(index) {
 // ========== NOTES TIMELINE FUNCTIONS ==========
 
 function formatNotesHistory(notesText) {
+    // Keep old function for PDF export (plain text)
     if (!notesText || notesText.trim() === '') {
         return '';
     }
+    return notesText.trim();
+}
+
+function formatNotesHistoryHTML(notesText) {
+    if (!notesText || notesText.trim() === '') {
+        return '<div style="color: #999; font-style: italic;">No notes yet...</div>';
+    }
     
-    // Split by lines and format
     const lines = notesText.split('\n');
-    let formatted = '';
+    let html = '';
+    let isAuthorLine = false;
     
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const line = lines[i].trim();
+        
+        if (!line) {
+            // Empty line - separator
+            html += '<div style="height: 10px;"></div>';
+            isAuthorLine = true; // Next line will be author
+            continue;
+        }
         
         // Check if line is author/timestamp (contains " : " and date pattern)
         if (line.includes(' : ') && /\d{2}\/\d{2}\/\d{4}/.test(line)) {
-            // Author line - smaller font, not bold
-            formatted += line + '\n';
+            // Check if important
+            const isImportant = line.startsWith('[IMPORTANT]');
+            const displayLine = isImportant ? line.replace('[IMPORTANT]', '').trim() : line;
+            
+            html += `<div style="font-size: 11px; color: #999; margin-top: ${i > 0 ? '15px' : '0'};">`;
+            if (isImportant) {
+                html += `<span style="color: #ffa500; font-size: 14px; margin-right: 5px;">⚠️</span>`;
+            }
+            html += `${displayLine}</div>`;
+            isAuthorLine = false;
         } else {
-            // Content line - normal
-            formatted += line + '\n';
+            // Content line - bigger and bold
+            html += `<div style="font-size: 15px; font-weight: bold; margin-top: 3px; line-height: 1.4;">${line}</div>`;
         }
     }
     
-    return formatted.trim();
+    return html;
 }
 
 function addProductionProjectNote(index) {
@@ -1021,6 +1053,9 @@ function addProductionProjectNote(index) {
         return;
     }
     
+    // Check if important
+    const isImportant = document.getElementById('productionNoteImportant').checked;
+    
     // Get current user
     const author = window.currentUser?.full_name || window.currentUser?.email || 'Unknown User';
     
@@ -1033,8 +1068,9 @@ function addProductionProjectNote(index) {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const timestamp = `${day}/${month}/${year} ${hours}:${minutes}`;
     
-    // Create new note entry
-    const newEntry = `${author} : ${timestamp}\n${newNoteText}`;
+    // Create new note entry with optional IMPORTANT prefix
+    const prefix = isImportant ? '[IMPORTANT] ' : '';
+    const newEntry = `${prefix}${author} : ${timestamp}\n${newNoteText}`;
     
     // Prepend to existing notes (newest on top)
     const existingNotes = project.notes || '';
@@ -1048,9 +1084,10 @@ function addProductionProjectNote(index) {
     
     // Clear input
     document.getElementById('productionProjectNewNote').value = '';
+    document.getElementById('productionNoteImportant').checked = false;
     
     // Update history display
-    document.getElementById('productionProjectNotesHistory').value = formatNotesHistory(updatedNotes);
+    document.getElementById('productionProjectNotesHistory').innerHTML = formatNotesHistoryHTML(updatedNotes);
 }
 
 async function saveProductionProjectNotesToDB(index, notes) {
@@ -1083,3 +1120,95 @@ async function saveProductionProjectNotesToDB(index, notes) {
         render();
     }
 }
+
+async function markProductionNotesAsRead(projectId) {
+    if (!window.currentUser || typeof supabaseClient === 'undefined') return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('project_important_notes_reads')
+            .upsert({
+                project_id: projectId,
+                user_id: window.currentUser.id,
+                source_table: 'projects',
+                read_at: new Date().toISOString()
+            }, {
+                onConflict: 'project_id,user_id,source_table'
+            });
+        
+        if (error) {
+            console.error('❌ Error marking notes as read:', error);
+        } else {
+            console.log('✅ Notes marked as read');
+            // Re-render to remove pulsing icon
+            render();
+        }
+    } catch (err) {
+        console.error('❌ Error:', err);
+    }
+}
+
+function hasUnreadImportantNotes(project) {
+    // Check if project has [IMPORTANT] notes
+    if (!project.notes || !project.notes.includes('[IMPORTANT]')) {
+        return false;
+    }
+    
+    // Check if user has read them (will be checked async in render)
+    return true; // Default to showing pulse, async check will update
+}
+
+async function checkUnreadImportantNotes(project) {
+    if (!project.notes || !project.notes.includes('[IMPORTANT]')) {
+        return false;
+    }
+    
+    if (!window.currentUser || typeof supabaseClient === 'undefined') {
+        return true; // Show pulse if can't check
+    }
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('project_important_notes_reads')
+            .select('read_at')
+            .eq('project_id', project.id)
+            .eq('user_id', window.currentUser.id)
+            .eq('source_table', 'projects')
+            .single();
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+            console.error('Error checking read status:', error);
+            return false;
+        }
+        
+        // If no record found, notes are unread
+        return !data;
+        
+    } catch (err) {
+        console.error('Error:', err);
+        return false;
+    }
+}
+
+// Check all projects and add pulse class to buttons with unread important notes
+async function updateImportantNotesPulse() {
+    if (!projects || !window.currentUser) return;
+    
+    for (const project of projects) {
+        const hasUnread = await checkUnreadImportantNotes(project);
+        const btn = document.getElementById(`notes-btn-${project.id}`);
+        
+        if (btn) {
+            if (hasUnread) {
+                btn.classList.add('pulse-important');
+            } else {
+                btn.classList.remove('pulse-important');
+            }
+        }
+    }
+}
+
+// Call this after render
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(updateImportantNotesPulse, 1000);
+});
