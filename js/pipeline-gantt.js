@@ -179,7 +179,40 @@ function renderPipelineProjects() {
     const body = document.getElementById('chartBody');
     body.innerHTML = '';
     
-    pipelineProjects.forEach((project, index) => {
+    // Sort projects based on current sort mode
+    let sortedProjects = [...pipelineProjects];
+    
+    if (typeof pipelineSortMode !== 'undefined') {
+        if (pipelineSortMode === 'number') {
+            // Sort by project number
+            sortedProjects.sort((a, b) => {
+                const numA = a.projectNumber || '';
+                const numB = b.projectNumber || '';
+                return numA.localeCompare(numB);
+            });
+        } else if (pipelineSortMode === 'date') {
+            // Sort by date added (created_at) - newest first
+            sortedProjects.sort((a, b) => {
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                return dateB - dateA;
+            });
+        } else if (pipelineSortMode === 'leadtime') {
+            // Sort by lead time - shortest first
+            sortedProjects.sort((a, b) => {
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                const leadTimeA = Math.floor((Date.now() - dateA) / (1000 * 60 * 60 * 24));
+                const leadTimeB = Math.floor((Date.now() - dateB) / (1000 * 60 * 60 * 24));
+                return leadTimeA - leadTimeB;
+            });
+        }
+    }
+    
+    sortedProjects.forEach((project, sortedIndex) => {
+        // Find original index in pipelineProjects array
+        const originalIndex = pipelineProjects.findIndex(p => p.id === project.id || p.projectNumber === project.projectNumber);
+        
         const phaseKeys = project.phases?.map(p => p.key) || [];
         const uniqueKeys = [...new Set(phaseKeys)];
         if (phaseKeys.length !== uniqueKeys.length) {
@@ -195,7 +228,7 @@ function renderPipelineProjects() {
         const projectType = projectTypes[project.type] || projectTypes.other;
         
         projectCell.innerHTML = `
-            <div class="project-column project-number" onclick="editPipelineProjectNumber(${index})" title="Click to edit number">
+            <div class="project-column project-number" onclick="editPipelineProjectNumber(${originalIndex})" title="Click to edit number">
                 ${project.projectNumber || '---'}
             </div>
             <div class="project-column-divider"></div>
@@ -216,9 +249,9 @@ function renderPipelineProjects() {
             </div>
             <div class="project-column-divider"></div>
             <div class="project-column project-actions">
-                <button class="action-btn" onclick="editPipelineProject(${index})" title="Edit">✏️</button>
-                <button class="action-btn" onclick="openProjectFilesModal(${index}, 'pipeline')" title="Project Files">📁</button>
-                <button class="action-btn" onclick="openPipelineProjectNotes(${index})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
+                <button class="action-btn" onclick="editPipelineProject(${originalIndex})" title="Edit">✏️</button>
+                <button class="action-btn" onclick="openProjectFilesModal(${originalIndex}, 'pipeline')" title="Project Files">📁</button>
+                <button class="action-btn" onclick="openPipelineProjectNotes(${originalIndex})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
             </div>
         `;
         
