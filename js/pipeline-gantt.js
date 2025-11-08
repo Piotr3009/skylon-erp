@@ -210,8 +210,8 @@ function renderPipelineProjects() {
     }
     
     sortedProjects.forEach((project, sortedIndex) => {
-        // Find original index in pipelineProjects array
-        const originalIndex = pipelineProjects.findIndex(p => p.id === project.id || p.projectNumber === project.projectNumber);
+        // Find original index in pipelineProjects array (same method as Production)
+        const originalIndex = pipelineProjects.indexOf(project);
         
         const phaseKeys = project.phases?.map(p => p.key) || [];
         const uniqueKeys = [...new Set(phaseKeys)];
