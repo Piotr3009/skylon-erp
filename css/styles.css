@@ -779,6 +779,14 @@ body.pipeline-theme .project-cell {
     background: #4e4e52;
 }
 
+/* Notes button with border for visibility */
+.action-btn.has-notes {
+    border: 2px solid #4caf50;
+}
+
+.action-btn.no-notes {
+    border: 2px solid #666;
+}
 
 .action-btn.delete:hover {
     background: #d32f2f;
