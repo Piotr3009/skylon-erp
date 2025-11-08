@@ -956,6 +956,9 @@ async function saveProductionProjectNotesToDB(project, notesJSON) {
             console.log('✅ Note added successfully!');
             render();
             
+            // Update pulse indicators
+            setTimeout(updateImportantNotesPulse, 200);
+            
         } catch (err) {
             console.error('❌ Error:', err);
             alert('Error saving note');
@@ -963,6 +966,9 @@ async function saveProductionProjectNotesToDB(project, notesJSON) {
     } else {
         console.log('💾 Saved to local data');
         render();
+        
+        // Update pulse indicators
+        setTimeout(updateImportantNotesPulse, 200);
     }
 }
 
@@ -1176,6 +1182,9 @@ async function markProductionNotesAsRead(projectId) {
             } else {
                 console.log('✅ Notes marked as read (updated)');
                 render();
+                
+                // Update pulse indicators
+                setTimeout(updateImportantNotesPulse, 200);
             }
         } else {
             // Insert new record
@@ -1193,6 +1202,9 @@ async function markProductionNotesAsRead(projectId) {
             } else {
                 console.log('✅ Notes marked as read (inserted)');
                 render();
+                
+                // Update pulse indicators
+                setTimeout(updateImportantNotesPulse, 200);
             }
         }
     } catch (err) {

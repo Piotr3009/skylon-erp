@@ -98,6 +98,11 @@ function render() {
     renderProjects();
     renderGridPattern();
     renderTodayLine();
+    
+    // Update pulse indicators for unread important notes
+    if (typeof updateImportantNotesPulse === 'function') {
+        setTimeout(updateImportantNotesPulse, 100);
+    }
 }
 
 function renderTimeline() {
