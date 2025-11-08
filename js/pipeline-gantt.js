@@ -190,15 +190,8 @@ function renderPipelineProjects() {
                 const numB = b.projectNumber || '';
                 return numA.localeCompare(numB);
             });
-        } else if (pipelineSortMode === 'date') {
-            // Sort by date added (created_at) - newest first
-            sortedProjects.sort((a, b) => {
-                const dateA = new Date(a.created_at || 0);
-                const dateB = new Date(b.created_at || 0);
-                return dateB - dateA;
-            });
         } else if (pipelineSortMode === 'leadtime') {
-            // Sort by lead time - shortest first
+            // Sort by lead time - shortest first (newest projects first)
             sortedProjects.sort((a, b) => {
                 const dateA = new Date(a.created_at || 0);
                 const dateB = new Date(b.created_at || 0);
