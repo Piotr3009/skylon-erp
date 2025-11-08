@@ -225,8 +225,8 @@ function renderPipelineProjects() {
                 ${project.projectNumber || '---'}
             </div>
             <div class="project-column-divider"></div>
-            <div class="project-column project-type" title="${projectType.name}">
-                ${projectType.icon}
+            <div class="project-column project-type" title="${projectType.name}" style="color: ${getProjectTypeColor(project.type)}">
+                ${getProjectTypeIcon(project.type, 20)}
             </div>
             <div class="project-column-divider"></div>
             <div class="project-column project-name" title="${project.name}">

@@ -51,14 +51,14 @@ const phaseStatuses = {
 
 // Project types configuration
 const projectTypes = {
-    sash: { name: "Sash Window", icon: "🔲" },
-    casement: { name: "Casement Window", icon: "🔳" },
-    kitchen: { name: "Kitchen", icon: "🍳" },
-    wardrobe: { name: "Wardrobe", icon: "🗄️" },
-    partition: { name: "Partition Wall", icon: "🗃️" },
-    externalSpray: { name: "External Spraying", icon: "🎨" },
-    internalDoors: { name: "Internal Doors", icon: "🚪" },
-    other: { name: "Other", icon: "📦" }
+    sash: { name: "Sash Window" },
+    casement: { name: "Casement Window" },
+    kitchen: { name: "Kitchen" },
+    wardrobe: { name: "Wardrobe" },
+    partition: { name: "Partition Wall" },
+    externalSpray: { name: "External Spraying" },
+    internalDoors: { name: "Internal Doors" },
+    other: { name: "Other" }
 };
 
 // Material lists per project type
