@@ -417,16 +417,6 @@ function selectProjectType(type) {
     event.currentTarget.classList.add('selected');
 }
 
-// Clear all pipeline projects
-function clearAllPipeline() {
-    if (confirm('Clear all pipeline projects? This cannot be undone!')) {
-        pipelineProjects = [];
-        lastPipelineNumber = 0;
-        saveDataQueued();
-        renderPipeline();
-    }
-}
-
 // ========== PIPELINE FINISHED MODAL ==========
 function openPipelineFinishedModal() {
     updatePipelineProjectSelect();

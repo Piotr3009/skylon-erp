@@ -890,15 +890,6 @@ function importJSON() {
     };
 }
 
-function clearAll() {
-    if (confirm('Clear all projects? This cannot be undone!')) {
-        projects = [];
-        lastProjectNumber = 0;
-        saveDataQueued();
-        render();
-    }
-}
-
 // ========== GOOGLE DRIVE HELPER ==========
 // Function to update Google Drive info for a project (called from google-drive-picker.js)
 window.updateProjectGoogleDrive = function(projectNumber, folderUrl, folderId, folderName) {
