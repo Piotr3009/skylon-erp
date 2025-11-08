@@ -268,8 +268,8 @@ function renderPipelineProjects() {
             const overlaps = detectPipelinePhaseOverlaps(sortedPhases);
             
             sortedPhases.forEach((phase, sortedIndex) => {
-                const originalIndex = project.phases.findIndex(p => p === phase);
-                const phaseBar = createPipelinePhaseBar(phase, project, index, originalIndex, overlaps);
+                const phaseIndexInProject = project.phases.findIndex(p => p === phase);
+                const phaseBar = createPipelinePhaseBar(phase, project, originalIndex, phaseIndexInProject, overlaps);
                 if (phaseBar) timelineCell.appendChild(phaseBar);
             });
         }
