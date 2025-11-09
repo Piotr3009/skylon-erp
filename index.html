@@ -516,6 +516,136 @@
         </div>
     </div>
 
+    <!-- Add Material Modal -->
+    <div id="addMaterialModal" class="modal">
+        <div class="modal-content" style="width: 600px; max-width: 90%;">
+            <div class="modal-header">
+                <h2>Add Material</h2>
+                <button class="modal-close" onclick="closeAddMaterialModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Stage Selection -->
+                <div class="form-group">
+                    <label>Stage <span style="color: #ff6b6b;">*</span></label>
+                    <select id="addMaterialStage" onchange="onStageChange()">
+                        <option value="">-- Select Stage --</option>
+                        <option value="Production">📦 Production</option>
+                        <option value="Spraying">🎨 Spraying</option>
+                        <option value="Installation">🔧 Installation</option>
+                    </select>
+                </div>
+
+                <!-- Material Type -->
+                <div class="form-group">
+                    <label>Material Type <span style="color: #ff6b6b;">*</span></label>
+                    <div style="display: flex; gap: 15px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="materialType" value="stock" checked onchange="onMaterialTypeChange()" style="margin-right: 8px;">
+                            <span>From Stock</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="materialType" value="bespoke" onchange="onMaterialTypeChange()" style="margin-right: 8px;">
+                            <span>Bespoke (Custom)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Stock Item Selection -->
+                <div id="stockItemSection">
+                    <!-- Category -->
+                    <div class="form-group">
+                        <label>Category <span style="color: #ff6b6b;">*</span></label>
+                        <select id="addMaterialCategory" onchange="onCategoryChange()">
+                            <option value="">-- Select Category --</option>
+                        </select>
+                    </div>
+
+                    <!-- Subcategory -->
+                    <div class="form-group" id="subcategoryGroup" style="display: none;">
+                        <label>Subcategory <span style="color: #ff6b6b;">*</span></label>
+                        <select id="addMaterialSubcategory" onchange="onSubcategoryChange()">
+                            <option value="">-- Select Subcategory --</option>
+                        </select>
+                    </div>
+
+                    <!-- Stock Item -->
+                    <div class="form-group" id="stockItemGroup" style="display: none;">
+                        <label>Stock Item <span style="color: #ff6b6b;">*</span></label>
+                        <select id="addMaterialStockItem" onchange="onStockItemChange()">
+                            <option value="">-- Select Item --</option>
+                        </select>
+                        <div id="stockItemInfo" style="margin-top: 10px; padding: 10px; background: #1a1a1a; border-radius: 4px; display: none;">
+                            <div style="font-size: 12px; color: #aaa;">
+                                <div><strong>In Stock:</strong> <span id="itemInStock">-</span></div>
+                                <div><strong>Unit:</strong> <span id="itemUnit">-</span></div>
+                                <div><strong>Cost per Unit:</strong> <span id="itemCost">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bespoke Item Section -->
+                <div id="bespokeItemSection" style="display: none;">
+                    <div class="form-group">
+                        <label>Item Name <span style="color: #ff6b6b;">*</span></label>
+                        <input type="text" id="bespokeItemName" placeholder="e.g. Custom brass handles Victorian style">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category <span style="color: #ff6b6b;">*</span></label>
+                        <select id="bespokeMaterialCategory">
+                            <option value="">-- Select Category --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="bespokeDescription" rows="3" placeholder="Detailed description of bespoke item..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Supplier</label>
+                        <select id="bespokeSupplier">
+                            <option value="">-- Select Supplier --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Purchase Link (optional)</label>
+                        <input type="url" id="bespokePurchaseLink" placeholder="https://...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Unit Cost (£) <span style="color: #ff6b6b;">*</span></label>
+                        <input type="number" id="bespokeUnitCost" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </div>
+
+                <!-- Quantity & Unit -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Quantity Needed <span style="color: #ff6b6b;">*</span></label>
+                        <input type="number" id="addMaterialQuantity" step="0.01" min="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit <span style="color: #ff6b6b;">*</span></label>
+                        <input type="text" id="addMaterialUnit" placeholder="pcs, m, L" maxlength="10">
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="addMaterialNotes" rows="2" placeholder="e.g. Ask for Grade A, Same batch as previous project..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeAddMaterialModal()">Cancel</button>
+                <button class="modal-btn primary" onclick="saveMaterial()">Add Material</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden file input -->
     <input type="file" id="fileInput" accept=".json" style="display: none;">
 
