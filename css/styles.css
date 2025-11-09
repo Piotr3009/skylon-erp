@@ -2058,3 +2058,34 @@ textarea:focus {
 .modal-btn-close:hover {
     color: #e0e0e0;
 }
+
+/* ========== ADD MATERIAL MODAL - FIX ========== */
+
+/* Zwiększ z-index żeby był NA WIERZCHU materials modal */
+#addMaterialModal {
+    z-index: 3000 !important;
+}
+
+#addMaterialModal.active {
+    z-index: 3000 !important;
+}
+
+/* Zwiększ rozmiar modala */
+#addMaterialModal .modal-content {
+    width: 800px !important;
+    max-width: 95% !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+}
+
+/* Backdrop dla add material modal */
+#addMaterialModal::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+}
