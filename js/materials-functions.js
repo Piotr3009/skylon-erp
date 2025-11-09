@@ -404,7 +404,7 @@ function onCategoryChange() {
     if (subcats.length > 0) {
         // Pokaż subcategory dropdown
         const subcatSelect = document.getElementById('addMaterialSubcategory');
-        subcatSelect.innerHTML = '<option value="">-- Select Subcategory --</option>';
+        subcatSelect.innerHTML = '<option value="">-- All (no filter) --</option>';
         subcats.forEach(sub => {
             const option = document.createElement('option');
             option.value = sub.id;
@@ -412,7 +412,9 @@ function onCategoryChange() {
             subcatSelect.appendChild(option);
         });
         document.getElementById('subcategoryGroup').style.display = 'block';
-        document.getElementById('stockItemGroup').style.display = 'none';
+        
+        // Pokaż OD RAZU wszystkie items z tej kategorii (bez filtra subcategory)
+        populateStockItems(categoryId, null);
     } else {
         // Nie ma subcategorii - pokaż od razu items
         document.getElementById('subcategoryGroup').style.display = 'none';
@@ -433,29 +435,53 @@ function onSubcategoryChange() {
 // Populate stock items dropdown
 function populateStockItems(categoryId, subcategoryId) {
     const category = stockCategories.find(c => c.id === categoryId);
+    console.log('🔍 Populating stock items for category:', category?.name, 'subcategory:', subcategoryId);
     
     // Filtruj items po category name
-    let filteredItems = stockItems.filter(item => 
-        item.category && item.category.toLowerCase() === category.name.toLowerCase()
-    );
+    let filteredItems = stockItems.filter(item => {
+        if (!item.category) return false;
+        const match = item.category.toLowerCase() === category.name.toLowerCase();
+        return match;
+    });
+    
+    console.log('📦 Items after category filter:', filteredItems.length);
     
     // Jeśli jest subcategory - dodatkowy filtr
     if (subcategoryId) {
         const subcategory = stockCategories.find(c => c.id === subcategoryId);
-        filteredItems = filteredItems.filter(item =>
-            item.subcategory && item.subcategory.toLowerCase() === subcategory.name.toLowerCase()
-        );
+        console.log('🔍 Filtering by subcategory:', subcategory?.name);
+        
+        filteredItems = filteredItems.filter(item => {
+            if (!item.subcategory) return false;
+            const match = item.subcategory.toLowerCase() === subcategory.name.toLowerCase();
+            if (match) {
+                console.log('  ✅ Match:', item.name, '- subcategory:', item.subcategory);
+            }
+            return match;
+        });
+        
+        console.log('📦 Items after subcategory filter:', filteredItems.length);
     }
     
     const itemSelect = document.getElementById('addMaterialStockItem');
     itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
     
-    filteredItems.forEach(item => {
+    if (filteredItems.length === 0) {
+        console.warn('⚠️ No items found for this category/subcategory combination');
         const option = document.createElement('option');
-        option.value = item.id;
-        option.textContent = `${item.name}${item.size ? ' - ' + item.size : ''}${item.color ? ' - ' + item.color : ''}`;
+        option.value = '';
+        option.textContent = '-- No items available --';
+        option.disabled = true;
         itemSelect.appendChild(option);
-    });
+    } else {
+        filteredItems.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = `${item.name}${item.size ? ' - ' + item.size : ''}${item.color ? ' - ' + item.color : ''}`;
+            itemSelect.appendChild(option);
+        });
+        console.log('✅ Populated dropdown with', filteredItems.length, 'items');
+    }
     
     document.getElementById('stockItemGroup').style.display = 'block';
 }
