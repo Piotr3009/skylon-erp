@@ -753,7 +753,7 @@ body.pipeline-theme .project-cell {
 }
 
 .project-actions {
-    width: 80px;
+    width: 100px;
     display: flex;
     gap: 4px;
     justify-content: center;
