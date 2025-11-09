@@ -1799,15 +1799,15 @@ textarea:focus {
 
 .mat-btn:hover {
     background: rgba(30, 64, 175, 0.1);
-    border-color: #3b82f6;
+    border-color: #196625;
 }
 
 .mat-text {
-    color: #1e40af;
+    color: #2b6e2e;
 }
 
 .mat-btn:hover .mat-text {
-    color: #3b82f6;
+    color: #2b6e2e;
 }
 
 /* ========== MATERIALS LIST MODAL ========== */
