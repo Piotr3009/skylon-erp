@@ -341,6 +341,7 @@ async function loadSuppliers() {
 // Populate category dropdowns
 function populateCategoryDropdowns() {
     const mainCategories = stockCategories.filter(c => c.type === 'category');
+    console.log('📦 Populating categories:', mainCategories.length, 'categories found');
     
     // Stock category dropdown
     const categorySelect = document.getElementById('addMaterialCategory');
@@ -352,6 +353,8 @@ function populateCategoryDropdowns() {
         categorySelect.appendChild(option);
     });
     
+    console.log('✅ Stock category dropdown populated with', categorySelect.options.length - 1, 'options');
+    
     // Bespoke category dropdown
     const bespokeCategorySelect = document.getElementById('bespokeMaterialCategory');
     bespokeCategorySelect.innerHTML = '<option value="">-- Select Category --</option>';
@@ -361,6 +364,8 @@ function populateCategoryDropdowns() {
         option.textContent = cat.name;
         bespokeCategorySelect.appendChild(option);
     });
+    
+    console.log('✅ Bespoke category dropdown populated with', bespokeCategorySelect.options.length - 1, 'options');
 }
 
 // Stage change
