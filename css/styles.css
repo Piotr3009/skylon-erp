@@ -725,8 +725,8 @@ body.pipeline-theme .project-cell {
 }
 
 .project-actions {
-    min-width: 180px !important;
-    width: 180px !important;
+    min-width: 120px !important;
+    width: 120px !important;
     display: flex;
     gap: 6px;
     justify-content: flex-start;
@@ -1738,13 +1738,13 @@ textarea:focus {
 
 .pulse-important {
     animation: pulse-important 1.5s ease-in-out infinite;
-    color: #ffa500 !important;
+    color: #2b6e2e !important;
 }
 
 /* ========== MATERIALS LIST BUTTON ========== */
 .mat-btn {
     background: transparent !important;
-    border: 1px solid #ffa500 !important;
+    border: 1px solid #2b6e2e !important;
     border-radius: 4px;
     padding: 6px 10px;
     font-size: 11px;
@@ -1755,16 +1755,16 @@ textarea:focus {
 }
 
 .mat-btn:hover {
-    background: rgba(255, 165, 0, 0.1) !important;
-    border-color: #ff8c00 !important;
+    background: rgba(43, 110, 46, 0.1) !important;
+    border-color: #196625 !important;
 }
 
 .mat-text {
-    color: #ffa500 !important;
+    color: #2b6e2e !important;
 }
 
 .mat-btn:hover .mat-text {
-    color: #ff8c00 !important;
+    color: #2b6e2e !important;
 }
 
 /* ========== MATERIALS LIST MODAL ========== */
