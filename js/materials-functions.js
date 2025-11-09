@@ -10,7 +10,7 @@ async function openMaterialsList(projectIndex) {
     
     // Update header info
     document.getElementById('materialsProjectInfo').textContent = 
-        `Project: ${project.project_number} | ${project.name} | Client: ${project.client_name || 'N/A'}`;
+        `Project: ${project.projectNumber} | ${project.name} | Client: ${project.client_name || 'N/A'}`;
     
     // Załaduj dane
     await loadProjectMaterials(project.id);
@@ -22,7 +22,7 @@ async function openMaterialsList(projectIndex) {
 // Załaduj materiały projektu
 async function loadProjectMaterials(projectId) {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('project_materials')
             .select(`
                 *,
@@ -54,7 +54,7 @@ async function loadProjectMaterials(projectId) {
         
     } catch (error) {
         console.error('Error loading materials:', error);
-        showNotification('Error loading materials list', 'error');
+        alert('Error loading materials list: ' + error.message);
     }
 }
 
@@ -239,39 +239,39 @@ function closeMaterialsModal() {
 
 // Placeholder functions (do implementacji później)
 function showAddMaterialModal() {
-    showNotification('Add Material function - to be implemented', 'info');
+    alert('Add Material function - to be implemented');
 }
 
 function editMaterial(materialId) {
-    showNotification('Edit Material function - to be implemented', 'info');
+    alert('Edit Material function - to be implemented');
 }
 
 async function deleteMaterial(materialId) {
     if (!confirm('Are you sure you want to delete this material?')) return;
     
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('project_materials')
             .delete()
             .eq('id', materialId);
         
         if (error) throw error;
         
-        showNotification('Material deleted successfully', 'success');
+        alert('Material deleted successfully');
         await loadProjectMaterials(currentMaterialsProject.id);
         
     } catch (error) {
         console.error('Error deleting material:', error);
-        showNotification('Error deleting material', 'error');
+        alert('Error deleting material: ' + error.message);
     }
 }
 
 function exportMaterialsPDF() {
-    showNotification('Export PDF function - to be implemented', 'info');
+    alert('Export PDF function - to be implemented');
 }
 
 function generateShoppingList() {
-    showNotification('Shopping List function - to be implemented', 'info');
+    alert('Shopping List function - to be implemented');
 }
 
 // Auto-load template przy tworzeniu projektu
@@ -287,7 +287,7 @@ async function autoLoadMaterialsTemplate(projectId, projectType) {
         // Dla każdego item w template
         for (const templateItem of template) {
             // Znajdź category
-            const { data: category } = await supabase
+            const { data: category } = await supabaseClient
                 .from('stock_categories')
                 .select('id, name')
                 .eq('name', templateItem.category_name)
@@ -302,7 +302,7 @@ async function autoLoadMaterialsTemplate(projectId, projectType) {
             // Znajdź subcategory (jeśli jest)
             let subcategory = null;
             if (templateItem.subcategory_name) {
-                const { data: subcat } = await supabase
+                const { data: subcat } = await supabaseClient
                     .from('stock_categories')
                     .select('id, name')
                     .eq('name', templateItem.subcategory_name)
@@ -317,7 +317,7 @@ async function autoLoadMaterialsTemplate(projectId, projectType) {
             const itemName = `${templateItem.category_name}${templateItem.subcategory_name ? ' - ' + templateItem.subcategory_name : ''} (select item)`;
             
             // Dodaj placeholder do project_materials
-            await supabase.from('project_materials').insert({
+            await supabaseClient.from('project_materials').insert({
                 project_id: projectId,
                 category_id: category.id,
                 subcategory_id: subcategory?.id,
