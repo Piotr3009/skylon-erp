@@ -285,6 +285,9 @@ function renderProjects() {
                 <button class="action-btn" onclick="editProject(${index})" title="Edit">✏️</button>
                 <button class="action-btn" onclick="openProjectFilesModal(${index}, 'production')" title="Project Files">📁</button>
                 <button class="action-btn ${project.notes ? 'has-notes' : 'no-notes'}" id="notes-btn-${project.id}" onclick="openProductionProjectNotes(${index})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
+                <button class="action-btn mat-btn" onclick="openMaterialsList(${index})" title="Materials List">
+                    <span class="mat-text">MAT</span>
+                </button>
             </div>
         `;
         
