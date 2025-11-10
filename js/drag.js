@@ -307,7 +307,8 @@ async function stopDrag(e) {
             }
         }
         
-        saveDataQueued();
+        // NIE POTRZEBUJEMY saveDataQueued() - fazy już zapisane przez RPC!
+        // saveDataQueued() zapisywałby WSZYSTKIE projekty niepotrzebnie
         render();
     }
     
