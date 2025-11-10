@@ -295,6 +295,7 @@ function createProjectCard(project) {
                     </div>
                     <div style="margin-bottom: 10px;">Archived: ${archivedDate}</div>
                     <div style="display: flex; gap: 8px;">
+                        <button class="toolbar-btn" style="padding: 6px 12px; font-size: 12px;" onclick="openArchiveMaterialsModal('${project.project_number}', '${project.id}')">📦 Materials</button>
                         <button class="toolbar-btn" style="padding: 6px 12px; font-size: 12px;" onclick="openArchiveFilesModal('${project.project_number}')">📁 Files</button>
                         <button class="toolbar-btn" style="padding: 6px 12px; font-size: 12px;" onclick="openEditModal('${project.id}')">✏️ Edit</button>
                         <button class="toolbar-btn danger" style="padding: 6px 12px; font-size: 12px;" onclick="openDeleteModal('${project.id}')">🗑️ Delete</button>
@@ -636,5 +637,115 @@ async function downloadArchiveFile(filePath, fileName) {
     } catch (error) {
         console.error('Error downloading file:', error);
         alert('Error downloading file');
+    }
+}
+
+// ========== MATERIALS MODAL ==========
+
+async function openArchiveMaterialsModal(projectNumber, projectId) {
+    console.log('📦 Loading materials for project:', projectNumber);
+    
+    try {
+        // Load materials from archived_project_materials
+        const { data: materials, error } = await supabaseClient
+            .from('archived_project_materials')
+            .select('*')
+            .eq('project_number', projectNumber)
+            .order('item_name');
+        
+        if (error) {
+            console.error('Error loading materials:', error);
+            alert('Error loading materials: ' + error.message);
+            return;
+        }
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'archiveMaterialsModal';
+        modal.style.display = 'flex';
+        
+        const materialsHTML = materials && materials.length > 0 ? 
+            materials.map(mat => {
+                const stage = mat.used_in_stage || '-';
+                const supplier = mat.supplier_id ? '(Supplier ID: ' + mat.supplier_id + ')' : '';
+                
+                return `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #3e3e42;">
+                            <strong>${mat.item_name}</strong>
+                            ${mat.is_bespoke ? '<span style="background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 6px;">BESPOKE</span>' : ''}
+                            ${mat.bespoke_description ? '<br><span style="color: #999; font-size: 12px;">' + mat.bespoke_description + '</span>' : ''}
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #3e3e42; text-align: center;">${stage}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #3e3e42; text-align: right;">
+                            ${(mat.quantity_needed || 0).toFixed(2)} ${mat.unit || ''}
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #3e3e42; text-align: right; color: #10b981;">
+                            ${(mat.quantity_used || 0).toFixed(2)} ${mat.unit || ''}
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #3e3e42; text-align: right; color: #f97316;">
+                            ${(mat.quantity_wasted || 0).toFixed(2)} ${mat.unit || ''}
+                            ${mat.waste_reason ? '<br><span style="color: #999; font-size: 11px;">' + mat.waste_reason + '</span>' : ''}
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #3e3e42; text-align: right;">
+                            ${mat.unit_cost ? '£' + (mat.unit_cost || 0).toFixed(2) : '-'}
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #3e3e42;">
+                            ${mat.item_notes || '-'}
+                            ${mat.purchase_link ? '<br><a href="' + mat.purchase_link + '" target="_blank" style="color: #3b82f6; font-size: 11px;">🔗 Link</a>' : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('') :
+            '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #999;">No materials recorded for this project</td></tr>';
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 1400px; width: 95%;">
+                <div class="modal-header">
+                    <h2>📦 Project Materials</h2>
+                    <div style="color: #999; font-size: 14px; margin-top: 5px;">
+                        ${projectNumber}
+                        ${materials && materials.length > 0 ? ' - ' + materials.length + ' items' : ''}
+                    </div>
+                </div>
+                <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead style="position: sticky; top: 0; background: #18181b; z-index: 10;">
+                            <tr style="border-bottom: 2px solid #3e3e42;">
+                                <th style="padding: 10px 8px; text-align: left;">Item</th>
+                                <th style="padding: 10px 8px; text-align: center;">Stage</th>
+                                <th style="padding: 10px 8px; text-align: right;">Needed</th>
+                                <th style="padding: 10px 8px; text-align: right;">Used</th>
+                                <th style="padding: 10px 8px; text-align: right;">Wasted</th>
+                                <th style="padding: 10px 8px; text-align: right;">Unit Cost</th>
+                                <th style="padding: 10px 8px; text-align: left;">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${materialsHTML}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn" onclick="closeArchiveMaterialsModal()">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        console.log('✅ Loaded', (materials || []).length, 'materials');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error loading materials');
+    }
+}
+
+function closeArchiveMaterialsModal() {
+    const modal = document.getElementById('archiveMaterialsModal');
+    if (modal) {
+        modal.remove();
     }
 }
