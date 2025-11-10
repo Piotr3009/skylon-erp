@@ -737,8 +737,130 @@ async function confirmMoveToArchive() {
                 }
             }
             
-            // Usuń projekt z tabeli projects - KRYTYCZNE!
+            // KROK 1: Pobierz ID zarchiwizowanego projektu (potrzebne do materiałów)
+            console.log('📦 Getting archived project ID...');
+            const { data: archivedProjectData, error: fetchArchivedError } = await supabaseClient
+                .from('archived_projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single();
+            
+            if (fetchArchivedError || !archivedProjectData) {
+                console.error('❌ Error fetching archived project:', fetchArchivedError);
+                alert('ERROR: Could not find archived project. Cannot continue.');
+                return;
+            }
+            
+            const archivedProjectId = archivedProjectData.id;
+            console.log('✅ Archived project ID:', archivedProjectId);
+            
+            // KROK 2: Skopiuj materiały do archived_project_materials
+            console.log('📦 Copying project materials to archive...');
+            const { data: projectMaterials, error: fetchMaterialsError } = await supabaseClient
+                .from('project_materials')
+                .select('*')
+                .eq('project_id', project.id);
+            
+            if (fetchMaterialsError) {
+                console.error('⚠️ Warning: Error fetching project materials:', fetchMaterialsError);
+            } else if (projectMaterials && projectMaterials.length > 0) {
+                // Przygotuj materiały do zapisu w archived_project_materials
+                const archivedMaterials = projectMaterials.map(mat => ({
+                    archived_project_id: archivedProjectId,
+                    project_number: project.projectNumber,
+                    stock_item_id: mat.stock_item_id,
+                    category_id: mat.category_id,
+                    subcategory_id: mat.subcategory_id,
+                    item_name: mat.item_name,
+                    quantity_needed: mat.quantity_needed,
+                    quantity_reserved: mat.quantity_reserved,
+                    quantity_used: mat.quantity_used,
+                    quantity_wasted: mat.quantity_wasted,
+                    waste_reason: mat.waste_reason,
+                    unit: mat.unit,
+                    unit_cost: mat.unit_cost,
+                    used_in_stage: mat.used_in_stage,
+                    is_bespoke: mat.is_bespoke,
+                    bespoke_description: mat.bespoke_description,
+                    purchase_link: mat.purchase_link,
+                    item_notes: mat.item_notes,
+                    supplier_id: mat.supplier_id,
+                    usage_recorded: mat.usage_recorded,
+                    created_by: mat.created_by
+                }));
+                
+                // Zapisz do archived_project_materials
+                const { error: archiveMaterialsError } = await supabaseClient
+                    .from('archived_project_materials')
+                    .insert(archivedMaterials);
+                
+                if (archiveMaterialsError) {
+                    console.error('❌ CRITICAL: Error archiving project materials:', archiveMaterialsError);
+                    alert('ERROR: Could not archive project materials!\n\n' +
+                          'Error: ' + archiveMaterialsError.message + '\n\n' +
+                          'Archiving process stopped.');
+                    return;
+                } else {
+                    console.log(`✅ ${projectMaterials.length} materials copied to archived_project_materials`);
+                }
+            } else {
+                console.log('ℹ️ No materials to archive');
+            }
+            
+            // KROK 3: Teraz można bezpiecznie usuwać powiązane rekordy
+            console.log('🧹 Cleaning up related records for project ID:', project.id);
+            
+            // 3a. Usuń alerty projektu (project_alerts)
+            const { error: deleteAlertsError } = await supabaseClient
+                .from('project_alerts')
+                .delete()
+                .eq('project_id', project.id);
+            
+            if (deleteAlertsError) {
+                console.error('⚠️ Warning: Error deleting project alerts:', deleteAlertsError);
+            } else {
+                console.log('✅ Project alerts deleted');
+            }
+            
+            // 3b. Usuń statusy przeczytania notatek (project_important_notes_reads)
+            const { error: deleteNotesReadsError } = await supabaseClient
+                .from('project_important_notes_reads')
+                .delete()
+                .eq('project_id', project.id);
+            
+            if (deleteNotesReadsError) {
+                console.error('⚠️ Warning: Error deleting notes read status:', deleteNotesReadsError);
+            } else {
+                console.log('✅ Notes read status deleted');
+            }
+            
+            // 3c. Usuń materiały projektu (project_materials) - teraz już są w archiwum
+            const { error: deleteMaterialsError } = await supabaseClient
+                .from('project_materials')
+                .delete()
+                .eq('project_id', project.id);
+            
+            if (deleteMaterialsError) {
+                console.error('⚠️ Warning: Error deleting project materials:', deleteMaterialsError);
+            } else {
+                console.log('✅ Project materials deleted from active table');
+            }
+            
+            // 3d. Usuń fazy projektu (project_phases)
+            const { error: deletePhasesError } = await supabaseClient
+                .from('project_phases')
+                .delete()
+                .eq('project_id', project.id);
+            
+            if (deletePhasesError) {
+                console.error('⚠️ Warning: Error deleting project phases:', deletePhasesError);
+            } else {
+                console.log('✅ Project phases deleted');
+            }
+            
+            // KROK 4: Na końcu usuń główny projekt z tabeli projects - KRYTYCZNE!
             // Używamy ID dla 100% pewności (project_number może być duplikat)
+            console.log('🗑️ Deleting main project record...');
             const { error: deleteError } = await supabaseClient
                 .from('projects')
                 .delete()
@@ -749,24 +871,12 @@ async function confirmMoveToArchive() {
                 alert('CRITICAL ERROR: Project was archived but NOT deleted from production!\n\n' +
                       'Error: ' + deleteError.message + '\n\n' +
                       'Project ID: ' + project.id + '\n' +
+                      'Materials ARE safely archived, but project still exists in production.\n' +
                       'Please contact admin or delete manually from database.');
                 return; // STOP - nie usuwaj z lokalnej tablicy!
             }
             
             console.log('✅ Project deleted from production database (ID: ' + project.id + ')');
-            
-            // Teraz usuń fazy tego projektu z project_phases
-            const { error: deletePhasesError } = await supabaseClient
-                .from('project_phases')
-                .delete()
-                .eq('project_id', project.id);
-            
-            if (deletePhasesError) {
-                console.error('⚠️ Warning: Error deleting project phases:', deletePhasesError);
-                // Nie przerywamy - projekt główny już usunięty
-            } else {
-                console.log('✅ Project phases deleted');
-            }
             
             // Update client project count
             if (project.client_id) {
