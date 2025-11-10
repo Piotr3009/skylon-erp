@@ -434,7 +434,16 @@ async function handleFileUpload(event) {
 
 async function uploadSingleFile(file, folderName) {
     const folderPath = getFolderPath(currentProjectFiles.stage, currentProjectFiles.projectNumber, folderName);
-    const filePath = `${folderPath}/${file.name}`;
+    
+    // Sanitize filename - remove invalid characters for Supabase Storage
+    const sanitizedFileName = file.name
+        .replace(/[\[\]{}<>*?\\|:#%]/g, '_')  // Replace invalid chars with underscore
+        .replace(/\s+/g, '_')  // Replace spaces with underscore
+        .replace(/_+/g, '_');  // Remove multiple underscores
+    
+    const filePath = `${folderPath}/${sanitizedFileName}`;
+    
+    console.log(`📤 Uploading: ${file.name} → ${sanitizedFileName}`);
     
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
