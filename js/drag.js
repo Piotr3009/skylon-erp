@@ -33,10 +33,7 @@ function shiftSuccessors(projectIndex, phaseIndex, deltaDays) {
         }
     }
     
-    // Mark as changed for auto-save
-    if (typeof markAsChanged === 'function') {
-        markAsChanged();
-    }
+    // NIE POTRZEBUJEMY markAsChanged() - fazy zapisują się przez savePhasesToSupabase w stopDrag
 }
 
 // NOWA FUNKCJA - pozwala na maksymalnie 2 nakładające się fazy
@@ -50,10 +47,7 @@ function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
     // NIE robimy automatycznego układania - pozwalamy na nakładanie
     // Walidacja odbędzie się w stopDrag() poprzez checkMaxTwoOverlaps()
     
-    // Mark as changed for auto-save
-    if (typeof markAsChanged === 'function') {
-        markAsChanged();
-    }
+    // NIE POTRZEBUJEMY markAsChanged() - fazy zapisują się przez savePhasesToSupabase w stopDrag
 }
 
 // Nowa funkcja - sprawdza czy więcej niż 2 fazy się nakładają w danym momencie
@@ -282,10 +276,8 @@ async function stopDrag(e) {
         }
         
         // KROK 4: Jeśli wszystko OK, zapisz
-        // Mark as changed for auto-save
-        if (typeof markAsChanged === 'function') {
-            markAsChanged();
-        }
+        // NIE POTRZEBUJEMY markAsChanged() - fazy zapisane przez savePhasesToSupabase poniżej
+        // markAsChanged() wywołałby auto-save który zapisuje WSZYSTKIE projekty
         
         // ZAPISZ FAZY DO SUPABASE
         if (typeof supabaseClient !== 'undefined' && project.projectNumber) {
