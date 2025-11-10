@@ -552,9 +552,11 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         const projectIdField = isProduction ? 'project_id' : 'pipeline_project_id';
 
         if (!phases || !Array.isArray(phases)) {
-            console.error('CRITICAL: phases is not an array!', phases);
+            console.error('❌ CRITICAL: phases is not an array!', phases);
             return false;
         }
+
+        console.log(`💾 Saving ${phases.length} phases to ${tableName} for project ${projectId}`);
 
         phases.forEach(phase => {
             if (phase.start && phase.workDays) {
@@ -562,7 +564,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
                     const computedEnd = computeEnd(phase);
                     phase.end = formatDate(computedEnd);
                 } catch (err) {
-                    // Ignore compute errors
+                    console.error('Error computing phase end:', err);
                 }
             }
         });
@@ -572,7 +574,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
                 [projectIdField]: projectId,
                 phase_key: phase.key,
                 start_date: phase.start,
-                end_date: phase.end || null,  // już przeliczone powyżej
+                end_date: phase.end || null,
                 work_days: phase.workDays || 4,
                 status: phase.status || 'notStarted',
                 notes: phase.notes || null,
@@ -588,36 +590,77 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             return phaseData;
         });
 
-        // 1. USUŃ STARE FAZY
-        const { error: deleteError } = await supabaseClient
+        // BEZPIECZNIEJSZA LOGIKA:
+        // 1. Najpierw WSTAW/UPDATE nowe fazy
+        // 2. Dopiero potem usuń stare (które nie są w nowej liście)
+        
+        console.log('📤 Inserting/updating phases...');
+        
+        // Pobierz aktualne fazy z bazy
+        const { data: existingPhases, error: fetchError } = await supabaseClient
             .from(tableName)
-            .delete()
+            .select('id, phase_key')
             .eq(projectIdField, projectId);
-
-        if (deleteError) {
-            console.error('Error deleting old phases:', deleteError);
+        
+        if (fetchError) {
+            console.error('❌ Error fetching existing phases:', fetchError);
             return false;
         }
 
-        // 2. JEŚLI BRAK FAZ - zakończ (stare już usunięte)
-        if (!phasesForDB || phasesForDB.length === 0) {
+        // Mapa aktualnych faz: phase_key -> id
+        const existingMap = {};
+        if (existingPhases) {
+            existingPhases.forEach(p => {
+                existingMap[p.phase_key] = p.id;
+            });
+        }
+
+        // Usuń tylko fazy które NIE są w nowej liście
+        const newPhaseKeys = phasesForDB.map(p => p.phase_key);
+        const phasesToDelete = existingPhases ? 
+            existingPhases.filter(p => !newPhaseKeys.includes(p.phase_key)) : [];
+        
+        if (phasesToDelete.length > 0) {
+            console.log(`🗑️ Deleting ${phasesToDelete.length} removed phases`);
+            const idsToDelete = phasesToDelete.map(p => p.id);
+            const { error: deleteError } = await supabaseClient
+                .from(tableName)
+                .delete()
+                .in('id', idsToDelete);
+            
+            if (deleteError) {
+                console.error('⚠️ Warning: Error deleting old phases:', deleteError);
+                // Nie przerywamy - próbujemy zapisać nowe
+            }
+        }
+
+        // Jeśli nie ma faz do zapisania - zakończ
+        if (phasesForDB.length === 0) {
+            console.log('✅ No phases to save (all deleted)');
             return true;
         }
 
-        // 3. WSTAW NOWE FAZY
+        // UPSERT zamiast DELETE+INSERT - bezpieczniejsze!
+        // Używamy combinacji project_id + phase_key jako unique constraint
         const { data, error } = await supabaseClient
             .from(tableName)
-            .insert(phasesForDB);
+            .upsert(phasesForDB, { 
+                onConflict: isProduction ? 
+                    'project_id,phase_key' : 
+                    'pipeline_project_id,phase_key'
+            });
 
         if (error) {
-            console.error('Error saving phases:', error);
+            console.error('❌ Error saving phases:', error);
+            console.error('Failed phases data:', phasesForDB);
             return false;
         }
 
+        console.log(`✅ Successfully saved ${phasesForDB.length} phases`);
         return true;
 
     } catch (err) {
-        console.error('Failed to save phases:', err);
+        console.error('❌ Failed to save phases:', err);
         return false;
     }
 }

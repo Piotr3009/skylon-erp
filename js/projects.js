@@ -737,14 +737,35 @@ async function confirmMoveToArchive() {
                 }
             }
             
-            // Usuń projekt z tabeli projects
+            // Usuń projekt z tabeli projects - KRYTYCZNE!
+            // Używamy ID dla 100% pewności (project_number może być duplikat)
             const { error: deleteError } = await supabaseClient
                 .from('projects')
                 .delete()
-                .eq('project_number', project.projectNumber);
+                .eq('id', project.id);
             
             if (deleteError) {
-                console.error('Error deleting project:', deleteError);
+                console.error('❌ CRITICAL: Error deleting project from database:', deleteError);
+                alert('CRITICAL ERROR: Project was archived but NOT deleted from production!\n\n' +
+                      'Error: ' + deleteError.message + '\n\n' +
+                      'Project ID: ' + project.id + '\n' +
+                      'Please contact admin or delete manually from database.');
+                return; // STOP - nie usuwaj z lokalnej tablicy!
+            }
+            
+            console.log('✅ Project deleted from production database (ID: ' + project.id + ')');
+            
+            // Teraz usuń fazy tego projektu z project_phases
+            const { error: deletePhasesError } = await supabaseClient
+                .from('project_phases')
+                .delete()
+                .eq('project_id', project.id);
+            
+            if (deletePhasesError) {
+                console.error('⚠️ Warning: Error deleting project phases:', deletePhasesError);
+                // Nie przerywamy - projekt główny już usunięty
+            } else {
+                console.log('✅ Project phases deleted');
             }
             
             // Update client project count
@@ -759,7 +780,7 @@ async function confirmMoveToArchive() {
         }
     }
     
-    // Usuń z lokalnej tablicy
+    // Usuń z lokalnej tablicy - TYLKO jeśli usunięcie z bazy się powiodło
     projects.splice(projectIndex, 1);
     
     saveDataQueued();
@@ -767,7 +788,7 @@ async function confirmMoveToArchive() {
     closeModal('moveToArchiveModal');
     
     const reasonText = document.querySelector(`#archiveReason option[value="${reason}"]`)?.textContent || reason;
-    alert(`Project archived: ${project.projectNumber}\nReason: ${reasonText}`);
+    alert(`✅ Project archived successfully: ${project.projectNumber}\nReason: ${reasonText}`);
 }
 
 // ========== PROJECT NOTES ==========
