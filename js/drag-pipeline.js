@@ -100,7 +100,7 @@ function handleDrag(e) {
     }
 }
 
-function stopDrag(e) {
+async function stopDrag(e) {
     if (!draggedElement) return;
     
     const deltaX = e.clientX - startX;
@@ -160,12 +160,26 @@ function stopDrag(e) {
         // ALWAYS auto-arrange phases in Pipeline to prevent overlaps
         autoArrangeFromPhase(projectIndex, 0);
         
-        // Mark as changed for auto-save
-        if (typeof markAsChanged === 'function') {
-            markAsChanged();
+        // Zapisz fazy do Supabase
+        if (typeof supabaseClient !== 'undefined') {
+            try {
+                const project = pipelineProjects[projectIndex];
+                const { data: projectData, error: fetchError } = await supabaseClient
+                    .from('pipeline_projects')
+                    .select('id')
+                    .eq('project_number', project.projectNumber)
+                    .single();
+                
+                if (!fetchError && projectData) {
+                    await savePhasesToSupabase(projectData.id, project.phases, false);
+                } else {
+                    console.warn('⚠️ Could not find pipeline project in database:', project.projectNumber);
+                }
+            } catch (err) {
+                console.error('Error saving pipeline phases to Supabase:', err);
+            }
         }
         
-        saveDataQueued();
         renderPipeline(); // Use pipeline render
     }
     
