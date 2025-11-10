@@ -548,119 +548,81 @@ function loadFromLocalStorage() {
 
 async function savePhasesToSupabase(projectId, phases, isProduction = true) {
     try {
-        const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
-        const projectIdField = isProduction ? 'project_id' : 'pipeline_project_id';
+        const functionName = isProduction ? 
+            'safe_upsert_project_phases' : 
+            'safe_upsert_pipeline_phases';
+        
+        const projectIdParam = isProduction ? 'p_project_id' : 'p_pipeline_project_id';
 
         if (!phases || !Array.isArray(phases)) {
             console.error('❌ CRITICAL: phases is not an array!', phases);
             return false;
         }
 
-        console.log(`💾 Saving ${phases.length} phases to ${tableName} for project ${projectId}`);
+        console.log(`💾 Calling ${functionName} for project ${projectId}`);
+        console.log(`📦 Saving ${phases.length} phases via RPC (atomic transaction)`);
 
-        phases.forEach(phase => {
-            if (phase.start && phase.workDays) {
+        // Przygotuj dane dla RPC
+        const phasesForRPC = phases.map((phase, index) => {
+            // Oblicz end_date jeśli trzeba
+            let endDate = phase.end;
+            if (!endDate && phase.start && phase.workDays) {
                 try {
                     const computedEnd = computeEnd(phase);
-                    phase.end = formatDate(computedEnd);
+                    endDate = formatDate(computedEnd);
                 } catch (err) {
                     console.error('Error computing phase end:', err);
                 }
             }
-        });
-        
-        const phasesForDB = phases.map((phase, index) => {
+
             const phaseData = {
-                [projectIdField]: projectId,
                 phase_key: phase.key,
                 start_date: phase.start,
-                end_date: phase.end || null,
-                work_days: phase.workDays || 4,
+                end_date: endDate || null,
+                work_days: phase.workDays || (isProduction ? 4 : 3),
                 status: phase.status || 'notStarted',
                 notes: phase.notes || null,
-                order_position: index,
-                // Tylko dla production:
-                ...(isProduction && {
-                    assigned_to: phase.assignedTo || null,
-                    materials: phase.materials || null,
-                    order_confirmed: phase.orderConfirmed || false
-                })
+                order_position: index
             };
+
+            // Dodaj pola tylko dla production
+            if (isProduction) {
+                phaseData.assigned_to = phase.assignedTo || null;
+                phaseData.materials = phase.materials || null;
+                phaseData.order_confirmed = phase.orderConfirmed || false;
+            }
 
             return phaseData;
         });
 
-        console.log('📤 Using SAFE UPSERT - phases will NEVER disappear...');
-        
-        // KROK 1: Pobierz aktualne fazy z bazy
-        const { data: existingPhases, error: fetchError } = await supabaseClient
-            .from(tableName)
-            .select('id, phase_key')
-            .eq(projectIdField, projectId);
-        
-        if (fetchError) {
-            console.error('❌ Error fetching existing phases:', fetchError);
+        // Wywołaj funkcję RPC - WSZYSTKO W JEDNEJ TRANSAKCJI!
+        const { data, error } = await supabaseClient.rpc(functionName, {
+            phases: phasesForRPC,
+            [projectIdParam]: projectId
+        });
+
+        if (error) {
+            console.error('❌ Error saving phases via RPC:', error);
+            console.error('Function:', functionName);
+            console.error('Project ID:', projectId);
+            console.error('Phases data:', phasesForRPC);
+            
+            alert('ERROR: Failed to save phases!\n\n' + 
+                  'Error: ' + error.message + '\n\n' +
+                  'Your phases are still safe in database.\n' +
+                  'Nothing was changed.');
             return false;
         }
 
-        // KROK 2: UPSERT nowych/zaktualizowanych faz
-        // Używamy UNIQUE constraint (project_id, phase_key)
-        // Jeśli faza istnieje → UPDATE
-        // Jeśli nie istnieje → INSERT
-        if (phasesForDB.length > 0) {
-            const { data, error } = await supabaseClient
-                .from(tableName)
-                .upsert(phasesForDB, { 
-                    onConflict: isProduction ? 
-                        'project_id,phase_key' : 
-                        'pipeline_project_id,phase_key',
-                    ignoreDuplicates: false  // Zawsze UPDATE jeśli istnieje
-                });
-
-            if (error) {
-                console.error('❌ Error upserting phases:', error);
-                console.error('Failed phases data:', phasesForDB);
-                
-                // KRYTYCZNY BŁĄD ale stare fazy SĄ BEZPIECZNE!
-                alert('ERROR: Failed to save phases!\n\n' +
-                      'Error: ' + error.message + '\n\n' +
-                      'Your OLD phases are still safe in database.\n' +
-                      'Nothing was deleted.');
-                return false;
-            }
-
-            console.log(`✅ Successfully upserted ${phasesForDB.length} phases`);
-        }
-
-        // KROK 3: Usuń tylko te fazy które NIE są w nowej liście
-        // To robimy NA KOŃCU, więc nawet jeśli się wywali - nowe fazy już są zapisane
-        if (existingPhases && existingPhases.length > 0) {
-            const newPhaseKeys = phasesForDB.map(p => p.phase_key);
-            const phasesToDelete = existingPhases.filter(p => !newPhaseKeys.includes(p.phase_key));
-            
-            if (phasesToDelete.length > 0) {
-                console.log(`🗑️ Removing ${phasesToDelete.length} deleted phases...`);
-                const idsToDelete = phasesToDelete.map(p => p.id);
-                
-                const { error: deleteError } = await supabaseClient
-                    .from(tableName)
-                    .delete()
-                    .in('id', idsToDelete);
-                
-                if (deleteError) {
-                    console.error('⚠️ Warning: Error deleting removed phases:', deleteError);
-                    // Nie przerywamy - nowe fazy są już zapisane
-                } else {
-                    console.log('✅ Removed phases deleted');
-                }
-            }
-        }
-
-        console.log(`✅ All phases saved successfully - ZERO RISK of data loss!`);
+        console.log(`✅ Successfully saved ${phases.length} phases via RPC (atomic transaction)`);
+        console.log('🔒 Database lock ensured no concurrent modifications');
+        console.log('💯 ZERO RISK - phases will NEVER disappear!');
+        
         return true;
 
     } catch (err) {
         console.error('❌ Failed to save phases:', err);
+        alert('ERROR: Unexpected error while saving phases.\n\n' + err.message);
         return false;
     }
 }
