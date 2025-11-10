@@ -343,7 +343,7 @@ function renderFilesList(files, folderName) {
                     cursor: pointer;
                 " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
                     <div style="font-size: 22px;">
-                        ${getFileIcon(file.file_type)}
+                        ${getFileIcon(file.file_type, file.file_name)}
                     </div>
                     <div style="flex: 1; min-width: 0;">
                         <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e0e0e0; font-size: 13px;">
@@ -367,16 +367,91 @@ function renderFilesList(files, folderName) {
     `;
 }
 
-function getFileIcon(fileType) {
-    if (!fileType) return '📄';
-    const type = fileType.toLowerCase();
-    if (type.includes('pdf')) return '📄';
-    if (type.includes('image') || type.includes('jpg') || type.includes('png')) return '🖼️';
-    if (type.includes('excel') || type.includes('spreadsheet') || type.includes('sheet')) return '📊';
-    if (type.includes('word') || type.includes('document')) return '📝';
-    if (type.includes('zip') || type.includes('rar')) return '📦';
-    if (type.includes('video') || type.includes('mp4')) return '🎬';
-    return '📄';
+function getFileIcon(fileType, fileName = '') {
+    // Najpierw sprawdź file_type
+    let ext = '';
+    
+    if (fileType) {
+        const type = fileType.toLowerCase();
+        if (type.includes('pdf')) ext = 'pdf';
+        else if (type.includes('image') || type.includes('jpg') || type.includes('png')) ext = 'image';
+        else if (type.includes('excel') || type.includes('spreadsheet') || type.includes('sheet')) ext = 'excel';
+        else if (type.includes('word') || type.includes('document')) ext = 'word';
+        else if (type.includes('zip') || type.includes('rar')) ext = 'archive';
+        else if (type.includes('video') || type.includes('mp4')) ext = 'video';
+    }
+    
+    // Jeśli file_type puste, sprawdź rozszerzenie z nazwy pliku
+    if (!ext && fileName) {
+        const fileExt = fileName.toLowerCase().split('.').pop();
+        if (fileExt === 'pdf') ext = 'pdf';
+        else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(fileExt)) ext = 'image';
+        else if (['xls', 'xlsx', 'csv'].includes(fileExt)) ext = 'excel';
+        else if (['doc', 'docx'].includes(fileExt)) ext = 'word';
+        else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(fileExt)) ext = 'archive';
+        else if (['mp4', 'avi', 'mov', 'wmv', 'mkv'].includes(fileExt)) ext = 'video';
+        else if (['dwg', 'dxf', 'dwf'].includes(fileExt)) ext = 'dwg';
+        else if (['skp'].includes(fileExt)) ext = 'sketchup';
+    }
+    
+    // Zwróć SVG ikonę
+    const icons = {
+        pdf: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="12" y="17" text-anchor="middle" font-size="6" font-weight="bold" fill="#EF4444">PDF</text>
+        </svg>`,
+        
+        dwg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="12" y="17" text-anchor="middle" font-size="5" font-weight="bold" fill="#3B82F6">DWG</text>
+        </svg>`,
+        
+        image: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="#10B981" stroke-width="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="#10B981"/>
+            <path d="M21 15L16 10L5 21" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`,
+        
+        excel: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 13L12 17M12 13L8 17" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+        </svg>`,
+        
+        word: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 13H10M7 17H13" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`,
+        
+        archive: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="12" y="17" text-anchor="middle" font-size="6" font-weight="bold" fill="#F59E0B">ZIP</text>
+        </svg>`,
+        
+        video: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 12L14 15L10 18V12Z" fill="#EC4899"/>
+        </svg>`,
+        
+        sketchup: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="12" y="17" text-anchor="middle" font-size="5" font-weight="bold" fill="#8B5CF6">SKP</text>
+        </svg>`
+    };
+    
+    // Default generic file icon
+    const defaultIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 2V8H20" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+    
+    return icons[ext] || defaultIcon;
 }
 
 function formatFileSize(bytes) {
