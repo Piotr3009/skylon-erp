@@ -186,10 +186,8 @@ async function deleteCurrentPhase() {
                 renderUniversal();
             }
 
-            // Zapisz dane W TLE (bez czekania)
-            saveDataQueued().catch(error => {
-                console.error('Error saving after delete:', error);
-            });
+            // Fazy już zapisane przez savePhasesToSupabase powyżej
+            // NIE POTRZEBUJEMY saveDataQueued() - zapisywałoby WSZYSTKIE projekty
 
         } catch (error) {
             console.error('Error deleting phase:', error);
@@ -235,7 +233,7 @@ async function deleteOrderPhase() {
                 .catch(err => console.error('Error saving phases after delete:', err));
         }
 
-        saveDataQueued();
+        
 
         // Renderuj odpowiedni widok
         if (window.location.pathname.includes('pipeline')) {
@@ -283,7 +281,7 @@ async function deleteOrderSprayPhase() {
                 .catch(err => console.error('Error saving phases after delete:', err));
         }
 
-        saveDataQueued();
+        
 
         // Renderuj odpowiedni widok
         if (window.location.pathname.includes('pipeline')) {
@@ -331,7 +329,7 @@ async function deleteOrderGlazingPhase() {
                 .catch(err => console.error('Error saving phases after delete:', err));
         }
 
-        saveDataQueued();
+        
 
         // Renderuj odpowiedni widok
         if (window.location.pathname.includes('pipeline')) {
@@ -486,10 +484,8 @@ async function savePhaseChanges() {
         renderUniversal();
     }
     
-    // Zapisz dane W TLE (bez czekania)
-    saveDataQueued().catch(error => {
-        console.error('Error saving phase changes:', error);
-    });
+    // Fazy już zapisane przez savePhasesToSupabase powyżej
+    // NIE POTRZEBUJEMY saveDataQueued()
 }
 
 // Open Order Glazing modal
@@ -589,7 +585,7 @@ async function saveGlazingOrderDuration() {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
         renderUniversal();
 }
 
@@ -607,7 +603,7 @@ function updateGlazingStatus(projectIndex, phaseIndex, materialIndex) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
 }
 
 // Update glazing material size
@@ -622,7 +618,7 @@ function updateGlazingSize(projectIndex, phaseIndex, materialIndex, size) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
 }
 
 // Update glazing order status display
@@ -682,7 +678,7 @@ function confirmGlazingOrderComplete() {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
     
     // Renderuj odpowiedni widok
     if (window.location.pathname.includes('pipeline')) {
@@ -801,7 +797,7 @@ async function saveOrderDuration() {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
         renderUniversal();
 }
 
@@ -902,7 +898,7 @@ async function saveSprayOrderDuration() {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
     
     // Renderuj odpowiedni widok
     if (window.location.pathname.includes('pipeline')) {
@@ -926,7 +922,7 @@ function updateSprayStatus(projectIndex, phaseIndex, materialIndex) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
 }
 
 // Update spray material color
@@ -942,7 +938,7 @@ function updateSprayColor(projectIndex, phaseIndex, materialIndex, color) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
 }
 
 // Update spray order status display
@@ -1003,7 +999,7 @@ function confirmSprayOrderComplete() {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
     
     // Renderuj odpowiedni widok
     if (window.location.pathname.includes('pipeline')) {
@@ -1029,7 +1025,7 @@ function updateMaterialStatus(projectIndex, phaseIndex, materialIndex) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
 }
 
 // Update material note
@@ -1044,7 +1040,7 @@ function updateMaterialNote(projectIndex, phaseIndex, materialIndex, note) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
 }
 
 // Update custom material status
@@ -1061,7 +1057,7 @@ function updateCustomMaterialStatus(projectIndex, phaseIndex, materialIndex) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
 }
 
 // Add custom material
@@ -1095,7 +1091,7 @@ function addCustomMaterial() {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
     openOrderMaterialsModal(projectIndex, phaseIndex);
 }
 
@@ -1111,7 +1107,7 @@ function removeCustomMaterial(projectIndex, phaseIndex, materialIndex) {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
     openOrderMaterialsModal(projectIndex, phaseIndex);
 }
 
@@ -1154,7 +1150,7 @@ function confirmOrderComplete() {
         markAsChanged();
     }
     
-    saveDataQueued();
+    
     
     // Renderuj odpowiedni widok
     if (window.location.pathname.includes('pipeline')) {
