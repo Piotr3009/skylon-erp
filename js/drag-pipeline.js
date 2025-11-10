@@ -43,10 +43,7 @@ function autoArrangeFromPhase(projectIndex, startPhaseIndex) {
         }
     }
     
-    // Mark as changed for auto-save
-    if (typeof markAsChanged === 'function') {
-        markAsChanged();
-    }
+    // NIE POTRZEBUJEMY markAsChanged() - fazy zapisują się przez savePhasesToSupabase w stopDrag
 }
 
 function startDrag(e, bar, phase, projectIndex, phaseIndex) {
