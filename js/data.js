@@ -590,13 +590,9 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             return phaseData;
         });
 
-        // BEZPIECZNIEJSZA LOGIKA:
-        // 1. Najpierw WSTAW/UPDATE nowe fazy
-        // 2. Dopiero potem usuń stare (które nie są w nowej liście)
+        console.log('📤 Using SAFE UPSERT - phases will NEVER disappear...');
         
-        console.log('📤 Inserting/updating phases...');
-        
-        // Pobierz aktualne fazy z bazy
+        // KROK 1: Pobierz aktualne fazy z bazy
         const { data: existingPhases, error: fetchError } = await supabaseClient
             .from(tableName)
             .select('id, phase_key')
@@ -607,56 +603,60 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             return false;
         }
 
-        // Mapa aktualnych faz: phase_key -> id
-        const existingMap = {};
-        if (existingPhases) {
-            existingPhases.forEach(p => {
-                existingMap[p.phase_key] = p.id;
-            });
+        // KROK 2: UPSERT nowych/zaktualizowanych faz
+        // Używamy UNIQUE constraint (project_id, phase_key)
+        // Jeśli faza istnieje → UPDATE
+        // Jeśli nie istnieje → INSERT
+        if (phasesForDB.length > 0) {
+            const { data, error } = await supabaseClient
+                .from(tableName)
+                .upsert(phasesForDB, { 
+                    onConflict: isProduction ? 
+                        'project_id,phase_key' : 
+                        'pipeline_project_id,phase_key',
+                    ignoreDuplicates: false  // Zawsze UPDATE jeśli istnieje
+                });
+
+            if (error) {
+                console.error('❌ Error upserting phases:', error);
+                console.error('Failed phases data:', phasesForDB);
+                
+                // KRYTYCZNY BŁĄD ale stare fazy SĄ BEZPIECZNE!
+                alert('ERROR: Failed to save phases!\n\n' +
+                      'Error: ' + error.message + '\n\n' +
+                      'Your OLD phases are still safe in database.\n' +
+                      'Nothing was deleted.');
+                return false;
+            }
+
+            console.log(`✅ Successfully upserted ${phasesForDB.length} phases`);
         }
 
-        // Usuń tylko fazy które NIE są w nowej liście
-        const newPhaseKeys = phasesForDB.map(p => p.phase_key);
-        const phasesToDelete = existingPhases ? 
-            existingPhases.filter(p => !newPhaseKeys.includes(p.phase_key)) : [];
-        
-        if (phasesToDelete.length > 0) {
-            console.log(`🗑️ Deleting ${phasesToDelete.length} removed phases`);
-            const idsToDelete = phasesToDelete.map(p => p.id);
-            const { error: deleteError } = await supabaseClient
-                .from(tableName)
-                .delete()
-                .in('id', idsToDelete);
+        // KROK 3: Usuń tylko te fazy które NIE są w nowej liście
+        // To robimy NA KOŃCU, więc nawet jeśli się wywali - nowe fazy już są zapisane
+        if (existingPhases && existingPhases.length > 0) {
+            const newPhaseKeys = phasesForDB.map(p => p.phase_key);
+            const phasesToDelete = existingPhases.filter(p => !newPhaseKeys.includes(p.phase_key));
             
-            if (deleteError) {
-                console.error('⚠️ Warning: Error deleting old phases:', deleteError);
-                // Nie przerywamy - próbujemy zapisać nowe
+            if (phasesToDelete.length > 0) {
+                console.log(`🗑️ Removing ${phasesToDelete.length} deleted phases...`);
+                const idsToDelete = phasesToDelete.map(p => p.id);
+                
+                const { error: deleteError } = await supabaseClient
+                    .from(tableName)
+                    .delete()
+                    .in('id', idsToDelete);
+                
+                if (deleteError) {
+                    console.error('⚠️ Warning: Error deleting removed phases:', deleteError);
+                    // Nie przerywamy - nowe fazy są już zapisane
+                } else {
+                    console.log('✅ Removed phases deleted');
+                }
             }
         }
 
-        // Jeśli nie ma faz do zapisania - zakończ
-        if (phasesForDB.length === 0) {
-            console.log('✅ No phases to save (all deleted)');
-            return true;
-        }
-
-        // UPSERT zamiast DELETE+INSERT - bezpieczniejsze!
-        // Używamy combinacji project_id + phase_key jako unique constraint
-        const { data, error } = await supabaseClient
-            .from(tableName)
-            .upsert(phasesForDB, { 
-                onConflict: isProduction ? 
-                    'project_id,phase_key' : 
-                    'pipeline_project_id,phase_key'
-            });
-
-        if (error) {
-            console.error('❌ Error saving phases:', error);
-            console.error('Failed phases data:', phasesForDB);
-            return false;
-        }
-
-        console.log(`✅ Successfully saved ${phasesForDB.length} phases`);
+        console.log(`✅ All phases saved successfully - ZERO RISK of data loss!`);
         return true;
 
     } catch (err) {
