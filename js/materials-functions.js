@@ -496,7 +496,7 @@ function populateStockItems(categoryId, subcategoryId) {
             text += ` | ${item.name}`;
             if (item.size) text += ` - ${item.size}`;
             if (item.color) text += ` - ${item.color}`;
-            if (item.thickness) text += ` | ${item.thickness}`;
+            if (item.thickness) text += ` | ${item.thickness}${item.thickness.match(/mm|cm|m/) ? '' : 'mm'}`;
             text += ` | Qty: ${item.current_quantity || 0}`;
             
             option.textContent = text;
