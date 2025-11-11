@@ -258,13 +258,16 @@ function renderStockTable() {
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 100px;">COLOR</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 120px;">CATEGORY</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 100px;">SUBCATEGORY</th>
-                        <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
+                        <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 80px;">
                             QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
-                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #fbbf24; width: 100px;">
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #fbbf24; width: 80px;">
                             RESERVED
                         </th>
-                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">MIN</th>
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #4CAF50; width: 80px;">
+                            AVAILABLE
+                        </th>
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 60px;">MIN</th>
                         <th onclick="sortStockItems('cost')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
                             COST/UNIT ${currentSortColumn === 'cost' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
@@ -327,19 +330,23 @@ function createStockRow(item) {
                 ${item.subcategory ? `<span style="padding: 3px 8px; background: #2d2d30; border-radius: 3px; font-size: 11px; color: #ffa500; text-transform: capitalize;">${item.subcategory}</span>` : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px; text-align: right;">
-                <span style="font-weight: 600; color: ${isLowStock ? '#ff9800' : '#4CAF50'};">
-                    ${item.current_quantity || 0} ${item.unit}
+                <span style="font-weight: 600; color: ${isLowStock ? '#ff9800' : '#e0e0e0'};">
+                    ${item.current_quantity || 0}
+                </span>
+            </td>
+            <td style="padding: 12px; text-align: right;">
+                <span style="font-weight: 600; color: ${(item.reserved_quantity > 0) ? '#fbbf24' : '#666'};">
+                    ${item.reserved_quantity || 0}
+                </span>
+            </td>
+            <td style="padding: 12px; text-align: right;">
+                <span style="font-weight: 600; color: #4CAF50;">
+                    ${((item.current_quantity || 0) - (item.reserved_quantity || 0)).toFixed(2)}
                 </span>
                 ${isLowStock ? '<div style="font-size: 10px; color: #ff9800;">⚠️ LOW</div>' : ''}
             </td>
-            <td style="padding: 12px; text-align: right;">
-                <span style="font-weight: 600; color: #fbbf24;">
-                    ${item.reserved_quantity || 0} ${item.unit}
-                </span>
-                ${(item.reserved_quantity > 0) ? '<div style="font-size: 10px; color: #666;">🔒 Reserved</div>' : ''}
-            </td>
-            <td style="padding: 12px; text-align: right; color: #999;">
-                ${item.min_quantity || 0} ${item.unit}
+            <td style="padding: 12px; text-align: right; color: #999; font-size: 11px;">
+                ${item.min_quantity || 0}
             </td>
             <td style="padding: 12px; text-align: right; color: #e8e2d5;">
                 £${(item.cost_per_unit || 0).toFixed(2)}
