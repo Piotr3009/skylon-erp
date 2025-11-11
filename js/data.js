@@ -735,28 +735,11 @@ async function saveData() {
                 
             if (error) {
                 console.error('Error saving pipeline:', error);
-            } else {
-                
-                // ZAPISZ FAZY PIPELINE
-                for (const project of pipelineProjects) {
-                    const phases = Array.isArray(project.phases) ? project.phases : [];
-                    const phasesCopy = JSON.parse(JSON.stringify(phases));
-                    
-                    const { data: projectData } = await supabaseClient
-                        .from('pipeline_projects')
-                        .select('id')
-                        .eq('project_number', project.projectNumber)
-                        .single();
-                        
-                    if (projectData) {
-                        await savePhasesToSupabase(
-                            projectData.id, 
-                            phasesCopy,
-                            false
-                        );
-                    }
-                }
             }
+            // FAZY PIPELINE zapisują się bezpośrednio przez:
+            // - updateSinglePhase() przy edycji w modalu
+            // - savePhasesToSupabase() przy przesuwaniu/usuwaniu
+            // NIE zapisujemy ich tutaj żeby uniknąć lawiny logów!
         }
         
     } catch (err) {
