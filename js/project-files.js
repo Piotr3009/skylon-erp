@@ -339,15 +339,18 @@ async function loadFolderContents(folderName) {
         (allFiles || []).forEach(file => {
             const fileFolderName = file.folder_name || '';
             
-            // Skip placeholder files
-            if (file.file_name === '.folder') return;
+            // Check if file is in current folder or subfolder (case-insensitive)
+            const folderNameLower = folderName.toLowerCase();
+            const fileFolderNameLower = fileFolderName.toLowerCase();
             
-            // Check if file is in current folder or subfolder
-            if (fileFolderName === folderName) {
+            if (fileFolderNameLower === folderNameLower) {
                 // Direct file in this folder
-                files.push(file);
-            } else if (fileFolderName.startsWith(folderName + '/')) {
-                // File in subfolder
+                // Skip placeholder files from display
+                if (file.file_name !== '.folder') {
+                    files.push(file);
+                }
+            } else if (fileFolderNameLower.startsWith(folderNameLower + '/')) {
+                // File in subfolder - detect the subfolder
                 const remainder = fileFolderName.substring(folderName.length + 1);
                 const nextFolder = remainder.split('/')[0];
                 if (nextFolder) {
@@ -377,6 +380,9 @@ async function loadFolderFiles(folderName) {
 
 // ========== RENDER FOLDER CONTENTS (SUBFOLDERS + FILES) ==========
 function renderFolderContents(subfolders, files, folderName) {
+    console.log(`🎨 RENDER: ${subfolders.length} subfolders, ${files.length} files in "${folderName}"`);
+    console.log('Subfolders:', subfolders);
+    
     const content = document.getElementById('filesContent');
     
     let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
