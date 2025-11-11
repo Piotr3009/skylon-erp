@@ -571,6 +571,10 @@
                             <input type="radio" name="reportType" value="add" onchange="updateReportFilters()" style="margin-right: 10px;">
                             <span>➕ New Items Added</span>
                         </label>
+                        <label style="display: flex; align-items: center; padding: 10px; background: #3e3e42; border-radius: 4px; cursor: pointer;">
+                            <input type="radio" name="reportType" value="ordered" onchange="updateReportFilters()" style="margin-right: 10px;">
+                            <span>📦 Materials Ordered</span>
+                        </label>
                     </div>
                 </div>
 
@@ -599,6 +603,17 @@
                             <label>Date To</label>
                             <input type="date" id="reportDateTo" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
                         </div>
+                    </div>
+
+                    <!-- Filter: Order Status (only for Materials Ordered) -->
+                    <div class="form-group" id="orderStatusFilter" style="display: none;">
+                        <label>Order Status</label>
+                        <select id="reportOrderStatus" style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                            <option value="">All Orders</option>
+                            <option value="ordered">Pending Delivery</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
                     </div>
 
                     <!-- Filter 2: Worker -->

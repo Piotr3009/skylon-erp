@@ -1667,8 +1667,15 @@ function toggleCustomDateRange() {
 
 // Update report filters based on report type
 function updateReportFilters() {
-    // Currently all filters are the same for all report types
-    // This function can be extended if different types need different filters
+    const reportType = document.querySelector('input[name="reportType"]:checked').value;
+    const orderStatusFilter = document.getElementById('orderStatusFilter');
+    
+    // Show Order Status filter only for Materials Ordered report
+    if (reportType === 'ordered') {
+        orderStatusFilter.style.display = 'block';
+    } else {
+        orderStatusFilter.style.display = 'none';
+    }
 }
 
 // Generate stock report
@@ -1677,6 +1684,7 @@ async function generateStockReport() {
     const period = document.getElementById('reportPeriod').value;
     const workerId = document.getElementById('reportWorker').value;
     const category = document.getElementById('reportCategory').value;
+    const orderStatus = document.getElementById('reportOrderStatus').value;
     
     // Calculate date range
     let dateFrom, dateTo;
@@ -1703,6 +1711,8 @@ async function generateStockReport() {
             reportHTML = await generateStockOutReport(dateFrom, dateTo, workerId, category);
         } else if (reportType === 'add') {
             reportHTML = await generateAddItemsReport(dateFrom, dateTo, workerId, category);
+        } else if (reportType === 'ordered') {
+            reportHTML = await generateOrderedItemsReport(dateFrom, dateTo, workerId, category, orderStatus);
         }
         
         // Open report in new window
@@ -2687,4 +2697,157 @@ function removeEditStockSupplier(index) {
 // Update supplier link (Edit Stock Modal)
 function updateEditStockSupplierLink(index, link) {
     tempEditStockSuppliers[index].link = link;
+}
+
+// Generate Ordered Items Report
+async function generateOrderedItemsReport(dateFrom, dateTo, workerId, category, orderStatus) {
+    // Fetch orders
+    let query = supabaseClient
+        .from('stock_orders')
+        .select('*, stock_items(name, category, unit, item_number), suppliers(name), team_members(name)')
+        .gte('order_date', dateFrom.toISOString())
+        .lte('order_date', dateTo.toISOString())
+        .order('order_date', { ascending: false });
+    
+    // Filter by worker (created_by)
+    if (workerId) {
+        query = query.eq('created_by', workerId);
+    }
+    
+    // Filter by status
+    if (orderStatus) {
+        query = query.eq('status', orderStatus);
+    }
+    
+    const { data: orders, error } = await query;
+    
+    if (error) throw error;
+    
+    // Filter by category if needed
+    let filteredOrders = orders || [];
+    if (category) {
+        filteredOrders = filteredOrders.filter(order => 
+            order.stock_items && order.stock_items.category === category
+        );
+    }
+    
+    // Calculate totals
+    const totalOrders = filteredOrders.length;
+    const totalQuantity = filteredOrders.reduce((sum, order) => sum + parseFloat(order.quantity_ordered || 0), 0);
+    
+    // Group by status
+    const pendingCount = filteredOrders.filter(o => o.status === 'ordered').length;
+    const deliveredCount = filteredOrders.filter(o => o.status === 'delivered').length;
+    const cancelledCount = filteredOrders.filter(o => o.status === 'cancelled').length;
+    
+    // Format period
+    const periodText = `${dateFrom.toLocaleDateString('en-GB')} - ${dateTo.toLocaleDateString('en-GB')}`;
+    
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Materials Ordered Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                h1 { color: #333; border-bottom: 3px solid #2e7d32; padding-bottom: 10px; }
+                .summary { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px; }
+                .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+                .summary-item { text-align: center; }
+                .summary-value { font-size: 32px; font-weight: bold; color: #2e7d32; }
+                .summary-label { font-size: 14px; color: #666; margin-top: 5px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th { background: #2e7d32; color: white; padding: 12px; text-align: left; font-size: 12px; }
+                td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 11px; }
+                tr:hover { background: #f5f5f5; }
+                .status-ordered { color: #ff9800; font-weight: 600; }
+                .status-delivered { color: #4CAF50; font-weight: 600; }
+                .status-cancelled { color: #f44336; font-weight: 600; }
+                .no-data { text-align: center; padding: 40px; color: #999; }
+                @media print {
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>📦 Materials Ordered Report</h1>
+            <p><strong>Period:</strong> ${periodText}</p>
+            
+            <div class="summary">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-value">${totalOrders}</div>
+                        <div class="summary-label">Total Orders</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" style="color: #ff9800;">${pendingCount}</div>
+                        <div class="summary-label">Pending</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" style="color: #4CAF50;">${deliveredCount}</div>
+                        <div class="summary-label">Delivered</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" style="color: #f44336;">${cancelledCount}</div>
+                        <div class="summary-label">Cancelled</div>
+                    </div>
+                </div>
+            </div>
+            
+            ${filteredOrders.length > 0 ? `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Item #</th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Supplier</th>
+                            <th>Ordered By</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredOrders.map(order => {
+                            const orderDate = new Date(order.order_date).toLocaleDateString('en-GB');
+                            const expectedDate = order.expected_delivery_date ? new Date(order.expected_delivery_date).toLocaleDateString('en-GB') : '-';
+                            const deliveredDate = order.delivered_date ? new Date(order.delivered_date).toLocaleDateString('en-GB') : '';
+                            
+                            let statusClass = 'status-ordered';
+                            let statusText = 'Pending';
+                            if (order.status === 'delivered') {
+                                statusClass = 'status-delivered';
+                                statusText = `Delivered ${deliveredDate}`;
+                            } else if (order.status === 'cancelled') {
+                                statusClass = 'status-cancelled';
+                                statusText = 'Cancelled';
+                            }
+                            
+                            return `
+                                <tr>
+                                    <td>${orderDate}</td>
+                                    <td>${order.stock_items?.item_number || '-'}</td>
+                                    <td>${order.stock_items?.name || 'Unknown'}</td>
+                                    <td>${order.quantity_ordered} ${order.stock_items?.unit || ''}</td>
+                                    <td>${order.suppliers?.name || 'Unknown'}</td>
+                                    <td>${order.team_members?.name || '-'}</td>
+                                    <td>${expectedDate}</td>
+                                    <td class="${statusClass}">${statusText}</td>
+                                    <td>${order.order_notes || '-'}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            ` : '<div class="no-data">No orders found for selected criteria</div>'}
+
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="background: #2196F3; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Print Report</button>
+                <button onclick="window.close()" style="background: #666; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+        </body>
+        </html>
+    `;
 }
