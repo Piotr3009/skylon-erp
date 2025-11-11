@@ -717,12 +717,25 @@ async function showRecordUsageModal(materialId) {
         
         currentRecordingMaterial = data;
         
+        // Check if modal elements exist
+        const nameEl = document.getElementById('recordMaterialName');
+        const neededEl = document.getElementById('recordQuantityNeeded');
+        const reservedEl = document.getElementById('recordQuantityReserved');
+        const usedEl = document.getElementById('recordQuantityUsed');
+        const wasteEl = document.getElementById('recordWasteReason');
+        
+        if (!nameEl || !neededEl || !reservedEl || !usedEl || !wasteEl) {
+            console.error('Record usage modal elements not found in DOM');
+            alert('Error: Modal not loaded properly');
+            return;
+        }
+        
         // Wypełnij modal
-        document.getElementById('recordMaterialName').textContent = data.item_name;
-        document.getElementById('recordQuantityNeeded').textContent = `${data.quantity_needed} ${data.unit}`;
-        document.getElementById('recordQuantityReserved').textContent = `${data.quantity_reserved} ${data.unit}`;
-        document.getElementById('recordQuantityUsed').value = data.quantity_needed;
-        document.getElementById('recordWasteReason').value = '';
+        nameEl.textContent = data.item_name;
+        neededEl.textContent = `${data.quantity_needed} ${data.unit}`;
+        reservedEl.textContent = `${data.quantity_reserved} ${data.unit}`;
+        usedEl.value = data.quantity_needed;
+        wasteEl.value = '';
         
         // Pokaż modal
         document.getElementById('recordUsageModal').classList.add('active');
@@ -893,4 +906,50 @@ async function exportShoppingListPDF() {
         console.error('Error generating PDF:', error);
         alert('Error generating PDF: ' + error.message);
     }
+}
+// Edit Material
+function editMaterial(materialId) {
+    console.log('Edit material:', materialId);
+    // TODO: Implement edit material functionality
+    alert('Edit material functionality - coming soon');
+}
+
+// Delete Material
+async function deleteMaterial(materialId) {
+    if (!confirm('Are you sure you want to delete this material?')) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('project_materials')
+            .delete()
+            .eq('id', materialId);
+        
+        if (error) throw error;
+        
+        console.log('✅ Material deleted');
+        // Reload materials list
+        if (typeof loadProjectMaterials === 'function') {
+            await loadProjectMaterials(currentMaterialsProject.id);
+        }
+        
+    } catch (err) {
+        console.error('Error deleting material:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// Export Materials PDF
+function exportMaterialsPDF() {
+    console.log('Export materials PDF');
+    // TODO: Implement PDF export
+    alert('PDF export functionality - coming soon');
+}
+
+// Generate Shopping List
+function generateShoppingList() {
+    console.log('Generate shopping list');
+    // TODO: Implement shopping list generation
+    alert('Shopping list functionality - coming soon');
 }
