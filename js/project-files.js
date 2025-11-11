@@ -339,6 +339,9 @@ async function loadFolderContents(folderName) {
         (allFiles || []).forEach(file => {
             const fileFolderName = file.folder_name || '';
             
+            // Skip placeholder files
+            if (file.file_name === '.folder') return;
+            
             // Check if file is in current folder or subfolder
             if (fileFolderName === folderName) {
                 // Direct file in this folder
@@ -512,9 +515,37 @@ async function createNewSubfolder(parentFolder) {
     // Subfolder path
     const newFolderPath = `${parentFolder}/${sanitized}`;
     
-    // Reload to show new subfolder option
-    alert(`Subfolder "${sanitized}" will be created when you upload files to it.`);
-    await loadFolderContents(parentFolder);
+    try {
+        // Create a placeholder file in database to mark folder as existing
+        const placeholderData = {
+            file_name: '.folder',
+            folder_name: newFolderPath,
+            file_path: `${newFolderPath}/.folder`,
+            file_type: 'folder',
+            file_size: 0
+        };
+        
+        if (currentProjectFiles.stage === 'pipeline') {
+            placeholderData.pipeline_project_id = currentProjectFiles.projectId;
+        } else if (currentProjectFiles.stage === 'production') {
+            placeholderData.production_project_id = currentProjectFiles.projectId;
+        }
+        
+        const { error } = await supabaseClient
+            .from('project_files')
+            .insert([placeholderData]);
+        
+        if (error) throw error;
+        
+        console.log(`✅ Subfolder created: ${newFolderPath}`);
+        
+        // Reload to show new subfolder
+        await loadFolderContents(parentFolder);
+        
+    } catch (err) {
+        console.error('Error creating subfolder:', err);
+        alert('Error creating subfolder: ' + err.message);
+    }
 }
 
 // ========== RENDER FILES LIST ==========
