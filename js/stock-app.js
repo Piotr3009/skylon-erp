@@ -372,11 +372,11 @@ function createStockRow(item) {
             <td style="padding: 12px; text-align: right; font-weight: 600; color: #e8e2d5;">
                 £${value.toFixed(2)}
             </td>
-            <td style="padding: 12px; text-align: center;">
-                <button onclick="openStockInModal('${item.id}')" class="toolbar-btn success" style="padding: 6px 10px; font-size: 11px; margin-right: 5px;">📥 IN</button>
-                <button onclick="openStockOutModal('${item.id}')" class="toolbar-btn danger" style="padding: 6px 10px; font-size: 11px; margin-right: 5px;">📤 OUT</button>
-                <button onclick="openOrderModal('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px; margin-right: 5px; background: #2e7d32; border-color: #2e7d32;">📦 ORDER</button>
-                <button onclick="editStockItem('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px;">✏️</button>
+            <td style="padding: 8px; text-align: center;">
+                <button onclick="openStockInModal('${item.id}')" class="toolbar-btn success" style="padding: 4px 6px; font-size: 10px;">📥 IN</button>
+                <button onclick="openStockOutModal('${item.id}')" class="toolbar-btn danger" style="padding: 4px 6px; font-size: 10px; margin-left: 3px;">📤 OUT</button>
+                <button onclick="openOrderModal('${item.id}')" class="toolbar-btn" style="padding: 4px 6px; font-size: 10px; margin-left: 3px; background: #2e7d32; border-color: #2e7d32;">📦 ORDER</button>
+                <button onclick="editStockItem('${item.id}')" class="toolbar-btn" style="padding: 4px 6px; font-size: 10px; margin-left: 3px;">✏️</button>
             </td>
             <td style="padding: 12px; text-align: center;">
                 <button onclick="openDocumentsModal('${item.id}')" class="icon-btn" style="color: #dcdcaa; border: 1px solid #dcdcaa;" title="Data Sheets & Certificates">
