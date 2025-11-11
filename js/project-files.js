@@ -282,35 +282,44 @@ function getFolderIcon(folderName) {
 async function openFolder(folderName) {
     currentProjectFiles.currentFolder = folderName;
     
+    // Update breadcrumb
+    const parts = folderName.split('/');
+    let breadcrumbHTML = `<span style="cursor: pointer; color: #4a9eff;" onclick="showFolderList()">📁 Folders</span>`;
+    
+    let pathSoFar = '';
+    parts.forEach((part, index) => {
+        pathSoFar += (index > 0 ? '/' : '') + part;
+        const currentPath = pathSoFar;
+        breadcrumbHTML += `<span style="color: #666;"> / </span>`;
+        if (index === parts.length - 1) {
+            breadcrumbHTML += `<span style="color: #e0e0e0; font-weight: 500;">${part}</span>`;
+        } else {
+            breadcrumbHTML += `<span style="cursor: pointer; color: #4a9eff;" onclick="openFolder('${currentPath}')">${part}</span>`;
+        }
+    });
+    
     const breadcrumb = document.getElementById('filesBreadcrumb');
-    breadcrumb.innerHTML = `
-        <span style="cursor: pointer; color: #4a9eff;" onclick="showFolderList()">📁 Folders</span>
-        <span style="color: #666;"> / </span>
-        <span style="color: #e0e0e0; font-weight: 500;">${getFolderIcon(folderName)} ${folderName}</span>
-    `;
+    breadcrumb.innerHTML = breadcrumbHTML;
     
     const content = document.getElementById('filesContent');
     content.innerHTML = `
         <div style="text-align: center; padding: 40px; color: #999;">
             <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-            <div>Loading files...</div>
+            <div>Loading...</div>
         </div>
     `;
     
-    // Load files from database
-    await loadFolderFiles(folderName);
+    // Load subfolders and files
+    await loadFolderContents(folderName);
 }
 
-// ========== LOAD FILES FROM DATABASE ==========
-async function loadFolderFiles(folderName) {
+// ========== LOAD FOLDER CONTENTS (SUBFOLDERS + FILES) ==========
+async function loadFolderContents(folderName) {
     try {
-        const folderPath = getFolderPath(currentProjectFiles.stage, currentProjectFiles.projectNumber, folderName);
-        
-        // Get files from database
+        // Get all files and subfolders
         let query = supabaseClient
             .from('project_files')
             .select('*')
-            .eq('folder_name', folderName)
             .order('uploaded_at', { ascending: false });
         
         if (currentProjectFiles.stage === 'pipeline') {
@@ -319,22 +328,193 @@ async function loadFolderFiles(folderName) {
             query = query.eq('production_project_id', currentProjectFiles.projectId);
         }
         
-        const { data: files, error } = await query;
+        const { data: allFiles, error } = await query;
         
         if (error) throw error;
         
-        renderFilesList(files || [], folderName);
+        // Find subfolders and files in current folder
+        const subfolders = new Set();
+        const files = [];
+        
+        (allFiles || []).forEach(file => {
+            const fileFolderName = file.folder_name || '';
+            
+            // Check if file is in current folder or subfolder
+            if (fileFolderName === folderName) {
+                // Direct file in this folder
+                files.push(file);
+            } else if (fileFolderName.startsWith(folderName + '/')) {
+                // File in subfolder
+                const remainder = fileFolderName.substring(folderName.length + 1);
+                const nextFolder = remainder.split('/')[0];
+                if (nextFolder) {
+                    subfolders.add(nextFolder);
+                }
+            }
+        });
+        
+        renderFolderContents(Array.from(subfolders), files, folderName);
         
     } catch (err) {
-        console.error('Error loading files:', err);
+        console.error('Error loading folder contents:', err);
         const content = document.getElementById('filesContent');
         content.innerHTML = `
             <div style="text-align: center; padding: 40px; color: #999;">
                 <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
-                <div>Error loading files</div>
+                <div>Error loading folder</div>
             </div>
         `;
     }
+}
+
+// ========== LOAD FILES FROM DATABASE (old function, keep for compatibility) ==========
+async function loadFolderFiles(folderName) {
+    await loadFolderContents(folderName);
+}
+
+// ========== RENDER FOLDER CONTENTS (SUBFOLDERS + FILES) ==========
+function renderFolderContents(subfolders, files, folderName) {
+    const content = document.getElementById('filesContent');
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+    
+    // Upload button
+    html += `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="font-weight: 500; color: #999;">${subfolders.length} subfolder(s), ${files.length} file(s)</div>
+            <div style="display: flex; gap: 8px;">
+                <button class="modal-btn" onclick="createNewSubfolder('${folderName}')" style="
+                    background: #333;
+                    border: 1px solid #555;
+                    color: #4a9eff;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#404040'" onmouseout="this.style.background='#333'">
+                    ➕ New Subfolder
+                </button>
+                <button class="modal-btn primary" onclick="triggerFileUpload()">
+                    📤 Upload Files
+                </button>
+            </div>
+            <input type="file" id="fileUploadInput" multiple style="display: none;" onchange="handleFileUpload(event)">
+        </div>
+    `;
+    
+    // Subfolders
+    if (subfolders.length > 0) {
+        html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">';
+        subfolders.forEach(subfolder => {
+            html += `
+                <div class="folder-card" onclick="openFolder('${folderName}/${subfolder}')" style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    background: #252525;
+                    border: 1px solid #404040;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    gap: 10px;
+                    text-align: center;
+                " onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'; this.style.transform='translateY(0)'">
+                    <div style="font-size: 32px;">📁</div>
+                    <div style="font-size: 14px; font-weight: 500; color: #e0e0e0; word-break: break-word;">
+                        ${subfolder}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+    
+    // Files
+    if (files.length > 0) {
+        html += '<div style="display: flex; flex-direction: column; gap: 6px;">';
+        files.forEach(file => {
+            html += `
+                <div class="file-row" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 10px 12px;
+                    border: 1px solid #404040;
+                    border-radius: 6px;
+                    background: #252525;
+                    transition: all 0.2s;
+                    cursor: pointer;
+                " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
+                    <div style="font-size: 22px;">
+                        ${getFileIcon(file.file_name)}
+                    </div>
+                    <div style="flex: 1; overflow: hidden;">
+                        <div style="font-weight: 500; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${file.file_name}
+                        </div>
+                        <div style="font-size: 12px; color: #999;">
+                            ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); deleteFile('${file.id}')" style="
+                        background: transparent;
+                        border: 1px solid #ff4444;
+                        color: #ff4444;
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 4px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+    
+    // Empty state
+    if (subfolders.length === 0 && files.length === 0) {
+        html += `
+            <div style="text-align: center; padding: 40px;">
+                <div style="font-size: 64px; margin-bottom: 16px;">📭</div>
+                <div style="font-size: 18px; color: #999; margin-bottom: 24px;">This folder is empty</div>
+                <div style="font-size: 14px; color: #666;">Create a subfolder or upload files to get started</div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    content.innerHTML = html;
+}
+
+// ========== CREATE NEW SUBFOLDER ==========
+async function createNewSubfolder(parentFolder) {
+    const subfolderName = prompt('Enter subfolder name:');
+    
+    if (!subfolderName || !subfolderName.trim()) {
+        return;
+    }
+    
+    const sanitized = subfolderName.trim().replace(/[^a-zA-Z0-9\s\-_]/g, '');
+    
+    if (!sanitized) {
+        alert('Invalid folder name');
+        return;
+    }
+    
+    // Subfolder path
+    const newFolderPath = `${parentFolder}/${sanitized}`;
+    
+    // Reload to show new subfolder option
+    alert(`Subfolder "${sanitized}" will be created when you upload files to it.`);
+    await loadFolderContents(parentFolder);
 }
 
 // ========== RENDER FILES LIST ==========
