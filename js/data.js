@@ -546,6 +546,64 @@ function loadFromLocalStorage() {
 
 // ========== ZAPISYWANIE FAZ DO SUPABASE - NAPRAWIONE ==========
 
+// Update pojedynczej fazy - bez tworzenia logów
+async function updateSinglePhase(projectId, phase, isProduction = true) {
+    try {
+        const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
+        
+        console.log(`✏️ Updating single phase: ${phase.key} for project ${projectId}`);
+        
+        // Oblicz end_date jeśli trzeba
+        let endDate = phase.end;
+        if (!endDate && phase.start && phase.workDays) {
+            try {
+                const computedEnd = computeEnd(phase);
+                endDate = formatDate(computedEnd);
+            } catch (err) {
+                console.error('Error computing phase end:', err);
+            }
+        }
+        
+        // Przygotuj dane do update
+        const updateData = {
+            start_date: phase.start,
+            end_date: endDate || null,
+            work_days: phase.workDays || (isProduction ? 4 : 3),
+            status: phase.status || 'notStarted',
+            notes: phase.notes || null
+        };
+        
+        // Dodaj pola tylko dla production
+        if (isProduction) {
+            updateData.assigned_to = phase.assignedTo || null;
+            updateData.materials = phase.materials || null;
+            updateData.order_confirmed = phase.orderConfirmed || false;
+        }
+        
+        // Update tylko jednego rekordu
+        const idField = isProduction ? 'project_id' : 'pipeline_project_id';
+        const { error } = await supabaseClient
+            .from(tableName)
+            .update(updateData)
+            .eq(idField, projectId)
+            .eq('phase_key', phase.key);
+        
+        if (error) {
+            console.error('❌ Error updating single phase:', error);
+            alert('ERROR: Failed to update phase!\n\n' + error.message);
+            return false;
+        }
+        
+        console.log(`✅ Successfully updated phase ${phase.key} (no logs created)`);
+        return true;
+        
+    } catch (err) {
+        console.error('❌ Failed to update phase:', err);
+        alert('ERROR: Unexpected error while updating phase.\n\n' + err.message);
+        return false;
+    }
+}
+
 async function savePhasesToSupabase(projectId, phases, isProduction = true) {
     try {
         const functionName = isProduction ? 

@@ -451,7 +451,7 @@ async function savePhaseChanges() {
         markAsChanged();
     }
     
-    // Save phases to database if online
+    // Save ONLY this single phase to database (no logs!)
     if (typeof supabaseClient !== 'undefined') {
         const tableName = isPipeline ? 'pipeline_projects' : 'projects';
         const { data: projectData } = await supabaseClient
@@ -461,9 +461,9 @@ async function savePhaseChanges() {
             .single();
             
         if (projectData) {
-            await savePhasesToSupabase(
+            await updateSinglePhase(
                 projectData.id,
-                project.phases,
+                phase,
                 !isPipeline  // true = production, false = pipeline
             );
         }
@@ -484,7 +484,7 @@ async function savePhaseChanges() {
         renderUniversal();
     }
     
-    // Fazy już zapisane przez savePhasesToSupabase powyżej
+    // Single phase already saved by updateSinglePhase above
     // NIE POTRZEBUJEMY saveDataQueued()
 }
 
