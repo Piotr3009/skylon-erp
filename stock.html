@@ -159,12 +159,15 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Suppliers (hold Ctrl/Cmd to select multiple)</label>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="stockSuppliers" multiple style="flex: 1; min-height: 100px;">
-                            <!-- Populated dynamically -->
+                    <label>Suppliers</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <select id="stockSupplier" style="flex: 1;">
+                            <option value="">-- Select supplier --</option>
                         </select>
-                        <button type="button" onclick="openAddSupplierModal()" class="toolbar-btn primary" style="padding: 8px 12px; white-space: nowrap;">+ Add Supplier</button>
+                        <button type="button" onclick="addSupplierToItem()" class="toolbar-btn primary" style="padding: 8px 12px; white-space: nowrap;">+ Add Supplier for this item</button>
+                    </div>
+                    <div id="stockSuppliersList" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Added suppliers will appear here -->
                     </div>
                 </div>
                 
@@ -184,9 +187,12 @@
                     <textarea id="stockNotes" rows="2" placeholder="Additional notes..."></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="modal-btn" onclick="closeModal('addStockModal')">Cancel</button>
-                <button class="modal-btn primary" onclick="saveStockItem()">Save</button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" onclick="openAddSupplierModal()" class="toolbar-btn" style="background: #555; border-color: #555;">+ Add Supplier</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="modal-btn" onclick="closeModal('addStockModal')">Cancel</button>
+                    <button class="modal-btn primary" onclick="saveStockItem()">Save</button>
+                </div>
             </div>
         </div>
     </div>
@@ -440,10 +446,16 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Suppliers (hold Ctrl/Cmd to select multiple)</label>
-                    <select id="editStockSuppliers" multiple style="min-height: 100px;">
-                        <!-- Populated dynamically -->
-                    </select>
+                    <label>Suppliers</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <select id="editStockSupplier" style="flex: 1;">
+                            <option value="">-- Select supplier --</option>
+                        </select>
+                        <button type="button" onclick="addSupplierToEditItem()" class="toolbar-btn primary" style="padding: 8px 12px; white-space: nowrap;">+ Add Supplier for this item</button>
+                    </div>
+                    <div id="editStockSuppliersList" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Added suppliers will appear here -->
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -463,10 +475,15 @@
                     <textarea id="editStockNotes" rows="2"></textarea>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="modal-btn danger" onclick="deleteStockItem()" style="margin-right: auto;">Delete</button>
-                <button class="modal-btn" onclick="closeModal('editStockModal')">Cancel</button>
-                <button class="modal-btn primary" onclick="updateStockItem()">Update</button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="openAddSupplierModal()" class="toolbar-btn" style="background: #555; border-color: #555;">+ Add Supplier</button>
+                    <button class="modal-btn danger" onclick="deleteStockItem()">Delete</button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="modal-btn" onclick="closeModal('editStockModal')">Cancel</button>
+                    <button class="modal-btn primary" onclick="updateStockItem()">Update</button>
+                </div>
             </div>
         </div>
     </div>

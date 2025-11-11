@@ -459,15 +459,18 @@ async function openAddStockModal() {
     document.getElementById('stockLink').value = '';
     document.getElementById('stockNotes').value = '';
     
-    // Populate suppliers (multi-select)
-    const supplierSelect = document.getElementById('stockSuppliers');
-    supplierSelect.innerHTML = '';
+    // Populate suppliers
+    const supplierSelect = document.getElementById('stockSupplier');
+    supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
     suppliers.forEach(sup => {
         const option = document.createElement('option');
         option.value = sup.id;
         option.textContent = sup.name;
         supplierSelect.appendChild(option);
     });
+    
+    // Clear suppliers list
+    document.getElementById('stockSuppliersList').innerHTML = '';
     
     // Update subcategories for default category
     updateSubcategoryOptions();
@@ -684,6 +687,7 @@ async function saveStockItem() {
     const cost = parseFloat(document.getElementById('stockCost').value) || 0;
     const suppliersSelect = document.getElementById('stockSuppliers');
     const supplierIds = Array.from(suppliersSelect.selectedOptions).map(opt => opt.value);
+    const supplierData = tempStockSuppliers.length > 0 ? tempStockSuppliers : null;
     const link = document.getElementById('stockLink').value.trim();
     const notes = document.getElementById('stockNotes').value.trim();
     const imageFile = document.getElementById('stockImage').files[0];
@@ -2495,4 +2499,134 @@ async function cancelOrder(orderId) {
         console.error('Error cancelling order:', err);
         alert('Error: ' + err.message);
     }
+}
+
+// ========== SUPPLIER MANAGEMENT FOR ITEMS ==========
+
+// Track suppliers for Add Stock Modal
+let tempStockSuppliers = [];
+
+// Add supplier to item (Add Stock Modal)
+function addSupplierToItem() {
+    const supplierSelect = document.getElementById('stockSupplier');
+    const supplierId = supplierSelect.value;
+    
+    if (!supplierId) {
+        alert('Please select a supplier');
+        return;
+    }
+    
+    // Check if already added
+    if (tempStockSuppliers.find(s => s.id === supplierId)) {
+        alert('Supplier already added');
+        return;
+    }
+    
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+    
+    tempStockSuppliers.push({
+        id: supplierId,
+        name: supplier.name,
+        link: ''
+    });
+    
+    renderStockSuppliersList();
+    supplierSelect.value = '';
+}
+
+// Render suppliers list (Add Stock Modal)
+function renderStockSuppliersList() {
+    const container = document.getElementById('stockSuppliersList');
+    
+    container.innerHTML = tempStockSuppliers.map((sup, index) => `
+        <div style="background: #2d2d30; padding: 12px; border-radius: 5px; border-left: 3px solid #4CAF50;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-weight: 600; color: #e8e2d5;">${sup.name}</div>
+                <button onclick="removeStockSupplier(${index})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">×</button>
+            </div>
+            <input 
+                type="text" 
+                placeholder="https://supplier.com/product" 
+                value="${sup.link}"
+                onchange="updateStockSupplierLink(${index}, this.value)"
+                style="width: 100%; padding: 6px; background: #252526; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 12px;"
+            >
+        </div>
+    `).join('');
+}
+
+// Remove supplier from list (Add Stock Modal)
+function removeStockSupplier(index) {
+    tempStockSuppliers.splice(index, 1);
+    renderStockSuppliersList();
+}
+
+// Update supplier link (Add Stock Modal)
+function updateStockSupplierLink(index, link) {
+    tempStockSuppliers[index].link = link;
+}
+
+// Track suppliers for Edit Stock Modal
+let tempEditStockSuppliers = [];
+
+// Add supplier to item (Edit Stock Modal)
+function addSupplierToEditItem() {
+    const supplierSelect = document.getElementById('editStockSupplier');
+    const supplierId = supplierSelect.value;
+    
+    if (!supplierId) {
+        alert('Please select a supplier');
+        return;
+    }
+    
+    // Check if already added
+    if (tempEditStockSuppliers.find(s => s.id === supplierId)) {
+        alert('Supplier already added');
+        return;
+    }
+    
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+    
+    tempEditStockSuppliers.push({
+        id: supplierId,
+        name: supplier.name,
+        link: ''
+    });
+    
+    renderEditStockSuppliersList();
+    supplierSelect.value = '';
+}
+
+// Render suppliers list (Edit Stock Modal)
+function renderEditStockSuppliersList() {
+    const container = document.getElementById('editStockSuppliersList');
+    
+    container.innerHTML = tempEditStockSuppliers.map((sup, index) => `
+        <div style="background: #2d2d30; padding: 12px; border-radius: 5px; border-left: 3px solid #4CAF50;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-weight: 600; color: #e8e2d5;">${sup.name}</div>
+                <button onclick="removeEditStockSupplier(${index})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">×</button>
+            </div>
+            <input 
+                type="text" 
+                placeholder="https://supplier.com/product" 
+                value="${sup.link}"
+                onchange="updateEditStockSupplierLink(${index}, this.value)"
+                style="width: 100%; padding: 6px; background: #252526; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 12px;"
+            >
+        </div>
+    `).join('');
+}
+
+// Remove supplier from list (Edit Stock Modal)
+function removeEditStockSupplier(index) {
+    tempEditStockSuppliers.splice(index, 1);
+    renderEditStockSuppliersList();
+}
+
+// Update supplier link (Edit Stock Modal)
+function updateEditStockSupplierLink(index, link) {
+    tempEditStockSuppliers[index].link = link;
 }
