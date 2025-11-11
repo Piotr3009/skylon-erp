@@ -261,6 +261,9 @@ function renderStockTable() {
                         <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
                             QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #fbbf24; width: 100px;">
+                            RESERVED
+                        </th>
                         <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">MIN</th>
                         <th onclick="sortStockItems('cost')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
                             COST/UNIT ${currentSortColumn === 'cost' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
@@ -328,6 +331,12 @@ function createStockRow(item) {
                     ${item.current_quantity || 0} ${item.unit}
                 </span>
                 ${isLowStock ? '<div style="font-size: 10px; color: #ff9800;">⚠️ LOW</div>' : ''}
+            </td>
+            <td style="padding: 12px; text-align: right;">
+                <span style="font-weight: 600; color: #fbbf24;">
+                    ${item.reserved_quantity || 0} ${item.unit}
+                </span>
+                ${(item.reserved_quantity > 0) ? '<div style="font-size: 10px; color: #666;">🔒 Reserved</div>' : ''}
             </td>
             <td style="padding: 12px; text-align: right; color: #999;">
                 ${item.min_quantity || 0} ${item.unit}

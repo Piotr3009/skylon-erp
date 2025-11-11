@@ -146,7 +146,9 @@ function renderMaterialRow(material) {
     
     // Status
     let statusBadge = '';
-    if (material.is_bespoke) {
+    if (material.usage_recorded) {
+        statusBadge = `<span class="material-status-badge status-used">✅ Used</span>`;
+    } else if (material.is_bespoke) {
         statusBadge = `<span class="material-status-badge status-bespoke">🛒 Bespoke</span>`;
     } else if (toOrder > 0) {
         statusBadge = `<span class="material-status-badge status-warning">⚠️ Order Needed</span>`;
@@ -167,7 +169,15 @@ function renderMaterialRow(material) {
                     <div>
                         <div class="material-name">${material.item_name}</div>
                         <div class="material-category">${material.stock_categories?.name || 'N/A'}</div>
-                        ${material.item_notes ? `<div class="material-category">📝 ${material.item_notes}</div>` : ''}
+                        ${material.item_notes ? `<div class="material-notes-display">📝 ${material.item_notes}</div>` : ''}
+                        <div style="margin-top: 4px;">
+                            <input type="text" 
+                                   id="notes-${material.id}" 
+                                   value="${material.item_notes || ''}" 
+                                   placeholder="Add notes..."
+                                   onchange="updateMaterialNotes('${material.id}', this.value)"
+                                   style="width: 100%; padding: 4px 8px; border: 1px solid #404040; background: #252525; color: #e0e0e0; border-radius: 4px; font-size: 12px;">
+                        </div>
                     </div>
                 </div>
             </td>
@@ -179,7 +189,10 @@ function renderMaterialRow(material) {
             <td class="material-cost">£${totalCost.toFixed(2)}</td>
             <td>${statusBadge}</td>
             <td>
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    ${!material.usage_recorded ? `
+                        <button class="icon-btn" onclick="showRecordUsageModal('${material.id}')" title="Record Usage" style="background: #10b981; font-size: 11px; padding: 4px 8px;">📊 Record</button>
+                    ` : ''}
                     <button class="icon-btn" onclick="editMaterial('${material.id}')" title="Edit">✏️</button>
                     <button class="icon-btn" onclick="deleteMaterial('${material.id}')" title="Delete">🗑️</button>
                 </div>
@@ -612,6 +625,7 @@ async function saveMaterial() {
             const toReserve = Math.min(availableStock, quantity);
             
             if (toReserve > 0) {
+                // Dodaj transakcję RESERVED
                 const { error: reserveError } = await supabaseClient
                     .from('stock_transactions')
                     .insert({
@@ -630,6 +644,13 @@ async function saveMaterial() {
                     .from('project_materials')
                     .update({ quantity_reserved: toReserve })
                     .eq('id', newMaterial.id);
+                
+                // Update reserved_quantity w stock_items
+                const currentReserved = selectedStockItem.reserved_quantity || 0;
+                await supabaseClient
+                    .from('stock_items')
+                    .update({ reserved_quantity: currentReserved + toReserve })
+                    .eq('id', selectedStockItem.id);
             }
         }
         
@@ -642,5 +663,225 @@ async function saveMaterial() {
     } catch (error) {
         console.error('Error saving material:', error);
         alert('Error saving material: ' + error.message);
+    }
+}
+
+// ========== UPDATE MATERIAL NOTES ==========
+async function updateMaterialNotes(materialId, notes) {
+    try {
+        const { error } = await supabaseClient
+            .from('project_materials')
+            .update({ item_notes: notes.trim() || null })
+            .eq('id', materialId);
+        
+        if (error) throw error;
+        
+        console.log('✅ Notes updated for material:', materialId);
+        
+    } catch (error) {
+        console.error('Error updating notes:', error);
+        alert('Error updating notes: ' + error.message);
+    }
+}
+
+// ========== SHOW RECORD USAGE MODAL ==========
+let currentRecordingMaterial = null;
+
+async function showRecordUsageModal(materialId) {
+    try {
+        // Załaduj material z bazy
+        const { data, error } = await supabaseClient
+            .from('project_materials')
+            .select(`
+                *,
+                stock_items (
+                    id,
+                    name,
+                    current_quantity,
+                    unit
+                )
+            `)
+            .eq('id', materialId)
+            .single();
+        
+        if (error) throw error;
+        
+        currentRecordingMaterial = data;
+        
+        // Wypełnij modal
+        document.getElementById('recordMaterialName').textContent = data.item_name;
+        document.getElementById('recordQuantityNeeded').textContent = `${data.quantity_needed} ${data.unit}`;
+        document.getElementById('recordQuantityReserved').textContent = `${data.quantity_reserved} ${data.unit}`;
+        document.getElementById('recordQuantityUsed').value = data.quantity_needed;
+        document.getElementById('recordWasteReason').value = '';
+        
+        // Pokaż modal
+        document.getElementById('recordUsageModal').classList.add('active');
+        
+    } catch (error) {
+        console.error('Error loading material:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+function closeRecordUsageModal() {
+    document.getElementById('recordUsageModal').classList.remove('active');
+    currentRecordingMaterial = null;
+}
+
+// ========== SAVE MATERIAL USAGE ==========
+async function saveMaterialUsage() {
+    try {
+        const quantityUsed = parseFloat(document.getElementById('recordQuantityUsed').value);
+        const wasteReason = document.getElementById('recordWasteReason').value.trim();
+        
+        if (!quantityUsed || quantityUsed <= 0) {
+            alert('Please enter quantity used');
+            return;
+        }
+        
+        const material = currentRecordingMaterial;
+        const quantityWasted = Math.max(0, quantityUsed - material.quantity_needed);
+        
+        // Update project_materials
+        const { error: updateError } = await supabaseClient
+            .from('project_materials')
+            .update({
+                quantity_used: quantityUsed,
+                quantity_wasted: quantityWasted,
+                waste_reason: wasteReason || null,
+                usage_recorded: true,
+                quantity_reserved: 0
+            })
+            .eq('id', material.id);
+        
+        if (updateError) throw updateError;
+        
+        // Jeśli to stock item - odejmij od stock i dodaj transakcję OUT
+        if (material.stock_item_id) {
+            // Transakcja OUT
+            const { error: txError } = await supabaseClient
+                .from('stock_transactions')
+                .insert({
+                    stock_item_id: material.stock_item_id,
+                    type: 'OUT',
+                    quantity: quantityUsed,
+                    project_id: currentMaterialsProject.id,
+                    project_material_id: material.id,
+                    notes: `Used in project ${currentMaterialsProject.projectNumber}${wasteReason ? ' - ' + wasteReason : ''}`
+                });
+            
+            if (txError) throw txError;
+            
+            // Update stock current_quantity i reserved_quantity
+            const stockItem = material.stock_items;
+            const newQuantity = (stockItem.current_quantity || 0) - quantityUsed;
+            const newReserved = Math.max(0, (stockItem.reserved_quantity || 0) - material.quantity_reserved);
+            
+            const { error: stockError } = await supabaseClient
+                .from('stock_items')
+                .update({ 
+                    current_quantity: newQuantity,
+                    reserved_quantity: newReserved
+                })
+                .eq('id', material.stock_item_id);
+            
+            if (stockError) throw stockError;
+        }
+        
+        alert('✅ Material usage recorded successfully!');
+        closeRecordUsageModal();
+        
+        // Reload materials
+        await loadProjectMaterials(currentMaterialsProject.id);
+        
+    } catch (error) {
+        console.error('Error recording usage:', error);
+        alert('Error recording usage: ' + error.message);
+    }
+}
+
+// ========== EXPORT SHOPPING LIST PDF ==========
+async function exportShoppingListPDF() {
+    try {
+        // Załaduj materiały
+        const { data: materials, error } = await supabaseClient
+            .from('project_materials')
+            .select(`
+                *,
+                stock_items (
+                    current_quantity,
+                    unit
+                ),
+                suppliers (
+                    name
+                )
+            `)
+            .eq('project_id', currentMaterialsProject.id);
+        
+        if (error) throw error;
+        
+        // Filtruj tylko materiały do zamówienia
+        const toOrder = materials.filter(m => {
+            const needed = m.quantity_needed || 0;
+            const reserved = m.quantity_reserved || 0;
+            return needed > reserved;
+        });
+        
+        if (toOrder.length === 0) {
+            alert('No materials to order!');
+            return;
+        }
+        
+        // Generuj PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(20);
+        doc.text('Shopping List', 20, 20);
+        
+        doc.setFontSize(12);
+        doc.text(`Project: ${currentMaterialsProject.projectNumber} - ${currentMaterialsProject.name}`, 20, 30);
+        doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 20, 37);
+        
+        // Table
+        let y = 50;
+        doc.setFontSize(10);
+        doc.text('Material', 20, y);
+        doc.text('Needed', 90, y);
+        doc.text('Reserved', 120, y);
+        doc.text('To Order', 150, y);
+        doc.text('Supplier', 180, y);
+        
+        y += 5;
+        doc.line(20, y, 200, y);
+        y += 7;
+        
+        doc.setFontSize(9);
+        toOrder.forEach(m => {
+            const toOrderQty = (m.quantity_needed - m.quantity_reserved).toFixed(2);
+            const supplier = m.suppliers?.name || 'N/A';
+            
+            doc.text(m.item_name.substring(0, 30), 20, y);
+            doc.text(`${m.quantity_needed.toFixed(2)} ${m.unit}`, 90, y);
+            doc.text(`${m.quantity_reserved.toFixed(2)} ${m.unit}`, 120, y);
+            doc.text(`${toOrderQty} ${m.unit}`, 150, y);
+            doc.text(supplier.substring(0, 20), 180, y);
+            
+            y += 7;
+            
+            if (y > 270) {
+                doc.addPage();
+                y = 20;
+            }
+        });
+        
+        // Save
+        doc.save(`Shopping_List_${currentMaterialsProject.projectNumber}.pdf`);
+        
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF: ' + error.message);
     }
 }
