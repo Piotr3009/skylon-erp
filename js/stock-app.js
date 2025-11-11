@@ -313,7 +313,7 @@ function createStockRow(item) {
             </td>
             <td style="padding: 12px; max-width: 250px;">
                 <div style="font-weight: 600; color: #e8e2d5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.name}">${item.name}</div>
-                ${item.supplier_id ? `<div style="font-size: 11px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Supplier: ${getSupplierName(item.supplier_id)}</div>` : ''}
+                ${getSupplierNamesDisplay(item) ? `<div style="font-size: 11px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getSupplierNamesDisplay(item)}</div>` : ''}
                 ${item.material_link ? `<div style="font-size: 11px;"><a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a></div>` : ''}
             </td>
             <td style="padding: 12px;">
@@ -379,6 +379,19 @@ function getSupplierName(supplierId) {
     return supplier ? supplier.name : 'Unknown';
 }
 
+// Helper: Get suppliers display for item (supports both old supplier_id and new supplier_ids)
+function getSupplierNamesDisplay(item) {
+    const supplierIds = item.supplier_ids || (item.supplier_id ? [item.supplier_id] : []);
+    if (supplierIds.length === 0) return '';
+    
+    const names = supplierIds.map(id => {
+        const supplier = suppliers.find(s => s.id === id);
+        return supplier ? supplier.name : 'Unknown';
+    });
+    
+    return names.length > 0 ? `Suppliers: ${names.join(', ')}` : '';
+}
+
 // Update stats
 function updateStats() {
     const total = stockItems.length;
@@ -430,9 +443,9 @@ async function openAddStockModal() {
     document.getElementById('stockLink').value = '';
     document.getElementById('stockNotes').value = '';
     
-    // Populate suppliers
-    const supplierSelect = document.getElementById('stockSupplier');
-    supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
+    // Populate suppliers (multi-select)
+    const supplierSelect = document.getElementById('stockSuppliers');
+    supplierSelect.innerHTML = '';
     suppliers.forEach(sup => {
         const option = document.createElement('option');
         option.value = sup.id;
@@ -653,7 +666,8 @@ async function saveStockItem() {
     const unit = document.getElementById('stockUnit').value;
     const minQty = parseFloat(document.getElementById('stockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('stockCost').value) || 0;
-    const supplierId = document.getElementById('stockSupplier').value || null;
+    const suppliersSelect = document.getElementById('stockSuppliers');
+    const supplierIds = Array.from(suppliersSelect.selectedOptions).map(opt => opt.value);
     const link = document.getElementById('stockLink').value.trim();
     const notes = document.getElementById('stockNotes').value.trim();
     const imageFile = document.getElementById('stockImage').files[0];
@@ -701,7 +715,7 @@ async function saveStockItem() {
                 current_quantity: 0,
                 min_quantity: minQty,
                 cost_per_unit: cost,
-                supplier_id: supplierId,
+                supplier_ids: supplierIds.length > 0 ? supplierIds : null,
                 material_link: link || null,
                 image_url: imageUrl,
                 notes: notes || null
@@ -926,14 +940,16 @@ function editStockItem(itemId) {
         preview.innerHTML = '';
     }
     
-    // Populate suppliers dropdown
-    const supplierSelect = document.getElementById('editStockSupplier');
-    supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
+    // Populate suppliers multi-select
+    const supplierSelect = document.getElementById('editStockSuppliers');
+    supplierSelect.innerHTML = '';
     suppliers.forEach(sup => {
         const option = document.createElement('option');
         option.value = sup.id;
         option.textContent = sup.name;
-        if (item.supplier_id === sup.id) option.selected = true;
+        // Select if in item.supplier_ids array or old item.supplier_id
+        const itemSuppliers = item.supplier_ids || (item.supplier_id ? [item.supplier_id] : []);
+        if (itemSuppliers.includes(sup.id)) option.selected = true;
         supplierSelect.appendChild(option);
     });
     
@@ -953,7 +969,8 @@ async function updateStockItem() {
     const unit = document.getElementById('editStockUnit').value;
     const minQty = parseFloat(document.getElementById('editStockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('editStockCost').value) || 0;
-    const supplierId = document.getElementById('editStockSupplier').value || null;
+    const suppliersSelect = document.getElementById('editStockSuppliers');
+    const supplierIds = Array.from(suppliersSelect.selectedOptions).map(opt => opt.value);
     const link = document.getElementById('editStockLink').value.trim();
     const notes = document.getElementById('editStockNotes').value.trim();
     const imageFile = document.getElementById('editStockImage').files[0];
@@ -985,7 +1002,7 @@ async function updateStockItem() {
                 unit,
                 min_quantity: minQty,
                 cost_per_unit: cost,
-                supplier_id: supplierId,
+                supplier_ids: supplierIds.length > 0 ? supplierIds : null,
                 material_link: link || null,
                 image_url: imageUrl,
                 notes: notes || null
