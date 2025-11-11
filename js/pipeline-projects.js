@@ -1,7 +1,7 @@
 // ========== PIPELINE PROJECT MANAGEMENT ==========
 
 // Sort mode for pipeline
-let pipelineSortMode = 'number'; // 'number', 'date', 'leadtime'
+let pipelineSortMode = 'leadtime'; // 'number', 'date', 'leadtime'
 
 // Set pipeline sort mode
 function setPipelineSortMode(mode) {
