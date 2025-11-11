@@ -380,9 +380,6 @@ async function loadFolderFiles(folderName) {
 
 // ========== RENDER FOLDER CONTENTS (SUBFOLDERS + FILES) ==========
 function renderFolderContents(subfolders, files, folderName) {
-    console.log(`🎨 RENDER: ${subfolders.length} subfolders, ${files.length} files in "${folderName}"`);
-    console.log('Subfolders:', subfolders);
-    
     const content = document.getElementById('filesContent');
     
     let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
