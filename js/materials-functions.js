@@ -490,7 +490,16 @@ function populateStockItems(categoryId, subcategoryId) {
         filteredItems.forEach(item => {
             const option = document.createElement('option');
             option.value = item.id;
-            option.textContent = `${item.name}${item.size ? ' - ' + item.size : ''}${item.color ? ' - ' + item.color : ''}`;
+            
+            // Format: ITEM# | NAME - SIZE - COLOR | THICKNESS | QTY: X
+            let text = item.item_number || 'N/A';
+            text += ` | ${item.name}`;
+            if (item.size) text += ` - ${item.size}`;
+            if (item.color) text += ` - ${item.color}`;
+            if (item.thickness) text += ` | ${item.thickness}`;
+            text += ` | Qty: ${item.current_quantity || 0}`;
+            
+            option.textContent = text;
             itemSelect.appendChild(option);
         });
         console.log('✅ Populated dropdown with', filteredItems.length, 'items');
