@@ -44,6 +44,10 @@ function sortStockItems(column) {
                 valA = parseFloat(a.current_quantity) || 0;
                 valB = parseFloat(b.current_quantity) || 0;
                 break;
+            case 'available':
+                valA = (parseFloat(a.current_quantity) || 0) - (parseFloat(a.reserved_quantity) || 0);
+                valB = (parseFloat(b.current_quantity) || 0) - (parseFloat(b.reserved_quantity) || 0);
+                break;
             case 'cost':
                 valA = parseFloat(a.cost_per_unit) || 0;
                 valB = parseFloat(b.cost_per_unit) || 0;
@@ -264,8 +268,8 @@ function renderStockTable() {
                         <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">
                             RESERVED
                         </th>
-                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">
-                            AVAILABLE
+                        <th onclick="sortStockItems('available')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 80px;">
+                            AVAILABLE ${currentSortColumn === 'available' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
                         <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 60px;">MIN</th>
                         <th onclick="sortStockItems('cost')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
@@ -313,10 +317,10 @@ function createStockRow(item) {
                 ${item.material_link ? `<div style="font-size: 11px;"><a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a></div>` : ''}
             </td>
             <td style="padding: 12px;">
-                <span style="color: #e8e2d5; font-size: 13px;">${item.size || '-'}</span>
+                <span style="color: #4a9eff; font-size: 13px;">${item.size || '-'}</span>
             </td>
             <td style="padding: 12px;">
-                <span style="color: #e8e2d5; font-size: 13px;">${item.thickness || '-'}</span>
+                <span style="color: #4a9eff; font-size: 13px;">${item.thickness || '-'}</span>
             </td>
             <td style="padding: 12px;">
                 ${item.color ? `<span style="padding: 3px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; color: #e8e2d5;">${item.color}</span>` : '<span style="color: #666;">-</span>'}
