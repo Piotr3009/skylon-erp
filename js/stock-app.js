@@ -886,7 +886,7 @@ function editStockItem(itemId) {
     
     // Parse size (e.g. "63x120mm" -> "63x120" + "mm")
     if (item.size) {
-        const sizeMatch = item.size.match(/^(.+?)(mm×mm|mm|inch×inch|inch|m|kg|ml|litres)$/);
+        const sizeMatch = item.size.match(/^(.+?)(mm|inch|m|kg|ml|litres|pack)$/);
         if (sizeMatch) {
             document.getElementById('editStockSize').value = sizeMatch[1];
             document.getElementById('editStockSizeUnit').value = sizeMatch[2];
