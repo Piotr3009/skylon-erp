@@ -2317,10 +2317,10 @@ function openOrderModal(itemId) {
     document.getElementById('orderExpectedDate').value = '';
     document.getElementById('orderNotes').value = '';
     
-    // Populate office workers (only office department)
+    // Populate workers (Management and Admin only)
     const workerSelect = document.getElementById('orderWorker');
     workerSelect.innerHTML = '<option value="">-- Select who is ordering --</option>';
-    teamMembers.filter(w => w.active === true && w.department === 'office').forEach(worker => {
+    teamMembers.filter(w => w.active === true && (w.department === 'management' || w.department === 'admin')).forEach(worker => {
         const option = document.createElement('option');
         option.value = worker.id;
         option.textContent = worker.name;
