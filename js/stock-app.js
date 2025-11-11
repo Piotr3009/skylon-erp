@@ -485,7 +485,6 @@ async function openAddStockModal() {
     document.getElementById('stockUnit').value = 'pcs';
     document.getElementById('stockMinQty').value = '0';
     document.getElementById('stockCost').value = '0';
-    document.getElementById('stockLink').value = '';
     document.getElementById('stockNotes').value = '';
     
     // Populate suppliers
@@ -974,7 +973,6 @@ function editStockItem(itemId) {
     document.getElementById('editStockUnit').value = item.unit || 'pcs';
     document.getElementById('editStockMinQty').value = item.min_quantity || 0;
     document.getElementById('editStockCost').value = item.cost_per_unit || 0;
-    document.getElementById('editStockLink').value = item.material_link || '';
     document.getElementById('editStockNotes').value = item.notes || '';
     document.getElementById('editStockImageUrl').value = item.image_url || '';
     
