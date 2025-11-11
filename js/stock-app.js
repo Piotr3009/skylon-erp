@@ -330,7 +330,7 @@ function createStockRow(item) {
                 ${item.subcategory ? `<span style="padding: 3px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; text-transform: capitalize;">${item.subcategory}</span>` : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px; text-align: right;">
-                <span style="font-weight: 600; color: ${isLowStock ? '#ff9800' : '#e0e0e0'};">
+                <span style="font-weight: 600; color: #e8e2d5;">
                     ${item.current_quantity || 0}
                 </span>
             </td>
