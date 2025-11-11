@@ -48,6 +48,10 @@ function sortStockItems(column) {
                 valA = (parseFloat(a.current_quantity) || 0) - (parseFloat(a.reserved_quantity) || 0);
                 valB = (parseFloat(b.current_quantity) || 0) - (parseFloat(b.reserved_quantity) || 0);
                 break;
+            case 'ordered':
+                valA = parseFloat(a.ordered_quantity) || 0;
+                valB = parseFloat(b.ordered_quantity) || 0;
+                break;
             case 'cost':
                 valA = parseFloat(a.cost_per_unit) || 0;
                 valB = parseFloat(b.cost_per_unit) || 0;
@@ -221,6 +225,9 @@ async function loadStockItems() {
         stockItems = data || [];
         filteredItems = [...stockItems];
         
+        // Load stock orders to calculate ordered quantities
+        await loadStockOrders();
+        
         console.log('✅ Loaded', stockItems.length, 'stock items');
         
         renderStockTable();
@@ -270,6 +277,9 @@ function renderStockTable() {
                         </th>
                         <th onclick="sortStockItems('available')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 80px;">
                             AVAILABLE ${currentSortColumn === 'available' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                        </th>
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #2e7d32; width: 80px; cursor: pointer;" onclick="sortStockItems('ordered')">
+                            ORDERED ${currentSortColumn === 'ordered' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
                         <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 60px;">MIN</th>
                         <th onclick="sortStockItems('cost')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 100px;">
@@ -349,6 +359,11 @@ function createStockRow(item) {
                 </span>
                 ${isLowStock ? '<div style="font-size: 10px; color: #f44336;">⚠️ LOW</div>' : ''}
             </td>
+            <td style="padding: 12px; text-align: right; cursor: pointer;" onclick="openPendingOrdersModal('${item.id}')">
+                <span style="font-weight: 600; color: ${(item.ordered_quantity > 0) ? '#2e7d32' : '#666'};">
+                    ${item.ordered_quantity || 0}
+                </span>
+            </td>
             <td style="padding: 12px; text-align: right; color: #999; font-size: 11px;">
                 ${item.min_quantity || 0}
             </td>
@@ -361,6 +376,7 @@ function createStockRow(item) {
             <td style="padding: 12px; text-align: center;">
                 <button onclick="openStockInModal('${item.id}')" class="toolbar-btn success" style="padding: 6px 10px; font-size: 11px; margin-right: 5px;">📥 IN</button>
                 <button onclick="openStockOutModal('${item.id}')" class="toolbar-btn danger" style="padding: 6px 10px; font-size: 11px; margin-right: 5px;">📤 OUT</button>
+                <button onclick="openOrderModal('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px; margin-right: 5px; background: #2e7d32; border-color: #2e7d32;">📦 ORDER</button>
                 <button onclick="editStockItem('${item.id}')" class="toolbar-btn" style="padding: 6px 10px; font-size: 11px;">✏️</button>
             </td>
             <td style="padding: 12px; text-align: center;">
@@ -2200,4 +2216,283 @@ async function generateAddItemsReport(dateFrom, dateTo, workerId, category) {
         </body>
         </html>
     `;
+}
+
+// ========== STOCK ORDERS ==========
+
+let stockOrders = [];
+
+// Load stock orders
+async function loadStockOrders() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('stock_orders')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        stockOrders = data || [];
+        console.log('✅ Stock orders loaded:', stockOrders.length);
+        
+        // Calculate ordered_quantity for each stock item
+        calculateOrderedQuantities();
+        
+    } catch (err) {
+        console.error('Error loading stock orders:', err);
+    }
+}
+
+// Calculate ordered quantities for stock items
+function calculateOrderedQuantities() {
+    stockItems.forEach(item => {
+        const pendingOrders = stockOrders.filter(order => 
+            order.stock_item_id === item.id && order.status === 'ordered'
+        );
+        item.ordered_quantity = pendingOrders.reduce((sum, order) => sum + parseFloat(order.quantity_ordered || 0), 0);
+    });
+}
+
+// Open ORDER modal
+function openOrderModal(itemId) {
+    const item = stockItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    document.getElementById('orderStockItemId').value = item.id;
+    document.getElementById('orderStockItemName').value = item.name;
+    document.getElementById('orderQuantity').value = '';
+    document.getElementById('orderExpectedDate').value = '';
+    document.getElementById('orderNotes').value = '';
+    
+    // Populate suppliers - only those assigned to this item
+    const supplierSelect = document.getElementById('orderSupplier');
+    supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
+    
+    const itemSuppliers = item.supplier_ids || (item.supplier_id ? [item.supplier_id] : []);
+    
+    if (itemSuppliers.length === 0) {
+        // No suppliers assigned - show all
+        suppliers.forEach(sup => {
+            const option = document.createElement('option');
+            option.value = sup.id;
+            option.textContent = sup.name;
+            supplierSelect.appendChild(option);
+        });
+    } else {
+        // Show only assigned suppliers
+        itemSuppliers.forEach(suppId => {
+            const supplier = suppliers.find(s => s.id === suppId);
+            if (supplier) {
+                const option = document.createElement('option');
+                option.value = supplier.id;
+                option.textContent = supplier.name;
+                supplierSelect.appendChild(option);
+            }
+        });
+    }
+    
+    document.getElementById('orderStockModal').classList.add('active');
+}
+
+// Save stock order
+async function saveStockOrder() {
+    const itemId = document.getElementById('orderStockItemId').value;
+    const quantity = parseFloat(document.getElementById('orderQuantity').value);
+    const supplierId = document.getElementById('orderSupplier').value;
+    const expectedDate = document.getElementById('orderExpectedDate').value || null;
+    const notes = document.getElementById('orderNotes').value.trim();
+    
+    if (!quantity || quantity <= 0) {
+        alert('Please enter valid quantity');
+        return;
+    }
+    
+    if (!supplierId) {
+        alert('Please select a supplier');
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('stock_orders')
+            .insert([{
+                stock_item_id: itemId,
+                quantity_ordered: quantity,
+                supplier_id: supplierId,
+                expected_delivery_date: expectedDate,
+                order_notes: notes,
+                status: 'ordered'
+            }]);
+        
+        if (error) throw error;
+        
+        console.log('✅ Stock order placed');
+        closeModal('orderStockModal');
+        await loadStockOrders();
+        renderStockTable();
+        
+    } catch (err) {
+        console.error('Error placing order:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// Open pending orders modal
+async function openPendingOrdersModal(itemId) {
+    const item = stockItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    document.getElementById('pendingOrdersTitle').textContent = `Pending Orders: ${item.name}`;
+    
+    const pendingOrders = stockOrders.filter(order => 
+        order.stock_item_id === itemId && order.status === 'ordered'
+    );
+    
+    const ordersList = document.getElementById('pendingOrdersList');
+    
+    if (pendingOrders.length === 0) {
+        ordersList.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: #666;">
+                <div style="font-size: 48px; margin-bottom: 15px;">📦</div>
+                <div>No pending orders for this item</div>
+                <button onclick="openOrderModal('${itemId}')" class="toolbar-btn primary" style="margin-top: 20px;">+ Place New Order</button>
+            </div>
+        `;
+    } else {
+        ordersList.innerHTML = pendingOrders.map(order => {
+            const supplier = suppliers.find(s => s.id === order.supplier_id);
+            const orderDate = new Date(order.order_date).toLocaleDateString('en-GB');
+            const expectedDate = order.expected_delivery_date ? new Date(order.expected_delivery_date).toLocaleDateString('en-GB') : 'Not set';
+            
+            return `
+                <div style="background: #2d2d30; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #2e7d32;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 16px; color: #e8e2d5;">Order #${order.id.substring(0, 8)}</div>
+                            <div style="font-size: 12px; color: #999; margin-top: 5px;">Ordered: ${orderDate}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 20px; font-weight: 600; color: #2e7d32;">${order.quantity_ordered} ${item.unit}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; padding: 10px; background: #252526; border-radius: 3px;">
+                        <div>
+                            <div style="font-size: 11px; color: #999;">Supplier</div>
+                            <div style="font-size: 13px; color: #e8e2d5;">${supplier ? supplier.name : 'Unknown'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #999;">Expected Delivery</div>
+                            <div style="font-size: 13px; color: #e8e2d5;">${expectedDate}</div>
+                        </div>
+                    </div>
+                    
+                    ${order.order_notes ? `
+                        <div style="margin: 10px 0; padding: 8px; background: #252526; border-radius: 3px;">
+                            <div style="font-size: 11px; color: #999; margin-bottom: 3px;">Notes</div>
+                            <div style="font-size: 12px; color: #e8e2d5;">${order.order_notes}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button onclick="markAsDelivered('${order.id}')" class="toolbar-btn success" style="flex: 1;">✅ Mark as Delivered</button>
+                        <button onclick="cancelOrder('${order.id}')" class="toolbar-btn danger">❌ Cancel</button>
+                    </div>
+                </div>
+            `;
+        }).join('') + `
+            <button onclick="openOrderModal('${itemId}'); closeModal('pendingOrdersModal');" class="toolbar-btn primary" style="width: 100%; margin-top: 10px;">+ Place Another Order</button>
+        `;
+    }
+    
+    document.getElementById('pendingOrdersModal').classList.add('active');
+}
+
+// Mark order as delivered
+async function markAsDelivered(orderId) {
+    if (!confirm('Mark this order as delivered?\n\nThis will add the quantity to stock and create a Stock IN transaction.')) {
+        return;
+    }
+    
+    try {
+        const order = stockOrders.find(o => o.id === orderId);
+        if (!order) throw new Error('Order not found');
+        
+        const item = stockItems.find(i => i.id === order.stock_item_id);
+        if (!item) throw new Error('Stock item not found');
+        
+        // 1. Update order status to delivered
+        const { error: orderError } = await supabaseClient
+            .from('stock_orders')
+            .update({
+                status: 'delivered',
+                delivered_date: new Date().toISOString()
+            })
+            .eq('id', orderId);
+        
+        if (orderError) throw orderError;
+        
+        // 2. Create Stock IN transaction
+        const { error: transactionError } = await supabaseClient
+            .from('stock_transactions')
+            .insert([{
+                stock_item_id: order.stock_item_id,
+                type: 'IN',
+                quantity: order.quantity_ordered,
+                supplier_id: order.supplier_id,
+                notes: `Order delivered: ${order.order_notes || ''}`,
+                created_by: 'System'
+            }]);
+        
+        if (transactionError) throw transactionError;
+        
+        // 3. Update stock item quantity
+        const newQty = (parseFloat(item.current_quantity) || 0) + parseFloat(order.quantity_ordered);
+        
+        const { error: updateError } = await supabaseClient
+            .from('stock_items')
+            .update({
+                current_quantity: newQty,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', order.stock_item_id);
+        
+        if (updateError) throw updateError;
+        
+        console.log('✅ Order marked as delivered');
+        await loadStockOrders();
+        await loadStockItems();
+        closeModal('pendingOrdersModal');
+        
+    } catch (err) {
+        console.error('Error marking as delivered:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// Cancel order
+async function cancelOrder(orderId) {
+    if (!confirm('Cancel this order?')) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('stock_orders')
+            .update({
+                status: 'cancelled'
+            })
+            .eq('id', orderId);
+        
+        if (error) throw error;
+        
+        console.log('✅ Order cancelled');
+        await loadStockOrders();
+        renderStockTable();
+        closeModal('pendingOrdersModal');
+        
+    } catch (err) {
+        console.error('Error cancelling order:', err);
+        alert('Error: ' + err.message);
+    }
 }
