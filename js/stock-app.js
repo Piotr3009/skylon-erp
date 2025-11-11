@@ -261,10 +261,10 @@ function renderStockTable() {
                         <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 80px;">
                             QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
-                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #fbbf24; width: 80px;">
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">
                             RESERVED
                         </th>
-                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #4CAF50; width: 80px;">
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">
                             AVAILABLE
                         </th>
                         <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 60px;">MIN</th>
@@ -305,7 +305,7 @@ function createStockRow(item) {
                     : '<div style="width: 50px; height: 50px; background: #3e3e42; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #666;">📦</div>'}
             </td>
             <td style="padding: 12px;">
-                <span style="font-family: monospace; color: #4a9eff; font-weight: 600;" title="Added: ${createdDate}">${item.item_number || '-'}</span>
+                <span style="font-family: monospace; color: #e8e2d5; font-weight: 600;" title="Added: ${createdDate}">${item.item_number || '-'}</span>
             </td>
             <td style="padding: 12px; max-width: 250px;">
                 <div style="font-weight: 600; color: #e8e2d5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.name}">${item.name}</div>
@@ -313,10 +313,10 @@ function createStockRow(item) {
                 ${item.material_link ? `<div style="font-size: 11px;"><a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a></div>` : ''}
             </td>
             <td style="padding: 12px;">
-                <span style="color: #4a9eff; font-weight: 500;">${item.size || '-'}</span>
+                <span style="color: #e8e2d5; font-size: 13px;">${item.size || '-'}</span>
             </td>
             <td style="padding: 12px;">
-                <span style="color: #9C27B0; font-weight: 500;">${item.thickness || '-'}</span>
+                <span style="color: #e8e2d5; font-size: 13px;">${item.thickness || '-'}</span>
             </td>
             <td style="padding: 12px;">
                 ${item.color ? `<span style="padding: 3px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; color: #e8e2d5;">${item.color}</span>` : '<span style="color: #666;">-</span>'}
@@ -327,7 +327,7 @@ function createStockRow(item) {
                 </span>
             </td>
             <td style="padding: 12px;">
-                ${item.subcategory ? `<span style="padding: 3px 8px; background: #2d2d30; border-radius: 3px; font-size: 11px; color: #ffa500; text-transform: capitalize;">${item.subcategory}</span>` : '<span style="color: #666;">-</span>'}
+                ${item.subcategory ? `<span style="padding: 3px 8px; background: #3e3e42; border-radius: 3px; font-size: 11px; text-transform: capitalize;">${item.subcategory}</span>` : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px; text-align: right;">
                 <span style="font-weight: 600; color: ${isLowStock ? '#ff9800' : '#e0e0e0'};">
@@ -340,10 +340,10 @@ function createStockRow(item) {
                 </span>
             </td>
             <td style="padding: 12px; text-align: right;">
-                <span style="font-weight: 600; color: #4CAF50;">
+                <span style="font-weight: 600; color: ${isLowStock ? '#f44336' : '#4CAF50'};">
                     ${((item.current_quantity || 0) - (item.reserved_quantity || 0)).toFixed(2)}
                 </span>
-                ${isLowStock ? '<div style="font-size: 10px; color: #ff9800;">⚠️ LOW</div>' : ''}
+                ${isLowStock ? '<div style="font-size: 10px; color: #f44336;">⚠️ LOW</div>' : ''}
             </td>
             <td style="padding: 12px; text-align: right; color: #999; font-size: 11px;">
                 ${item.min_quantity || 0}
@@ -351,7 +351,7 @@ function createStockRow(item) {
             <td style="padding: 12px; text-align: right; color: #e8e2d5;">
                 £${(item.cost_per_unit || 0).toFixed(2)}
             </td>
-            <td style="padding: 12px; text-align: right; font-weight: 600; color: #4CAF50;">
+            <td style="padding: 12px; text-align: right; font-weight: 600; color: #e8e2d5;">
                 £${value.toFixed(2)}
             </td>
             <td style="padding: 12px; text-align: center;">
