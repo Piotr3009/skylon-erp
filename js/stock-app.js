@@ -323,8 +323,7 @@ function createStockRow(item) {
             </td>
             <td style="padding: 12px; max-width: 250px;">
                 <div style="font-weight: 600; color: #e8e2d5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.name}">${item.name}</div>
-                ${getSupplierNamesDisplay(item) ? `<div style="font-size: 11px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getSupplierNamesDisplay(item)}</div>` : ''}
-                ${item.material_link ? `<div style="font-size: 11px;"><a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a></div>` : ''}
+                ${getSuppliersWithLinksDisplay(item)}
             </td>
             <td style="padding: 12px;">
                 <span style="color: #4a9eff; font-size: 13px;">${item.size || '-'}</span>
@@ -407,6 +406,35 @@ function getSupplierNamesDisplay(item) {
     }
     
     return supplierNames.length > 0 ? `Suppliers: ${supplierNames.join(', ')}` : '';
+}
+
+// Helper: Get suppliers with links display (each supplier shows its link)
+function getSuppliersWithLinksDisplay(item) {
+    let html = '';
+    
+    if (item.suppliers_data && Array.isArray(item.suppliers_data) && item.suppliers_data.length > 0) {
+        const suppliersText = item.suppliers_data.map(s => s.name).join(', ');
+        html += `<div style="font-size: 11px; color: #999; margin-top: 3px;">Suppliers: ${suppliersText}</div>`;
+        
+        item.suppliers_data.forEach(sup => {
+            if (sup.link && sup.link.trim()) {
+                html += `<div style="font-size: 11px; margin-top: 2px;">
+                    <a href="${sup.link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 ${sup.name}</a>
+                </div>`;
+            }
+        });
+    } else if (item.supplier_id && item.material_link) {
+        // Old format compatibility
+        const supplier = suppliers.find(s => s.id === item.supplier_id);
+        if (supplier) {
+            html += `<div style="font-size: 11px; color: #999; margin-top: 3px;">Supplier: ${supplier.name}</div>`;
+            html += `<div style="font-size: 11px; margin-top: 2px;">
+                <a href="${item.material_link}" target="_blank" style="color: #4CAF50; text-decoration: none;">🔗 Material Link</a>
+            </div>`;
+        }
+    }
+    
+    return html;
 }
 
 // Update stats
@@ -688,7 +716,6 @@ async function saveStockItem() {
     const minQty = parseFloat(document.getElementById('stockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('stockCost').value) || 0;
     const supplierData = tempStockSuppliers.length > 0 ? tempStockSuppliers : null;
-    const link = document.getElementById('stockLink').value.trim();
     const notes = document.getElementById('stockNotes').value.trim();
     const imageFile = document.getElementById('stockImage').files[0];
     
@@ -736,7 +763,6 @@ async function saveStockItem() {
                 min_quantity: minQty,
                 cost_per_unit: cost,
                 suppliers_data: supplierData,
-                material_link: link || null,
                 image_url: imageUrl,
                 notes: notes || null
             }])
@@ -1008,7 +1034,6 @@ async function updateStockItem() {
     const minQty = parseFloat(document.getElementById('editStockMinQty').value) || 0;
     const cost = parseFloat(document.getElementById('editStockCost').value) || 0;
     const supplierData = tempEditStockSuppliers.length > 0 ? tempEditStockSuppliers : null;
-    const link = document.getElementById('editStockLink').value.trim();
     const notes = document.getElementById('editStockNotes').value.trim();
     const imageFile = document.getElementById('editStockImage').files[0];
     const currentImageUrl = document.getElementById('editStockImageUrl').value;
@@ -1040,7 +1065,6 @@ async function updateStockItem() {
                 min_quantity: minQty,
                 cost_per_unit: cost,
                 suppliers_data: supplierData,
-                material_link: link || null,
                 image_url: imageUrl,
                 notes: notes || null
             })
