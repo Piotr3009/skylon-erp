@@ -2268,6 +2268,16 @@ function openOrderModal(itemId) {
     document.getElementById('orderExpectedDate').value = '';
     document.getElementById('orderNotes').value = '';
     
+    // Populate office workers (only office department)
+    const workerSelect = document.getElementById('orderWorker');
+    workerSelect.innerHTML = '<option value="">-- Select who is ordering --</option>';
+    teamMembers.filter(w => w.active === true && w.department === 'office').forEach(worker => {
+        const option = document.createElement('option');
+        option.value = worker.id;
+        option.textContent = worker.name;
+        workerSelect.appendChild(option);
+    });
+    
     // Populate suppliers - only those assigned to this item
     const supplierSelect = document.getElementById('orderSupplier');
     supplierSelect.innerHTML = '<option value="">-- Select supplier --</option>';
@@ -2302,12 +2312,18 @@ function openOrderModal(itemId) {
 async function saveStockOrder() {
     const itemId = document.getElementById('orderStockItemId').value;
     const quantity = parseFloat(document.getElementById('orderQuantity').value);
+    const workerId = document.getElementById('orderWorker').value;
     const supplierId = document.getElementById('orderSupplier').value;
     const expectedDate = document.getElementById('orderExpectedDate').value || null;
     const notes = document.getElementById('orderNotes').value.trim();
     
     if (!quantity || quantity <= 0) {
         alert('Please enter valid quantity');
+        return;
+    }
+    
+    if (!workerId) {
+        alert('Please select who is ordering');
         return;
     }
     
@@ -2325,7 +2341,8 @@ async function saveStockOrder() {
                 supplier_id: supplierId,
                 expected_delivery_date: expectedDate,
                 order_notes: notes,
-                status: 'ordered'
+                status: 'ordered',
+                created_by: workerId
             }]);
         
         if (error) throw error;
