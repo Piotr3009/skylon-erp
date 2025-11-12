@@ -302,7 +302,9 @@ function renderStockTable() {
 
 // Create stock row
 function createStockRow(item) {
-    const isLowStock = item.current_quantity <= item.min_quantity;
+    const available = (item.current_quantity || 0) - (item.reserved_quantity || 0);
+    const isLowStock = available <= (item.min_quantity || 0);
+    const isNegative = available < 0;
     const value = (item.current_quantity || 0) * (item.cost_per_unit || 0);
     
     // Format date
@@ -353,10 +355,11 @@ function createStockRow(item) {
                 </span>
             </td>
             <td style="padding: 12px; text-align: right;">
-                <span style="font-weight: 600; color: ${isLowStock ? '#f44336' : '#4CAF50'};">
-                    ${((item.current_quantity || 0) - (item.reserved_quantity || 0)).toFixed(2)}
+                <span style="font-weight: 600; color: ${isNegative ? '#ef4444' : (isLowStock ? '#fbbf24' : '#4CAF50')};">
+                    ${available.toFixed(2)}
                 </span>
-                ${isLowStock ? '<div style="font-size: 10px; color: #f44336;">⚠️ LOW</div>' : ''}
+                ${isNegative ? '<div style="font-size: 10px; color: #ef4444;">❌ NEGATIVE</div>' : 
+                  (isLowStock ? '<div style="font-size: 10px; color: #fbbf24;">⚠️ LOW</div>' : '')}
             </td>
             <td style="padding: 12px; text-align: right; cursor: pointer;" onclick="openPendingOrdersModal('${item.id}')">
                 <span style="font-weight: 600; color: ${(item.ordered_quantity > 0) ? '#2e7d32' : '#666'};">
