@@ -668,5 +668,17 @@
     <script src="js/app.js?v=6"></script>
     <script src="js/materials-templates.js?v=1"></script>
     <script src="js/materials-functions.js?v=1"></script>
+    
+    <!-- Load Materials Modal -->
+    <div id="materialsModalContainer"></div>
+    <script>
+        // Load materials-modal.html into DOM
+        fetch('materials-modal.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('materialsModalContainer').innerHTML = html;
+            })
+            .catch(err => console.error('Error loading materials modal:', err));
+    </script>
 </body>
 </html>
