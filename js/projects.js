@@ -626,6 +626,35 @@ async function confirmMoveToArchive() {
     
     const project = projects[projectIndex];
     
+    // NOWE: Sprawdź czy wszystkie materiały mają usage_recorded = true
+    if (project.id) {
+        try {
+            const { data: uncheckedMaterials, error } = await supabaseClient
+                .from('project_materials')
+                .select('item_name, quantity_needed, unit')
+                .eq('project_id', project.id)
+                .eq('usage_recorded', false);
+            
+            if (error) throw error;
+            
+            if (uncheckedMaterials && uncheckedMaterials.length > 0) {
+                const materialsList = uncheckedMaterials.map(m => 
+                    `- ${m.item_name} (${m.quantity_needed} ${m.unit})`
+                ).join('\n');
+                
+                alert(`❌ Cannot archive project!\n\n` +
+                      `The following materials have not been confirmed as used:\n\n` +
+                      `${materialsList}\n\n` +
+                      `Please go to Materials List and click "Record Usage" for each material.`);
+                return;
+            }
+        } catch (err) {
+            console.error('Error checking materials:', err);
+            alert('Error checking materials status. Please try again.');
+            return;
+        }
+    }
+    
     // Walidacja: jeśli completed i nie zaznaczono "same as quote", musi być actual value
     if (reason === 'completed' && !budgetSameAsQuote && !actualFinalValue) {
         alert('Please enter the actual final value or confirm that budget was same as quote');

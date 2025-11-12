@@ -45,8 +45,8 @@ function sortStockItems(column) {
                 valB = parseFloat(b.current_quantity) || 0;
                 break;
             case 'available':
-                valA = (parseFloat(a.current_quantity) || 0) - (parseFloat(a.reserved_quantity) || 0);
-                valB = (parseFloat(b.current_quantity) || 0) - (parseFloat(b.reserved_quantity) || 0);
+                valA = parseFloat(a.current_quantity) || 0;
+                valB = parseFloat(b.current_quantity) || 0;
                 break;
             case 'ordered':
                 valA = parseFloat(a.ordered_quantity) || 0;
@@ -272,11 +272,8 @@ function renderStockTable() {
                         <th onclick="sortStockItems('qty')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 80px;">
                             QTY ${currentSortColumn === 'qty' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
-                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; width: 80px;">
-                            RESERVED
-                        </th>
                         <th onclick="sortStockItems('available')" style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999; cursor: pointer; user-select: none; width: 80px;">
-                            AVAILABLE ${currentSortColumn === 'available' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                            ORDERED ${currentSortColumn === 'available' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
                         </th>
                         <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #2e7d32; width: 80px; cursor: pointer;" onclick="sortStockItems('ordered')">
                             ORDERED ${currentSortColumn === 'ordered' ? (currentSortDirection === 'asc' ? '▲' : '▼') : '↕'}
@@ -345,16 +342,6 @@ function createStockRow(item) {
             <td style="padding: 12px; text-align: right;">
                 <span style="font-weight: 600; color: #e8e2d5;">
                     ${item.current_quantity || 0}
-                </span>
-            </td>
-            <td style="padding: 12px; text-align: right;">
-                <span style="font-weight: 600; color: ${(item.reserved_quantity > 0) ? '#fbbf24' : '#666'};">
-                    ${item.reserved_quantity || 0}
-                </span>
-            </td>
-            <td style="padding: 12px; text-align: right;">
-                <span style="font-weight: 600; color: ${isLowStock ? '#f44336' : '#4CAF50'};">
-                    ${((item.current_quantity || 0) - (item.reserved_quantity || 0)).toFixed(2)}
                 </span>
                 ${isLowStock ? '<div style="font-size: 10px; color: #f44336;">⚠️ LOW</div>' : ''}
             </td>
