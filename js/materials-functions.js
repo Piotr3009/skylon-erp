@@ -628,18 +628,18 @@ async function saveMaterial() {
         
         if (insertError) throw insertError;
         
-        // Jeśli to stock item - utwórz RESERVATION
+        // Jeśli to stock item - OD RAZU odejmij ze stocku i oznacz jako reserved
         if (materialType === 'stock' && selectedStockItem) {
             const availableStock = selectedStockItem.current_quantity || 0;
             const toReserve = Math.min(availableStock, quantity);
             
             if (toReserve > 0) {
-                // Dodaj transakcję RESERVED
+                // Dodaj transakcję OUT (od razu zabieramy ze stocku)
                 const { error: reserveError } = await supabaseClient
                     .from('stock_transactions')
                     .insert({
                         stock_item_id: selectedStockItem.id,
-                        type: 'RESERVED',
+                        type: 'OUT',
                         quantity: toReserve,
                         project_id: currentMaterialsProject.id,
                         project_material_id: newMaterial.id,
@@ -648,17 +648,22 @@ async function saveMaterial() {
                 
                 if (reserveError) throw reserveError;
                 
-                // Update quantity_reserved w project_materials
+                // Update quantity_reserved w project_materials (ile zabraliśmy)
                 await supabaseClient
                     .from('project_materials')
                     .update({ quantity_reserved: toReserve })
                     .eq('id', newMaterial.id);
                 
-                // Update reserved_quantity w stock_items
+                // OD RAZU odejmij ze stocku I zwiększ reserved_quantity
+                const newQuantity = availableStock - toReserve;
                 const currentReserved = selectedStockItem.reserved_quantity || 0;
+                
                 await supabaseClient
                     .from('stock_items')
-                    .update({ reserved_quantity: currentReserved + toReserve })
+                    .update({ 
+                        current_quantity: newQuantity,
+                        reserved_quantity: currentReserved + toReserve
+                    })
                     .eq('id', selectedStockItem.id);
             }
         }
@@ -763,43 +768,61 @@ async function saveMaterialUsage() {
         }
         
         const material = currentRecordingMaterial;
-        const quantityWasted = Math.max(0, quantityUsed - material.quantity_needed);
+        const quantityReserved = material.quantity_reserved || 0;
+        const difference = quantityUsed - quantityReserved; // + jeśli użyto więcej, - jeśli mniej
         
         // Update project_materials
         const { error: updateError } = await supabaseClient
             .from('project_materials')
             .update({
                 quantity_used: quantityUsed,
-                quantity_wasted: quantityWasted,
+                quantity_wasted: Math.max(0, quantityUsed - material.quantity_needed),
                 waste_reason: wasteReason || null,
                 usage_recorded: true,
-                quantity_reserved: 0
+                quantity_reserved: 0 // już wykorzystane, zerujemy rezerwację
             })
             .eq('id', material.id);
         
         if (updateError) throw updateError;
         
-        // Jeśli to stock item - odejmij od stock i dodaj transakcję OUT
+        // Jeśli to stock item - zmniejsz reserved_quantity i zrób adjustment jeśli trzeba
         if (material.stock_item_id) {
-            // Transakcja OUT
-            const { error: txError } = await supabaseClient
-                .from('stock_transactions')
-                .insert({
-                    stock_item_id: material.stock_item_id,
-                    type: 'OUT',
-                    quantity: quantityUsed,
-                    project_id: currentMaterialsProject.id,
-                    project_material_id: material.id,
-                    notes: `Used in project ${currentMaterialsProject.projectNumber}${wasteReason ? ' - ' + wasteReason : ''}`
-                });
+            // Pobierz aktualny stan stocku
+            const { data: currentStock, error: fetchError } = await supabaseClient
+                .from('stock_items')
+                .select('current_quantity, reserved_quantity')
+                .eq('id', material.stock_item_id)
+                .single();
             
-            if (txError) throw txError;
+            if (fetchError) throw fetchError;
             
-            // Update stock current_quantity i reserved_quantity
-            const stockItem = material.stock_items;
-            const newQuantity = (stockItem.current_quantity || 0) - quantityUsed;
-            const newReserved = Math.max(0, (stockItem.reserved_quantity || 0) - material.quantity_reserved);
+            // Zmniejsz reserved_quantity (bo już wykorzystane)
+            const newReserved = Math.max(0, (currentStock.reserved_quantity || 0) - quantityReserved);
+            let newQuantity = currentStock.current_quantity || 0;
             
+            // Jeśli jest różnica - adjustment
+            if (difference !== 0) {
+                // Transakcja adjustment
+                const { error: txError } = await supabaseClient
+                    .from('stock_transactions')
+                    .insert({
+                        stock_item_id: material.stock_item_id,
+                        type: difference > 0 ? 'OUT' : 'IN',
+                        quantity: Math.abs(difference),
+                        project_id: currentMaterialsProject.id,
+                        project_material_id: material.id,
+                        notes: difference > 0 
+                            ? `Additional ${Math.abs(difference)} used in ${currentMaterialsProject.projectNumber}${wasteReason ? ' - ' + wasteReason : ''}`
+                            : `Returned ${Math.abs(difference)} from ${currentMaterialsProject.projectNumber} (used less than reserved)`
+                    });
+                
+                if (txError) throw txError;
+                
+                // Korekta stocku - odejmij jeśli użyto więcej, dodaj jeśli mniej
+                newQuantity = newQuantity - difference;
+            }
+            
+            // Update stock_items - zmniejsz reserved i skoryguj quantity jeśli trzeba
             const { error: stockError } = await supabaseClient
                 .from('stock_items')
                 .update({ 
