@@ -24,25 +24,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         window.currentUser = profile;
         
-        // Ukryj elementy na podstawie roli
-        if (profile && profile.role === 'viewer') {
-            // Ukryj TYLKO przyciski danger i delete
-            document.querySelectorAll('.toolbar-btn.danger').forEach(btn => {
-                btn.style.display = 'none';
-            });
-            document.querySelectorAll('.action-btn.delete').forEach(btn => {
-                btn.style.display = 'none';
-            });
-            // NIE UKRYWAJ Add Project!
-        }
-        
-        if (profile && profile.role === 'worker') {
-            // Ukryj klientów
-            document.querySelectorAll('[href="clients.html"]').forEach(link => {
-                link.style.display = 'none';
-            });
-        }
-        
         // Dodaj przycisk logout TYLKO jeśli go nie ma
         const toolbar = document.querySelector('.toolbar');
         if (toolbar && !document.getElementById('logoutBtn') && profile) {
@@ -117,3 +98,29 @@ function migratePhaseCategories() {
         saveData(); // Zapisz zmigrowane dane
     }
 }
+
+// ========== PERMISSIONS: HIDE BUTTONS FOR WORKER ==========
+window.addEventListener('permissionsLoaded', function() {
+    if (!window.currentUserRole) return;
+    
+    console.log('🔒 Applying production permissions for role:', window.currentUserRole);
+    
+    // Worker/Viewer = read-only mode
+    if (window.currentUserRole === 'worker' || window.currentUserRole === 'viewer') {
+        // Hide toolbar buttons
+        const buttonsToHide = [
+            '#addProjectBtn',
+            'button[onclick="openMoveToArchiveModal()"]',
+            'button[onclick="openPhaseManager()"]'
+        ];
+        
+        buttonsToHide.forEach(selector => {
+            const btn = document.querySelector(selector);
+            if (btn) btn.style.display = 'none';
+        });
+        
+        // Hide export dropdown
+        const exportDropdown = document.querySelector('.export-dropdown');
+        if (exportDropdown) exportDropdown.style.display = 'none';
+    }
+});
