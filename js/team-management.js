@@ -881,7 +881,7 @@ console.log('Team Management System loaded');
 // ========== CHANGE ROLE MODAL ==========
 let currentRoleChangeTeamMemberId = null;
 
-function openChangeRoleModal(teamMemberId, currentRole) {
+window.openChangeRoleModal = function(teamMemberId, currentRole) {
     currentRoleChangeTeamMemberId = teamMemberId;
     
     const modal = document.createElement("div");
@@ -919,7 +919,7 @@ function openChangeRoleModal(teamMemberId, currentRole) {
     document.body.appendChild(modal);
 }
 
-function closeChangeRoleModal() {
+window.closeChangeRoleModal = function() {
     const modal = document.getElementById("changeRoleModal");
     if (modal) {
         modal.remove();
@@ -927,7 +927,7 @@ function closeChangeRoleModal() {
     currentRoleChangeTeamMemberId = null;
 }
 
-async function saveRoleChange() {
+window.saveRoleChange = async function() {
     if (!currentRoleChangeTeamMemberId) return;
     
     const newRole = document.getElementById("newRoleSelect").value;

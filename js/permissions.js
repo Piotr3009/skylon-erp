@@ -319,11 +319,12 @@
     }
 
     
-    // Auto-initialize when DOM is ready
+    // Auto-initialize when DOM is ready (tylko przez event listener, NIE bezpośrednio!)
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initPermissions);
+        document.addEventListener('DOMContentLoaded', window.initPermissions);
     } else {
-        initPermissions();
+        // DOM już załadowany - wywołaj funkcję initPermissions
+        window.initPermissions();
     }
     
     // Export roles for easy reference
