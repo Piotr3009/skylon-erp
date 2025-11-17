@@ -320,4 +320,31 @@ async function deletePipelineCurrentPhase() {
 }
 
 // Pipeline uses its own delete function  
+
+// ========== PERMISSIONS: HIDE BUTTONS FOR WORKER ==========
+window.addEventListener('permissionsLoaded', function() {
+    if (!window.currentUserRole) return;
+    
+    console.log('🔒 Applying pipeline permissions for role:', window.currentUserRole);
+    
+    // Worker/Viewer = read-only mode
+    if (window.currentUserRole === 'worker' || window.currentUserRole === 'viewer') {
+        // Hide toolbar buttons
+        const buttonsToHide = [
+            'button[onclick="addPipelineProject()"]',
+            'button[onclick="openPipelineFinishedModal()"]',
+            'button[onclick="openPhaseManager()"]'
+        ];
+        
+        buttonsToHide.forEach(selector => {
+            const btn = document.querySelector(selector);
+            if (btn) btn.style.display = 'none';
+        });
+        
+        // Hide export dropdown
+        const exportDropdown = document.querySelector('.export-dropdown');
+        if (exportDropdown) exportDropdown.style.display = 'none';
+    }
+});
+
 // window.deleteCurrentPhase = deletePipelineCurrentPhase; // REMOVED - causing conflicts
