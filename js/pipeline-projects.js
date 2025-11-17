@@ -932,63 +932,6 @@ async function archiveAsCanceled() {
     alert(`Project archived as canceled: ${pipelineProject.projectNumber}`);
 }
 
-async function deletePipelineProject() {
-    const selectedIndex = document.getElementById('pipelineProjectSelect').value;
-    
-    if (!selectedIndex) {
-        alert('Please select a pipeline project');
-        return;
-    }
-    
-    const pipelineProject = pipelineProjects[parseInt(selectedIndex)];
-    
-    if (!confirm(`Are you sure you want to PERMANENTLY DELETE project "${pipelineProject.projectNumber} - ${pipelineProject.name}"?\n\nThis action cannot be undone!`)) {
-        return;
-    }
-    
-    // Usuń z bazy
-    if (typeof supabaseClient !== 'undefined') {
-        try {
-            const { error: deleteError } = await supabaseClient
-                .from('pipeline_projects')
-                .delete()
-                .eq('project_number', pipelineProject.projectNumber);
-            
-            if (deleteError) {
-                console.error('Error deleting pipeline project:', deleteError);
-                alert('Error deleting from database.');
-                return;
-            }
-            
-            console.log('✅ Pipeline project deleted from database');
-            
-            // Update client project count
-            if (pipelineProject.client_id) {
-                await updateClientProjectCount(pipelineProject.client_id);
-            }
-            
-        } catch (err) {
-            console.error('Database error:', err);
-            alert('Error connecting to database.');
-            return;
-        }
-    }
-    
-    // Usuń z lokalnej tablicy
-    pipelineProjects.splice(parseInt(selectedIndex), 1);
-    
-    // Mark as changed
-    if (typeof markAsChanged === 'function') {
-        markAsChanged();
-    }
-    
-    saveDataQueued();
-    renderPipeline();
-    closeModal('pipelineFinishedModal');
-    
-    alert(`Project deleted: ${pipelineProject.projectNumber}`);
-}
-
 // Create production phases
 function createProductionPhases(startDate) {
     const phases = [];

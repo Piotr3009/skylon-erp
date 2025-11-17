@@ -447,6 +447,57 @@ async function confirmDeleteArchive() {
     if (!currentEditingProject) return;
     
     try {
+        console.log('🗑️ Deleting archived project:', currentEditingProject.project_number);
+        
+        // 1. Usuń pliki z archived_project_files
+        const { data: files, error: fetchFilesError } = await supabaseClient
+            .from('archived_project_files')
+            .select('file_path')
+            .eq('project_number', currentEditingProject.project_number);
+        
+        if (fetchFilesError) {
+            console.error('Error fetching files:', fetchFilesError);
+        } else if (files && files.length > 0) {
+            console.log(`📁 Found ${files.length} files to delete`);
+            
+            // Usuń fizyczne pliki z Supabase Storage
+            const filePaths = files.map(f => f.file_path);
+            const { data: storageData, error: storageError } = await supabaseClient.storage
+                .from('project-documents')
+                .remove(filePaths);
+            
+            if (storageError) {
+                console.error('Error deleting files from storage:', storageError);
+            } else {
+                console.log(`✅ Deleted ${files.length} files from storage`);
+            }
+            
+            // Usuń rekordy z tabeli archived_project_files
+            const { error: deleteFilesError } = await supabaseClient
+                .from('archived_project_files')
+                .delete()
+                .eq('project_number', currentEditingProject.project_number);
+            
+            if (deleteFilesError) {
+                console.error('Error deleting file records:', deleteFilesError);
+            } else {
+                console.log(`✅ Deleted ${files.length} file records from database`);
+            }
+        }
+        
+        // 2. Usuń materiały z archived_project_materials
+        const { error: deleteMaterialsError } = await supabaseClient
+            .from('archived_project_materials')
+            .delete()
+            .eq('project_number', currentEditingProject.project_number);
+        
+        if (deleteMaterialsError) {
+            console.error('Error deleting materials:', deleteMaterialsError);
+        } else {
+            console.log('✅ Deleted materials from database');
+        }
+        
+        // 3. Usuń projekt z archived_projects
         const { error } = await supabaseClient
             .from('archived_projects')
             .delete()
@@ -465,7 +516,7 @@ async function confirmDeleteArchive() {
         updateStats();
         closeDeleteModal();
         
-        alert('Project deleted successfully!');
+        alert('Project and all associated files deleted successfully!');
         
     } catch (err) {
         console.error('Error deleting project:', err);
