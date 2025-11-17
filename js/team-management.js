@@ -971,3 +971,125 @@ window.saveRoleChange = async function() {
         alert("Error updating role.");
     }
 }
+
+// ========== SYSTEM ACCOUNTS MANAGEMENT ==========
+async function loadSystemAccounts() {
+    // Only show for admin
+    if (window.currentUserRole !== 'admin') {
+        document.getElementById('systemAccountsSection').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('systemAccountsSection').style.display = 'block';
+    
+    try {
+        // Get all user profiles without team_member_id (with email from user_profiles)
+        const { data: profiles, error } = await supabaseClient
+            .from('user_profiles')
+            .select('id, role, full_name, last_login, email')
+            .is('team_member_id', null)
+            .order('email');
+        
+        if (error) throw error;
+        
+        renderSystemAccounts(profiles || []);
+        
+    } catch (err) {
+        console.error('Error loading system accounts:', err);
+    }
+}
+
+function renderSystemAccounts(accounts) {
+    const tbody = document.getElementById('systemAccountsBody');
+    
+    if (!accounts || accounts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">No system accounts found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = accounts.map(account => {
+        const roleColor = getRoleColor(account.role);
+        const lastLogin = account.last_login ? 
+            new Date(account.last_login).toLocaleDateString() : 'Never';
+        
+        return `
+            <tr>
+                <td><strong>${account.email}</strong></td>
+                <td>${account.full_name || '-'}</td>
+                <td>
+                    <span style="padding: 3px 8px; background: ${roleColor}; border-radius: 3px; font-size: 11px; font-weight: 600;">
+                        ${account.role.toUpperCase()}
+                    </span>
+                </td>
+                <td><small style="color: #999;">${lastLogin}</small></td>
+                <td>
+                    <button class="action-btn" onclick="openChangeRoleModalForUser('${account.id}', '${account.role}', '${account.email}')" title="Change Role" style="background: #3b82f6;">🔐</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Change role for system account (without team_member_id)
+window.openChangeRoleModalForUser = function(userId, currentRole, email) {
+    const modal = document.createElement("div");
+    modal.className = "modal";
+    modal.id = "changeRoleModal";
+    modal.style.display = "flex";
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">Change Account Role</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>User: <strong style="color: #4a9eff;">${email}</strong></label>
+                </div>
+                <div class="form-group">
+                    <label>Current Role: <strong style="color: #4a9eff;">${currentRole.toUpperCase()}</strong></label>
+                </div>
+                <div class="form-group">
+                    <label>New Role</label>
+                    <select id="newRoleSelect" style="width: 100%; padding: 10px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                        <option value="viewer" ${currentRole === "viewer" ? "selected" : ""}>Viewer (Read Only)</option>
+                        <option value="worker" ${currentRole === "worker" ? "selected" : ""}>Worker (Carpenter)</option>
+                        <option value="manager" ${currentRole === "manager" ? "selected" : ""}>Manager</option>
+                        <option value="admin" ${currentRole === "admin" ? "selected" : ""}>Admin (Full Access)</option>
+                    </select>
+                </div>
+                <div style="background: #2a2a2a; padding: 12px; border-radius: 5px; margin-top: 15px; font-size: 12px; color: #999;">
+                    <strong style="color: #f59e0b;">⚠️ Warning:</strong> Changing roles will affect user permissions immediately.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeChangeRoleModal()">Cancel</button>
+                <button class="modal-btn primary" onclick="saveRoleChangeForUser('${userId}')">Save Role</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+};
+
+window.saveRoleChangeForUser = async function(userId) {
+    const newRole = document.getElementById("newRoleSelect").value;
+    
+    try {
+        const { error } = await supabaseClient
+            .from("user_profiles")
+            .update({ role: newRole })
+            .eq("id", userId);
+        
+        if (error) throw error;
+        
+        console.log("✅ Role updated successfully");
+        alert("Role updated successfully!");
+        
+        closeChangeRoleModal();
+        await loadSystemAccounts();
+        await loadTeam();
+        
+    } catch (err) {
+        console.error("Error updating role:", err);
+        alert("Error updating role: " + err.message);
+    }
+};
