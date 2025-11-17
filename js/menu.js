@@ -24,36 +24,24 @@
                 padding: 30px;
                 border-radius: 10px;
                 text-align: center;
-                min-width: 200px;
             ">
-                <div id="loadingProgressBar" style="
-                    width: 200px;
-                    height: 6px;
-                    background: #444;
-                    border-radius: 3px;
-                    overflow: hidden;
-                    position: relative;
-                ">
-                    <div style="
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        height: 100%;
-                        width: 100%;
-                        background: linear-gradient(90deg, #4CAF50 0%, #45a049 50%, #4CAF50 100%);
-                        background-size: 200% 100%;
-                        animation: loadingProgress 1.5s ease-in-out infinite;
-                    "></div>
-                </div>
+                <div id="loadingSpinner" style="
+                    width: 50px;
+                    height: 50px;
+                    border: 4px solid #444;
+                    border-top: 4px solid #4CAF50;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                "></div>
             </div>
         </div>
         <style>
-            @keyframes loadingProgress {
-                0% { background-position: 200% 0; }
-                100% { background-position: -200% 0; }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
             }
-            #globalLoadingOverlay.error #loadingProgressBar > div {
-                background: linear-gradient(90deg, #ef4444 0%, #dc2626 50%, #ef4444 100%) !important;
+            #globalLoadingOverlay.error #loadingSpinner {
+                border-top-color: #ef4444 !important;
             }
         </style>
     `;
