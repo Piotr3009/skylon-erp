@@ -27,13 +27,27 @@ async function loadTeam() {
 }
 
 // Render team table
-function renderTeam(members) {
+async function renderTeam(members) {
     const tbody = document.getElementById('teamTableBody');
     tbody.innerHTML = '';
     
     if (members.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No team members found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">No team members found</td></tr>';
         return;
+    }
+    
+    // Load user profiles with roles
+    const { data: userProfiles } = await supabaseClient
+        .from('user_profiles')
+        .select('team_member_id, role');
+    
+    const roleMap = {};
+    if (userProfiles) {
+        userProfiles.forEach(profile => {
+            if (profile.team_member_id) {
+                roleMap[profile.team_member_id] = profile.role;
+            }
+        });
     }
     
     members.forEach(member => {
@@ -53,6 +67,16 @@ function renderTeam(members) {
                 </div>
                 <small>${member.holiday_remaining || 0}/${member.holiday_allowance || 28}</small>
             </div>`;
+        
+        // Account role
+        const accountRole = roleMap[member.id] || '-';
+        const roleDisplay = accountRole !== '-' ? 
+            `<span style="padding: 3px 8px; background: ${getRoleColor(accountRole)}; border-radius: 3px; font-size: 11px; font-weight: 600;">${accountRole.toUpperCase()}</span>` : 
+            '<span style="color: #666;">No account</span>';
+        
+        // Change Role button (only for admin)
+        const changeRoleBtn = window.currentUserRole === 'admin' && accountRole !== '-' ? 
+            `<button class="action-btn" onclick="openChangeRoleModal('${member.id}', '${accountRole}')" title="Change Role" style="background: #3b82f6;">🔐</button>` : '';
         
         tr.innerHTML = `
             <td>
@@ -81,14 +105,27 @@ function renderTeam(members) {
             <td>
                 ${holidayDisplay}
             </td>
+            <td>${roleDisplay}</td>
             <td>
                <button class="action-btn" onclick="viewEmployee('${member.id}')" title="View">👁️</button>
 <button class="action-btn" onclick="editEmployee('${member.id}')" title="Edit">✏️</button>
+${changeRoleBtn}
 <button class="action-btn archive" onclick="archiveEmployee('${member.id}')" title="Archive">📦</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+// Get role badge color
+function getRoleColor(role) {
+    switch(role) {
+        case 'admin': return '#ef4444';
+        case 'manager': return '#3b82f6';
+        case 'worker': return '#10b981';
+        case 'viewer': return '#6b7280';
+        default: return '#666';
+    }
 }
 
 // Update statistics cards
@@ -840,3 +877,97 @@ window.onclick = function(event) {
 
 // ========== INITIALIZATION ==========
 console.log('Team Management System loaded');
+
+// ========== CHANGE ROLE MODAL ==========
+let currentRoleChangeTeamMemberId = null;
+
+function openChangeRoleModal(teamMemberId, currentRole) {
+    currentRoleChangeTeamMemberId = teamMemberId;
+    
+    const modal = document.createElement("div");
+    modal.className = "modal";
+    modal.id = "changeRoleModal";
+    modal.style.display = "flex";
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">Change Account Role</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Current Role: <strong style="color: #4a9eff;">${currentRole.toUpperCase()}</strong></label>
+                </div>
+                <div class="form-group">
+                    <label>New Role</label>
+                    <select id="newRoleSelect" style="width: 100%; padding: 10px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                        <option value="viewer" ${currentRole === "viewer" ? "selected" : ""}>Viewer (Read Only)</option>
+                        <option value="worker" ${currentRole === "worker" ? "selected" : ""}>Worker (Carpenter)</option>
+                        <option value="manager" ${currentRole === "manager" ? "selected" : ""}>Manager</option>
+                        <option value="admin" ${currentRole === "admin" ? "selected" : ""}>Admin (Full Access)</option>
+                    </select>
+                </div>
+                <div style="background: #2a2a2a; padding: 12px; border-radius: 5px; margin-top: 15px; font-size: 12px; color: #999;">
+                    <strong style="color: #f59e0b;">⚠️ Warning:</strong> Changing roles will affect user permissions immediately.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeChangeRoleModal()">Cancel</button>
+                <button class="modal-btn primary" onclick="saveRoleChange()">Save Role</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function closeChangeRoleModal() {
+    const modal = document.getElementById("changeRoleModal");
+    if (modal) {
+        modal.remove();
+    }
+    currentRoleChangeTeamMemberId = null;
+}
+
+async function saveRoleChange() {
+    if (!currentRoleChangeTeamMemberId) return;
+    
+    const newRole = document.getElementById("newRoleSelect").value;
+    
+    try {
+        // Find user_profile by team_member_id
+        const { data: profile, error: fetchError } = await supabaseClient
+            .from("user_profiles")
+            .select("id")
+            .eq("team_member_id", currentRoleChangeTeamMemberId)
+            .single();
+        
+        if (fetchError) {
+            console.error("Error fetching profile:", fetchError);
+            alert("Error: Could not find user account.");
+            return;
+        }
+        
+        // Update role
+        const { error: updateError } = await supabaseClient
+            .from("user_profiles")
+            .update({ role: newRole })
+            .eq("id", profile.id);
+        
+        if (updateError) {
+            console.error("Error updating role:", updateError);
+            alert("Error updating role: " + updateError.message);
+            return;
+        }
+        
+        console.log("✅ Role updated successfully");
+        alert("Role updated successfully!");
+        
+        closeChangeRoleModal();
+        
+        // Reload team to show updated role
+        await loadTeam();
+        
+    } catch (err) {
+        console.error("Error:", err);
+        alert("Error updating role.");
+    }
+}
