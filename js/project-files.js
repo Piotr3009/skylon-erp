@@ -127,9 +127,15 @@ async function showFolderList() {
     // Get file counts for each folder
     const folderCounts = await getFolderFileCounts();
     
+    // Filter folders based on permissions
+    const visibleFolders = projectFolders.filter(folder => {
+        // Check if user can access this folder
+        return window.canAccessFolder ? window.canAccessFolder(folder) : true;
+    });
+    
     content.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding: 8px;">
-            ${projectFolders.map(folder => {
+            ${visibleFolders.map(folder => {
                 const count = folderCounts[folder] || 0;
                 return `
                 <div class="folder-card" onclick="openFolder('${folder}')" style="

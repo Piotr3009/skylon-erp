@@ -265,6 +265,9 @@
                 // Check page access
                 checkPageAccess();
                 
+                // Apply read-only styles for worker/viewer
+                applyReadOnlyMode();
+                
                 // Dispatch event that permissions are ready
                 window.dispatchEvent(new Event('permissionsLoaded'));
                 
@@ -275,6 +278,46 @@
         // Stop checking after 5 seconds
         setTimeout(() => clearInterval(waitForSupabase), 5000);
     };
+    
+    // Apply read-only mode for worker/viewer
+    function applyReadOnlyMode() {
+        if (window.currentUserRole === 'worker' || window.currentUserRole === 'viewer') {
+            // Inject CSS to disable interactions
+            const style = document.createElement('style');
+            style.innerHTML = `
+                /* Disable phase interactions for worker/viewer */
+                .phase-bar {
+                    cursor: default !important;
+                    pointer-events: none !important;
+                }
+                
+                /* Disable edit icons */
+                .edit-icon,
+                .delete-icon,
+                .action-icon {
+                    display: none !important;
+                }
+                
+                /* Disable form inputs in modals */
+                .modal input:not([type="search"]),
+                .modal textarea,
+                .modal select {
+                    opacity: 0.6;
+                    pointer-events: none;
+                }
+                
+                /* Keep search working */
+                .modal input[type="search"] {
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            console.log('🔒 Read-only mode applied');
+        }
+    }
+
     
     // Auto-initialize when DOM is ready
     if (document.readyState === 'loading') {
