@@ -2852,3 +2852,31 @@ async function generateOrderedItemsReport(dateFrom, dateTo, workerId, category, 
         </html>
     `;
 }
+
+// ========== PERMISSIONS: READ-ONLY FOR MANAGER/WORKER ==========
+window.addEventListener("permissionsLoaded", function() {
+    if (!window.currentUserRole) return;
+    
+    console.log("🔒 Applying stock permissions for role:", window.currentUserRole);
+    
+    // Manager/Worker/Viewer = read-only mode  
+    if (window.currentUserRole === "manager" || window.currentUserRole === "worker" || window.currentUserRole === "viewer") {
+        // Hide action buttons
+        const buttonsToHide = [
+            "button[onclick*=\"openAddItemModal\"]",
+            "button[onclick*=\"openAddSupplierModal\"]",
+            "button[onclick*=\"openAddCategoryModal\"]", 
+            "button[onclick*=\"openAddSubcategoryModal\"]",
+            "button[onclick*=\"openOrderModal\"]",
+            ".action-btn.edit",
+            ".action-btn.delete"
+        ];
+        
+        buttonsToHide.forEach(selector => {
+            const buttons = document.querySelectorAll(selector);
+            buttons.forEach(btn => btn.style.display = "none");
+        });
+        
+        console.log("🔒 Stock read-only mode applied");
+    }
+});

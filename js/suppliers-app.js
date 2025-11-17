@@ -218,3 +218,27 @@ async function deleteSupplier() {
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
+
+// ========== PERMISSIONS: READ-ONLY FOR MANAGER/WORKER ==========
+window.addEventListener("permissionsLoaded", function() {
+    if (!window.currentUserRole) return;
+    
+    console.log("🔒 Applying suppliers permissions for role:", window.currentUserRole);
+    
+    // Manager/Worker/Viewer = read-only mode (for Suppliers - TYLKO Worker i Viewer, Manager ma full access)
+    if (window.currentUserRole === "worker" || window.currentUserRole === "viewer") {
+        // Hide action buttons
+        const buttonsToHide = [
+            "button[onclick*=\"openAddSupplierModal\"]",
+            ".action-btn.edit",
+            ".action-btn.delete"
+        ];
+        
+        buttonsToHide.forEach(selector => {
+            const buttons = document.querySelectorAll(selector);
+            buttons.forEach(btn => btn.style.display = "none");
+        });
+        
+        console.log("🔒 Suppliers read-only mode applied");
+    }
+});
