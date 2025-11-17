@@ -180,10 +180,10 @@ function loadUnifiedMenu() {
             <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
             <a href="office.html" class="nav-link nav-link-office">🗂️ Office</a>
             <a href="pipeline.html" class="nav-link nav-link-pipeline">📋 Pipeline</a>
-            <a href="archive.html" class="nav-link nav-link-archive">📦 Archive</a>
-            <a href="accounting.html" class="nav-link nav-link-accounting">💰 Accounting</a>
-            <a href="team.html" class="nav-link nav-link-team">🧑‍🤝‍🧑 Team Management</a>
-            <a href="clients.html" class="nav-link nav-link-clients">👤 Clients</a>
+            <a href="archive.html" class="nav-link nav-link-archive" data-role-required="admin">📦 Archive</a>
+            <a href="accounting.html" class="nav-link nav-link-accounting" data-role-required="admin">💰 Accounting</a>
+            <a href="team.html" class="nav-link nav-link-team" data-role-required="admin">🧑‍🤝‍🧑 Team Management</a>
+            <a href="clients.html" class="nav-link nav-link-clients" data-role-required="admin">👤 Clients</a>
             <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
             <a href="suppliers.html" class="nav-link nav-link-suppliers">🚚 Suppliers</a>
             <a href="equipment.html" class="nav-link nav-link-equipment">🔧 Machines</a>
@@ -198,6 +198,28 @@ function loadUnifiedMenu() {
             existingMenu.outerHTML = menuHTML;
         }
     }
+    
+    // Apply role-based visibility when permissions are loaded
+    window.addEventListener('permissionsLoaded', applyMenuPermissions);
+    
+    // Also try immediately in case permissions already loaded
+    setTimeout(applyMenuPermissions, 100);
+}
+
+function applyMenuPermissions() {
+    if (!window.currentUserRole) {
+        return;
+    }
+    
+    // Hide admin-only links for non-admins
+    const adminLinks = document.querySelectorAll('[data-role-required="admin"]');
+    adminLinks.forEach(link => {
+        if (window.currentUserRole !== 'admin') {
+            link.style.display = 'none';
+        }
+    });
+    
+    console.log('✅ Menu permissions applied for role:', window.currentUserRole);
 }
 
 // Load menu when DOM is ready
