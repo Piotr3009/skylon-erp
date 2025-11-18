@@ -29,6 +29,9 @@ async function loadProjectMaterials(projectId) {
                 stock_items (
                     id,
                     name,
+                    item_number,
+                    size,
+                    thickness,
                     image_url,
                     current_quantity,
                     reserved_quantity,
@@ -112,7 +115,9 @@ function renderMaterialsList(materials) {
                 <table class="materials-table">
                     <thead>
                         <tr>
-                            <th style="width: 30%;">Material</th>
+                            <th style="width: 25%;">Material</th>
+                            <th style="width: 80px;">Item #</th>
+                            <th style="width: 120px;">Size / Thickness</th>
                             <th>Needed</th>
                             <th>Reserved</th>
                             <th>In Stock</th>
@@ -182,6 +187,13 @@ function renderMaterialRow(material) {
                         </div>
                     </div>
                 </div>
+            </td>
+            <td style="font-size: 11px; color: #999;">${stockItem?.item_number || (material.is_bespoke ? 'BESPOKE' : '-')}</td>
+            <td style="font-size: 11px; color: #999;">
+                ${stockItem ? 
+                    `${stockItem.size || '-'}${stockItem.thickness ? ' / ' + stockItem.thickness : ''}` : 
+                    (material.is_bespoke ? '-' : '-')
+                }
             </td>
             <td class="material-quantity">${material.quantity_needed.toFixed(2)} ${material.unit}</td>
             <td class="material-quantity">${material.quantity_reserved.toFixed(2)} ${material.unit}</td>
