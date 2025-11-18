@@ -1746,12 +1746,16 @@ textarea:focus {
     background: transparent !important;
     border: 1px solid #2b6e2e !important;
     border-radius: 4px;
-    padding: 6px 10px;
-    font-size: 11px;
+    padding: 6px 12px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.2s;
+    min-width: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .mat-btn:hover {
