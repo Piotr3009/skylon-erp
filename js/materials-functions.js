@@ -1,4 +1,4 @@
-// ========== MATERIALS LIST FUNCTIONS ==========
+v// ========== MATERIALS LIST FUNCTIONS ==========
 
 // Globalna zmienna dla aktualnego projektu
 let currentMaterialsProject = null;
@@ -285,6 +285,20 @@ async function showAddMaterialModal() {
 function closeAddMaterialModal() {
     document.getElementById('addMaterialModal').classList.remove('active');
     resetAddMaterialForm();
+    
+    // Reset edit mode
+    editingMaterialId = null;
+    editingMaterialOriginal = null;
+    
+    // Przywróć oryginalny tytuł i przycisk
+    document.querySelector('#addMaterialModal .modal-header h2').textContent = 'Add Material';
+    document.querySelector('#addMaterialModal .modal-footer .primary').textContent = 'Add Material';
+    document.querySelector('#addMaterialModal .modal-footer .primary').onclick = saveMaterial;
+    
+    // Odblokuj pola stock item (na wypadek edycji)
+    document.getElementById('addMaterialCategory').disabled = false;
+    document.getElementById('addMaterialSubcategory').disabled = false;
+    document.getElementById('addMaterialStockItem').disabled = false;
 }
 
 // Reset formularza
@@ -964,10 +978,232 @@ async function exportShoppingListPDF() {
     }
 }
 // Edit Material
-function editMaterial(materialId) {
-    console.log('Edit material:', materialId);
-    // TODO: Implement edit material functionality
-    alert('Edit material functionality - coming soon');
+let editingMaterialId = null;
+let editingMaterialOriginal = null;
+
+async function editMaterial(materialId) {
+    try {
+        // Pobierz dane materiału
+        const { data: material, error } = await supabaseClient
+            .from('project_materials')
+            .select(`
+                *,
+                stock_items (
+                    id,
+                    name,
+                    item_number,
+                    size,
+                    thickness,
+                    current_quantity,
+                    reserved_quantity,
+                    unit,
+                    cost_per_unit,
+                    category,
+                    subcategory
+                )
+            `)
+            .eq('id', materialId)
+            .single();
+        
+        if (error) throw error;
+        
+        editingMaterialId = materialId;
+        editingMaterialOriginal = material;
+        
+        // Załaduj dane do formularza
+        await loadCategoriesAndItems();
+        await loadSuppliers();
+        
+        // Wypełnij stage
+        document.getElementById('addMaterialStage').value = material.used_in_stage;
+        
+        // Ustaw typ materiału
+        if (material.is_bespoke) {
+            document.querySelectorAll('input[name="materialType"]')[1].checked = true;
+            onMaterialTypeChange();
+            
+            // Wypełnij bespoke fields
+            document.getElementById('bespokeItemName').value = material.item_name;
+            document.getElementById('bespokeMaterialCategory').value = material.category_id || '';
+            document.getElementById('bespokeDescription').value = material.bespoke_description || '';
+            document.getElementById('bespokeSupplier').value = material.supplier_id || '';
+            document.getElementById('bespokePurchaseLink').value = material.purchase_link || '';
+            document.getElementById('bespokeUnitCost').value = material.unit_cost || 0;
+        } else {
+            document.querySelectorAll('input[name="materialType"]')[0].checked = true;
+            onMaterialTypeChange();
+            
+            // Wypełnij stock item fields (tylko pokazuj info - nie pozwól zmienić stock item)
+            if (material.stock_items) {
+                document.getElementById('addMaterialCategory').disabled = true;
+                document.getElementById('addMaterialSubcategory').disabled = true;
+                document.getElementById('addMaterialStockItem').disabled = true;
+                
+                // Pokaż info o aktualnym stock item
+                document.getElementById('stockItemInfo').style.display = 'block';
+                document.getElementById('itemInStock').textContent = `${material.stock_items.current_quantity || 0} ${material.stock_items.unit}`;
+                document.getElementById('itemUnit').textContent = material.stock_items.unit;
+                document.getElementById('itemCost').textContent = `£${(material.stock_items.cost_per_unit || 0).toFixed(2)}`;
+            }
+        }
+        
+        // Wypełnij quantity i unit
+        document.getElementById('addMaterialQuantity').value = material.quantity_needed;
+        document.getElementById('addMaterialUnit').value = material.unit;
+        document.getElementById('addMaterialNotes').value = material.item_notes || '';
+        
+        // Zmień tytuł i przycisk
+        document.querySelector('#addMaterialModal .modal-header h2').textContent = 'Edit Material';
+        document.querySelector('#addMaterialModal .modal-footer .primary').textContent = 'Save Changes';
+        document.querySelector('#addMaterialModal .modal-footer .primary').onclick = saveEditedMaterial;
+        
+        // Pokaż modal
+        document.getElementById('addMaterialModal').classList.add('active');
+        
+    } catch (error) {
+        console.error('Error loading material:', error);
+        alert('Error loading material: ' + error.message);
+    }
+}
+
+// Save Edited Material
+async function saveEditedMaterial() {
+    try {
+        const newQuantityNeeded = parseFloat(document.getElementById('addMaterialQuantity').value);
+        const newNotes = document.getElementById('addMaterialNotes').value.trim() || null;
+        
+        if (!newQuantityNeeded || newQuantityNeeded <= 0) {
+            alert('Please enter a valid quantity');
+            return;
+        }
+        
+        const original = editingMaterialOriginal;
+        const oldQuantityNeeded = original.quantity_needed;
+        const oldQuantityReserved = original.quantity_reserved;
+        const quantityDifference = newQuantityNeeded - oldQuantityNeeded;
+        
+        // Dla bespoke - można zmienić wszystko
+        if (original.is_bespoke) {
+            const updateData = {
+                quantity_needed: newQuantityNeeded,
+                item_notes: newNotes,
+                item_name: document.getElementById('bespokeItemName').value.trim(),
+                unit_cost: parseFloat(document.getElementById('bespokeUnitCost').value),
+                bespoke_description: document.getElementById('bespokeDescription').value.trim() || null,
+                supplier_id: document.getElementById('bespokeSupplier').value || null,
+                purchase_link: document.getElementById('bespokePurchaseLink').value.trim() || null
+            };
+            
+            const { error } = await supabaseClient
+                .from('project_materials')
+                .update(updateData)
+                .eq('id', editingMaterialId);
+            
+            if (error) throw error;
+            
+        } else {
+            // Dla stock item - można zmienić tylko quantity i notes
+            // Oblicz nową rezerwację
+            let newQuantityReserved = oldQuantityReserved;
+            
+            if (quantityDifference !== 0 && original.stock_item_id) {
+                // Pobierz aktualny stock
+                const { data: stockItem, error: fetchError } = await supabaseClient
+                    .from('stock_items')
+                    .select('current_quantity, reserved_quantity')
+                    .eq('id', original.stock_item_id)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                if (quantityDifference > 0) {
+                    // Zwiększono quantity_needed - rezerwuj więcej jeśli możliwe
+                    const availableToReserve = stockItem.current_quantity;
+                    const additionalToReserve = Math.min(availableToReserve, quantityDifference);
+                    
+                    if (additionalToReserve > 0) {
+                        // Dodaj transakcję OUT
+                        await supabaseClient
+                            .from('stock_transactions')
+                            .insert({
+                                stock_item_id: original.stock_item_id,
+                                type: 'OUT',
+                                quantity: additionalToReserve,
+                                project_id: currentMaterialsProject.id,
+                                project_material_id: editingMaterialId,
+                                notes: `Additional reservation for ${currentMaterialsProject.projectNumber} (quantity increased)`
+                            });
+                        
+                        // Update stock
+                        await supabaseClient
+                            .from('stock_items')
+                            .update({
+                                current_quantity: stockItem.current_quantity - additionalToReserve,
+                                reserved_quantity: (stockItem.reserved_quantity || 0) + additionalToReserve
+                            })
+                            .eq('id', original.stock_item_id);
+                        
+                        newQuantityReserved = oldQuantityReserved + additionalToReserve;
+                    }
+                    
+                } else if (quantityDifference < 0) {
+                    // Zmniejszono quantity_needed - zwróć nadmiar do stocku
+                    const toReturn = Math.min(oldQuantityReserved, Math.abs(quantityDifference));
+                    
+                    if (toReturn > 0) {
+                        // Dodaj transakcję IN
+                        await supabaseClient
+                            .from('stock_transactions')
+                            .insert({
+                                stock_item_id: original.stock_item_id,
+                                type: 'IN',
+                                quantity: toReturn,
+                                project_id: currentMaterialsProject.id,
+                                project_material_id: editingMaterialId,
+                                notes: `Returned from ${currentMaterialsProject.projectNumber} (quantity decreased)`
+                            });
+                        
+                        // Update stock
+                        await supabaseClient
+                            .from('stock_items')
+                            .update({
+                                current_quantity: stockItem.current_quantity + toReturn,
+                                reserved_quantity: Math.max(0, (stockItem.reserved_quantity || 0) - toReturn)
+                            })
+                            .eq('id', original.stock_item_id);
+                        
+                        newQuantityReserved = oldQuantityReserved - toReturn;
+                    }
+                }
+            }
+            
+            // Update project_materials
+            const { error } = await supabaseClient
+                .from('project_materials')
+                .update({
+                    quantity_needed: newQuantityNeeded,
+                    quantity_reserved: newQuantityReserved,
+                    item_notes: newNotes
+                })
+                .eq('id', editingMaterialId);
+            
+            if (error) throw error;
+        }
+        
+        alert('✅ Material updated successfully!');
+        closeAddMaterialModal();
+        
+        // Reset edit mode
+        editingMaterialId = null;
+        editingMaterialOriginal = null;
+        
+        // Reload materials
+        await loadProjectMaterials(currentMaterialsProject.id);
+        
+    } catch (error) {
+        console.error('Error saving material:', error);
+        alert('Error saving material: ' + error.message);
+    }
 }
 
 // Delete Material
