@@ -1,7 +1,11 @@
-v// ========== MATERIALS LIST FUNCTIONS ==========
+// ========== MATERIALS LIST FUNCTIONS ==========
 
 // Globalna zmienna dla aktualnego projektu
 let currentMaterialsProject = null;
+
+// Zmienne dla trybu edycji
+let editingMaterialId = null;
+let editingMaterialOriginal = null;
 
 // Otwórz Materials List Modal
 async function openMaterialsList(projectIndex) {
@@ -978,9 +982,6 @@ async function exportShoppingListPDF() {
     }
 }
 // Edit Material
-let editingMaterialId = null;
-let editingMaterialOriginal = null;
-
 async function editMaterial(materialId) {
     try {
         // Pobierz dane materiału
