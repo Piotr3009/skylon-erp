@@ -972,27 +972,64 @@ function editMaterial(materialId) {
 
 // Delete Material
 async function deleteMaterial(materialId) {
-    if (!confirm('Are you sure you want to delete this material?')) {
+    if (!confirm('Are you sure you want to delete this material?\n\nThis will:\n- Return reserved quantity back to stock\n- Delete all related transactions\n- Remove material from project')) {
         return;
     }
     
     try {
-        const { error } = await supabaseClient
+        // 1. Pobierz informacje o materiale
+        const { data: material, error: fetchError } = await supabaseClient
+            .from('project_materials')
+            .select('*, stock_items(id, current_quantity, reserved_quantity)')
+            .eq('id', materialId)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // 2. Jeśli to stock item i ma reserved quantity - zwróć do stocku
+        if (material.stock_item_id && material.quantity_reserved > 0) {
+            const stockItem = material.stock_items;
+            
+            // Zwiększ current_quantity (zwróć materiał)
+            const newQuantity = (stockItem.current_quantity || 0) + material.quantity_reserved;
+            // Zmniejsz reserved_quantity
+            const newReserved = Math.max(0, (stockItem.reserved_quantity || 0) - material.quantity_reserved);
+            
+            const { error: stockError } = await supabaseClient
+                .from('stock_items')
+                .update({
+                    current_quantity: newQuantity,
+                    reserved_quantity: newReserved
+                })
+                .eq('id', material.stock_item_id);
+            
+            if (stockError) throw stockError;
+        }
+        
+        // 3. Usuń powiązane transakcje
+        const { error: txDeleteError } = await supabaseClient
+            .from('stock_transactions')
+            .delete()
+            .eq('project_material_id', materialId);
+        
+        if (txDeleteError) throw txDeleteError;
+        
+        // 4. Usuń materiał
+        const { error: deleteError } = await supabaseClient
             .from('project_materials')
             .delete()
             .eq('id', materialId);
         
-        if (error) throw error;
+        if (deleteError) throw deleteError;
         
-        console.log('✅ Material deleted');
+        console.log('✅ Material deleted and stock returned');
+        
         // Reload materials list
-        if (typeof loadProjectMaterials === 'function') {
-            await loadProjectMaterials(currentMaterialsProject.id);
-        }
+        await loadProjectMaterials(currentMaterialsProject.id);
         
     } catch (err) {
         console.error('Error deleting material:', err);
-        alert('Error: ' + err.message);
+        alert('Error deleting material: ' + err.message);
     }
 }
 
