@@ -31,6 +31,7 @@ async function loadProjectMaterials(projectId) {
                     name,
                     image_url,
                     current_quantity,
+                    reserved_quantity,
                     unit,
                     cost_per_unit
                 ),
@@ -140,6 +141,7 @@ function renderMaterialsList(materials) {
 // Renderuj pojedynczy wiersz materiału
 function renderMaterialRow(material) {
     const stockItem = material.stock_items;
+    // IN STOCK = current_quantity (który już ma odjęte rezerwacje podczas Add Material)
     const inStock = stockItem ? stockItem.current_quantity : 0;
     const toOrder = Math.max(0, material.quantity_needed - material.quantity_reserved);
     const totalCost = material.quantity_needed * (material.unit_cost || 0);
@@ -247,7 +249,8 @@ function renderMaterialsSummary(summary) {
 // Zamknij modal
 function closeMaterialsModal() {
     document.getElementById('materialsModal').classList.remove('active');
-    currentMaterialsProject = null;
+    // NIE zeruj currentMaterialsProject - potrzebne dla Record Usage Modal
+    // currentMaterialsProject = null;
 }
 
 // Placeholder functions (do implementacji później)
