@@ -502,6 +502,22 @@
                 <button class="modal-close" onclick="closeAddMaterialModal()">×</button>
             </div>
             <div class="modal-body">
+                <!-- Edit Material Info (hidden by default, shown in edit mode) -->
+                <div id="editMaterialInfo" style="display: none; margin-bottom: 20px; padding: 16px; background: #1a1a1a; border-radius: 8px; border: 1px solid #404040;">
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <img id="editMaterialImage" src="" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; display: none;">
+                        <div id="editMaterialImagePlaceholder" style="width: 60px; height: 60px; background: #2d2d2d; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px; display: none;">📦</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #e0e0e0; margin-bottom: 4px;" id="editMaterialName"></div>
+                            <div style="font-size: 13px; color: #999;" id="editMaterialCategory"></div>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                <span>Item#: <span id="editMaterialItemNumber" style="color: #999;"></span></span>
+                                <span style="margin-left: 12px;">Current Reserved: <span id="editMaterialReserved" style="color: #10b981;"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Stage Selection -->
                 <div class="form-group">
                     <label>Stage <span style="color: #ff6b6b;">*</span></label>

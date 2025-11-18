@@ -290,6 +290,9 @@ function closeAddMaterialModal() {
     document.getElementById('addMaterialModal').classList.remove('active');
     resetAddMaterialForm();
     
+    // Ukryj sekcję info
+    document.getElementById('editMaterialInfo').style.display = 'none';
+    
     // Reset edit mode
     editingMaterialId = null;
     editingMaterialOriginal = null;
@@ -1010,6 +1013,23 @@ async function editMaterial(materialId) {
         
         editingMaterialId = materialId;
         editingMaterialOriginal = material;
+        
+        // Pokaż info o edytowanym materiale
+        document.getElementById('editMaterialInfo').style.display = 'block';
+        document.getElementById('editMaterialName').textContent = material.item_name;
+        document.getElementById('editMaterialCategory').textContent = material.stock_categories?.name || 'N/A';
+        document.getElementById('editMaterialItemNumber').textContent = material.stock_items?.item_number || (material.is_bespoke ? 'BESPOKE' : 'N/A');
+        document.getElementById('editMaterialReserved').textContent = `${material.quantity_reserved || 0} ${material.unit}`;
+        
+        // Pokaż zdjęcie lub placeholder
+        if (material.stock_items?.image_url) {
+            document.getElementById('editMaterialImage').src = material.stock_items.image_url;
+            document.getElementById('editMaterialImage').style.display = 'block';
+            document.getElementById('editMaterialImagePlaceholder').style.display = 'none';
+        } else {
+            document.getElementById('editMaterialImage').style.display = 'none';
+            document.getElementById('editMaterialImagePlaceholder').style.display = 'flex';
+        }
         
         // Załaduj dane do formularza
         await loadCategoriesAndItems();
