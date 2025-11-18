@@ -725,8 +725,8 @@ body.pipeline-theme .project-cell {
 }
 
 .project-actions {
-    min-width: 120px !important;
-    width: 120px !important;
+    min-width: 160px !important;
+    width: 160px !important;
     display: flex;
     gap: 6px;
     justify-content: flex-start;
