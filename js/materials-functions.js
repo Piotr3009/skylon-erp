@@ -910,7 +910,8 @@ async function exportShoppingListPDF() {
                 *,
                 stock_items (
                     current_quantity,
-                    unit
+                    unit,
+                    image_url
                 ),
                 suppliers (
                     name
@@ -947,34 +948,65 @@ async function exportShoppingListPDF() {
         // Table
         let y = 50;
         doc.setFontSize(10);
-        doc.text('Material', 20, y);
-        doc.text('Needed', 90, y);
-        doc.text('Reserved', 120, y);
-        doc.text('To Order', 150, y);
-        doc.text('Supplier', 180, y);
+        doc.text('Photo', 20, y);
+        doc.text('Material', 50, y);
+        doc.text('Needed', 110, y);
+        doc.text('Reserved', 135, y);
+        doc.text('To Order', 160, y);
+        doc.text('Supplier', 185, y);
         
         y += 5;
-        doc.line(20, y, 200, y);
+        doc.line(20, y, 210, y);
         y += 7;
         
         doc.setFontSize(9);
-        toOrder.forEach(m => {
+        
+        // Process materials one by one to handle images
+        for (const m of toOrder) {
             const toOrderQty = (m.quantity_needed - m.quantity_reserved).toFixed(2);
             const supplier = m.suppliers?.name || 'N/A';
             
-            doc.text(m.item_name.substring(0, 30), 20, y);
-            doc.text(`${m.quantity_needed.toFixed(2)} ${m.unit}`, 90, y);
-            doc.text(`${m.quantity_reserved.toFixed(2)} ${m.unit}`, 120, y);
-            doc.text(`${toOrderQty} ${m.unit}`, 150, y);
-            doc.text(supplier.substring(0, 20), 180, y);
+            // Add image if exists
+            if (m.stock_items?.image_url) {
+                try {
+                    // Create a promise to load the image
+                    const imgData = await new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            resolve(canvas.toDataURL('image/jpeg'));
+                        };
+                        img.onerror = () => resolve(null);
+                        img.src = m.stock_items.image_url;
+                    });
+                    
+                    if (imgData) {
+                        doc.addImage(imgData, 'JPEG', 20, y - 5, 20, 20);
+                    }
+                } catch (err) {
+                    console.error('Error loading image:', err);
+                }
+            }
             
-            y += 7;
+            // Add text
+            doc.text(m.item_name.substring(0, 25), 50, y + 5);
+            doc.text(`${m.quantity_needed.toFixed(2)} ${m.unit}`, 110, y + 5);
+            doc.text(`${m.quantity_reserved.toFixed(2)} ${m.unit}`, 135, y + 5);
+            doc.text(`${toOrderQty} ${m.unit}`, 160, y + 5);
+            doc.text(supplier.substring(0, 15), 185, y + 5);
             
-            if (y > 270) {
+            y += 25;
+            
+            if (y > 260) {
                 doc.addPage();
                 y = 20;
             }
-        });
+        }
         
         // Save
         doc.save(`Shopping_List_${currentMaterialsProject.projectNumber}.pdf`);
