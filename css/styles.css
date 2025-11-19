@@ -264,6 +264,8 @@ body.pipeline-theme .chart-header {
 }
 
 body.pipeline-theme .project-header {
+    width: 695px;
+    min-width: 695px;
     background: #1f1f24;
     border-right-color: #3d267a;
 }
@@ -637,6 +639,8 @@ body.pipeline-theme .project-row {
 }
 
 body.pipeline-theme .project-cell {
+    width: 695px;
+    min-width: 695px;
     background: #323338;
     border-right: 1px solid #5a5363;
 }
