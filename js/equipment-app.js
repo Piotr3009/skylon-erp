@@ -396,7 +396,7 @@ function createVanRow(van) {
         <tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">
                 ${van.image_url ? 
-                    `<img src="${van.image_url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 3px;">` 
+                    `<img src="${van.image_url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 3px; cursor: pointer;" onclick="viewImage('${van.image_url}')">` 
                     : '<div style="width: 60px; height: 60px; background: #3e3e42; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🚐</div>'}
             </td>
             <td style="padding: 12px;">
@@ -486,7 +486,7 @@ function createToolRow(tool) {
         <tr style="border-bottom: 1px solid #333; ${isLowStock ? 'background: rgba(244, 67, 54, 0.1);' : ''}">
             <td style="padding: 12px;">
                 ${tool.image_url ? 
-                    `<img src="${tool.image_url}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 3px;">` 
+                    `<img src="${tool.image_url}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 3px; cursor: pointer;" onclick="viewImage('${tool.image_url}')">` 
                     : '<div style="width: 50px; height: 50px; background: #3e3e42; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🔩</div>'}
             </td>
             <td style="padding: 12px;">
