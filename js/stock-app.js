@@ -1092,6 +1092,21 @@ async function deleteStockItem() {
     }
     
     try {
+        // 1. Usuń image ze storage jeśli istnieje
+        if (item.image_url) {
+            const imagePath = item.image_url.split('/').pop();
+            const { error: imageError } = await supabaseClient.storage
+                .from('stock-images')
+                .remove([imagePath]);
+            
+            if (imageError) {
+                console.error('Error deleting image:', imageError);
+            } else {
+                console.log('✅ Image deleted from storage');
+            }
+        }
+        
+        // 2. Usuń stock item
         const { error } = await supabaseClient
             .from('stock_items')
             .delete()
@@ -1099,7 +1114,7 @@ async function deleteStockItem() {
         
         if (error) throw error;
         
-        console.log('✅ Stock item deleted');
+        console.log('✅ Stock item deleted completely');
         closeModal('editStockModal');
         await loadStockItems();
         

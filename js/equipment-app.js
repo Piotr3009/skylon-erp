@@ -1051,6 +1051,76 @@ async function deleteMachine(id) {
     if (!confirm('Delete this machine? This cannot be undone!')) return;
     
     try {
+        // 1. Pobierz dane maszyny
+        const { data: machine, error: fetchError } = await supabaseClient
+            .from('machines')
+            .select('image_url')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // 2. Usuń image ze storage jeśli istnieje
+        if (machine.image_url) {
+            const imagePath = machine.image_url.split('/').pop();
+            const { error: imageError } = await supabaseClient.storage
+                .from('equipment-images')
+                .remove([imagePath]);
+            
+            if (imageError) {
+                console.error('Error deleting image:', imageError);
+            } else {
+                console.log('✅ Image deleted from storage');
+            }
+        }
+        
+        // 3. Usuń dokumenty z machine_documents
+        const { data: docs, error: docsError } = await supabaseClient
+            .from('machine_documents')
+            .select('file_url')
+            .eq('machine_id', id);
+        
+        if (!docsError && docs && docs.length > 0) {
+            console.log(`📁 Found ${docs.length} documents to delete`);
+            
+            // Usuń fizyczne pliki
+            for (const doc of docs) {
+                if (doc.file_url) {
+                    const docPath = doc.file_url.split('/').pop();
+                    const { error: docStorageError } = await supabaseClient.storage
+                        .from('equipment-documents')
+                        .remove([docPath]);
+                    
+                    if (docStorageError) {
+                        console.error('Error deleting document file:', docStorageError);
+                    }
+                }
+            }
+            
+            // Usuń rekordy z DB
+            const { error: deleteDocsError } = await supabaseClient
+                .from('machine_documents')
+                .delete()
+                .eq('machine_id', id);
+            
+            if (deleteDocsError) {
+                console.error('Error deleting document records:', deleteDocsError);
+            } else {
+                console.log('✅ Documents deleted');
+            }
+        }
+        
+        // 4. Usuń service history
+        const { error: serviceError } = await supabaseClient
+            .from('machine_service_history')
+            .delete()
+            .eq('machine_id', id);
+        
+        if (serviceError) {
+            console.error('Error deleting service history:', serviceError);
+        }
+        
+        // 5. Usuń maszynę
         const { error } = await supabaseClient
             .from('machines')
             .delete()
@@ -1058,7 +1128,7 @@ async function deleteMachine(id) {
         
         if (error) throw error;
         
-        console.log('✅ Machine deleted');
+        console.log('✅ Machine deleted completely');
         await loadAllEquipment();
         renderView();
         updateStats();
@@ -1073,6 +1143,66 @@ async function deleteVan(id) {
     if (!confirm('Delete this van? This cannot be undone!')) return;
     
     try {
+        // 1. Pobierz dane vana
+        const { data: van, error: fetchError } = await supabaseClient
+            .from('vans')
+            .select('image_url')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // 2. Usuń image ze storage jeśli istnieje
+        if (van.image_url) {
+            const imagePath = van.image_url.split('/').pop();
+            const { error: imageError } = await supabaseClient.storage
+                .from('equipment-images')
+                .remove([imagePath]);
+            
+            if (imageError) {
+                console.error('Error deleting image:', imageError);
+            } else {
+                console.log('✅ Image deleted from storage');
+            }
+        }
+        
+        // 3. Usuń dokumenty z van_documents
+        const { data: docs, error: docsError } = await supabaseClient
+            .from('van_documents')
+            .select('file_url')
+            .eq('van_id', id);
+        
+        if (!docsError && docs && docs.length > 0) {
+            console.log(`📁 Found ${docs.length} documents to delete`);
+            
+            // Usuń fizyczne pliki
+            for (const doc of docs) {
+                if (doc.file_url) {
+                    const docPath = doc.file_url.split('/').pop();
+                    const { error: docStorageError } = await supabaseClient.storage
+                        .from('equipment-documents')
+                        .remove([docPath]);
+                    
+                    if (docStorageError) {
+                        console.error('Error deleting document file:', docStorageError);
+                    }
+                }
+            }
+            
+            // Usuń rekordy z DB
+            const { error: deleteDocsError } = await supabaseClient
+                .from('van_documents')
+                .delete()
+                .eq('van_id', id);
+            
+            if (deleteDocsError) {
+                console.error('Error deleting document records:', deleteDocsError);
+            } else {
+                console.log('✅ Documents deleted');
+            }
+        }
+        
+        // 4. Usuń vana
         const { error } = await supabaseClient
             .from('vans')
             .delete()
@@ -1080,7 +1210,7 @@ async function deleteVan(id) {
         
         if (error) throw error;
         
-        console.log('✅ Van deleted');
+        console.log('✅ Van deleted completely');
         await loadAllEquipment();
         renderView();
         updateStats();
@@ -1095,6 +1225,30 @@ async function deleteTool(id) {
     if (!confirm('Delete this tool? This cannot be undone!')) return;
     
     try {
+        // 1. Pobierz dane tool
+        const { data: tool, error: fetchError } = await supabaseClient
+            .from('small_tools')
+            .select('image_url')
+            .eq('id', id)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // 2. Usuń image ze storage jeśli istnieje
+        if (tool.image_url) {
+            const imagePath = tool.image_url.split('/').pop();
+            const { error: imageError } = await supabaseClient.storage
+                .from('equipment-images')
+                .remove([imagePath]);
+            
+            if (imageError) {
+                console.error('Error deleting image:', imageError);
+            } else {
+                console.log('✅ Image deleted from storage');
+            }
+        }
+        
+        // 3. Usuń tool
         const { error } = await supabaseClient
             .from('small_tools')
             .delete()
@@ -1102,7 +1256,7 @@ async function deleteTool(id) {
         
         if (error) throw error;
         
-        console.log('✅ Tool deleted');
+        console.log('✅ Tool deleted completely');
         await loadAllEquipment();
         renderView();
         updateStats();
@@ -1467,6 +1621,30 @@ async function deleteDocument(docId) {
     try {
         const tableName = currentDetailsItem.type === 'machine' ? 'machine_documents' : 'van_documents';
         
+        // 1. Pobierz file_url przed usunięciem
+        const { data: doc, error: fetchError } = await supabaseClient
+            .from(tableName)
+            .select('file_url')
+            .eq('id', docId)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // 2. Usuń plik ze storage
+        if (doc.file_url) {
+            const filePath = doc.file_url.split('/').pop();
+            const { error: storageError } = await supabaseClient.storage
+                .from('equipment-documents')
+                .remove([filePath]);
+            
+            if (storageError) {
+                console.error('Error deleting file from storage:', storageError);
+            } else {
+                console.log('✅ File deleted from storage');
+            }
+        }
+        
+        // 3. Usuń rekord z DB
         const { error } = await supabaseClient
             .from(tableName)
             .delete()
@@ -1474,7 +1652,7 @@ async function deleteDocument(docId) {
         
         if (error) throw error;
         
-        console.log('✅ Document deleted');
+        console.log('✅ Document deleted completely');
         
         // Reload documents
         await loadDocuments(currentDetailsItem.type, currentDetailsItem.id);
