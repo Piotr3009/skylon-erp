@@ -2720,7 +2720,7 @@ async function generateOrderedItemsReport(dateFrom, dateTo, workerId, category, 
     // Fetch orders
     let query = supabaseClient
         .from('stock_orders')
-        .select('*, stock_items(name, category, unit, item_number), suppliers(name), team_members(name)')
+        .select('*, stock_items(name, category, unit, item_number), suppliers(name), created_by_member:team_members!stock_orders_created_by_fkey(name), delivered_by_member:team_members!stock_orders_delivered_by_fkey(name)')
         .gte('order_date', dateFrom.toISOString())
         .lte('order_date', dateTo.toISOString())
         .order('order_date', { ascending: false });
@@ -2848,7 +2848,7 @@ async function generateOrderedItemsReport(dateFrom, dateTo, workerId, category, 
                                     <td>${order.stock_items?.name || 'Unknown'}</td>
                                     <td>${order.quantity_ordered} ${order.stock_items?.unit || ''}</td>
                                     <td>${order.suppliers?.name || 'Unknown'}</td>
-                                    <td>${order.team_members?.name || '-'}</td>
+                                    <td>${order.created_by_member?.name || '-'}</td>
                                     <td>${expectedDate}</td>
                                     <td class="${statusClass}">${statusText}</td>
                                     <td>${order.order_notes || '-'}</td>
