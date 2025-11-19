@@ -8,7 +8,7 @@ let currentProjectFiles = {
     currentFolder: null
 };
 
-const projectFolders = ['estimates', 'drawings', 'photos', 'emails', 'notes', 'others'];
+const projectFolders = ['estimates', 'drawings', 'client-drawings', 'photos', 'emails', 'notes', 'others'];
 
 // ========== OPEN FILES MODAL ==========
 async function openProjectFilesModal(projectIndex, stage) {
@@ -174,31 +174,6 @@ async function showFolderList() {
                     </div>
                 </div>
             `}).join('')}
-            
-            <!-- Add New Folder Button -->
-            <div class="folder-card" onclick="createNewFolder()" style="
-                padding: 18px 16px;
-                border: 2px dashed #555;
-                border-radius: 8px;
-                cursor: pointer;
-                text-align: center;
-                transition: all 0.2s;
-                background: transparent;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            " onmouseover="this.style.borderColor='#88d498'; this.style.background='rgba(136,212,152,0.05)'" 
-               onmouseout="this.style.borderColor='#555'; this.style.background='transparent'">
-                <div style="margin-bottom: 8px;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 5V19M5 12H19" stroke="#666" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <div style="font-weight: 600; color: #888; font-size: 13px; letter-spacing: 0.3px;">
-                    New Folder
-                </div>
-            </div>
         </div>
     `;
 }
@@ -260,6 +235,13 @@ function getFolderIcon(folderName) {
             <rect x="8.5" y="11" width="7" height="5" rx="0.8" stroke="#DB2777" stroke-width="0.85"/>
             <circle cx="12" cy="13.5" r="1.3" stroke="#DB2777" stroke-width="0.85"/>
             <circle cx="14" cy="12.3" r="0.5" fill="#DB2777"/>
+        </svg>`,
+        
+        'client-drawings': `<svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z" stroke="#10B981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 11L16 16M16 11L8 16" stroke="#10B981" stroke-width="0.9" stroke-linecap="round"/>
+            <circle cx="12" cy="13.5" r="2.8" stroke="#10B981" stroke-width="0.9"/>
+            <path d="M14 12L15 11" stroke="#10B981" stroke-width="0.7" stroke-linecap="round"/>
         </svg>`,
         
         emails: `<svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
