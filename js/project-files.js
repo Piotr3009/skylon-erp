@@ -201,8 +201,7 @@ async function getFolderFileCounts() {
         
         if (files) {
             files.forEach(file => {
-                // Skip placeholder files
-                if (file.folder_name && file.file_name && !file.file_name.startsWith('.')) {
+                if (file.folder_name) {
                     // Get base folder (first part before /)
                     const baseFolder = file.folder_name.split('/')[0].toLowerCase();
                     // Find matching folder in projectFolders (case-insensitive)
