@@ -8,7 +8,7 @@ let currentProjectFiles = {
     currentFolder: null
 };
 
-const projectFolders = ['estimates', 'drawings', 'client-drawings', 'photos', 'emails', 'notes', 'others'];
+const projectFolders = ['estimates', 'invoices', 'drawings', 'client-drawings', 'photos', 'emails', 'notes', 'others'];
 
 // ========== OPEN FILES MODAL ==========
 async function openProjectFilesModal(projectIndex, stage) {
@@ -195,14 +195,20 @@ async function getFolderFileCounts() {
         
         if (error) throw error;
         
-        // Count files per folder
+        // Count files per folder (including subfolders)
         const counts = {};
         projectFolders.forEach(folder => counts[folder] = 0);
         
         if (files) {
             files.forEach(file => {
-                if (file.folder_name && counts.hasOwnProperty(file.folder_name)) {
-                    counts[file.folder_name]++;
+                if (file.folder_name) {
+                    // Get base folder (first part before /)
+                    const baseFolder = file.folder_name.split('/')[0].toLowerCase();
+                    // Find matching folder in projectFolders (case-insensitive)
+                    const matchingFolder = projectFolders.find(f => f.toLowerCase() === baseFolder);
+                    if (matchingFolder && counts.hasOwnProperty(matchingFolder)) {
+                        counts[matchingFolder]++;
+                    }
                 }
             });
         }
@@ -222,6 +228,13 @@ function getFolderIcon(folderName) {
             <circle cx="9" cy="12" r="0.5" fill="#059669"/>
             <circle cx="9" cy="14" r="0.5" fill="#059669"/>
             <text x="12" y="17.5" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#059669">£</text>
+        </svg>`,
+        
+        invoices: `<svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z" stroke="#DC2626" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="8.5" y="10.5" width="7" height="6" rx="0.5" stroke="#DC2626" stroke-width="0.85"/>
+            <path d="M9.5 12.5H14.5M9.5 14H13.5M9.5 15.5H14.5" stroke="#DC2626" stroke-width="0.6" stroke-linecap="round"/>
+            <text x="12" y="13.2" text-anchor="middle" font-size="2.5" font-weight="bold" fill="#DC2626">£</text>
         </svg>`,
         
         drawings: `<svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -323,6 +336,12 @@ async function loadFolderContents(folderName) {
         // Find subfolders and files in current folder
         const subfolders = new Set();
         const files = [];
+        
+        // Add predefined subfolders for drawings and client-drawings
+        if (folderName === 'drawings' || folderName === 'client-drawings') {
+            subfolders.add('DWG');
+            subfolders.add('PDF');
+        }
         
         (allFiles || []).forEach(file => {
             const fileFolderName = file.folder_name || '';
