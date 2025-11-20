@@ -939,11 +939,11 @@ async function exportShoppingListPDF() {
         
         // Generuj PDF
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('landscape'); // Landscape for more columns
         
         // Header
         doc.setFontSize(20);
-        doc.text('Shopping List', 20, 20);
+        doc.text('Materials List', 20, 20);
         
         doc.setFontSize(12);
         doc.text(`Project: ${currentMaterialsProject.projectNumber} - ${currentMaterialsProject.name}`, 20, 30);
@@ -954,13 +954,15 @@ async function exportShoppingListPDF() {
         doc.setFontSize(10);
         doc.text('Photo', 20, y);
         doc.text('Material', 50, y);
-        doc.text('Needed', 110, y);
-        doc.text('Reserved', 135, y);
-        doc.text('To Order', 160, y);
-        doc.text('Supplier', 185, y);
+        doc.text('Needed', 120, y);
+        doc.text('Reserved', 145, y);
+        doc.text('To Order', 170, y);
+        doc.text('Supplier', 195, y);
+        doc.text('Status', 235, y);
+        doc.text('Check', 265, y);
         
         y += 5;
-        doc.line(20, y, 210, y);
+        doc.line(20, y, 280, y);
         y += 7;
         
         doc.setFontSize(9);
@@ -997,23 +999,39 @@ async function exportShoppingListPDF() {
                 }
             }
             
+            // Determine status
+            let status = '';
+            if (m.usage_recorded) {
+                status = 'Used';
+            } else if (m.is_bespoke) {
+                status = 'Bespoke';
+            } else if (toOrderQty > 0) {
+                status = 'Order Needed';
+            } else {
+                status = 'Reserved';
+            }
+            
             // Add text
-            doc.text(m.item_name.substring(0, 25), 50, y + 5);
-            doc.text(`${m.quantity_needed.toFixed(2)} ${m.unit}`, 110, y + 5);
-            doc.text(`${m.quantity_reserved.toFixed(2)} ${m.unit}`, 135, y + 5);
-            doc.text(`${toOrderQty} ${m.unit}`, 160, y + 5);
-            doc.text(supplier.substring(0, 15), 185, y + 5);
+            doc.text(m.item_name.substring(0, 30), 50, y + 5);
+            doc.text(`${m.quantity_needed.toFixed(2)} ${m.unit}`, 120, y + 5);
+            doc.text(`${m.quantity_reserved.toFixed(2)} ${m.unit}`, 145, y + 5);
+            doc.text(`${toOrderQty} ${m.unit}`, 170, y + 5);
+            doc.text(supplier.substring(0, 18), 195, y + 5);
+            doc.text(status, 235, y + 5);
+            
+            // Draw checkbox
+            doc.rect(265, y, 8, 8); // Empty checkbox
             
             y += 25;
             
-            if (y > 260) {
-                doc.addPage();
+            if (y > 180) { // Landscape has less height
+                doc.addPage('landscape');
                 y = 20;
             }
         }
         
         // Save
-        doc.save(`Shopping_List_${currentMaterialsProject.projectNumber}.pdf`);
+        doc.save(`Materials_List_${currentMaterialsProject.projectNumber}.pdf`);
         
     } catch (error) {
         console.error('Error generating PDF:', error);
