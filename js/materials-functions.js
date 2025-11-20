@@ -150,9 +150,13 @@ function renderMaterialsList(materials) {
 // Renderuj pojedynczy wiersz materiału
 function renderMaterialRow(material) {
     const stockItem = material.stock_items;
-    // IN STOCK = current_quantity (który już ma odjęte rezerwacje podczas Add Material)
+    // IN STOCK = current_quantity (dostępne na magazynie)
     const inStock = stockItem ? stockItem.current_quantity : 0;
-    const toOrder = Math.max(0, material.quantity_needed - material.quantity_reserved);
+    
+    // TO ORDER = needed - in_stock (jeśli > 0)
+    // Bespoke items nie mają TO ORDER bo nie są z magazynu
+    const toOrder = material.is_bespoke ? 0 : Math.max(0, material.quantity_needed - inStock);
+    
     const totalCost = material.quantity_needed * (material.unit_cost || 0);
     
     // Status
