@@ -864,8 +864,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Load team on start
-    loadTeam();
+    // loadTeam() is called from team.html - don't duplicate here
 });
 
 // Close modals on outside click
