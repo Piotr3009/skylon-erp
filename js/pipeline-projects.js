@@ -1083,7 +1083,13 @@ function openPipelineProjectNotes(index) {
                 <div class="form-group" style="margin-top: 15px;">
                     <label>Add New Note</label>
                     <textarea id="pipelineProjectNewNote" placeholder="Type your note here..." style="min-height: 80px; font-size: 14px;"></textarea>
-                    <button class="modal-btn" onclick="addPipelineProjectNote(${index})" style="margin-top: 8px; background: #4a90e2;">➕ Add Note</button>
+                    <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                            <input type="checkbox" id="pipelineNoteImportant" style="cursor: pointer;">
+                            <span>⚠️ Mark as important</span>
+                        </label>
+                        <button class="modal-btn" onclick="addPipelineProjectNote(${index})" style="background: #4a90e2;">➕ Add Note</button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1464,6 +1470,8 @@ function addPipelineProjectNote(index) {
         return;
     }
     
+    const isImportant = document.getElementById('pipelineNoteImportant').checked;
+    
     // Get current user
     const author = window.currentUser?.full_name || window.currentUser?.email || 'Unknown User';
     
@@ -1476,8 +1484,9 @@ function addPipelineProjectNote(index) {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const timestamp = `${day}/${month}/${year} ${hours}:${minutes}`;
     
-    // Create new note entry
-    const newEntry = `${author} : ${timestamp}\n${newNoteText}`;
+    // Create new note entry with important flag if checked
+    const importantPrefix = isImportant ? '⚠️ IMPORTANT: ' : '';
+    const newEntry = `${author} : ${timestamp}\n${importantPrefix}${newNoteText}`;
     
     // Prepend to existing notes (newest on top)
     const existingNotes = project.notes || '';
@@ -1489,8 +1498,9 @@ function addPipelineProjectNote(index) {
     // Save to database
     savePipelineProjectNotesToDB(index, updatedNotes);
     
-    // Clear input
+    // Clear inputs
     document.getElementById('pipelineProjectNewNote').value = '';
+    document.getElementById('pipelineNoteImportant').checked = false;
     
     // Update history display
     document.getElementById('pipelineProjectNotesHistory').value = formatPipelineNotesHistory(updatedNotes);
