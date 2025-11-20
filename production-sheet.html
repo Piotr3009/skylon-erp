@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Sheet Generator - Skylon ERP</title>
+    <link rel="stylesheet" href="css/styles.css?v=10">
+    
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <script>
+        const SUPABASE_URL = 'https://iszkquzpoktokmkjmuuq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzemtxdXpwb2t0b2tta2ptdXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0Mzg3NTksImV4cCI6MjA2ODAxNDc1OX0.hijtNZIitJkc3BIQsYUkUTi3_l8OlCGSiJZdM9G3ywA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    </script>
+    
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        .ps-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: calc(100vh - 60px);
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .ps-sidebar {
+            background: #2d2d30;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-y: auto;
+        }
+        
+        .ps-preview {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .ps-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #252526;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .ps-option:hover {
+            background: #3e3e42;
+        }
+        
+        .ps-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .ps-button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ps-button.primary {
+            background: #4a90e2;
+            color: white;
+        }
+        
+        .ps-button.success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .ps-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .preview-content {
+            background: white;
+            color: black;
+            padding: 40px;
+            max-width: 210mm;
+            margin: 0 auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="app-title">📋 Production Sheet Generator</div>
+            <div class="navigation-links">
+                <a href="javascript:history.back()" style="color: #4a9eff;">← Back to Project</a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="ps-container">
+            <!-- Left Sidebar -->
+            <div class="ps-sidebar">
+                <h3 style="margin-top: 0;">Options</h3>
+                
+                <div class="ps-option" onclick="toggleOption('includeGantt')">
+                    <input type="checkbox" id="includeGantt" checked>
+                    <label>Include Gantt Timeline</label>
+                </div>
+                
+                <div class="ps-option" onclick="toggleOption('includePhotos')">
+                    <input type="checkbox" id="includePhotos" checked>
+                    <label>Include Material Photos</label>
+                </div>
+                
+                <div class="ps-option" onclick="toggleOption('allNotes')">
+                    <input type="checkbox" id="allNotes">
+                    <label>All Notes (default: Important Only)</label>
+                </div>
+                
+                <div class="ps-option" onclick="toggleOption('includeDeadlines')">
+                    <input type="checkbox" id="includeDeadlines" checked>
+                    <label>Show Phase Deadlines</label>
+                </div>
+                
+                <hr style="border-color: #444; margin: 20px 0;">
+                
+                <button class="ps-button primary" onclick="regeneratePreview()">🔄 Regenerate Preview</button>
+                <button class="ps-button success" onclick="downloadPDF()">📥 Download PDF</button>
+                <button class="ps-button" onclick="window.print()" style="background: #666; color: white;">🖨️ Print</button>
+            </div>
+            
+            <!-- Right Preview -->
+            <div class="ps-preview">
+                <div id="previewContent" class="preview-content">
+                    <div style="text-align: center; padding: 60px; color: #999;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                        <div>Loading production sheet...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/menu.js"></script>
+    <script src="js/production-sheet.js"></script>
+</body>
+</html>
