@@ -1431,3 +1431,15 @@ async function updateImportantNotesPulse() {
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(updateImportantNotesPulse, 1000);
 });
+
+// ========== OPEN PRODUCTION SHEET ==========
+function openProductionSheet(index) {
+    const project = projects[index];
+    if (!project || !project.id) {
+        alert('Project not found');
+        return;
+    }
+    
+    // Navigate to production-sheet.html with project ID
+    window.location.href = `production-sheet.html?project_id=${project.id}&stage=production`;
+}
