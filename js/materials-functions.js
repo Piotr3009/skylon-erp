@@ -150,12 +150,16 @@ function renderMaterialsList(materials) {
 // Renderuj pojedynczy wiersz materiału
 function renderMaterialRow(material) {
     const stockItem = material.stock_items;
-    // IN STOCK = current_quantity (dostępne na magazynie)
-    const inStock = stockItem ? stockItem.current_quantity : 0;
     
-    // TO ORDER = needed - in_stock (jeśli > 0)
+    // IN STOCK dla projektu = dostępne na magazynie MINUS zarezerwowane dla tego projektu
+    // Może być ujemne jeśli zarezerwowano więcej niż jest dostępne
+    const currentQty = stockItem ? stockItem.current_quantity : 0;
+    const reservedForProject = material.quantity_reserved || 0;
+    const inStock = material.is_bespoke ? 0 : (currentQty - reservedForProject);
+    
+    // TO ORDER = needed - current_quantity (jeśli > 0)
     // Bespoke items nie mają TO ORDER bo nie są z magazynu
-    const toOrder = material.is_bespoke ? 0 : Math.max(0, material.quantity_needed - inStock);
+    const toOrder = material.is_bespoke ? 0 : Math.max(0, material.quantity_needed - currentQty);
     
     const totalCost = material.quantity_needed * (material.unit_cost || 0);
     
@@ -205,7 +209,14 @@ function renderMaterialRow(material) {
             </td>
             <td class="material-quantity">${material.quantity_needed.toFixed(2)} ${material.unit}</td>
             <td class="material-quantity">${material.quantity_reserved.toFixed(2)} ${material.unit}</td>
-            <td class="material-quantity">${material.is_bespoke ? '-' : `${inStock.toFixed(2)} ${material.unit}`}</td>
+            <td class="material-quantity">
+                ${material.is_bespoke ? '-' : `
+                    <span style="color: ${inStock < 0 ? '#ef4444' : '#e0e0e0'}; font-weight: ${inStock < 0 ? '600' : 'normal'};">
+                        ${inStock.toFixed(2)} ${material.unit}
+                    </span>
+                    ${inStock < 0 ? '<div style="font-size: 10px; color: #ef4444;">❌ NEGATIVE</div>' : ''}
+                `}
+            </td>
             <td class="material-quantity">${toOrder > 0 ? `${toOrder.toFixed(2)} ${material.unit}` : '-'}</td>
             <td class="material-cost">£${(material.unit_cost || 0).toFixed(2)}</td>
             <td class="material-cost">£${totalCost.toFixed(2)}</td>
