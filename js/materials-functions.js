@@ -684,7 +684,16 @@ async function saveMaterial() {
         
         // Jeśli to stock item - OD RAZU odejmij ze stocku i oznacz jako reserved
         if (materialType === 'stock' && selectedStockItem) {
-            const availableStock = selectedStockItem.current_quantity || 0;
+            // Pobierz AKTUALNY stan stocku z bazy (selectedStockItem może mieć stare dane)
+            const { data: freshStock, error: fetchError } = await supabaseClient
+                .from('stock_items')
+                .select('current_quantity, reserved_quantity')
+                .eq('id', selectedStockItem.id)
+                .single();
+            
+            if (fetchError) throw fetchError;
+            
+            const availableStock = freshStock.current_quantity || 0;
             const toReserve = Math.min(availableStock, quantity);
             
             if (toReserve > 0) {
@@ -710,7 +719,7 @@ async function saveMaterial() {
                 
                 // OD RAZU odejmij ze stocku I zwiększ reserved_quantity
                 const newQuantity = availableStock - toReserve;
-                const currentReserved = selectedStockItem.reserved_quantity || 0;
+                const currentReserved = freshStock.reserved_quantity || 0;
                 
                 await supabaseClient
                     .from('stock_items')
