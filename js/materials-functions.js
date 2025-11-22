@@ -674,12 +674,16 @@ async function saveMaterial() {
             // Upload obrazka jeśli jest
             let imageUrl = null;
             if (bespokeImageFile) {
+                console.log('🖼️ Uploading bespoke image:', bespokeImageFile.name);
                 try {
                     imageUrl = await uploadBespokeImage(bespokeImageFile);
+                    console.log('✅ Image uploaded successfully:', imageUrl);
                 } catch (uploadError) {
-                    console.error('Error uploading image:', uploadError);
+                    console.error('❌ Error uploading image:', uploadError);
                     alert('Warning: Image upload failed, but material will be saved without image.');
                 }
+            } else {
+                console.log('ℹ️ No image file selected');
             }
             
             materialData.stock_item_id = null;
@@ -1436,12 +1440,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Upload bespoke image do Supabase Storage
 async function uploadBespokeImage(file) {
-    if (!file) return null;
+    console.log('📤 uploadBespokeImage called with file:', file);
+    if (!file) {
+        console.log('⚠️ No file provided');
+        return null;
+    }
     
     try {
         const fileExt = file.name.split('.').pop();
         const fileName = `bespoke-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = fileName;
+        
+        console.log('📁 Uploading to path:', filePath);
         
         const { data, error } = await supabaseClient.storage
             .from('stock-images')
@@ -1450,6 +1460,8 @@ async function uploadBespokeImage(file) {
                 upsert: false
             });
         
+        console.log('📥 Upload response - data:', data, 'error:', error);
+        
         if (error) throw error;
         
         // Pobierz publiczny URL
@@ -1457,10 +1469,12 @@ async function uploadBespokeImage(file) {
             .from('stock-images')
             .getPublicUrl(filePath);
         
+        console.log('🔗 Public URL:', publicUrl);
+        
         return publicUrl;
         
     } catch (error) {
-        console.error('Error uploading bespoke image:', error);
+        console.error('💥 Error uploading bespoke image:', error);
         throw error;
     }
 }
