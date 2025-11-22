@@ -701,44 +701,46 @@ async function saveMaterial() {
             if (fetchError) throw fetchError;
             
             const availableStock = freshStock.current_quantity || 0;
-            const toReserve = Math.min(availableStock, quantity);
+            // NOWA LOGIKA: Zawsze rezerwuj całą quantity_needed, niezależnie od dostępności
+            const toReserve = quantity;
             
             console.log('🔍 REZERWACJA DEBUG - availableStock:', availableStock);
             console.log('🔍 REZERWACJA DEBUG - toReserve:', toReserve);
             
-            if (toReserve > 0) {
-                // Dodaj transakcję OUT (od razu zabieramy ze stocku)
-                const { error: reserveError } = await supabaseClient
-                    .from('stock_transactions')
-                    .insert({
-                        stock_item_id: selectedStockItem.id,
-                        type: 'OUT',
-                        quantity: toReserve,
-                        project_id: currentMaterialsProject.id,
-                        project_material_id: newMaterial.id,
-                        notes: `Reserved for ${currentMaterialsProject.projectNumber} - ${stage}`
-                    });
-                
-                if (reserveError) throw reserveError;
-                
-                // Update quantity_reserved w project_materials (ile zabraliśmy)
-                await supabaseClient
-                    .from('project_materials')
-                    .update({ quantity_reserved: toReserve })
-                    .eq('id', newMaterial.id);
-                
-                // OD RAZU odejmij ze stocku I zwiększ reserved_quantity
-                const newQuantity = availableStock - toReserve;
-                const currentReserved = freshStock.reserved_quantity || 0;
-                
-                await supabaseClient
-                    .from('stock_items')
-                    .update({ 
-                        current_quantity: newQuantity,
-                        reserved_quantity: currentReserved + toReserve
-                    })
-                    .eq('id', selectedStockItem.id);
-            }
+            // Dodaj transakcję OUT (od razu zabieramy ze stocku lub rezerwujemy na minus)
+            const { error: reserveError } = await supabaseClient
+                .from('stock_transactions')
+                .insert({
+                    stock_item_id: selectedStockItem.id,
+                    type: 'OUT',
+                    quantity: toReserve,
+                    project_id: currentMaterialsProject.id,
+                    project_material_id: newMaterial.id,
+                    notes: `Reserved for ${currentMaterialsProject.projectNumber} - ${stage}`
+                });
+            
+            if (reserveError) throw reserveError;
+            
+            // Update quantity_reserved w project_materials (ile zarezerwowaliśmy)
+            await supabaseClient
+                .from('project_materials')
+                .update({ quantity_reserved: toReserve })
+                .eq('id', newMaterial.id);
+            
+            // Update stocku - może być ujemny!
+            const newQuantity = availableStock - toReserve; // Może być < 0
+            const currentReserved = freshStock.reserved_quantity || 0;
+            
+            console.log('🔍 REZERWACJA DEBUG - newQuantity (może być ujemne):', newQuantity);
+            console.log('🔍 REZERWACJA DEBUG - newReserved:', currentReserved + toReserve);
+            
+            await supabaseClient
+                .from('stock_items')
+                .update({ 
+                    current_quantity: newQuantity,
+                    reserved_quantity: currentReserved + toReserve
+                })
+                .eq('id', selectedStockItem.id);
         }
         
         alert('Material added successfully!');
