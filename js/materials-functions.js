@@ -229,8 +229,12 @@ function renderMaterialRow(material) {
                     ${!material.usage_recorded && material.quantity_reserved === 0 ? `
                         <button class="icon-btn" disabled title="Cannot record - nothing reserved" style="background: #444; color: #666; font-size: 11px; padding: 4px 8px; cursor: not-allowed;">📊 Record</button>
                     ` : ''}
-                    <button class="icon-btn" onclick="editMaterial('${material.id}')" title="Edit">✏️</button>
-                    <button class="icon-btn" onclick="deleteMaterial('${material.id}')" title="Delete">🗑️</button>
+                    ${!material.usage_recorded ? `
+                        <button class="icon-btn" onclick="editMaterial('${material.id}')" title="Edit">✏️</button>
+                        <button class="icon-btn" onclick="deleteMaterial('${material.id}')" title="Delete">🗑️</button>
+                    ` : `
+                        <span style="font-size: 11px; color: #666; padding: 4px;">🔒 Locked</span>
+                    `}
                 </div>
             </td>
         </tr>
