@@ -183,7 +183,9 @@ function renderMaterialRow(material) {
                 <div class="material-item-cell">
                     ${stockItem?.image_url ? 
                         `<img src="${stockItem.image_url}" class="material-image" alt="${material.item_name}">` :
-                        `<div class="material-image-placeholder">📦</div>`
+                        (material.image_url ? 
+                            `<img src="${material.image_url}" class="material-image" alt="${material.item_name}">` :
+                            `<div class="material-image-placeholder">📦</div>`)
                     }
                     <div>
                         <div class="material-name">${material.item_name}</div>
@@ -340,6 +342,8 @@ function resetAddMaterialForm() {
     document.getElementById('bespokeSupplier').value = '';
     document.getElementById('bespokePurchaseLink').value = '';
     document.getElementById('bespokeUnitCost').value = '';
+    document.getElementById('bespokeImageUpload').value = '';
+    document.getElementById('bespokeImagePreview').style.display = 'none';
     document.getElementById('addMaterialQuantity').value = '';
     document.getElementById('addMaterialUnit').value = '';
     document.getElementById('addMaterialNotes').value = '';
@@ -650,6 +654,7 @@ async function saveMaterial() {
             const bespokeName = document.getElementById('bespokeItemName').value.trim();
             const bespokeCategory = document.getElementById('bespokeMaterialCategory').value;
             const bespokeUnitCost = parseFloat(document.getElementById('bespokeUnitCost').value);
+            const bespokeImageFile = document.getElementById('bespokeImageUpload').files[0];
             
             if (!bespokeName) {
                 alert('Please enter item name');
@@ -666,6 +671,17 @@ async function saveMaterial() {
                 return;
             }
             
+            // Upload obrazka jeśli jest
+            let imageUrl = null;
+            if (bespokeImageFile) {
+                try {
+                    imageUrl = await uploadBespokeImage(bespokeImageFile);
+                } catch (uploadError) {
+                    console.error('Error uploading image:', uploadError);
+                    alert('Warning: Image upload failed, but material will be saved without image.');
+                }
+            }
+            
             materialData.stock_item_id = null;
             materialData.item_name = bespokeName;
             materialData.unit_cost = bespokeUnitCost;
@@ -675,6 +691,7 @@ async function saveMaterial() {
             materialData.bespoke_description = document.getElementById('bespokeDescription').value.trim() || null;
             materialData.supplier_id = document.getElementById('bespokeSupplier').value || null;
             materialData.purchase_link = document.getElementById('bespokePurchaseLink').value.trim() || null;
+            materialData.image_url = imageUrl;
         }
         
         // Save to database
@@ -1395,4 +1412,55 @@ function generateShoppingList() {
     console.log('Generate shopping list');
     // TODO: Implement shopping list generation
     alert('Shopping list functionality - coming soon');
+}
+
+// ========== BESPOKE IMAGE HANDLING ==========
+
+// Image preview dla bespoke
+document.addEventListener('DOMContentLoaded', () => {
+    const imageInput = document.getElementById('bespokeImageUpload');
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('bespokeImagePreviewImg').src = event.target.result;
+                    document.getElementById('bespokeImagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+
+// Upload bespoke image do Supabase Storage
+async function uploadBespokeImage(file) {
+    if (!file) return null;
+    
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `bespoke-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = fileName;
+        
+        const { data, error } = await supabaseClient.storage
+            .from('stock-images')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+        
+        if (error) throw error;
+        
+        // Pobierz publiczny URL
+        const { data: { publicUrl } } = supabaseClient.storage
+            .from('stock-images')
+            .getPublicUrl(filePath);
+        
+        return publicUrl;
+        
+    } catch (error) {
+        console.error('Error uploading bespoke image:', error);
+        throw error;
+    }
 }
