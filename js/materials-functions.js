@@ -971,13 +971,17 @@ async function exportShoppingListPDF() {
                 stock_items (
                     current_quantity,
                     unit,
-                    image_url
+                    image_url,
+                    size,
+                    thickness
                 ),
                 suppliers (
                     name
                 )
             `)
-            .eq('project_id', currentMaterialsProject.id);
+            .eq('project_id', currentMaterialsProject.id)
+            .order('used_in_stage', { ascending: true })
+            .order('created_at', { ascending: true });
         
         if (error) throw error;
         
@@ -993,9 +997,22 @@ async function exportShoppingListPDF() {
             return;
         }
         
+        // Grupuj po stage
+        const grouped = {
+            'Production': [],
+            'Spraying': [],
+            'Installation': []
+        };
+        
+        toOrder.forEach(m => {
+            if (grouped[m.used_in_stage]) {
+                grouped[m.used_in_stage].push(m);
+            }
+        });
+        
         // Generuj PDF
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape'); // Landscape for more columns
+        const doc = new jsPDF('landscape');
         
         // Header
         doc.setFontSize(20);
@@ -1005,100 +1022,123 @@ async function exportShoppingListPDF() {
         doc.text(`Project: ${currentMaterialsProject.projectNumber} - ${currentMaterialsProject.name}`, 20, 30);
         doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 20, 37);
         
-        // Table
         let y = 50;
-        doc.setFontSize(10);
-        doc.text('Photo', 20, y);
-        doc.text('Material', 50, y);
-        doc.text('Needed', 185, y);
-        doc.text('In Stock', 215, y);
-        doc.text('Notes', 245, y);
-        doc.text('✓', 270, y);
         
-        y += 5;
-        doc.line(20, y, 280, y);
-        y += 7;
-        
-        doc.setFontSize(9);
-        
-        // Process materials one by one to handle images
-        for (const m of toOrder) {
-            const needed = m.quantity_needed.toFixed(2);
-            const inStock = m.stock_items ? 
-                ((m.stock_items.current_quantity || 0) - (m.quantity_reserved || 0)).toFixed(2) : 
-                (m.is_bespoke ? '-' : (-(m.quantity_reserved || 0)).toFixed(2));
+        // Process each stage
+        for (const [stage, stageMaterials] of Object.entries(grouped)) {
+            if (stageMaterials.length === 0) continue;
             
-            // Add image if exists (stock items lub bespoke)
-            const imageUrl = m.stock_items?.image_url || m.image_url;
-            if (imageUrl) {
-                try {
-                    // Create a promise to load the image
-                    const imgData = await new Promise((resolve, reject) => {
-                        const img = new Image();
-                        img.crossOrigin = 'Anonymous';
-                        img.onload = function() {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0);
-                            resolve(canvas.toDataURL('image/jpeg'));
-                        };
-                        img.onerror = () => resolve(null);
-                        img.src = imageUrl;
-                    });
-                    
-                    if (imgData) {
-                        doc.addImage(imgData, 'JPEG', 20, y - 5, 20, 20);
+            // Stage header
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(`${stage.toUpperCase()} STAGE`, 20, y);
+            y += 8;
+            
+            // Table header
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text('Photo', 20, y);
+            doc.text('Material', 50, y);
+            doc.text('Needed', 150, y);
+            doc.text('Stock', 175, y);
+            doc.text('Notes', 200, y);
+            doc.text('✓', 270, y);
+            
+            y += 3;
+            doc.line(20, y, 280, y);
+            y += 7;
+            
+            doc.setFontSize(9);
+            
+            // Process materials for this stage
+            for (const m of stageMaterials) {
+                const needed = m.quantity_needed.toFixed(2);
+                const inStock = m.stock_items ? 
+                    ((m.stock_items.current_quantity || 0) - (m.quantity_reserved || 0)).toFixed(2) : 
+                    (m.is_bespoke ? '-' : (-(m.quantity_reserved || 0)).toFixed(2));
+                
+                // Add image if exists
+                const imageUrl = m.stock_items?.image_url || m.image_url;
+                if (imageUrl) {
+                    try {
+                        const imgData = await new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.crossOrigin = 'Anonymous';
+                            img.onload = function() {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0);
+                                resolve(canvas.toDataURL('image/jpeg'));
+                            };
+                            img.onerror = () => resolve(null);
+                            img.src = imageUrl;
+                        });
+                        
+                        if (imgData) {
+                            doc.addImage(imgData, 'JPEG', 20, y - 5, 20, 20);
+                        }
+                    } catch (err) {
+                        console.error('Error loading image:', err);
                     }
-                } catch (err) {
-                    console.error('Error loading image:', err);
+                }
+                
+                // Build description
+                let description = m.item_name;
+                
+                if (m.stock_items) {
+                    const size = m.stock_items.size || '';
+                    const thickness = m.stock_items.thickness || '';
+                    if (size || thickness) {
+                        description += '\n' + [size, thickness].filter(x => x).join(' / ');
+                    }
+                }
+                
+                if (m.item_notes) {
+                    description += '\n' + m.item_notes;
+                }
+                
+                // Add text
+                const lines = doc.splitTextToSize(description, 90);
+                doc.text(lines, 50, y + 5);
+                
+                doc.text(`${needed} ${m.unit}`, 150, y + 5);
+                doc.text(`${inStock} ${m.is_bespoke ? '' : m.unit}`, 175, y + 5);
+                
+                // Notes line
+                doc.line(200, y + 10, 265, y + 10);
+                
+                // Checkbox
+                doc.rect(268, y, 8, 8);
+                
+                // Row height
+                const rowHeight = Math.max(25, lines.length * 5 + 10);
+                y += rowHeight;
+                
+                // Horizontal separator line
+                doc.setDrawColor(200, 200, 200);
+                doc.line(20, y - 2, 280, y - 2);
+                doc.setDrawColor(0, 0, 0);
+                
+                // New page if needed
+                if (y > 160) {
+                    doc.addPage('landscape');
+                    y = 20;
                 }
             }
             
-            // Build full description: name + size/thickness + notes
-            let description = m.item_name;
+            // Extra space between stages
+            y += 10;
             
-            // Add dimensions from stock_items if available
-            if (m.stock_items) {
-                const size = m.stock_items.size || '';
-                const thickness = m.stock_items.thickness || '';
-                if (size || thickness) {
-                    description += '\n' + [size, thickness].filter(x => x).join(' / ');
-                }
-            }
-            
-            // Add notes if available
-            if (m.item_notes) {
-                description += '\n' + m.item_notes;
-            }
-            
-            // Split description into lines and add to PDF
-            const lines = doc.splitTextToSize(description, 125); // Max width 125
-            doc.text(lines, 50, y + 5);
-            
-            // Add other columns
-            doc.text(`${needed} ${m.unit}`, 185, y + 5);
-            doc.text(`${inStock} ${m.is_bespoke ? '' : m.unit}`, 215, y + 5);
-            
-            // Notes column - empty line for manual notes
-            doc.line(245, y + 10, 265, y + 10);
-            
-            // Draw checkbox
-            doc.rect(268, y, 8, 8);
-            
-            // Calculate row height based on text lines
-            const rowHeight = Math.max(25, lines.length * 5 + 10);
-            y += rowHeight;
-            
-            if (y > 160) { // Leave space for footer
+            if (y > 160) {
                 doc.addPage('landscape');
                 y = 20;
             }
         }
         
-        // Footer - signature section
-        const footerY = 175; // Fixed position near bottom
+        // Footer
+        const footerY = 175;
         doc.setFontSize(10);
         doc.text('Checked by:', 20, footerY);
         doc.line(50, footerY, 100, footerY);
