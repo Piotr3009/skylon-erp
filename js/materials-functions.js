@@ -674,16 +674,12 @@ async function saveMaterial() {
             // Upload obrazka jeśli jest
             let imageUrl = null;
             if (bespokeImageFile) {
-                console.log('🖼️ Uploading bespoke image:', bespokeImageFile.name);
                 try {
                     imageUrl = await uploadBespokeImage(bespokeImageFile);
-                    console.log('✅ Image uploaded successfully:', imageUrl);
                 } catch (uploadError) {
-                    console.error('❌ Error uploading image:', uploadError);
+                    console.error('Error uploading image:', uploadError);
                     alert('Warning: Image upload failed, but material will be saved without image.');
                 }
-            } else {
-                console.log('ℹ️ No image file selected');
             }
             
             materialData.stock_item_id = null;
@@ -1032,8 +1028,9 @@ async function exportShoppingListPDF() {
             const toOrderQty = (m.quantity_needed - m.quantity_reserved).toFixed(2);
             const supplier = m.suppliers?.name || 'N/A';
             
-            // Add image if exists
-            if (m.stock_items?.image_url) {
+            // Add image if exists (stock items lub bespoke)
+            const imageUrl = m.stock_items?.image_url || m.image_url;
+            if (imageUrl) {
                 try {
                     // Create a promise to load the image
                     const imgData = await new Promise((resolve, reject) => {
@@ -1048,7 +1045,7 @@ async function exportShoppingListPDF() {
                             resolve(canvas.toDataURL('image/jpeg'));
                         };
                         img.onerror = () => resolve(null);
-                        img.src = m.stock_items.image_url;
+                        img.src = imageUrl;
                     });
                     
                     if (imgData) {
@@ -1440,18 +1437,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Upload bespoke image do Supabase Storage
 async function uploadBespokeImage(file) {
-    console.log('📤 uploadBespokeImage called with file:', file);
-    if (!file) {
-        console.log('⚠️ No file provided');
-        return null;
-    }
+    if (!file) return null;
     
     try {
         const fileExt = file.name.split('.').pop();
         const fileName = `bespoke-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = fileName;
-        
-        console.log('📁 Uploading to path:', filePath);
         
         const { data, error } = await supabaseClient.storage
             .from('stock-images')
@@ -1460,8 +1451,6 @@ async function uploadBespokeImage(file) {
                 upsert: false
             });
         
-        console.log('📥 Upload response - data:', data, 'error:', error);
-        
         if (error) throw error;
         
         // Pobierz publiczny URL
@@ -1469,12 +1458,10 @@ async function uploadBespokeImage(file) {
             .from('stock-images')
             .getPublicUrl(filePath);
         
-        console.log('🔗 Public URL:', publicUrl);
-        
         return publicUrl;
         
     } catch (error) {
-        console.error('💥 Error uploading bespoke image:', error);
+        console.error('Error uploading bespoke image:', error);
         throw error;
     }
 }
