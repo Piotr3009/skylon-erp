@@ -223,11 +223,11 @@ function renderMaterialRow(material) {
             <td>${statusBadge}</td>
             <td>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    ${!material.usage_recorded && material.quantity_reserved > 0 ? `
-                        <button class="icon-btn" onclick="showRecordUsageModal('${material.id}')" title="Record Usage" style="background: #10b981; font-size: 11px; padding: 4px 8px;">📊 Record</button>
+                    ${!material.usage_recorded && (material.is_bespoke || material.quantity_reserved > 0) ? `
+                        <button class="icon-btn" onclick="showRecordUsageModal('${material.id}')" title="Mark as Used" style="background: #10b981; font-size: 11px; padding: 4px 8px;">✅ Mark as Used</button>
                     ` : ''}
-                    ${!material.usage_recorded && material.quantity_reserved === 0 ? `
-                        <button class="icon-btn" disabled title="Cannot record - nothing reserved" style="background: #444; color: #666; font-size: 11px; padding: 4px 8px; cursor: not-allowed;">📊 Record</button>
+                    ${!material.usage_recorded && !material.is_bespoke && material.quantity_reserved === 0 ? `
+                        <button class="icon-btn" disabled title="Cannot mark as used - nothing reserved from stock" style="background: #444; color: #666; font-size: 11px; padding: 4px 8px; cursor: not-allowed;">✅ Mark as Used</button>
                     ` : ''}
                     ${!material.usage_recorded ? `
                         <button class="icon-btn" onclick="editMaterial('${material.id}')" title="Edit">✏️</button>
@@ -836,14 +836,15 @@ async function saveMaterialUsage() {
         const material = currentRecordingMaterial;
         const quantityReserved = material.quantity_reserved || 0;
         
-        // KRYTYCZNA WALIDACJA: Nie pozwól na Record Usage jeśli nic nie zarezerwowano
-        if (quantityReserved === 0) {
-            alert('❌ Cannot record usage!\n\nThis material has NOT been reserved from stock (quantity reserved = 0).\n\nYou must first:\n1. Order this material\n2. Receive it into stock\n3. Material will be automatically reserved\n\nThen you can record usage.');
+        // WALIDACJA: Dla STOCK items - sprawdź czy zarezerwowano
+        // Dla BESPOKE - pomiń (nie ma w stocku)
+        if (!material.is_bespoke && quantityReserved === 0) {
+            alert('❌ Cannot mark as used!\n\nThis material has NOT been reserved from stock (quantity reserved = 0).\n\nYou must first:\n1. Order this material\n2. Receive it into stock\n3. Material will be automatically reserved\n\nThen you can mark as used.');
             return;
         }
         
-        // Sprawdź czy nie używasz więcej niż zarezerwowano
-        if (quantityUsed > quantityReserved) {
+        // Dla STOCK items: Sprawdź czy nie używasz więcej niż zarezerwowano
+        if (!material.is_bespoke && quantityUsed > quantityReserved) {
             const difference = quantityUsed - quantityReserved;
             if (!confirm(`⚠️ WARNING!\n\nYou are recording ${quantityUsed} ${material.unit} used, but only ${quantityReserved} ${material.unit} was reserved.\n\nThis will create a negative adjustment of ${difference.toFixed(2)} ${material.unit} in stock.\n\nDo you want to continue?`)) {
                 return;
