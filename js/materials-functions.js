@@ -684,6 +684,10 @@ async function saveMaterial() {
         
         // Jeśli to stock item - OD RAZU odejmij ze stocku i oznacz jako reserved
         if (materialType === 'stock' && selectedStockItem) {
+            console.log('🔍 REZERWACJA DEBUG - selectedStockItem:', selectedStockItem);
+            console.log('🔍 REZERWACJA DEBUG - selectedStockItem.id:', selectedStockItem.id);
+            console.log('🔍 REZERWACJA DEBUG - quantity:', quantity);
+            
             // Pobierz AKTUALNY stan stocku z bazy (selectedStockItem może mieć stare dane)
             const { data: freshStock, error: fetchError } = await supabaseClient
                 .from('stock_items')
@@ -691,10 +695,16 @@ async function saveMaterial() {
                 .eq('id', selectedStockItem.id)
                 .single();
             
+            console.log('🔍 REZERWACJA DEBUG - freshStock:', freshStock);
+            console.log('🔍 REZERWACJA DEBUG - fetchError:', fetchError);
+            
             if (fetchError) throw fetchError;
             
             const availableStock = freshStock.current_quantity || 0;
             const toReserve = Math.min(availableStock, quantity);
+            
+            console.log('🔍 REZERWACJA DEBUG - availableStock:', availableStock);
+            console.log('🔍 REZERWACJA DEBUG - toReserve:', toReserve);
             
             if (toReserve > 0) {
                 // Dodaj transakcję OUT (od razu zabieramy ze stocku)
