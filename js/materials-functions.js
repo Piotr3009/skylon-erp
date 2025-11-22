@@ -1010,12 +1010,10 @@ async function exportShoppingListPDF() {
         doc.setFontSize(10);
         doc.text('Photo', 20, y);
         doc.text('Material', 50, y);
-        doc.text('Needed', 120, y);
-        doc.text('Reserved', 145, y);
-        doc.text('To Order', 170, y);
-        doc.text('Supplier', 195, y);
-        doc.text('Status', 235, y);
-        doc.text('Check', 265, y);
+        doc.text('Needed', 185, y);
+        doc.text('In Stock', 215, y);
+        doc.text('Notes', 245, y);
+        doc.text('✓', 270, y);
         
         y += 5;
         doc.line(20, y, 280, y);
@@ -1025,8 +1023,10 @@ async function exportShoppingListPDF() {
         
         // Process materials one by one to handle images
         for (const m of toOrder) {
-            const toOrderQty = (m.quantity_needed - m.quantity_reserved).toFixed(2);
-            const supplier = m.suppliers?.name || 'N/A';
+            const needed = m.quantity_needed.toFixed(2);
+            const inStock = m.stock_items ? 
+                ((m.stock_items.current_quantity || 0) - (m.quantity_reserved || 0)).toFixed(2) : 
+                (m.is_bespoke ? '-' : (-(m.quantity_reserved || 0)).toFixed(2));
             
             // Add image if exists (stock items lub bespoke)
             const imageUrl = m.stock_items?.image_url || m.image_url;
@@ -1056,36 +1056,58 @@ async function exportShoppingListPDF() {
                 }
             }
             
-            // Determine status
-            let status = '';
-            if (m.usage_recorded) {
-                status = 'Used';
-            } else if (m.is_bespoke) {
-                status = 'Bespoke';
-            } else if (toOrderQty > 0) {
-                status = 'Order Needed';
-            } else {
-                status = 'Reserved';
+            // Build full description: name + size/thickness + notes
+            let description = m.item_name;
+            
+            // Add dimensions from stock_items if available
+            if (m.stock_items) {
+                const size = m.stock_items.size || '';
+                const thickness = m.stock_items.thickness || '';
+                if (size || thickness) {
+                    description += '\n' + [size, thickness].filter(x => x).join(' / ');
+                }
             }
             
-            // Add text
-            doc.text(m.item_name.substring(0, 30), 50, y + 5);
-            doc.text(`${m.quantity_needed.toFixed(2)} ${m.unit}`, 120, y + 5);
-            doc.text(`${m.quantity_reserved.toFixed(2)} ${m.unit}`, 145, y + 5);
-            doc.text(`${toOrderQty} ${m.unit}`, 170, y + 5);
-            doc.text(supplier.substring(0, 18), 195, y + 5);
-            doc.text(status, 235, y + 5);
+            // Add notes if available
+            if (m.item_notes) {
+                description += '\n' + m.item_notes;
+            }
+            
+            // Split description into lines and add to PDF
+            const lines = doc.splitTextToSize(description, 125); // Max width 125
+            doc.text(lines, 50, y + 5);
+            
+            // Add other columns
+            doc.text(`${needed} ${m.unit}`, 185, y + 5);
+            doc.text(`${inStock} ${m.is_bespoke ? '' : m.unit}`, 215, y + 5);
+            
+            // Notes column - empty line for manual notes
+            doc.line(245, y + 10, 265, y + 10);
             
             // Draw checkbox
-            doc.rect(265, y, 8, 8); // Empty checkbox
+            doc.rect(268, y, 8, 8);
             
-            y += 25;
+            // Calculate row height based on text lines
+            const rowHeight = Math.max(25, lines.length * 5 + 10);
+            y += rowHeight;
             
-            if (y > 180) { // Landscape has less height
+            if (y > 160) { // Leave space for footer
                 doc.addPage('landscape');
                 y = 20;
             }
         }
+        
+        // Footer - signature section
+        const footerY = 175; // Fixed position near bottom
+        doc.setFontSize(10);
+        doc.text('Checked by:', 20, footerY);
+        doc.line(50, footerY, 100, footerY);
+        
+        doc.text('Date:', 120, footerY);
+        doc.line(140, footerY, 180, footerY);
+        
+        doc.text('Signature:', 200, footerY);
+        doc.line(230, footerY, 280, footerY);
         
         // Save
         doc.save(`Materials_List_${currentMaterialsProject.projectNumber}.pdf`);
