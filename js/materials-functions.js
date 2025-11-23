@@ -1438,16 +1438,12 @@ async function deleteMaterial(materialId) {
         
         // 2. Jeśli to bespoke z obrazkiem - usuń obrazek z Storage
         if (material.is_bespoke && material.image_url) {
-            console.log('🗑️ Deleting bespoke image:', material.image_url);
             try {
                 await deleteFileFromStorage('stock-images', material.image_url);
-                console.log('✅ Bespoke image deleted from storage');
             } catch (imgError) {
-                console.warn('⚠️ Failed to delete bespoke image:', imgError);
+                console.warn('Failed to delete bespoke image:', imgError);
                 // Nie blokuj usuwania materiału
             }
-        } else {
-            console.log('ℹ️ No bespoke image to delete (is_bespoke:', material.is_bespoke, 'image_url:', material.image_url, ')');
         }
         
         // 3. Jeśli to stock item i ma reserved quantity - zwróć do stocku
