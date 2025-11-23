@@ -153,8 +153,10 @@ function renderMaterialRow(material) {
     // RESERVED - dla bespoke to quantity_needed, dla stock to quantity_reserved
     const reserved = material.is_bespoke ? (material.quantity_needed || 0) : (material.quantity_reserved || 0);
     
-    // STOCK LEFT - ile zostało na magazynie (current_quantity)
-    const stockLeft = material.is_bespoke ? 0 : (stockItem ? stockItem.current_quantity : 0);
+    // STOCK LEFT - ile AVAILABLE na magazynie (current_quantity - reserved_quantity)
+    // To jest to samo co AVAILABLE w Stock App
+    const stockLeft = material.is_bespoke ? 0 : 
+        (stockItem ? ((stockItem.current_quantity || 0) - (stockItem.reserved_quantity || 0)) : 0);
     
     // TO ORDER - ile trzeba zamówić
     // TO ORDER = max(0, RESERVED - STOCK LEFT)
@@ -254,8 +256,10 @@ function calculateMaterialsSummary(materials) {
     
     materials.forEach(m => {
         // TO ORDER = max(0, RESERVED - STOCK LEFT)
-        const reserved = m.quantity_reserved || 0;
-        const stockLeft = m.is_bespoke ? 0 : (m.stock_items?.current_quantity || 0);
+        // STOCK LEFT = AVAILABLE = current - reserved (dla całego magazynu, nie tylko ten projekt)
+        const reserved = m.is_bespoke ? (m.quantity_needed || 0) : (m.quantity_reserved || 0);
+        const stockLeft = m.is_bespoke ? 0 : 
+            (m.stock_items ? ((m.stock_items.current_quantity || 0) - (m.stock_items.reserved_quantity || 0)) : 0);
         const toOrder = Math.max(0, reserved - stockLeft);
         
         if (toOrder > 0) itemsToOrder++;
