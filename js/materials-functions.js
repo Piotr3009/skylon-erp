@@ -122,9 +122,8 @@ function renderMaterialsList(materials) {
                             <th style="width: 25%;">Material</th>
                             <th style="width: 80px;">Item #</th>
                             <th style="width: 120px;">Size / Thickness</th>
-                            <th>Needed</th>
                             <th>Reserved</th>
-                            <th>In Stock</th>
+                            <th>Stock Left</th>
                             <th>To Order</th>
                             <th>Unit Cost</th>
                             <th>Total Cost</th>
@@ -151,16 +150,19 @@ function renderMaterialsList(materials) {
 function renderMaterialRow(material) {
     const stockItem = material.stock_items;
     
-    // IN STOCK = current_quantity (już nie zawiera zarezerwowanych)
-    // current_quantity w DB jest już po odjęciu reserved_quantity
-    const currentQty = stockItem ? stockItem.current_quantity : 0;
-    const inStock = material.is_bespoke ? 0 : currentQty;
+    // RESERVED - ile zarezerwowane dla tego projektu
+    const reserved = material.quantity_reserved || 0;
     
-    // TO ORDER = needed - current_quantity (jeśli > 0)
-    // Bespoke items nie mają TO ORDER bo nie są z magazynu
-    const toOrder = material.is_bespoke ? 0 : Math.max(0, material.quantity_needed - currentQty);
+    // STOCK LEFT - ile zostało na magazynie (current_quantity)
+    const stockLeft = material.is_bespoke ? 0 : (stockItem ? stockItem.current_quantity : 0);
     
-    const totalCost = material.quantity_needed * (material.unit_cost || 0);
+    // TO ORDER - ile trzeba zamówić
+    // TO ORDER = max(0, RESERVED - (STOCK LEFT + RESERVED))
+    // Czyli: max(0, RESERVED - stock_before)
+    const stockBefore = stockLeft + reserved;
+    const toOrder = material.is_bespoke ? 0 : Math.max(0, reserved - stockBefore);
+    
+    const totalCost = reserved * (material.unit_cost || 0);
     
     // Status
     let statusBadge = '';
@@ -170,7 +172,7 @@ function renderMaterialRow(material) {
         statusBadge = `<span class="material-status-badge status-bespoke">🛒 Bespoke</span>`;
     } else if (toOrder > 0) {
         statusBadge = `<span class="material-status-badge status-warning">⚠️ Order Needed</span>`;
-    } else if (material.quantity_reserved > 0) {
+    } else if (reserved > 0) {
         statusBadge = `<span class="material-status-badge status-reserved">🔒 Reserved</span>`;
     } else {
         statusBadge = `<span class="material-status-badge status-ok">✅ In Stock</span>`;
@@ -208,14 +210,13 @@ function renderMaterialRow(material) {
                     (material.is_bespoke ? '-' : '-')
                 }
             </td>
-            <td class="material-quantity">${material.quantity_needed.toFixed(2)} ${material.unit}</td>
-            <td class="material-quantity">${material.quantity_reserved.toFixed(2)} ${material.unit}</td>
+            <td class="material-quantity">${reserved.toFixed(2)} ${material.unit}</td>
             <td class="material-quantity">
                 ${material.is_bespoke ? '-' : `
-                    <span style="color: ${inStock < 0 ? '#ef4444' : '#e0e0e0'}; font-weight: ${inStock < 0 ? '600' : 'normal'};">
-                        ${inStock.toFixed(2)} ${material.unit}
+                    <span style="color: ${stockLeft < 0 ? '#ef4444' : '#e0e0e0'}; font-weight: ${stockLeft < 0 ? '600' : 'normal'};">
+                        ${stockLeft.toFixed(2)} ${material.unit}
                     </span>
-                    ${inStock < 0 ? '<div style="font-size: 10px; color: #ef4444;">❌ NEGATIVE</div>' : ''}
+                    ${stockLeft < 0 ? '<div style="font-size: 10px; color: #ef4444;">❌ NEGATIVE</div>' : ''}
                 `}
             </td>
             <td class="material-quantity">${toOrder > 0 ? `${toOrder.toFixed(2)} ${material.unit}` : '-'}</td>
@@ -224,10 +225,10 @@ function renderMaterialRow(material) {
             <td>${statusBadge}</td>
             <td>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    ${!material.usage_recorded && (material.is_bespoke || material.quantity_reserved > 0) ? `
+                    ${!material.usage_recorded && (material.is_bespoke || reserved > 0) ? `
                         <button class="icon-btn" onclick="showRecordUsageModal('${material.id}')" title="Mark as Used" style="background: #10b981; font-size: 11px; padding: 4px 8px;">✅ Mark as Used</button>
                     ` : ''}
-                    ${!material.usage_recorded && !material.is_bespoke && material.quantity_reserved === 0 ? `
+                    ${!material.usage_recorded && !material.is_bespoke && reserved === 0 ? `
                         <button class="icon-btn" disabled title="Cannot mark as used - nothing reserved from stock" style="background: #444; color: #666; font-size: 11px; padding: 4px 8px; cursor: not-allowed;">✅ Mark as Used</button>
                     ` : ''}
                     ${!material.usage_recorded ? `
