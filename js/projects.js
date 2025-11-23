@@ -863,7 +863,29 @@ async function confirmMoveToArchive() {
                 console.log('✅ Notes read status deleted');
             }
             
-            // 3c. Usuń materiały projektu (project_materials) - teraz już są w archiwum
+            // 3c. Usuń stock_transactions związane z materiałami projektu
+            // Musimy to zrobić PRZED usunięciem project_materials (foreign key)
+            const { data: projectMaterialIds } = await supabaseClient
+                .from('project_materials')
+                .select('id')
+                .eq('project_id', project.id);
+            
+            if (projectMaterialIds && projectMaterialIds.length > 0) {
+                const materialIds = projectMaterialIds.map(m => m.id);
+                
+                const { error: deleteTransactionsError } = await supabaseClient
+                    .from('stock_transactions')
+                    .delete()
+                    .in('project_material_id', materialIds);
+                
+                if (deleteTransactionsError) {
+                    console.error('⚠️ Warning: Error deleting stock transactions:', deleteTransactionsError);
+                } else {
+                    console.log('✅ Stock transactions deleted');
+                }
+            }
+            
+            // 3d. Usuń materiały projektu (project_materials) - teraz już są w archiwum
             const { error: deleteMaterialsError } = await supabaseClient
                 .from('project_materials')
                 .delete()
@@ -875,7 +897,7 @@ async function confirmMoveToArchive() {
                 console.log('✅ Project materials deleted from active table');
             }
             
-            // 3d. Usuń fazy projektu (project_phases)
+            // 3e. Usuń fazy projektu (project_phases)
             const { error: deletePhasesError } = await supabaseClient
                 .from('project_phases')
                 .delete()
