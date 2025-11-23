@@ -985,15 +985,8 @@ async function exportShoppingListPDF() {
         
         if (error) throw error;
         
-        // Filtruj tylko materiały do zamówienia
-        const toOrder = materials.filter(m => {
-            const needed = m.quantity_needed || 0;
-            const reserved = m.quantity_reserved || 0;
-            return needed > reserved;
-        });
-        
-        if (toOrder.length === 0) {
-            alert('No materials to order!');
+        if (materials.length === 0) {
+            alert('No materials added yet!');
             return;
         }
         
@@ -1004,7 +997,7 @@ async function exportShoppingListPDF() {
             'Installation': []
         };
         
-        toOrder.forEach(m => {
+        materials.forEach(m => {
             if (grouped[m.used_in_stage]) {
                 grouped[m.used_in_stage].push(m);
             }
