@@ -150,8 +150,8 @@ function renderMaterialsList(materials) {
 function renderMaterialRow(material) {
     const stockItem = material.stock_items;
     
-    // RESERVED - ile zarezerwowane dla tego projektu
-    const reserved = material.quantity_reserved || 0;
+    // RESERVED - dla bespoke to quantity_needed, dla stock to quantity_reserved
+    const reserved = material.is_bespoke ? (material.quantity_needed || 0) : (material.quantity_reserved || 0);
     
     // STOCK LEFT - ile zostało na magazynie (current_quantity)
     const stockLeft = material.is_bespoke ? 0 : (stockItem ? stockItem.current_quantity : 0);
@@ -253,7 +253,11 @@ function calculateMaterialsSummary(materials) {
     let estimatedCost = 0;
     
     materials.forEach(m => {
-        const toOrder = Math.max(0, m.quantity_needed - m.quantity_reserved);
+        // TO ORDER = max(0, RESERVED - STOCK LEFT)
+        const reserved = m.quantity_reserved || 0;
+        const stockLeft = m.is_bespoke ? 0 : (m.stock_items?.current_quantity || 0);
+        const toOrder = Math.max(0, reserved - stockLeft);
+        
         if (toOrder > 0) itemsToOrder++;
         if (m.is_bespoke) bespokeItems++;
         estimatedCost += m.quantity_needed * (m.unit_cost || 0);
