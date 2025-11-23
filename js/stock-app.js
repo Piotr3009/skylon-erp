@@ -45,8 +45,8 @@ function sortStockItems(column) {
                 valB = parseFloat(b.current_quantity) || 0;
                 break;
             case 'available':
-                valA = parseFloat(a.current_quantity) || 0;
-                valB = parseFloat(b.current_quantity) || 0;
+                valA = (parseFloat(a.current_quantity) || 0) - (parseFloat(a.reserved_quantity) || 0);
+                valB = (parseFloat(b.current_quantity) || 0) - (parseFloat(b.reserved_quantity) || 0);
                 break;
             case 'ordered':
                 valA = parseFloat(a.ordered_quantity) || 0;
@@ -302,8 +302,8 @@ function renderStockTable() {
 
 // Create stock row
 function createStockRow(item) {
-    // AVAILABLE = current_quantity (już nie zawiera reserved)
-    const available = item.current_quantity || 0;
+    // AVAILABLE = current_quantity - reserved_quantity
+    const available = (item.current_quantity || 0) - (item.reserved_quantity || 0);
     const isLowStock = available <= (item.min_quantity || 0);
     const isNegative = available < 0;
     const value = (item.current_quantity || 0) * (item.cost_per_unit || 0);
