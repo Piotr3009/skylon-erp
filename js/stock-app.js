@@ -2868,6 +2868,141 @@ async function generateOrderedItemsReport(dateFrom, dateTo, workerId, category, 
     `;
 }
 
+// ========== PENDING ORDERS PDF ==========
+async function generatePendingOrdersPDF() {
+    try {
+        // Załaduj pending orders
+        const { data: orders, error } = await supabaseClient
+            .from('stock_orders')
+            .select(`
+                *,
+                stock_items (
+                    name,
+                    item_number,
+                    image_url,
+                    unit
+                ),
+                suppliers (
+                    name
+                )
+            `)
+            .eq('status', 'ordered')
+            .order('expected_delivery_date', { ascending: true });
+        
+        if (error) throw error;
+        
+        if (!orders || orders.length === 0) {
+            alert('No pending orders found!');
+            return;
+        }
+        
+        // Generuj PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        
+        // Header
+        doc.setFontSize(20);
+        doc.text('Pending Orders List', 20, 20);
+        
+        doc.setFontSize(12);
+        doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 20, 30);
+        doc.text(`Total Orders: ${orders.length}`, 20, 37);
+        
+        // Table header
+        let y = 50;
+        doc.setFontSize(10);
+        doc.text('Photo', 20, y);
+        doc.text('Material', 50, y);
+        doc.text('Supplier', 120, y);
+        doc.text('Qty Ordered', 165, y);
+        doc.text('Expected', 200, y);
+        doc.text('Received by', 230, y);
+        doc.text('✓', 270, y);
+        
+        y += 3;
+        doc.line(20, y, 280, y);
+        y += 7;
+        
+        doc.setFontSize(9);
+        
+        // Process orders
+        for (const order of orders) {
+            const qtyOrdered = `${order.quantity_ordered} ${order.stock_items?.unit || ''}`;
+            const expectedDate = order.expected_delivery_date ? 
+                new Date(order.expected_delivery_date).toLocaleDateString('en-GB') : 
+                'TBD';
+            
+            // Add image if exists
+            if (order.stock_items?.image_url) {
+                try {
+                    const imgData = await new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            resolve(canvas.toDataURL('image/jpeg'));
+                        };
+                        img.onerror = () => resolve(null);
+                        img.src = order.stock_items.image_url;
+                    });
+                    
+                    if (imgData) {
+                        doc.addImage(imgData, 'JPEG', 20, y - 5, 20, 20);
+                    }
+                } catch (err) {
+                    console.error('Error loading image:', err);
+                }
+            }
+            
+            // Material name + item number
+            let materialText = order.stock_items?.name || 'Unknown';
+            if (order.stock_items?.item_number) {
+                materialText += `\n${order.stock_items.item_number}`;
+            }
+            
+            const lines = doc.splitTextToSize(materialText, 60);
+            doc.text(lines, 50, y + 5);
+            
+            // Other columns
+            doc.text(order.suppliers?.name || 'N/A', 120, y + 5);
+            doc.text(qtyOrdered, 165, y + 5);
+            doc.text(expectedDate, 200, y + 5);
+            
+            // Received by - empty line
+            doc.line(230, y + 10, 265, y + 10);
+            
+            // Checkbox
+            doc.rect(268, y, 8, 8);
+            
+            // Row height
+            const rowHeight = Math.max(25, lines.length * 5 + 10);
+            y += rowHeight;
+            
+            // Separator line
+            doc.setDrawColor(200, 200, 200);
+            doc.line(20, y - 2, 280, y - 2);
+            doc.setDrawColor(0, 0, 0);
+            
+            // New page if needed
+            if (y > 180) {
+                doc.addPage('landscape');
+                y = 20;
+            }
+        }
+        
+        // Save
+        doc.save(`Pending_Orders_${new Date().toISOString().split('T')[0]}.pdf`);
+        
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF: ' + error.message);
+    }
+}
+
 // ========== PERMISSIONS: READ-ONLY FOR MANAGER/WORKER ==========
 window.addEventListener("permissionsLoaded", function() {
     if (!window.currentUserRole) return;
