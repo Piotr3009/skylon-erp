@@ -980,6 +980,7 @@ async function exportShoppingListPDF() {
                 *,
                 stock_items (
                     current_quantity,
+                    reserved_quantity,
                     unit,
                     image_url,
                     size,
