@@ -2897,7 +2897,11 @@ async function generatePendingOrdersPDF() {
         }
         
         // Generuj PDF
-        const { jsPDF } = window.jspdf;
+        const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+        if (!jsPDF) {
+            alert('PDF library not loaded. Please refresh the page.');
+            return;
+        }
         const doc = new jsPDF('landscape');
         
         // Header
