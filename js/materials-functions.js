@@ -151,11 +151,10 @@ function renderMaterialsList(materials) {
 function renderMaterialRow(material) {
     const stockItem = material.stock_items;
     
-    // IN STOCK dla projektu = dostępne na magazynie MINUS zarezerwowane dla tego projektu
-    // Może być ujemne jeśli zarezerwowano więcej niż jest dostępne
+    // IN STOCK = current_quantity (już nie zawiera zarezerwowanych)
+    // current_quantity w DB jest już po odjęciu reserved_quantity
     const currentQty = stockItem ? stockItem.current_quantity : 0;
-    const reservedForProject = material.quantity_reserved || 0;
-    const inStock = material.is_bespoke ? 0 : (currentQty - reservedForProject);
+    const inStock = material.is_bespoke ? 0 : currentQty;
     
     // TO ORDER = needed - current_quantity (jeśli > 0)
     // Bespoke items nie mają TO ORDER bo nie są z magazynu
