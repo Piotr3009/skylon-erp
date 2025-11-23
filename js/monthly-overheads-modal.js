@@ -346,8 +346,9 @@ async function copyFromPreviousMonth() {
         const copiedItems = prevData.map(item => ({
             month: currentMonth,
             category: item.category,
-            name: item.name,
-            amount: item.amount
+            item_name: item.item_name,
+            amount: item.amount,
+            notes: item.notes || null
         }));
         
         const { error: insertError } = await supabaseClient
