@@ -124,7 +124,6 @@ function renderMaterialsList(materials) {
                             <th style="width: 120px;">Size / Thickness</th>
                             <th>Reserved</th>
                             <th>Stock Left</th>
-                            <th>To Order</th>
                             <th>Unit Cost</th>
                             <th>Total Cost</th>
                             <th>Status</th>
@@ -220,7 +219,6 @@ function renderMaterialRow(material) {
                     ${stockLeft < 0 ? '<div style="font-size: 10px; color: #ef4444;">❌ NEGATIVE</div>' : ''}
                 `}
             </td>
-            <td class="material-quantity">${toOrder > 0 ? `${toOrder.toFixed(2)} ${material.unit}` : '-'}</td>
             <td class="material-cost">£${(material.unit_cost || 0).toFixed(2)}</td>
             <td class="material-cost">£${totalCost.toFixed(2)}</td>
             <td>${statusBadge}</td>
