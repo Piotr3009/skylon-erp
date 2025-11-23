@@ -1119,7 +1119,9 @@ async function exportShoppingListPDF() {
                 doc.text(stockLeftText, 180, y + 5);
                 if (!m.is_bespoke && stockLeft < 0) {
                     doc.setFontSize(7);
+                    doc.setTextColor(239, 68, 68); // Czerwony kolor
                     doc.text('X NEGATIVE', 180, y + 9);
+                    doc.setTextColor(0, 0, 0); // Powrót do czarnego
                     doc.setFontSize(9);
                 }
                 
