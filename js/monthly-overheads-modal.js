@@ -283,6 +283,11 @@ async function saveMonthlyOverheads() {
         
         if (updateError) throw updateError;
         
+        // Mark as confirmed for this month (disable 1st day reminder)
+        if (typeof markOverheadsConfirmed === 'function') {
+            markOverheadsConfirmed();
+        }
+        
         alert('✅ Monthly overheads saved successfully!');
         closeMonthlySettingsModal();
         
@@ -294,6 +299,69 @@ async function saveMonthlyOverheads() {
     } catch (err) {
         console.error('Error saving overheads:', err);
         alert('Error saving: ' + err.message);
+    }
+}
+
+// Copy from previous month
+async function copyFromPreviousMonth() {
+    const currentMonth = document.getElementById('settingsMonth').value;
+    
+    if (!currentMonth) {
+        alert('Please select a month first');
+        return;
+    }
+    
+    if (!confirm('Copy all overhead items from previous month?')) {
+        return;
+    }
+    
+    try {
+        // Calculate previous month
+        const [year, month] = currentMonth.split('-').map(Number);
+        const prevDate = new Date(year, month - 2, 1); // month-2 bo month jest 1-indexed, a chcemy poprzedni
+        const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+        
+        // Load previous month data
+        const { data: prevData, error: loadError } = await supabaseClient
+            .from('overhead_items')
+            .select('*')
+            .eq('month', prevMonth);
+        
+        if (loadError) throw loadError;
+        
+        if (!prevData || prevData.length === 0) {
+            alert(`No data found for previous month (${prevMonth})`);
+            return;
+        }
+        
+        // Delete current month data first
+        const { error: deleteError } = await supabaseClient
+            .from('overhead_items')
+            .delete()
+            .eq('month', currentMonth);
+        
+        if (deleteError) throw deleteError;
+        
+        // Insert copied data with new month
+        const copiedItems = prevData.map(item => ({
+            month: currentMonth,
+            category: item.category,
+            name: item.name,
+            amount: item.amount
+        }));
+        
+        const { error: insertError } = await supabaseClient
+            .from('overhead_items')
+            .insert(copiedItems);
+        
+        if (insertError) throw insertError;
+        
+        alert(`✅ Copied ${copiedItems.length} items from ${prevMonth}`);
+        loadMonthOverheads();
+        
+    } catch (err) {
+        console.error('Error copying from previous month:', err);
+        alert('Error: ' + err.message);
     }
 }
 

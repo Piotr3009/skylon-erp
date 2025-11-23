@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAllAccountingData();
     populateYearFilter();
     renderDashboard();
+    
+    // Check if it's 1st day of month - remind about overheads
+    checkMonthlyOverheadsReminder();
 });
 
 // ========================================
@@ -622,6 +625,38 @@ function filterByYear() {
     }
     
     renderDashboard();
+}
+
+// Check if 1st day of month - remind about overheads
+function checkMonthlyOverheadsReminder() {
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    
+    // Only on 1st day of month
+    if (dayOfMonth !== 1) return;
+    
+    const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const storageKey = `overheads_confirmed_${currentMonth}`;
+    
+    // Check if already confirmed this month
+    const confirmed = localStorage.getItem(storageKey);
+    
+    if (confirmed) return;
+    
+    // Show reminder
+    setTimeout(() => {
+        if (confirm('⚠️ MONTHLY OVERHEADS REMINDER\n\nIt\'s the 1st day of the month!\n\nPlease review and confirm monthly overhead costs.\n\nOpen Monthly Overheads Settings?')) {
+            openMonthlySettingsModal();
+        }
+    }, 2000); // 2 sekundy po załadowaniu strony
+}
+
+// Mark overheads as confirmed (call this after Save Changes)
+function markOverheadsConfirmed() {
+    const month = document.getElementById('settingsMonth').value;
+    if (month) {
+        localStorage.setItem(`overheads_confirmed_${month}`, 'true');
+    }
 }
 
 window.onclick = function(event) {
