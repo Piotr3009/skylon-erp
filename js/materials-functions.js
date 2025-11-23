@@ -582,9 +582,12 @@ function onStockItemChange() {
     selectedStockItem = stockItems.find(i => i.id === itemId);
     
     if (selectedStockItem) {
+        // Oblicz AVAILABLE = current_quantity - reserved_quantity
+        const available = (selectedStockItem.current_quantity || 0) - (selectedStockItem.reserved_quantity || 0);
+        
         // Pokaż info o item
         document.getElementById('itemInStock').textContent = 
-            `${selectedStockItem.current_quantity || 0} ${selectedStockItem.unit}`;
+            `${available.toFixed(2)} ${selectedStockItem.unit}`;
         document.getElementById('itemUnit').textContent = selectedStockItem.unit;
         document.getElementById('itemCost').textContent = 
             `£${(selectedStockItem.cost_per_unit || 0).toFixed(2)}`;
