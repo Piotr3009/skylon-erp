@@ -1564,3 +1564,5 @@ async function deleteFileFromStorage(bucketName, fileUrl) {
     } catch (error) {
         console.error(`Error deleting file from ${bucketName}:`, error);
         throw error;
+    }
+}
