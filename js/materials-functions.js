@@ -1194,9 +1194,10 @@ async function editMaterial(materialId) {
         document.getElementById('editMaterialItemNumber').textContent = material.stock_items?.item_number || (material.is_bespoke ? 'BESPOKE' : 'N/A');
         document.getElementById('editMaterialReserved').textContent = `${material.quantity_reserved || 0} ${material.unit}`;
         
-        // Pokaż zdjęcie lub placeholder
-        if (material.stock_items?.image_url) {
-            document.getElementById('editMaterialImage').src = material.stock_items.image_url;
+        // Pokaż zdjęcie lub placeholder (stock lub bespoke)
+        const imageUrl = material.stock_items?.image_url || material.image_url;
+        if (imageUrl) {
+            document.getElementById('editMaterialImage').src = imageUrl;
             document.getElementById('editMaterialImage').style.display = 'block';
             document.getElementById('editMaterialImagePlaceholder').style.display = 'none';
         } else {
@@ -1287,6 +1288,25 @@ async function saveEditedMaterial() {
                 supplier_id: document.getElementById('bespokeSupplier').value || null,
                 purchase_link: document.getElementById('bespokePurchaseLink').value.trim() || null
             };
+            
+            // Sprawdź czy jest nowy obrazek
+            const newImageFile = document.getElementById('bespokeImageUpload').files[0];
+            if (newImageFile) {
+                try {
+                    // Usuń stary obrazek jeśli istnieje
+                    if (original.image_url) {
+                        await deleteFileFromStorage('stock-images', original.image_url);
+                    }
+                    
+                    // Upload nowy obrazek
+                    const newImageUrl = await uploadBespokeImage(newImageFile);
+                    updateData.image_url = newImageUrl;
+                    
+                } catch (imgError) {
+                    console.error('Error handling image update:', imgError);
+                    alert('Warning: Image update failed, other changes will be saved.');
+                }
+            }
             
             const { error } = await supabaseClient
                 .from('project_materials')
@@ -1416,7 +1436,17 @@ async function deleteMaterial(materialId) {
         
         if (fetchError) throw fetchError;
         
-        // 2. Jeśli to stock item i ma reserved quantity - zwróć do stocku
+        // 2. Jeśli to bespoke z obrazkiem - usuń obrazek z Storage
+        if (material.is_bespoke && material.image_url) {
+            try {
+                await deleteFileFromStorage('stock-images', material.image_url);
+            } catch (imgError) {
+                console.warn('Failed to delete bespoke image:', imgError);
+                // Nie blokuj usuwania materiału
+            }
+        }
+        
+        // 3. Jeśli to stock item i ma reserved quantity - zwróć do stocku
         if (material.stock_item_id && material.quantity_reserved > 0) {
             const stockItem = material.stock_items;
             
@@ -1436,7 +1466,7 @@ async function deleteMaterial(materialId) {
             if (stockError) throw stockError;
         }
         
-        // 3. Usuń powiązane transakcje
+        // 4. Usuń powiązane transakcje
         const { error: txDeleteError } = await supabaseClient
             .from('stock_transactions')
             .delete()
@@ -1444,7 +1474,7 @@ async function deleteMaterial(materialId) {
         
         if (txDeleteError) throw txDeleteError;
         
-        // 4. Usuń materiał
+        // 5. Usuń materiał
         const { error: deleteError } = await supabaseClient
             .from('project_materials')
             .delete()
@@ -1524,6 +1554,27 @@ async function uploadBespokeImage(file) {
         
     } catch (error) {
         console.error('Error uploading bespoke image:', error);
+        throw error;
+    }
+}
+
+// Helper: Usuń plik z Supabase Storage na podstawie URL
+async function deleteFileFromStorage(bucketName, fileUrl) {
+    if (!fileUrl) return;
+    
+    try {
+        // Wyciągnij nazwę pliku z URL
+        const urlParts = fileUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        
+        const { error } = await supabaseClient.storage
+            .from(bucketName)
+            .remove([fileName]);
+        
+        if (error) throw error;
+        
+    } catch (error) {
+        console.error(`Error deleting file from ${bucketName}:`, error);
         throw error;
     }
 }
