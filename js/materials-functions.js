@@ -157,10 +157,9 @@ function renderMaterialRow(material) {
     const stockLeft = material.is_bespoke ? 0 : (stockItem ? stockItem.current_quantity : 0);
     
     // TO ORDER - ile trzeba zamówić
-    // TO ORDER = max(0, RESERVED - (STOCK LEFT + RESERVED))
-    // Czyli: max(0, RESERVED - stock_before)
-    const stockBefore = stockLeft + reserved;
-    const toOrder = material.is_bespoke ? 0 : Math.max(0, reserved - stockBefore);
+    // TO ORDER = max(0, RESERVED - STOCK LEFT)
+    // Jeśli zarezerwowano więcej niż jest na stocku, trzeba zamówić różnicę
+    const toOrder = material.is_bespoke ? 0 : Math.max(0, reserved - stockLeft);
     
     const totalCost = reserved * (material.unit_cost || 0);
     
