@@ -347,12 +347,12 @@ function createStockRow(item) {
             </td>
             <td style="padding: 12px; text-align: right;">
                 <span style="font-weight: 600; color: #e8e2d5;">
-                    ${item.current_quantity || 0}
+                    ${parseFloat(item.current_quantity || 0).toFixed(2)}
                 </span>
             </td>
             <td style="padding: 12px; text-align: right;">
                 <span style="font-weight: 600; color: ${(item.reserved_quantity > 0) ? '#fbbf24' : '#666'};">
-                    ${item.reserved_quantity || 0}
+                    ${parseFloat(item.reserved_quantity || 0).toFixed(2)}
                 </span>
             </td>
             <td style="padding: 12px; text-align: right;">
