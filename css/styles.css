@@ -498,8 +498,8 @@ body.pipeline-theme .chart-wrapper {
 
 /* Project header */
 .project-header {
-    width: 600px;
-    min-width: 600px;
+    width: 590px;
+    min-width: 590px;
     background: #252526;
     border-right: 1px solid #3e3e42;
     font-weight: bold;
@@ -557,7 +557,7 @@ body.pipeline-theme .chart-wrapper {
 }
 
 .header-actions {
-    width: 140px;
+    width: 150px;
 }
 
 .timeline-header {
@@ -627,8 +627,8 @@ body.pipeline-theme .project-row {
 
 /* Project cell */
 .project-cell {
-    width: 600px;
-    min-width: 600px;
+    width: 590px;
+    min-width: 590px;
     background: #2d2d30;
     border-right: 1px solid #3e3e42;
     display: flex;
@@ -729,8 +729,8 @@ body.pipeline-theme .project-cell {
 }
 
 .project-actions {
-    min-width: 140px !important;
-    width: 140px !important;
+    min-width: 150px !important;
+    width: 150px !important;
     display: flex;
     gap: 6px;
     justify-content: flex-start;
