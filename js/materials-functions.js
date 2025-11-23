@@ -1054,8 +1054,8 @@ async function exportShoppingListPDF() {
             for (const m of stageMaterials) {
                 const needed = m.quantity_needed.toFixed(2);
                 const inStock = m.stock_items ? 
-                    ((m.stock_items.current_quantity || 0) - (m.quantity_reserved || 0)).toFixed(2) : 
-                    (m.is_bespoke ? '-' : (-(m.quantity_reserved || 0)).toFixed(2));
+                    (m.stock_items.current_quantity || 0).toFixed(2) : 
+                    (m.is_bespoke ? '-' : '0.00');
                 
                 // Add image if exists
                 const imageUrl = m.stock_items?.image_url || m.image_url;
