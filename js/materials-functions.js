@@ -738,15 +738,13 @@ async function saveMaterial() {
                 .update({ quantity_reserved: toReserve })
                 .eq('id', newMaterial.id);
             
-            // Update stocku - current_quantity NIE MOŻE być ujemne (fizyczny stan magazynu)
-            // Round to 2 decimal places to avoid floating point errors
-            const newQuantity = Math.max(0, Math.round((availableStock - toReserve) * 100) / 100);
+            // Rezerwacja NIE zmienia current_quantity (fizyczny stock)
+            // Tylko zwiększa reserved_quantity
             const currentReserved = freshStock.reserved_quantity || 0;
             
             await supabaseClient
                 .from('stock_items')
                 .update({ 
-                    current_quantity: newQuantity,
                     reserved_quantity: Math.round((currentReserved + toReserve) * 100) / 100
                 })
                 .eq('id', selectedStockItem.id);
@@ -1342,11 +1340,10 @@ async function saveEditedMaterial() {
                                 notes: `Additional reservation for ${currentMaterialsProject.projectNumber} (quantity increased)`
                             });
                         
-                        // Update stock
+                        // Update stock - tylko reserved_quantity, NIE current_quantity
                         await supabaseClient
                             .from('stock_items')
                             .update({
-                                current_quantity: Math.round((stockItem.current_quantity - additionalToReserve) * 100) / 100,
                                 reserved_quantity: Math.round(((stockItem.reserved_quantity || 0) + additionalToReserve) * 100) / 100
                             })
                             .eq('id', original.stock_item_id);
@@ -1371,11 +1368,10 @@ async function saveEditedMaterial() {
                                 notes: `Returned from ${currentMaterialsProject.projectNumber} (quantity decreased)`
                             });
                         
-                        // Update stock
+                        // Update stock - tylko reserved_quantity, NIE current_quantity
                         await supabaseClient
                             .from('stock_items')
                             .update({
-                                current_quantity: Math.round((stockItem.current_quantity + toReturn) * 100) / 100,
                                 reserved_quantity: Math.round(Math.max(0, (stockItem.reserved_quantity || 0) - toReturn) * 100) / 100
                             })
                             .eq('id', original.stock_item_id);
@@ -1444,15 +1440,13 @@ async function deleteMaterial(materialId) {
         if (material.stock_item_id && material.quantity_reserved > 0) {
             const stockItem = material.stock_items;
             
-            // Zwiększ current_quantity (zwróć materiał)
-            const newQuantity = Math.round(((stockItem.current_quantity || 0) + material.quantity_reserved) * 100) / 100;
-            // Zmniejsz reserved_quantity
+            // Zmniejsz reserved_quantity (unreserve)
+            // NIE zwiększaj current_quantity bo rezerwacja go nie zmniejszała
             const newReserved = Math.round(Math.max(0, (stockItem.reserved_quantity || 0) - material.quantity_reserved) * 100) / 100;
             
             const { error: stockError } = await supabaseClient
                 .from('stock_items')
                 .update({
-                    current_quantity: newQuantity,
                     reserved_quantity: newReserved
                 })
                 .eq('id', material.stock_item_id);
