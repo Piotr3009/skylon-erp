@@ -253,14 +253,10 @@ function calculateMaterialsSummary(materials) {
     let estimatedCost = 0;
     
     materials.forEach(m => {
-        // TO ORDER = max(0, RESERVED - STOCK LEFT)
-        const reserved = m.quantity_reserved || 0;
-        const stockLeft = m.is_bespoke ? 0 : (m.stock_items?.current_quantity || 0);
-        const toOrder = Math.max(0, reserved - stockLeft);
-        
+        const toOrder = Math.max(0, m.quantity_needed - m.quantity_reserved);
         if (toOrder > 0) itemsToOrder++;
         if (m.is_bespoke) bespokeItems++;
-        estimatedCost += reserved * (m.unit_cost || 0);
+        estimatedCost += m.quantity_needed * (m.unit_cost || 0);
     });
     
     return { totalItems, itemsToOrder, bespokeItems, estimatedCost };
