@@ -13,20 +13,35 @@ async function loadActiveAlerts() {
         
         const { data, error } = await supabaseClient
             .from('project_alerts')
-            .select('*')
+            .select(`
+                *,
+                project_phases!inner(
+                    materials_ordered_confirmed
+                )
+            `)
             .eq('status', 'active')
             .or(`snoozed_until.is.null,snoozed_until.lt.${now}`)
             .order('created_at', { ascending: false });
         
         if (error) throw error;
         
-        if (data && data.length > 0) {
-            displayAlerts(data);
+        // Filtruj alerty - usuń te gdzie materiały już potwierdzone
+        const filteredAlerts = data?.filter(alert => {
+            // Jeśli to alert o materiałach i są już potwierdzone - pomiń
+            if (alert.type === 'materials_warning' && 
+                alert.project_phases?.materials_ordered_confirmed === true) {
+                return false;
+            }
+            return true;
+        }) || [];
+        
+        if (filteredAlerts.length > 0) {
+            displayAlerts(filteredAlerts);
         } else {
             hideAlerts();
         }
         
-        return data;
+        return filteredAlerts;
     } catch (error) {
         console.error('Error loading alerts:', error);
         return [];
