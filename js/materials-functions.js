@@ -1055,10 +1055,15 @@ async function exportShoppingListPDF() {
             
             // Process materials for this stage
             for (const m of stageMaterials) {
-                const reserved = (m.quantity_reserved || 0).toFixed(2);
-                const stockLeft = m.stock_items ? 
-                    (m.stock_items.current_quantity || 0).toFixed(2) : 
-                    (m.is_bespoke ? '-' : '0.00');
+                // RESERVED - dla bespoke to quantity_needed, dla stock to quantity_reserved
+                const reserved = m.is_bespoke ? (m.quantity_needed || 0) : (m.quantity_reserved || 0);
+                
+                // STOCK LEFT - AVAILABLE (current - reserved z całego magazynu)
+                const stockLeft = m.is_bespoke ? 0 : 
+                    (m.stock_items ? ((m.stock_items.current_quantity || 0) - (m.stock_items.reserved_quantity || 0)) : 0);
+                
+                const reservedStr = reserved.toFixed(2);
+                const stockLeftStr = m.is_bespoke ? '-' : stockLeft.toFixed(2);
                 
                 // Add image if exists
                 const imageUrl = m.stock_items?.image_url || m.image_url;
@@ -1106,8 +1111,16 @@ async function exportShoppingListPDF() {
                 const lines = doc.splitTextToSize(description, 90);
                 doc.text(lines, 50, y + 5);
                 
-                doc.text(`${reserved} ${m.unit}`, 150, y + 5);
-                doc.text(`${stockLeft} ${m.is_bespoke ? '' : m.unit}`, 180, y + 5);
+                doc.text(`${reservedStr} ${m.unit}`, 150, y + 5);
+                
+                // Stock Left z oznaczeniem NEGATIVE jeśli ujemne
+                const stockLeftText = `${stockLeftStr} ${m.is_bespoke ? '' : m.unit}`;
+                doc.text(stockLeftText, 180, y + 5);
+                if (!m.is_bespoke && stockLeft < 0) {
+                    doc.setFontSize(7);
+                    doc.text('X NEGATIVE', 180, y + 9);
+                    doc.setFontSize(9);
+                }
                 
                 // Notes line
                 doc.line(215, y + 10, 265, y + 10);
