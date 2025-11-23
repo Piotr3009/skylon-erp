@@ -826,8 +826,8 @@ async function saveStockIn() {
         // Calculate weighted average
         const oldQty = item.current_quantity || 0;
         const oldCost = item.cost_per_unit || 0;
-        const newQty = oldQty + qty;
-        const newAvgCost = ((oldQty * oldCost) + (qty * costPerUnit)) / newQty;
+        const newQty = Math.round((oldQty + qty) * 100) / 100;
+        const newAvgCost = Math.round((((oldQty * oldCost) + (qty * costPerUnit)) / newQty) * 100) / 100;
         
         console.log('📊 Weighted Average Calculation:');
         console.log('Old:', oldQty, 'units @', oldCost);
@@ -923,7 +923,7 @@ async function saveStockOut() {
         if (txError) throw txError;
         
         // Update stock quantity
-        const newQty = item.current_quantity - qty;
+        const newQty = Math.round((item.current_quantity - qty) * 100) / 100;
         const { error: updateError } = await supabaseClient
             .from('stock_items')
             .update({ current_quantity: newQty })

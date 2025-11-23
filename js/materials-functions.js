@@ -739,14 +739,15 @@ async function saveMaterial() {
                 .eq('id', newMaterial.id);
             
             // Update stocku - current_quantity NIE MOŻE być ujemne (fizyczny stan magazynu)
-            const newQuantity = Math.max(0, availableStock - toReserve);
+            // Round to 2 decimal places to avoid floating point errors
+            const newQuantity = Math.max(0, Math.round((availableStock - toReserve) * 100) / 100);
             const currentReserved = freshStock.reserved_quantity || 0;
             
             await supabaseClient
                 .from('stock_items')
                 .update({ 
                     current_quantity: newQuantity,
-                    reserved_quantity: currentReserved + toReserve
+                    reserved_quantity: Math.round((currentReserved + toReserve) * 100) / 100
                 })
                 .eq('id', selectedStockItem.id);
         }
@@ -896,10 +897,10 @@ async function saveMaterialUsage() {
             if (fetchError) throw fetchError;
             
             // 1. Zmniejsz reserved_quantity (bo już wykorzystane)
-            const newReserved = Math.max(0, (currentStock.reserved_quantity || 0) - quantityReserved);
+            const newReserved = Math.max(0, Math.round(((currentStock.reserved_quantity || 0) - quantityReserved) * 100) / 100);
             
             // 2. Odejmij użytą ilość od current_quantity (fizycznie zużyto materiał)
-            let newQuantity = (currentStock.current_quantity || 0) - quantityUsed;
+            let newQuantity = Math.round(((currentStock.current_quantity || 0) - quantityUsed) * 100) / 100;
             
             // 3. Jeśli użyto WIĘCEJ niż zarezerwowano - dodaj transakcję adjustment
             if (difference > 0) {
@@ -933,15 +934,15 @@ async function saveMaterialUsage() {
                 if (txError) throw txError;
                 
                 // Dodaj zwrot do stocku
-                newQuantity = newQuantity + returned;
+                newQuantity = Math.round((newQuantity + returned) * 100) / 100;
             }
             
             // Update stock_items
             const { error: stockError } = await supabaseClient
                 .from('stock_items')
                 .update({ 
-                    current_quantity: Math.max(0, newQuantity),
-                    reserved_quantity: newReserved
+                    current_quantity: Math.round(Math.max(0, newQuantity) * 100) / 100,
+                    reserved_quantity: Math.round(newReserved * 100) / 100
                 })
                 .eq('id', material.stock_item_id);
             
@@ -1032,9 +1033,9 @@ async function exportShoppingListPDF() {
             doc.setFont(undefined, 'normal');
             doc.text('Photo', 20, y);
             doc.text('Material', 50, y);
-            doc.text('Needed', 150, y);
-            doc.text('Stock', 175, y);
-            doc.text('Notes', 200, y);
+            doc.text('Reserved', 150, y);
+            doc.text('Stock Left', 180, y);
+            doc.text('Notes', 215, y);
             doc.text('✓', 270, y);
             
             y += 3;
@@ -1045,8 +1046,8 @@ async function exportShoppingListPDF() {
             
             // Process materials for this stage
             for (const m of stageMaterials) {
-                const needed = m.quantity_needed.toFixed(2);
-                const inStock = m.stock_items ? 
+                const reserved = (m.quantity_reserved || 0).toFixed(2);
+                const stockLeft = m.stock_items ? 
                     (m.stock_items.current_quantity || 0).toFixed(2) : 
                     (m.is_bespoke ? '-' : '0.00');
                 
@@ -1096,11 +1097,11 @@ async function exportShoppingListPDF() {
                 const lines = doc.splitTextToSize(description, 90);
                 doc.text(lines, 50, y + 5);
                 
-                doc.text(`${needed} ${m.unit}`, 150, y + 5);
-                doc.text(`${inStock} ${m.is_bespoke ? '' : m.unit}`, 175, y + 5);
+                doc.text(`${reserved} ${m.unit}`, 150, y + 5);
+                doc.text(`${stockLeft} ${m.is_bespoke ? '' : m.unit}`, 180, y + 5);
                 
                 // Notes line
-                doc.line(200, y + 10, 265, y + 10);
+                doc.line(215, y + 10, 265, y + 10);
                 
                 // Checkbox
                 doc.rect(268, y, 8, 8);
@@ -1345,8 +1346,8 @@ async function saveEditedMaterial() {
                         await supabaseClient
                             .from('stock_items')
                             .update({
-                                current_quantity: stockItem.current_quantity - additionalToReserve,
-                                reserved_quantity: (stockItem.reserved_quantity || 0) + additionalToReserve
+                                current_quantity: Math.round((stockItem.current_quantity - additionalToReserve) * 100) / 100,
+                                reserved_quantity: Math.round(((stockItem.reserved_quantity || 0) + additionalToReserve) * 100) / 100
                             })
                             .eq('id', original.stock_item_id);
                         
@@ -1374,8 +1375,8 @@ async function saveEditedMaterial() {
                         await supabaseClient
                             .from('stock_items')
                             .update({
-                                current_quantity: stockItem.current_quantity + toReturn,
-                                reserved_quantity: Math.max(0, (stockItem.reserved_quantity || 0) - toReturn)
+                                current_quantity: Math.round((stockItem.current_quantity + toReturn) * 100) / 100,
+                                reserved_quantity: Math.round(Math.max(0, (stockItem.reserved_quantity || 0) - toReturn) * 100) / 100
                             })
                             .eq('id', original.stock_item_id);
                         
@@ -1444,9 +1445,9 @@ async function deleteMaterial(materialId) {
             const stockItem = material.stock_items;
             
             // Zwiększ current_quantity (zwróć materiał)
-            const newQuantity = (stockItem.current_quantity || 0) + material.quantity_reserved;
+            const newQuantity = Math.round(((stockItem.current_quantity || 0) + material.quantity_reserved) * 100) / 100;
             // Zmniejsz reserved_quantity
-            const newReserved = Math.max(0, (stockItem.reserved_quantity || 0) - material.quantity_reserved);
+            const newReserved = Math.round(Math.max(0, (stockItem.reserved_quantity || 0) - material.quantity_reserved) * 100) / 100;
             
             const { error: stockError } = await supabaseClient
                 .from('stock_items')
