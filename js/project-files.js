@@ -393,11 +393,73 @@ function renderFolderContents(subfolders, files, folderName) {
     
     let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
     
+    // Get current view mode
+    const currentView = localStorage.getItem('filesViewMode') || 'list';
+    
     // Upload button
     html += `
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div style="font-weight: 500; color: #999;">${subfolders.length} subfolder(s), ${files.length} file(s)</div>
             <div style="display: flex; gap: 8px;">
+                <div style="position: relative;">
+                    <button id="viewModeBtn" onclick="toggleViewModeDropdown()" style="
+                        background: #333;
+                        border: 1px solid #555;
+                        color: #e0e0e0;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    " onmouseover="this.style.background='#404040'" onmouseout="this.style.background='#333'">
+                        👁️ View
+                    </button>
+                    <div id="viewModeDropdown" style="
+                        display: none;
+                        position: absolute;
+                        top: 100%;
+                        right: 0;
+                        margin-top: 4px;
+                        background: #2a2a2a;
+                        border: 1px solid #555;
+                        border-radius: 6px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                        z-index: 1000;
+                        min-width: 140px;
+                    ">
+                        <div onclick="changeViewMode('list')" style="
+                            padding: 10px 16px;
+                            cursor: pointer;
+                            transition: background 0.2s;
+                            color: ${currentView === 'list' ? '#4a9eff' : '#e0e0e0'};
+                            font-weight: ${currentView === 'list' ? '600' : '400'};
+                        " onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+                            📋 List
+                        </div>
+                        <div onclick="changeViewMode('medium')" style="
+                            padding: 10px 16px;
+                            cursor: pointer;
+                            transition: background 0.2s;
+                            color: ${currentView === 'medium' ? '#4a9eff' : '#e0e0e0'};
+                            font-weight: ${currentView === 'medium' ? '600' : '400'};
+                        " onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+                            📄 Medium
+                        </div>
+                        <div onclick="changeViewMode('large')" style="
+                            padding: 10px 16px;
+                            cursor: pointer;
+                            transition: background 0.2s;
+                            color: ${currentView === 'large' ? '#4a9eff' : '#e0e0e0'};
+                            font-weight: ${currentView === 'large' ? '600' : '400'};
+                        " onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+                            🖼️ Large
+                        </div>
+                    </div>
+                </div>
                 <button class="modal-btn" onclick="createNewSubfolder('${folderName}')" style="
                     background: #333;
                     border: 1px solid #555;
@@ -447,51 +509,10 @@ function renderFolderContents(subfolders, files, folderName) {
         html += '</div>';
     }
     
-    // Files
+    // Files - render based on view mode
+    const viewMode = localStorage.getItem('filesViewMode') || 'list';
     if (files.length > 0) {
-        html += '<div style="display: flex; flex-direction: column; gap: 6px;">';
-        files.forEach(file => {
-            html += `
-                <div class="file-row" style="
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 10px 12px;
-                    border: 1px solid #404040;
-                    border-radius: 6px;
-                    background: #252525;
-                    transition: all 0.2s;
-                    cursor: pointer;
-                " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
-                    <div style="font-size: 22px;">
-                        ${getFileIcon(file.file_type, file.file_name)}
-                    </div>
-                    <div style="flex: 1; overflow: hidden;">
-                        <div style="font-weight: 500; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            ${file.file_name}
-                        </div>
-                        <div style="font-size: 12px; color: #999;">
-                            ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
-                        </div>
-                    </div>
-                    <button onclick="event.stopPropagation(); deleteFile('${file.id}')" style="
-                        background: transparent;
-                        border: 1px solid #ff4444;
-                        color: #ff4444;
-                        width: 32px;
-                        height: 32px;
-                        border-radius: 4px;
-                        font-size: 16px;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        transition: all 0.2s;
-                    " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>
-                </div>
-            `;
-        });
-        html += '</div>';
+        html += renderFilesInView(files, viewMode);
     }
     
     // Empty state
@@ -507,6 +528,225 @@ function renderFolderContents(subfolders, files, folderName) {
     
     html += '</div>';
     content.innerHTML = html;
+}
+
+// ========== VIEW MODE FUNCTIONS ==========
+function toggleViewModeDropdown() {
+    const dropdown = document.getElementById('viewModeDropdown');
+    const isVisible = dropdown.style.display === 'block';
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    
+    // Close dropdown when clicking outside
+    if (!isVisible) {
+        setTimeout(() => {
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!e.target.closest('#viewModeBtn') && !e.target.closest('#viewModeDropdown')) {
+                    dropdown.style.display = 'none';
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }, 100);
+    }
+}
+
+function changeViewMode(mode) {
+    localStorage.setItem('filesViewMode', mode);
+    document.getElementById('viewModeDropdown').style.display = 'none';
+    // Reload current folder
+    loadFolderFiles(currentProjectFiles.currentFolder);
+}
+
+// ========== RENDER FILES IN DIFFERENT VIEWS ==========
+function renderFilesInView(files, viewMode) {
+    if (viewMode === 'list') {
+        return renderFilesListView(files);
+    } else if (viewMode === 'medium') {
+        return renderFilesMediumView(files);
+    } else if (viewMode === 'large') {
+        return renderFilesLargeView(files);
+    }
+    return renderFilesListView(files); // Default
+}
+
+// LIST VIEW - Compact with small icons
+function renderFilesListView(files) {
+    let html = '<div style="display: flex; flex-direction: column; gap: 4px;">';
+    files.forEach(file => {
+        html += `
+            <div class="file-row" style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 12px;
+                border: 1px solid #404040;
+                border-radius: 6px;
+                background: #252525;
+                transition: all 0.2s;
+                cursor: pointer;
+            " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
+                <div style="font-size: 20px; flex-shrink: 0;">
+                    ${getFileIcon(file.file_type, file.file_name)}
+                </div>
+                <div style="flex: 1; overflow: hidden; min-width: 0;">
+                    <div style="font-weight: 500; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;">
+                        ${file.file_name}
+                    </div>
+                    <div style="font-size: 11px; color: #888;">
+                        ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
+                    background: transparent;
+                    border: 1px solid #ff4444;
+                    color: #ff4444;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>
+            </div>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+// MEDIUM VIEW - More space, detailed info
+function renderFilesMediumView(files) {
+    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+    files.forEach(file => {
+        html += `
+            <div class="file-row" style="
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px 16px;
+                border: 1px solid #404040;
+                border-radius: 6px;
+                background: #252525;
+                transition: all 0.2s;
+                cursor: pointer;
+            " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
+                <div style="font-size: 32px; flex-shrink: 0;">
+                    ${getFileIcon(file.file_type, file.file_name)}
+                </div>
+                <div style="flex: 1; overflow: hidden; min-width: 0;">
+                    <div style="font-weight: 600; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; margin-bottom: 4px;">
+                        ${file.file_name}
+                    </div>
+                    <div style="font-size: 12px; color: #999; margin-bottom: 2px;">
+                        Size: ${formatFileSize(file.file_size)}
+                    </div>
+                    <div style="font-size: 11px; color: #888;">
+                        Uploaded: ${formatDate(file.uploaded_at)}
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
+                    background: transparent;
+                    border: 1px solid #ff4444;
+                    color: #ff4444;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 4px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>
+            </div>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+// LARGE VIEW - Grid with large icons and image previews
+function renderFilesLargeView(files) {
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">';
+    files.forEach(file => {
+        const isImage = file.file_type && (
+            file.file_type.includes('image') || 
+            file.file_type.includes('jpg') || 
+            file.file_type.includes('png') ||
+            file.file_type.includes('jpeg') ||
+            file.file_type.includes('gif') ||
+            file.file_type.includes('webp')
+        );
+        
+        // Get preview URL for images
+        let previewContent = '';
+        if (isImage) {
+            const { data: urlData } = supabaseClient.storage
+                .from('project-documents')
+                .getPublicUrl(file.file_path);
+            previewContent = `
+                <div style="width: 100%; height: 120px; overflow: hidden; border-radius: 6px; background: #1a1a1a;">
+                    <img src="${urlData.publicUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 48px;">
+                        ${getFileIcon(file.file_type, file.file_name)}
+                    </div>
+                </div>
+            `;
+        } else {
+            previewContent = `
+                <div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border-radius: 6px;">
+                    <div style="font-size: 56px;">
+                        ${getFileIcon(file.file_type, file.file_name)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += `
+            <div class="file-card" style="
+                position: relative;
+                border: 1px solid #404040;
+                border-radius: 8px;
+                background: #252525;
+                transition: all 0.2s;
+                cursor: pointer;
+                overflow: hidden;
+            " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.borderColor='#4a9eff'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(74,158,255,0.3)'" onmouseout="this.style.borderColor='#404040'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                ${previewContent}
+                <div style="padding: 12px;">
+                    <div style="font-weight: 600; color: #e0e0e0; font-size: 13px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.file_name}">
+                        ${file.file_name}
+                    </div>
+                    <div style="font-size: 11px; color: #888;">
+                        ${formatFileSize(file.file_size)}
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    background: rgba(0,0,0,0.7);
+                    border: 1px solid #ff4444;
+                    color: #ff4444;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='rgba(0,0,0,0.7)'; this.style.color='#ff4444'">🗑</button>
+            </div>
+        `;
+    });
+    html += '</div>';
+    return html;
 }
 
 // ========== CREATE NEW SUBFOLDER ==========
