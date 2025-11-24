@@ -617,51 +617,50 @@ function renderFilesListView(files) {
     return html;
 }
 
-// MEDIUM VIEW - More space, detailed info
+// MEDIUM VIEW - Grid with large icons (no image previews)
 function renderFilesMediumView(files) {
-    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;">';
     files.forEach(file => {
         html += `
-            <div class="file-row" style="
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 14px 16px;
+            <div class="file-card" style="
+                position: relative;
                 border: 1px solid #404040;
-                border-radius: 6px;
+                border-radius: 8px;
                 background: #252525;
                 transition: all 0.2s;
                 cursor: pointer;
-            " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
-                <div style="font-size: 32px; flex-shrink: 0;">
-                    ${getFileIcon(file.file_type, file.file_name)}
+                overflow: hidden;
+            " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.borderColor='#4a9eff'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(74,158,255,0.3)'" onmouseout="this.style.borderColor='#404040'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <div style="width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border-radius: 6px 6px 0 0;">
+                    <div style="font-size: 48px;">
+                        ${getFileIcon(file.file_type, file.file_name)}
+                    </div>
                 </div>
-                <div style="flex: 1; overflow: hidden; min-width: 0;">
-                    <div style="font-weight: 600; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; margin-bottom: 4px;">
+                <div style="padding: 12px;">
+                    <div style="font-weight: 600; color: #e0e0e0; font-size: 13px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.file_name}">
                         ${file.file_name}
                     </div>
-                    <div style="font-size: 12px; color: #999; margin-bottom: 2px;">
-                        Size: ${formatFileSize(file.file_size)}
-                    </div>
                     <div style="font-size: 11px; color: #888;">
-                        Uploaded: ${formatDate(file.uploaded_at)}
+                        ${formatFileSize(file.file_size)}
                     </div>
                 </div>
                 <button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
-                    background: transparent;
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    background: rgba(0,0,0,0.7);
                     border: 1px solid #ff4444;
                     color: #ff4444;
-                    width: 32px;
-                    height: 32px;
+                    width: 28px;
+                    height: 28px;
                     border-radius: 4px;
-                    font-size: 16px;
+                    font-size: 14px;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     transition: all 0.2s;
-                    flex-shrink: 0;
-                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>
+                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='rgba(0,0,0,0.7)'; this.style.color='#ff4444'">🗑</button>
             </div>
         `;
     });
@@ -669,10 +668,12 @@ function renderFilesMediumView(files) {
     return html;
 }
 
-// LARGE VIEW - Grid with large icons and image previews
+// LARGE VIEW - Grid with large icons and image/PDF previews
 function renderFilesLargeView(files) {
     let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">';
-    files.forEach(file => {
+    let pdfFilesToRender = [];
+    
+    files.forEach((file, index) => {
         const isImage = file.file_type && (
             file.file_type.includes('image') || 
             file.file_type.includes('jpg') || 
@@ -682,12 +683,17 @@ function renderFilesLargeView(files) {
             file.file_type.includes('webp')
         );
         
-        // Get preview URL for images
+        const isPdf = file.file_type && file.file_type.includes('pdf');
+        
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        
+        // Generate unique ID for this file
+        const previewId = `file-preview-${file.id}`;
+        
         let previewContent = '';
         if (isImage) {
-            const { data: urlData } = supabaseClient.storage
-                .from('project-documents')
-                .getPublicUrl(file.file_path);
             previewContent = `
                 <div style="width: 100%; height: 120px; overflow: hidden; border-radius: 6px; background: #1a1a1a;">
                     <img src="${urlData.publicUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -696,6 +702,21 @@ function renderFilesLargeView(files) {
                     </div>
                 </div>
             `;
+        } else if (isPdf) {
+            // PDF preview placeholder - will be rendered async
+            previewContent = `
+                <div id="${previewId}" style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border-radius: 6px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
+                        <div style="font-size: 11px; color: #888;">Loading PDF...</div>
+                    </div>
+                </div>
+            `;
+            // Store PDF info for async rendering
+            pdfFilesToRender.push({
+                url: urlData.publicUrl,
+                elementId: previewId
+            });
         } else {
             previewContent = `
                 <div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; background: #1a1a1a; border-radius: 6px;">
@@ -746,6 +767,16 @@ function renderFilesLargeView(files) {
         `;
     });
     html += '</div>';
+    
+    // Trigger PDF thumbnail generation after HTML is rendered
+    if (pdfFilesToRender.length > 0) {
+        setTimeout(() => {
+            pdfFilesToRender.forEach(pdf => {
+                generatePdfThumbnail(pdf.url, pdf.elementId);
+            });
+        }, 100);
+    }
+    
     return html;
 }
 
@@ -1200,5 +1231,109 @@ async function createNewFolder() {
     } catch (err) {
         console.error('Error creating folder:', err);
         alert('Error creating folder. Please try again.');
+    }
+}
+
+// ========== PDF PREVIEW FUNCTIONS ==========
+// Load PDF.js library
+let pdfJsLoaded = false;
+let pdfJsLoading = false;
+
+async function ensurePdfJsLoaded() {
+    if (pdfJsLoaded) return true;
+    if (pdfJsLoading) {
+        // Wait for loading to complete
+        await new Promise(resolve => {
+            const checkInterval = setInterval(() => {
+                if (pdfJsLoaded) {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 100);
+        });
+        return true;
+    }
+    
+    pdfJsLoading = true;
+    
+    return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        script.onload = () => {
+            // Set worker
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            pdfJsLoaded = true;
+            pdfJsLoading = false;
+            console.log('✅ PDF.js loaded');
+            resolve(true);
+        };
+        script.onerror = () => {
+            console.error('❌ Failed to load PDF.js');
+            pdfJsLoading = false;
+            resolve(false);
+        };
+        document.head.appendChild(script);
+    });
+}
+
+async function generatePdfThumbnail(pdfUrl, elementId) {
+    try {
+        // Ensure PDF.js is loaded
+        const loaded = await ensurePdfJsLoaded();
+        if (!loaded) {
+            console.error('PDF.js not loaded');
+            return;
+        }
+        
+        // Load PDF
+        const loadingTask = pdfjsLib.getDocument(pdfUrl);
+        const pdf = await loadingTask.promise;
+        
+        // Get first page
+        const page = await pdf.getPage(1);
+        
+        // Calculate scale to fit 120px height container
+        const viewport = page.getViewport({ scale: 1.0 });
+        const containerHeight = 120;
+        const scale = containerHeight / viewport.height;
+        const scaledViewport = page.getViewport({ scale });
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = scaledViewport.height;
+        canvas.width = scaledViewport.width;
+        
+        // Render page
+        await page.render({
+            canvasContext: context,
+            viewport: scaledViewport
+        }).promise;
+        
+        // Get the element and replace loading with canvas
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '';
+            element.style.display = 'flex';
+            element.style.alignItems = 'center';
+            element.style.justifyContent = 'center';
+            element.style.overflow = 'hidden';
+            canvas.style.maxWidth = '100%';
+            canvas.style.maxHeight = '100%';
+            canvas.style.objectFit = 'contain';
+            element.appendChild(canvas);
+        }
+        
+    } catch (err) {
+        console.error('PDF thumbnail error:', err);
+        // Show fallback icon
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = `
+                <div style="font-size: 56px;">
+                    ${getFileIcon('application/pdf', 'file.pdf')}
+                </div>
+            `;
+        }
     }
 }
