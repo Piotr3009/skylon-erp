@@ -13,35 +13,39 @@ async function loadActiveAlerts() {
         
         const { data, error } = await supabaseClient
             .from('project_alerts')
-            .select(`
-                *,
-                project_phases!inner(
-                    materials_ordered_confirmed
-                )
-            `)
+            .select('*')
             .eq('status', 'active')
             .or(`snoozed_until.is.null,snoozed_until.lt.${now}`)
             .order('created_at', { ascending: false });
         
         if (error) throw error;
         
-        // Filtruj alerty - usuń te gdzie materiały już potwierdzone
-        const filteredAlerts = data?.filter(alert => {
-            // Jeśli to alert o materiałach i są już potwierdzone - pomiń
-            if (alert.type === 'materials_warning' && 
-                alert.project_phases?.materials_ordered_confirmed === true) {
-                return false;
+        // Dla alertów materiałowych - sprawdź czy już potwierdzone
+        const alertsToShow = [];
+        for (const alert of (data || [])) {
+            // Jeśli to alert o materiałach - sprawdź phase
+            if (alert.type === 'materials_warning' && alert.phase_id) {
+                const { data: phase } = await supabaseClient
+                    .from('project_phases')
+                    .select('materials_ordered_confirmed')
+                    .eq('id', alert.phase_id)
+                    .single();
+                
+                // Jeśli materiały potwierdzone - pomiń alert
+                if (phase?.materials_ordered_confirmed === true) {
+                    continue;
+                }
             }
-            return true;
-        }) || [];
+            alertsToShow.push(alert);
+        }
         
-        if (filteredAlerts.length > 0) {
-            displayAlerts(filteredAlerts);
+        if (alertsToShow.length > 0) {
+            displayAlerts(alertsToShow);
         } else {
             hideAlerts();
         }
         
-        return filteredAlerts;
+        return alertsToShow;
     } catch (error) {
         console.error('Error loading alerts:', error);
         return [];
