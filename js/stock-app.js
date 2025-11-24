@@ -1867,7 +1867,7 @@ async function generateStockInReport(dateFrom, dateTo, workerId, category) {
             <div class="header">
                 <div class="logo-placeholder">LOGO HERE</div>
                 <h1>📥 STOCK IN REPORT</h1>
-                <div>Skylon Joinery</div>
+                <div>Joinery Core - Operational System</div>
                 <div style="margin-top: 10px; font-size: 14px; color: #666;">
                     ${dateFrom.toLocaleDateString('en-GB')} - ${dateTo.toLocaleDateString('en-GB')}
                 </div>
@@ -2057,7 +2057,7 @@ async function generateStockOutReport(dateFrom, dateTo, workerId, category) {
             <div class="header">
                 <div class="logo-placeholder">LOGO HERE</div>
                 <h1>📤 STOCK OUT REPORT</h1>
-                <div>Skylon Joinery</div>
+                <div>Joinery Core - Operational System</div>
                 <div style="margin-top: 10px; font-size: 14px; color: #666;">
                     ${dateFrom.toLocaleDateString('en-GB')} - ${dateTo.toLocaleDateString('en-GB')}
                 </div>
@@ -2231,7 +2231,7 @@ async function generateAddItemsReport(dateFrom, dateTo, workerId, category) {
             <div class="header">
                 <div class="logo-placeholder">LOGO HERE</div>
                 <h1>➕ NEW ITEMS ADDED REPORT</h1>
-                <div>Skylon Joinery</div>
+                <div>Joinery Core - Operational System</div>
                 <div style="margin-top: 10px; font-size: 14px; color: #666;">
                     ${dateFrom.toLocaleDateString('en-GB')} - ${dateTo.toLocaleDateString('en-GB')}
                 </div>

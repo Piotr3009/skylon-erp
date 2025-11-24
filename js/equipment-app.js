@@ -1769,7 +1769,7 @@ async function generateMachinesReport() {
         <body>
             <div class="header">
                 <h1>🔧 MACHINES REPORT</h1>
-                <div>Skylon Joinery - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div>Joinery Core - Operational System - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
             </div>
 
             <div class="summary">
@@ -1978,7 +1978,7 @@ function generateVansReport() {
         <body>
             <div class="header">
                 <h1>🚐 VANS FLEET REPORT</h1>
-                <div class="date">Skylon Joinery - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div class="date">Joinery Core - Operational System - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
             </div>
 
             <div class="summary">
@@ -2180,7 +2180,7 @@ function generateToolsReport() {
         <body>
             <div class="header">
                 <h1>🔩 TOOLS INVENTORY REMANENT</h1>
-                <div class="date">Skylon Joinery - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div class="date">Joinery Core - Operational System - ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
             </div>
 
             <div class="summary">

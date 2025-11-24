@@ -786,14 +786,14 @@ function startAutoSave() {
         if (hasUnsavedChanges) {
             saveDataQueued();
             hasUnsavedChanges = false;
-            document.title = "Skylon Joinery - Production Manager";
+            document.title = "Joinery Core - Operational System - Production Manager";
         }
     }, 2000);
 }
 
 function markAsChanged() {
     hasUnsavedChanges = true;
-    document.title = "* Skylon Joinery - Unsaved Changes";
+    document.title = "* Joinery Core - Operational System - Unsaved Changes";
 }
 
 // Save on page close
