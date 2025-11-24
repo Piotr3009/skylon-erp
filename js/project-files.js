@@ -45,7 +45,7 @@ async function openProjectFilesModal(projectIndex, stage) {
     modal.style.display = 'flex';
     
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 1200px; height: 80vh; background: #1a1a1a; border: 1px solid #404040; display: flex; flex-direction: column;">
+        <div class="modal-content" style="width: 1200px !important; max-width: 1200px !important; height: 80vh; background: #1a1a1a; border: 1px solid #404040; display: flex; flex-direction: column;">
             <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;">
                 <div>
                     <div style="font-size: 18px; font-weight: 600; color: #fff;">📁 Project Files</div>
