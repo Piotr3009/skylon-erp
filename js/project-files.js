@@ -45,7 +45,7 @@ async function openProjectFilesModal(projectIndex, stage) {
     modal.style.display = 'flex';
     
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 900px; height: 80vh; background: #1a1a1a; border: 1px solid #404040; display: flex; flex-direction: column;">
+        <div class="modal-content" style="max-width: 1200px; height: 80vh; background: #1a1a1a; border: 1px solid #404040; display: flex; flex-direction: column;">
             <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;">
                 <div>
                     <div style="font-size: 18px; font-weight: 600; color: #fff;">📁 Project Files</div>
@@ -464,7 +464,7 @@ function renderFolderContents(subfolders, files, folderName) {
                     cursor: pointer;
                 " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
                     <div style="font-size: 22px;">
-                        ${getFileIcon(file.file_name)}
+                        ${getFileIcon(file.file_type, file.file_name)}
                     </div>
                     <div style="flex: 1; overflow: hidden;">
                         <div style="font-weight: 500; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
