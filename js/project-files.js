@@ -637,11 +637,14 @@ function renderFilesMediumView(files) {
                     </div>
                 </div>
                 <div style="padding: 12px;">
-                    <div style="font-weight: 600; color: #e0e0e0; font-size: 13px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.file_name}">
+                    <div style="font-weight: 600; color: #e0e0e0; font-size: 13px; margin-bottom: 6px; word-wrap: break-word; line-height: 1.3;">
                         ${file.file_name}
                     </div>
-                    <div style="font-size: 11px; color: #888;">
+                    <div style="font-size: 11px; color: #888; margin-bottom: 2px;">
                         ${formatFileSize(file.file_size)}
+                    </div>
+                    <div style="font-size: 10px; color: #666;">
+                        ${formatDate(file.uploaded_at)}
                     </div>
                 </div>
                 <button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
@@ -739,11 +742,14 @@ function renderFilesLargeView(files) {
             " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.borderColor='#4a9eff'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(74,158,255,0.3)'" onmouseout="this.style.borderColor='#404040'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                 ${previewContent}
                 <div style="padding: 12px;">
-                    <div style="font-weight: 600; color: #e0e0e0; font-size: 13px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.file_name}">
+                    <div style="font-weight: 600; color: #e0e0e0; font-size: 13px; margin-bottom: 6px; word-wrap: break-word; line-height: 1.3;">
                         ${file.file_name}
                     </div>
-                    <div style="font-size: 11px; color: #888;">
+                    <div style="font-size: 11px; color: #888; margin-bottom: 2px;">
                         ${formatFileSize(file.file_size)}
+                    </div>
+                    <div style="font-size: 10px; color: #666;">
+                        ${formatDate(file.uploaded_at)}
                     </div>
                 </div>
                 <button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
