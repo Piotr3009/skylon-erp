@@ -52,6 +52,110 @@ async function loadActiveAlerts() {
     }
 }
 
+// ========== MATERIALS REPORT ==========
+async function openMaterialsReport() {
+    try {
+        // Pobierz wszystkie potwierdzenia materiałów
+        const { data, error } = await supabaseClient
+            .from('project_phases')
+            .select(`
+                *,
+                projects!inner(project_number, name)
+            `)
+            .not('materials_ordered_confirmed', 'is', null)
+            .eq('materials_ordered_confirmed', true)
+            .order('materials_ordered_confirmed_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        // Utwórz modal
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.id = 'materialsReportModal';
+        modal.style.display = 'flex';
+        
+        let tableRows = '';
+        if (data && data.length > 0) {
+            tableRows = data.map(phase => `
+                <tr style="border-bottom: 1px solid #404040;">
+                    <td style="padding: 12px; color: #e0e0e0;">${phase.projects.project_number}</td>
+                    <td style="padding: 12px; color: #e0e0e0;">${phase.projects.name}</td>
+                    <td style="padding: 12px; color: #4a9eff; text-transform: capitalize;">${phase.phase_key || 'N/A'}</td>
+                    <td style="padding: 12px; color: #88d498; font-weight: 600;">${phase.materials_ordered_confirmed_by || 'Unknown'}</td>
+                    <td style="padding: 12px; color: #999;">${new Date(phase.materials_ordered_confirmed_at).toLocaleString('en-GB')}</td>
+                </tr>
+            `).join('');
+        } else {
+            tableRows = `
+                <tr>
+                    <td colspan="5" style="padding: 40px; text-align: center; color: #666;">
+                        No confirmed material orders found
+                    </td>
+                </tr>
+            `;
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 1000px; max-height: 80vh; background: #1a1a1a; border: 1px solid #404040;">
+                <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 18px; font-weight: 600;">📋 Materials Confirmation Report</div>
+                        <div style="font-size: 13px; color: #999; margin-top: 4px;">Who confirmed 100% material orders</div>
+                    </div>
+                    <button onclick="closeMaterialsReport()" style="
+                        background: #333;
+                        border: 1px solid #555;
+                        color: #fff;
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 6px;
+                        font-size: 18px;
+                        cursor: pointer;
+                    ">✕</button>
+                </div>
+                <div class="modal-body" style="padding: 0; overflow-y: auto; max-height: calc(80vh - 140px);">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #252525; position: sticky; top: 0; z-index: 10;">
+                            <tr style="border-bottom: 2px solid #404040;">
+                                <th style="padding: 12px; text-align: left; color: #999; font-weight: 600; font-size: 12px; text-transform: uppercase;">Project #</th>
+                                <th style="padding: 12px; text-align: left; color: #999; font-weight: 600; font-size: 12px; text-transform: uppercase;">Project Name</th>
+                                <th style="padding: 12px; text-align: left; color: #999; font-weight: 600; font-size: 12px; text-transform: uppercase;">Phase</th>
+                                <th style="padding: 12px; text-align: left; color: #999; font-weight: 600; font-size: 12px; text-transform: uppercase;">Confirmed By</th>
+                                <th style="padding: 12px; text-align: left; color: #999; font-weight: 600; font-size: 12px; text-transform: uppercase;">Date & Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding: 16px 20px; background: #252525; border-top: 1px solid #404040; display: flex; justify-content: flex-end;">
+                    <button onclick="closeMaterialsReport()" style="
+                        background: #333;
+                        border: 1px solid #555;
+                        color: #e0e0e0;
+                        padding: 10px 24px;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        cursor: pointer;
+                    ">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+    } catch (error) {
+        console.error('Error loading materials report:', error);
+        alert('Error loading materials report');
+    }
+}
+
+function closeMaterialsReport() {
+    const modal = document.getElementById('materialsReportModal');
+    if (modal) modal.remove();
+}
+
 // Wyświetl alerty na stronie
 function displayAlerts(alerts) {
     const container = document.getElementById('alertsContainer');
