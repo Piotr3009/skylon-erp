@@ -55,52 +55,72 @@ async function loadActiveAlerts() {
 // ========== MATERIALS REPORT ==========
 async function openMaterialsReport() {
     try {
-        // Pobierz wszystkie potwierdzenia materiałów
-        const { data, error } = await supabaseClient
+        // 1. Pobierz phases z potwierdzonymi materiałami
+        const { data: phases, error: phasesError } = await supabaseClient
             .from('project_phases')
-            .select(`
-                *,
-                projects!inner(project_number, name)
-            `)
+            .select('*')
             .not('materials_ordered_confirmed', 'is', null)
             .eq('materials_ordered_confirmed', true)
             .order('materials_ordered_confirmed_at', { ascending: false });
         
-        if (error) throw error;
+        if (phasesError) throw phasesError;
         
-        // Utwórz modal
+        if (!phases || phases.length === 0) {
+            showEmptyReport();
+            return;
+        }
+        
+        // 2. Pobierz unikalne project_id
+        const projectIds = [...new Set(phases.map(p => p.project_id))];
+        
+        // 3. Pobierz projekty
+        const { data: projects, error: projectsError } = await supabaseClient
+            .from('projects')
+            .select('id, project_number, name')
+            .in('id', projectIds);
+        
+        if (projectsError) throw projectsError;
+        
+        // 4. Połącz dane i zmapuj user_id → imię
+        const projectsMap = {};
+        projects.forEach(p => {
+            projectsMap[p.id] = p;
+        });
+        
+        // Mapowanie user_id → imię (z OFFICE_STAFF lub "Unknown")
+        const staffMap = {};
+        OFFICE_STAFF.forEach(staff => {
+            staffMap[staff.id] = staff.name;
+        });
+        
+        const combinedData = phases.map(phase => ({
+            ...phase,
+            project: projectsMap[phase.project_id],
+            confirmed_by_name: staffMap[phase.materials_ordered_confirmed_by] || phase.materials_ordered_confirmed_by || 'Unknown'
+        })).filter(item => item.project); // Usuń te bez projektu
+        
+        // 5. Utwórz modal
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.id = 'materialsReportModal';
         modal.style.display = 'flex';
         
-        let tableRows = '';
-        if (data && data.length > 0) {
-            tableRows = data.map(phase => `
-                <tr style="border-bottom: 1px solid #404040;">
-                    <td style="padding: 12px; color: #e0e0e0;">${phase.projects.project_number}</td>
-                    <td style="padding: 12px; color: #e0e0e0;">${phase.projects.name}</td>
-                    <td style="padding: 12px; color: #4a9eff; text-transform: capitalize;">${phase.phase_key || 'N/A'}</td>
-                    <td style="padding: 12px; color: #88d498; font-weight: 600;">${phase.materials_ordered_confirmed_by || 'Unknown'}</td>
-                    <td style="padding: 12px; color: #999;">${new Date(phase.materials_ordered_confirmed_at).toLocaleString('en-GB')}</td>
-                </tr>
-            `).join('');
-        } else {
-            tableRows = `
-                <tr>
-                    <td colspan="5" style="padding: 40px; text-align: center; color: #666;">
-                        No confirmed material orders found
-                    </td>
-                </tr>
-            `;
-        }
+        let tableRows = combinedData.map(item => `
+            <tr style="border-bottom: 1px solid #404040;">
+                <td style="padding: 12px; color: #e0e0e0;">${item.project.project_number}</td>
+                <td style="padding: 12px; color: #e0e0e0;">${item.project.name}</td>
+                <td style="padding: 12px; color: #4a9eff; text-transform: capitalize;">${item.phase_key || 'N/A'}</td>
+                <td style="padding: 12px; color: #88d498; font-weight: 600;">${item.confirmed_by_name}</td>
+                <td style="padding: 12px; color: #999;">${new Date(item.materials_ordered_confirmed_at).toLocaleString('en-GB')}</td>
+            </tr>
+        `).join('');
         
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 1000px; max-height: 80vh; background: #1a1a1a; border: 1px solid #404040;">
+            <div class="modal-content" style="max-width: 1400px; max-height: 80vh; background: #1a1a1a; border: 1px solid #404040;">
                 <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-size: 18px; font-weight: 600;">📋 Materials Confirmation Report</div>
-                        <div style="font-size: 13px; color: #999; margin-top: 4px;">Who confirmed 100% material orders</div>
+                        <div style="font-size: 13px; color: #999; margin-top: 4px;">Who confirmed 100% material orders (${combinedData.length} confirmations)</div>
                     </div>
                     <button onclick="closeMaterialsReport()" style="
                         background: #333;
@@ -147,8 +167,41 @@ async function openMaterialsReport() {
         
     } catch (error) {
         console.error('Error loading materials report:', error);
-        alert('Error loading materials report');
+        alert('Error loading materials report: ' + error.message);
     }
+}
+
+function showEmptyReport() {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'materialsReportModal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px; background: #1a1a1a; border: 1px solid #404040;">
+            <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; padding: 16px 20px;">
+                <div style="font-size: 18px; font-weight: 600;">📋 Materials Confirmation Report</div>
+            </div>
+            <div class="modal-body" style="padding: 40px; text-align: center;">
+                <div style="font-size: 64px; margin-bottom: 16px;">📭</div>
+                <div style="font-size: 18px; color: #999; margin-bottom: 8px;">No confirmed material orders found</div>
+                <div style="font-size: 14px; color: #666;">Start confirming materials to see them here</div>
+            </div>
+            <div style="padding: 16px 20px; background: #252525; border-top: 1px solid #404040; display: flex; justify-content: flex-end;">
+                <button onclick="closeMaterialsReport()" style="
+                    background: #333;
+                    border: 1px solid #555;
+                    color: #e0e0e0;
+                    padding: 10px 24px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    cursor: pointer;
+                ">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 function closeMaterialsReport() {
