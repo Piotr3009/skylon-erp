@@ -116,7 +116,7 @@ async function openMaterialsReport() {
         `).join('');
         
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 1400px; max-height: 80vh; background: #1a1a1a; border: 1px solid #404040;">
+            <div class="modal-content" style="max-width: 1000px !important; max-height: 80vh; background: #1a1a1a; border: 1px solid #404040;">
                 <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-size: 18px; font-weight: 600;">📋 Materials Confirmation Report</div>
