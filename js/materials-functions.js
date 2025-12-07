@@ -170,7 +170,7 @@ function renderMaterialRow(material) {
         statusBadge = `<span class="material-status-badge status-used">✅ Used</span>`;
     } else if (material.is_bespoke) {
         statusBadge = `<span class="material-status-badge status-bespoke">🛒 Bespoke</span>`;
-    } else if (toOrder > 0) {
+    } else if (stockLeft < 0) {
         statusBadge = `<span class="material-status-badge status-warning">⚠️ Order Needed</span>`;
     } else if (reserved > 0) {
         statusBadge = `<span class="material-status-badge status-reserved">🔒 Reserved</span>`;
