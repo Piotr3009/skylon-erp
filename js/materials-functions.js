@@ -224,7 +224,7 @@ function renderMaterialRow(material) {
             <td>${statusBadge}</td>
             <td>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    ${!material.usage_recorded && toOrder > 0 ? `
+                    ${!material.usage_recorded && stockLeft < 0 ? `
                         <button class="icon-btn" disabled title="Cannot mark as used - material needs to be ordered first" style="background: #444; color: #666; font-size: 11px; padding: 4px 8px; cursor: not-allowed;">✅ Mark as Used</button>
                     ` : ''}
                     ${!material.usage_recorded && toOrder === 0 && (material.is_bespoke || reserved > 0) ? `
