@@ -147,6 +147,10 @@ function updateStats() {
     // Total holiday days available
     const totalHolidayDays = teamMembers.reduce((sum, m) => sum + (m.holiday_remaining || 0), 0);
     document.getElementById('holidayDays').textContent = totalHolidayDays;
+    
+    // Update tab counts
+    updateActiveCount();
+    updateArchivedCount();
 }
 
 // ========== ADD/EDIT EMPLOYEE ==========
@@ -438,7 +442,25 @@ async function archiveEmployee(id) {
         if (userError) console.warn('user_profiles:', userError.message);
         else console.log('✅ User profile deleted');
 
-        // 3. Usuń urlopy
+        // 3. Pobierz urlopy i zapisz do historii przed usunięciem
+        const { data: holidays, error: fetchHolidaysError } = await supabaseClient
+            .from('employee_holidays')
+            .select('date_from, date_to, holiday_type, status, notes')
+            .eq('employee_id', id);
+        
+        if (fetchHolidaysError) {
+            console.warn('Error fetching holidays:', fetchHolidaysError.message);
+        } else if (holidays && holidays.length > 0) {
+            // Zapisz historię urlopów do team_members
+            const { error: historyError } = await supabaseClient
+                .from('team_members')
+                .update({ holidays_history: holidays })
+                .eq('id', id);
+            if (historyError) console.warn('holidays_history:', historyError.message);
+            else console.log(`✅ Saved ${holidays.length} holidays to history`);
+        }
+
+        // 4. Usuń urlopy z tabeli employee_holidays
         const { error: holidaysError } = await supabaseClient
             .from('employee_holidays')
             .delete()
@@ -446,7 +468,7 @@ async function archiveEmployee(id) {
         if (holidaysError) console.warn('employee_holidays:', holidaysError.message);
         else console.log('✅ Holidays deleted');
 
-        // 4. Odepnij z project_phases (assigned_to)
+        // 5. Odepnij z project_phases (assigned_to)
         const { error: phasesError } = await supabaseClient
             .from('project_phases')
             .update({ assigned_to: null })
@@ -454,7 +476,7 @@ async function archiveEmployee(id) {
         if (phasesError) console.warn('project_phases assigned_to:', phasesError.message);
         else console.log('✅ Unassigned from project phases');
 
-        // 5. Odepnij z project_phases (materials_ordered_confirmed_by)
+        // 6. Odepnij z project_phases (materials_ordered_confirmed_by)
         const { error: phases2Error } = await supabaseClient
             .from('project_phases')
             .update({ materials_ordered_confirmed_by: null })
@@ -462,7 +484,7 @@ async function archiveEmployee(id) {
         if (phases2Error) console.warn('project_phases materials_ordered:', phases2Error.message);
         else console.log('✅ Unassigned from materials confirmation');
 
-        // 6. Odepnij z projects (timber_worker_id)
+        // 7. Odepnij z projects (timber_worker_id)
         const { error: timberError } = await supabaseClient
             .from('projects')
             .update({ timber_worker_id: null })
@@ -470,7 +492,7 @@ async function archiveEmployee(id) {
         if (timberError) console.warn('projects timber:', timberError.message);
         else console.log('✅ Unassigned as timber worker');
 
-        // 7. Odepnij z projects (spray_worker_id)
+        // 8. Odepnij z projects (spray_worker_id)
         const { error: sprayError } = await supabaseClient
             .from('projects')
             .update({ spray_worker_id: null })
@@ -478,7 +500,7 @@ async function archiveEmployee(id) {
         if (sprayError) console.warn('projects spray:', sprayError.message);
         else console.log('✅ Unassigned as spray worker');
 
-        // 8. Odepnij z projects (admin_id)
+        // 9. Odepnij z projects (admin_id)
         const { error: adminError } = await supabaseClient
             .from('projects')
             .update({ admin_id: null })
@@ -486,7 +508,7 @@ async function archiveEmployee(id) {
         if (adminError) console.warn('projects admin:', adminError.message);
         else console.log('✅ Unassigned as admin');
 
-        // 9. Odepnij z projects (sales_person_id)
+        // 10. Odepnij z projects (sales_person_id)
         const { error: salesError } = await supabaseClient
             .from('projects')
             .update({ sales_person_id: null })
@@ -494,7 +516,7 @@ async function archiveEmployee(id) {
         if (salesError) console.warn('projects sales:', salesError.message);
         else console.log('✅ Unassigned as sales person');
 
-        // 10. Odepnij van
+        // 11. Odepnij van
         const { error: vanError } = await supabaseClient
             .from('vans')
             .update({ assigned_to_worker_id: null })
@@ -1147,3 +1169,231 @@ window.saveRoleChangeForUser = async function(userId) {
         alert("Error updating role: " + err.message);
     }
 };
+
+// ========== ARCHIVED TEAM FUNCTIONS ==========
+let archivedTeamMembers = [];
+let filteredArchivedMembers = [];
+
+// Switch to Active tab
+function showActiveTeam() {
+    document.getElementById('activeTab').classList.add('active');
+    document.getElementById('archivedTab').classList.remove('active');
+    document.getElementById('activeSection').classList.remove('hidden');
+    document.getElementById('archivedSection').classList.remove('active');
+}
+
+// Switch to Archived tab
+async function showArchivedTeam() {
+    document.getElementById('archivedTab').classList.add('active');
+    document.getElementById('activeTab').classList.remove('active');
+    document.getElementById('archivedSection').classList.add('active');
+    document.getElementById('activeSection').classList.add('hidden');
+    
+    await loadArchivedTeam();
+}
+
+// Load archived team members
+async function loadArchivedTeam() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('team_members')
+            .select('*')
+            .eq('archived', true)
+            .order('archived_date', { ascending: false });
+            
+        if (error) {
+            console.error('Error loading archived team:', error);
+            return;
+        }
+        
+        archivedTeamMembers = data || [];
+        filteredArchivedMembers = [...archivedTeamMembers];
+        renderArchivedTeam(filteredArchivedMembers);
+        updateArchivedCount();
+        
+    } catch (err) {
+        console.error('Failed to load archived team:', err);
+    }
+}
+
+// Render archived team cards
+function renderArchivedTeam(members) {
+    const container = document.getElementById('archivedTeamContainer');
+    
+    if (members.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No archived employees found</div>';
+        return;
+    }
+    
+    container.innerHTML = members.map(member => {
+        const reason = member.departure_reason || 'other';
+        const reasonText = {
+            'resigned': 'Resigned',
+            'fired': 'Fired',
+            'contract_ended': 'Contract Ended',
+            'other': 'Other'
+        }[reason] || reason;
+        
+        const archivedDate = member.archived_date ? 
+            new Date(member.archived_date).toLocaleDateString('en-GB') : '-';
+        const startDate = member.start_date ? 
+            new Date(member.start_date).toLocaleDateString('en-GB') : '-';
+        const endDate = member.end_date ? 
+            new Date(member.end_date).toLocaleDateString('en-GB') : '-';
+            
+        // Calculate duration
+        let duration = '-';
+        if (member.start_date && member.end_date) {
+            const start = new Date(member.start_date);
+            const end = new Date(member.end_date);
+            const months = Math.round((end - start) / (1000 * 60 * 60 * 24 * 30));
+            if (months < 12) {
+                duration = `${months} months`;
+            } else {
+                const years = Math.floor(months / 12);
+                const remainingMonths = months % 12;
+                duration = remainingMonths > 0 ? `${years}y ${remainingMonths}m` : `${years} years`;
+            }
+        }
+        
+        // Holidays history
+        let holidaysHtml = '';
+        if (member.holidays_history && member.holidays_history.length > 0) {
+            const holidaysItems = member.holidays_history.map(h => {
+                const fromDate = new Date(h.date_from).toLocaleDateString('en-GB');
+                const toDate = new Date(h.date_to).toLocaleDateString('en-GB');
+                const typeClass = h.holiday_type || 'annual';
+                const typeText = {
+                    'annual': 'Annual',
+                    'sick': 'Sick',
+                    'unpaid': 'Unpaid'
+                }[typeClass] || typeClass;
+                
+                return `
+                    <div class="holiday-item">
+                        <span>${fromDate} - ${toDate}</span>
+                        <span class="holiday-type ${typeClass}">${typeText}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            holidaysHtml = `
+                <div class="holidays-history">
+                    <h4>📅 Holiday History (${member.holidays_history.length} records)</h4>
+                    ${holidaysItems}
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="archived-card reason-${reason}">
+                <div class="archived-header">
+                    <div>
+                        <div class="archived-name">${member.name}</div>
+                        <div class="archived-meta">${member.department || '-'} • ${member.role || '-'} • #${member.employee_number || '-'}</div>
+                    </div>
+                    <span class="archived-reason-badge reason-${reason}">${reasonText}</span>
+                </div>
+                
+                <div class="archived-details">
+                    <div class="archived-detail-item">
+                        <div class="archived-detail-label">Email</div>
+                        <div class="archived-detail-value">${member.email || '-'}</div>
+                    </div>
+                    <div class="archived-detail-item">
+                        <div class="archived-detail-label">Phone</div>
+                        <div class="archived-detail-value">${member.phone || '-'}</div>
+                    </div>
+                    <div class="archived-detail-item">
+                        <div class="archived-detail-label">Start Date</div>
+                        <div class="archived-detail-value">${startDate}</div>
+                    </div>
+                    <div class="archived-detail-item">
+                        <div class="archived-detail-label">End Date</div>
+                        <div class="archived-detail-value">${endDate}</div>
+                    </div>
+                    <div class="archived-detail-item">
+                        <div class="archived-detail-label">Duration</div>
+                        <div class="archived-detail-value">${duration}</div>
+                    </div>
+                    <div class="archived-detail-item">
+                        <div class="archived-detail-label">Archived Date</div>
+                        <div class="archived-detail-value">${archivedDate}</div>
+                    </div>
+                    <div class="archived-detail-item">
+                        <div class="archived-detail-label">Holidays Used</div>
+                        <div class="archived-detail-value">${member.holiday_used || 0} / ${member.holiday_allowance || 28} days</div>
+                    </div>
+                </div>
+                
+                ${member.departure_notes ? `
+                    <div class="archived-detail-item" style="margin-top: 10px;">
+                        <div class="archived-detail-label">Notes</div>
+                        <div class="archived-detail-value">${member.departure_notes}</div>
+                    </div>
+                ` : ''}
+                
+                ${holidaysHtml}
+            </div>
+        `;
+    }).join('');
+}
+
+// Search archived team
+function searchArchivedTeam() {
+    const searchTerm = document.getElementById('archivedSearchInput').value.toLowerCase();
+    const reasonFilter = document.getElementById('filterArchivedReason').value;
+    
+    filteredArchivedMembers = archivedTeamMembers.filter(member => {
+        const matchesSearch = !searchTerm || 
+            member.name?.toLowerCase().includes(searchTerm) ||
+            member.email?.toLowerCase().includes(searchTerm) ||
+            member.role?.toLowerCase().includes(searchTerm) ||
+            member.employee_number?.toLowerCase().includes(searchTerm);
+            
+        const matchesReason = !reasonFilter || member.departure_reason === reasonFilter;
+        
+        return matchesSearch && matchesReason;
+    });
+    
+    renderArchivedTeam(filteredArchivedMembers);
+}
+
+// Filter archived team
+function filterArchivedTeam() {
+    searchArchivedTeam();
+}
+
+// Update archived count in tab
+async function updateArchivedCount() {
+    try {
+        const { count, error } = await supabaseClient
+            .from('team_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('archived', true);
+            
+        if (!error) {
+            const countEl = document.getElementById('archivedCount');
+            if (countEl) countEl.textContent = count || 0;
+        }
+    } catch (err) {
+        console.error('Error counting archived:', err);
+    }
+}
+
+// Update active count in tab
+async function updateActiveCount() {
+    try {
+        const { count, error } = await supabaseClient
+            .from('team_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('active', true);
+            
+        if (!error) {
+            const countEl = document.getElementById('activeCount');
+            if (countEl) countEl.textContent = count || 0;
+        }
+    } catch (err) {
+        console.error('Error counting active:', err);
+    }
+}

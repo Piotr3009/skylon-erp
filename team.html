@@ -190,6 +190,169 @@
             font-size: 14px;
             text-transform: uppercase;
         }
+
+        /* Tabs styling */
+        .team-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3e3e42;
+        }
+        
+        .team-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #999;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        
+        .team-tab:hover {
+            color: #e8e2d5;
+        }
+        
+        .team-tab.active {
+            color: #FFA500;
+            border-bottom-color: #FFA500;
+        }
+        
+        .team-tab .tab-count {
+            background: #3e3e42;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .team-tab.active .tab-count {
+            background: #FFA500;
+            color: #1e1e1e;
+        }
+
+        /* Archived section */
+        .archived-section {
+            display: none;
+        }
+        
+        .archived-section.active {
+            display: block;
+        }
+        
+        .active-section {
+            display: block;
+        }
+        
+        .active-section.hidden {
+            display: none;
+        }
+
+        /* Archived employee card */
+        .archived-card {
+            background: #2d2d30;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #666;
+        }
+        
+        .archived-card.reason-resigned { border-left-color: #3498db; }
+        .archived-card.reason-fired { border-left-color: #e74c3c; }
+        .archived-card.reason-contract_ended { border-left-color: #f39c12; }
+        .archived-card.reason-other { border-left-color: #9b59b6; }
+        
+        .archived-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .archived-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e8e2d5;
+        }
+        
+        .archived-meta {
+            color: #999;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        
+        .archived-reason-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .reason-resigned { background: #3498db; color: #fff; }
+        .reason-fired { background: #e74c3c; color: #fff; }
+        .reason-contract_ended { background: #f39c12; color: #1e1e1e; }
+        .reason-other { background: #9b59b6; color: #fff; }
+        
+        .archived-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .archived-detail-item {
+            background: #252526;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .archived-detail-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .archived-detail-value {
+            color: #e8e2d5;
+            font-size: 14px;
+        }
+        
+        .holidays-history {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #3e3e42;
+        }
+        
+        .holidays-history h4 {
+            color: #FFA500;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        
+        .holiday-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #252526;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        
+        .holiday-type {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .holiday-type.annual { background: #27ae60; }
+        .holiday-type.sick { background: #e74c3c; }
+        .holiday-type.unpaid { background: #95a5a6; }
     </style>
     <script src="js/menu.js"></script>
     <script src="js/permissions.js"></script>
@@ -245,6 +408,18 @@
                 </div>
             </div>
 
+            <!-- Tabs -->
+            <div class="team-tabs">
+                <button class="team-tab active" onclick="showActiveTeam()" id="activeTab">
+                    👥 Active Employees <span class="tab-count" id="activeCount">0</span>
+                </button>
+                <button class="team-tab" onclick="showArchivedTeam()" id="archivedTab">
+                    📦 Archived <span class="tab-count" id="archivedCount">0</span>
+                </button>
+            </div>
+
+            <!-- Active Section -->
+            <div class="active-section" id="activeSection">
             <!-- Search Bar -->
             <div class="search-bar">
                 <input type="text" id="searchInput" placeholder="🔍 Search by name, email, role..." onkeyup="searchTeam()">
@@ -313,6 +488,25 @@
                     <!-- Team members will be loaded here -->
                 </tbody>
             </table>
+            </div><!-- End Active Section -->
+
+            <!-- Archived Section -->
+            <div class="archived-section" id="archivedSection">
+                <div class="search-bar">
+                    <input type="text" id="archivedSearchInput" placeholder="🔍 Search archived employees..." onkeyup="searchArchivedTeam()">
+                    <select id="filterArchivedReason" onchange="filterArchivedTeam()">
+                        <option value="">All Reasons</option>
+                        <option value="resigned">Resigned</option>
+                        <option value="fired">Fired</option>
+                        <option value="contract_ended">Contract Ended</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div id="archivedTeamContainer">
+                    <!-- Archived employees will be loaded here -->
+                </div>
+            </div><!-- End Archived Section -->
+
         </div>
     </div>
 
