@@ -9,6 +9,7 @@ let pipelineProjectsData = [];
 let productionProjectsData = [];
 let archivedProjectsData = [];
 let clientsData = [];
+let projectMaterialsData = [];
 
 let currentYear = new Date().getFullYear();
 let activeTab = 'finances';
@@ -81,6 +82,17 @@ async function loadAllAccountingData() {
         console.log('🔍 RAW Production data from DB:', production);
         
         if (!productionError) productionProjectsData = production || [];
+
+        // Load project materials for cost calculation
+        const productionIds = productionProjectsData.map(p => p.id);
+        if (productionIds.length > 0) {
+            const { data: materials, error: materialsError } = await supabaseClient
+                .from('project_materials')
+                .select('project_id, quantity_reserved, unit_cost')
+                .in('project_id', productionIds);
+            
+            if (!materialsError) projectMaterialsData = materials || [];
+        }
 
         const { data: archived, error: archivedError } = await supabaseClient
             .from('archived_projects')
@@ -428,40 +440,67 @@ function renderFinances() {
 function renderFinancesLive() {
     const container = document.getElementById('financesLiveTable');
     
-    // Filtruj projekty z bieżącego roku
+    // Oblicz materials cost dla każdego projektu
+    const getMaterialsCost = (projectId) => {
+        return projectMaterialsData
+            .filter(m => m.project_id === projectId)
+            .reduce((sum, m) => sum + ((m.quantity_reserved || 0) * (m.unit_cost || 0)), 0);
+    };
+    
+    // Filtruj projekty
     const projects = productionProjectsData.map(p => {
         const value = parseFloat(p.contract_value) || 0;
-        const cost = parseFloat(p.project_cost) || 0;
-        const profit = value - cost;
+        const materials = getMaterialsCost(p.id);
+        const labour = parseFloat(p.labour_cost) || 0;
+        const totalCost = materials + labour;
+        const profit = value - totalCost;
         const margin = value > 0 ? (profit / value * 100) : 0;
         
         return {
             ...p,
             value,
-            cost,
+            materials,
+            labour,
+            totalCost,
             profit,
             margin
         };
-    }).sort((a, b) => b.margin - a.margin);
+    }).sort((a, b) => (b.project_number || '').localeCompare(a.project_number || ''));
     
     if (projects.length === 0) {
         container.innerHTML = '<p style="color: #999;">No active projects in production.</p>';
         return;
     }
     
-    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Project #</th><th style="padding: 12px; text-align: left;">Name</th><th style="padding: 12px; text-align: right;">Value</th><th style="padding: 12px; text-align: right;">Cost</th><th style="padding: 12px; text-align: right;">Profit</th><th style="padding: 12px; text-align: right;">Margin %</th></tr></thead><tbody>';
+    let html = `<table style="width: 100%; border-collapse: collapse; color: white;">
+        <thead>
+            <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
+                <th style="padding: 12px; text-align: left;">Project #</th>
+                <th style="padding: 12px; text-align: left;">Name</th>
+                <th style="padding: 12px; text-align: right;">Value</th>
+                <th style="padding: 12px; text-align: right;">Materials</th>
+                <th style="padding: 12px; text-align: right;">Labour</th>
+                <th style="padding: 12px; text-align: right;">Profit</th>
+                <th style="padding: 12px; text-align: right;">Margin %</th>
+            </tr>
+        </thead>
+        <tbody>`;
     
     projects.forEach(p => {
+        const hasCosts = p.materials > 0 || p.labour > 0;
         const marginColor = p.margin >= 20 ? '#4ade80' : p.margin >= 10 ? '#fee140' : '#f5576c';
-        const costDisplay = p.cost > 0 ? `£${p.cost.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
-        const profitDisplay = p.cost > 0 ? `£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
-        const marginDisplay = p.cost > 0 ? `${p.margin.toFixed(1)}%` : '<span style="color: #666;">—</span>';
+        
+        const materialsDisplay = p.materials > 0 ? `£${p.materials.toLocaleString('en-GB', {minimumFractionDigits: 2})}` : '<span style="color: #666;">—</span>';
+        const labourDisplay = p.labour > 0 ? `£${p.labour.toLocaleString('en-GB', {minimumFractionDigits: 2})}` : '<span style="color: #666;">—</span>';
+        const profitDisplay = hasCosts ? `£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 2})}` : '<span style="color: #666;">—</span>';
+        const marginDisplay = hasCosts ? `${p.margin.toFixed(1)}%` : '<span style="color: #666;">—</span>';
         
         html += `<tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">${p.project_number}</td>
             <td style="padding: 12px;">${p.name}</td>
-            <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            <td style="padding: 12px; text-align: right;">${costDisplay}</td>
+            <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; text-align: right; color: #f97316;">${materialsDisplay}</td>
+            <td style="padding: 12px; text-align: right; color: #8b5cf6;">${labourDisplay}</td>
             <td style="padding: 12px; text-align: right; color: ${p.profit >= 0 ? '#4ade80' : '#f5576c'};">${profitDisplay}</td>
             <td style="padding: 12px; text-align: right; font-weight: bold; color: ${marginColor};">${marginDisplay}</td>
         </tr>`;
@@ -469,15 +508,17 @@ function renderFinancesLive() {
     
     // Totals
     const totalValue = projects.reduce((sum, p) => sum + p.value, 0);
-    const totalCost = projects.reduce((sum, p) => sum + p.cost, 0);
-    const totalProfit = totalValue - totalCost;
+    const totalMaterials = projects.reduce((sum, p) => sum + p.materials, 0);
+    const totalLabour = projects.reduce((sum, p) => sum + p.labour, 0);
+    const totalProfit = totalValue - totalMaterials - totalLabour;
     const avgMargin = totalValue > 0 ? (totalProfit / totalValue * 100) : 0;
     
     html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
         <td colspan="2" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
-        <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-        <td style="padding: 12px; text-align: right;">£${totalCost.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-        <td style="padding: 12px; text-align: right; color: ${totalProfit >= 0 ? '#4ade80' : '#f5576c'};">£${totalProfit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #f97316;">£${totalMaterials.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #8b5cf6;">£${totalLabour.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: ${totalProfit >= 0 ? '#4ade80' : '#f5576c'};">£${totalProfit.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
         <td style="padding: 12px; text-align: right; color: #4facfe;">${avgMargin.toFixed(1)}%</td>
     </tr></tbody></table>`;
     
