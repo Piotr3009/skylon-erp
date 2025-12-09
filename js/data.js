@@ -620,23 +620,66 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         console.log(`💾 Calling ${functionName} for project ${projectId}`);
         console.log(`📦 Saving ${phases.length} phases via RPC (atomic transaction)`);
 
+        // Helper: sprawdź czy data jest valid
+        const isValidDate = (dateStr) => {
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            return !isNaN(d.getTime());
+        };
+
+        // Helper: dzisiejsza data w formacie YYYY-MM-DD
+        const getTodayStr = () => {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         // Przygotuj dane dla RPC
         const phasesForRPC = phases.map((phase, index) => {
+            // WALIDACJA: Napraw invalid start_date
+            let startDate = phase.start;
+            if (!isValidDate(startDate)) {
+                console.warn(`⚠️ Invalid start date for phase ${phase.key}, setting to today`);
+                startDate = getTodayStr();
+            }
+
             // Oblicz end_date jeśli trzeba
             let endDate = phase.end;
-            if (!endDate && phase.start && phase.workDays) {
+            
+            // WALIDACJA: Napraw invalid end_date
+            if (!isValidDate(endDate)) {
+                console.warn(`⚠️ Invalid end date for phase ${phase.key}, calculating from workDays`);
+                endDate = null; // wymusi przeliczenie poniżej
+            }
+            
+            // Jeśli end < start, też napraw
+            if (endDate && new Date(endDate) < new Date(startDate)) {
+                console.warn(`⚠️ End date before start for phase ${phase.key}, recalculating`);
+                endDate = null;
+            }
+
+            if (!endDate && startDate) {
                 try {
-                    const computedEnd = computeEnd(phase);
-                    endDate = formatDate(computedEnd);
+                    const workDays = phase.workDays || 4;
+                    const start = new Date(startDate);
+                    const end = new Date(start);
+                    end.setDate(end.getDate() + workDays - 1);
+                    const year = end.getFullYear();
+                    const month = String(end.getMonth() + 1).padStart(2, '0');
+                    const day = String(end.getDate()).padStart(2, '0');
+                    endDate = `${year}-${month}-${day}`;
                 } catch (err) {
                     console.error('Error computing phase end:', err);
+                    endDate = startDate; // fallback: end = start
                 }
             }
 
             const phaseData = {
                 phase_key: phase.key,
-                start_date: phase.start,
-                end_date: endDate || null,
+                start_date: startDate,
+                end_date: endDate || startDate,
                 work_days: phase.workDays || (isProduction ? 4 : 3),
                 status: phase.status || 'notStarted',
                 notes: phase.notes || null,
