@@ -410,49 +410,104 @@ async function archiveEmployee(id) {
     
     const notes = prompt('Additional notes (optional):');
     
-    if (!confirm(`Archive "${member.name}"? This will move them to permanent archives.`)) {
+    if (!confirm(`Archive "${member.name}"?\n\nThis will:\n- Remove login access\n- Delete holidays\n- Unassign from projects\n- Unassign van\n\nContinue?`)) {
         return;
     }
     
     try {
-        // 1. Skopiuj do archiwum
+        // 1. Oznacz jako zarchiwizowany w team_members
         const { error: archiveError } = await supabaseClient
-            .schema('archives')
-            .from('team_members')
-            .insert({
-                original_id: member.id,
-                name: member.name,
-                email: member.email,
-                phone: member.phone,
-                department: member.department,
-                role: member.role,
-                employee_number: member.employee_number,
-                start_date: member.start_date,
-                end_date: new Date().toISOString().split('T')[0],
-                departure_reason: reasons[reason],
-                departure_notes: notes,
-                archived_by: 'Admin'
-            });
-            
-        if (archiveError) throw archiveError;
-        
-        // 2. Oznacz jako nieaktywny w głównej tabeli
-        const { error: updateError } = await supabaseClient
             .from('team_members')
             .update({ 
+                archived: true,
                 active: false,
-                end_date: new Date().toISOString().split('T')[0]
+                end_date: new Date().toISOString().split('T')[0],
+                departure_reason: reasons[reason],
+                departure_notes: notes || null,
+                archived_date: new Date().toISOString()
             })
             .eq('id', id);
-            
-        if (updateError) throw updateError;
-        
+        if (archiveError) throw archiveError;
+        console.log('✅ Team member archived');
+
+        // 2. Usuń dostęp - user_profiles
+        const { error: userError } = await supabaseClient
+            .from('user_profiles')
+            .delete()
+            .eq('team_member_id', id);
+        if (userError) console.warn('user_profiles:', userError.message);
+        else console.log('✅ User profile deleted');
+
+        // 3. Usuń urlopy
+        const { error: holidaysError } = await supabaseClient
+            .from('employee_holidays')
+            .delete()
+            .eq('employee_id', id);
+        if (holidaysError) console.warn('employee_holidays:', holidaysError.message);
+        else console.log('✅ Holidays deleted');
+
+        // 4. Odepnij z project_phases (assigned_to)
+        const { error: phasesError } = await supabaseClient
+            .from('project_phases')
+            .update({ assigned_to: null })
+            .eq('assigned_to', id);
+        if (phasesError) console.warn('project_phases assigned_to:', phasesError.message);
+        else console.log('✅ Unassigned from project phases');
+
+        // 5. Odepnij z project_phases (materials_ordered_confirmed_by)
+        const { error: phases2Error } = await supabaseClient
+            .from('project_phases')
+            .update({ materials_ordered_confirmed_by: null })
+            .eq('materials_ordered_confirmed_by', id);
+        if (phases2Error) console.warn('project_phases materials_ordered:', phases2Error.message);
+        else console.log('✅ Unassigned from materials confirmation');
+
+        // 6. Odepnij z projects (timber_worker_id)
+        const { error: timberError } = await supabaseClient
+            .from('projects')
+            .update({ timber_worker_id: null })
+            .eq('timber_worker_id', id);
+        if (timberError) console.warn('projects timber:', timberError.message);
+        else console.log('✅ Unassigned as timber worker');
+
+        // 7. Odepnij z projects (spray_worker_id)
+        const { error: sprayError } = await supabaseClient
+            .from('projects')
+            .update({ spray_worker_id: null })
+            .eq('spray_worker_id', id);
+        if (sprayError) console.warn('projects spray:', sprayError.message);
+        else console.log('✅ Unassigned as spray worker');
+
+        // 8. Odepnij z projects (admin_id)
+        const { error: adminError } = await supabaseClient
+            .from('projects')
+            .update({ admin_id: null })
+            .eq('admin_id', id);
+        if (adminError) console.warn('projects admin:', adminError.message);
+        else console.log('✅ Unassigned as admin');
+
+        // 9. Odepnij z projects (sales_person_id)
+        const { error: salesError } = await supabaseClient
+            .from('projects')
+            .update({ sales_person_id: null })
+            .eq('sales_person_id', id);
+        if (salesError) console.warn('projects sales:', salesError.message);
+        else console.log('✅ Unassigned as sales person');
+
+        // 10. Odepnij van
+        const { error: vanError } = await supabaseClient
+            .from('vans')
+            .update({ assigned_to_worker_id: null })
+            .eq('assigned_to_worker_id', id);
+        if (vanError) console.warn('vans:', vanError.message);
+        else console.log('✅ Van unassigned');
+
         alert(`✅ ${member.name} has been archived successfully!`);
         loadTeam();
         
-    } catch (error) {
-        console.error('Archive error:', error);
-        alert('❌ Error archiving employee: ' + error.message);
+    } catch (err) {
+        console.error('Error archiving employee:', err);
+        alert('❌ Error archiving employee: ' + err.message);
     }
 }
 
