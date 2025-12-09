@@ -175,7 +175,19 @@ async function saveProject() {
     const selectedPhases = [];
     const checkboxes = document.querySelectorAll('#phasesList input[type="checkbox"]:checked');
     
-    let currentDate = new Date(startDate);
+    // WALIDACJA: Jeśli są zaznaczone fazy, wymagaj Start Date lub ustaw dzisiejszą
+    let effectiveStartDate = startDate;
+    if (checkboxes.length > 0 && !startDate) {
+        // Ustaw dzisiejszą datę jeśli brak
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        effectiveStartDate = `${year}-${month}-${day}`;
+        console.warn('⚠️ No start date provided, using today:', effectiveStartDate);
+    }
+    
+    let currentDate = new Date(effectiveStartDate);
     
     // Sort phases according to productionPhaseOrder
     const sortedCheckboxes = Array.from(checkboxes).sort((a, b) => {
@@ -194,6 +206,26 @@ async function saveProject() {
             if (existingPhase) {
                 // ZACHOWAJ WSZYSTKO ze starej fazy
                 newPhase = { ...existingPhase };
+                
+                // WALIDACJA: Napraw invalid dates w istniejących fazach
+                const isValidDate = (dateStr) => {
+                    if (!dateStr) return false;
+                    const d = new Date(dateStr);
+                    return !isNaN(d.getTime());
+                };
+                
+                if (!isValidDate(newPhase.start)) {
+                    console.warn(`⚠️ Fixing invalid start date for phase ${phaseKey}`);
+                    newPhase.start = formatDate(currentDate);
+                }
+                
+                if (!isValidDate(newPhase.end) || new Date(newPhase.end) < new Date(newPhase.start)) {
+                    console.warn(`⚠️ Fixing invalid end date for phase ${phaseKey}`);
+                    const start = new Date(newPhase.start);
+                    const workDays = newPhase.workDays || 4;
+                    const end = workDays <= 1 ? new Date(start) : addWorkingDays(start, workDays - 1);
+                    newPhase.end = formatDate(end);
+                }
             } else {
                 // Nowa faza dodana przy edycji - oblicz daty
                 const phaseStart = new Date(currentDate);
