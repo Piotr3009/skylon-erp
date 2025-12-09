@@ -613,16 +613,26 @@ async function bookHoliday(memberId) {
 
 // ========== WAGES MODAL ==========
 function openWagesModal() {
-    // Populate employee select
+    // Populate employee select with job_type
     const select = document.getElementById('wageEmployee');
     select.innerHTML = '<option value="">Select Employee...</option>';
     
+    const jobTypeLabels = {
+        'joiner': '🪚 Joiner',
+        'sprayer': '🎨 Sprayer',
+        'prep': '🧹 Prep',
+        'labour': '👷 Labour',
+        'office': '💼 Office'
+    };
+    
     teamMembers
-        .filter(m => m.active)
+        .filter(m => m.active && m.job_type) // tylko z job_type
+        .sort((a, b) => (a.job_type || '').localeCompare(b.job_type || ''))
         .forEach(member => {
             const option = document.createElement('option');
             option.value = member.id;
-            option.textContent = member.name;
+            const jobLabel = jobTypeLabels[member.job_type] || member.job_type;
+            option.textContent = `${member.name} (${jobLabel})`;
             select.appendChild(option);
         });
     
@@ -704,13 +714,22 @@ async function loadRecentWages() {
     
     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading...</td></tr>';
     
+    const jobTypeLabels = {
+        'joiner': '🪚',
+        'sprayer': '🎨',
+        'prep': '🧹',
+        'labour': '👷',
+        'office': '💼'
+    };
+    
     try {
         const { data, error } = await supabaseClient
             .from('wages')
             .select(`
                 *,
                 team_members (
-                    name
+                    name,
+                    job_type
                 )
             `)
             .order('period_start', { ascending: false })
@@ -730,8 +749,10 @@ async function loadRecentWages() {
                 ? `Week ${getWeekNumber(new Date(wage.period_start))}`
                 : new Date(wage.period_start).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
             
+            const jobIcon = jobTypeLabels[wage.team_members?.job_type] || '❓';
+            
             tr.innerHTML = `
-                <td>${wage.team_members?.name || 'Unknown'}</td>
+                <td>${jobIcon} ${wage.team_members?.name || 'Unknown'}</td>
                 <td>${periodLabel}</td>
                 <td>${formatDateDisplay(wage.period_start)} - ${formatDateDisplay(wage.period_end)}</td>
                 <td><strong>£${parseFloat(wage.gross_amount).toFixed(2)}</strong></td>
