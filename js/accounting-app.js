@@ -88,7 +88,7 @@ async function loadAllAccountingData() {
         if (productionIds.length > 0) {
             const { data: materials, error: materialsError } = await supabaseClient
                 .from('project_materials')
-                .select('project_id, quantity_reserved, unit_cost')
+                .select('project_id, quantity_needed, unit_cost')
                 .in('project_id', productionIds);
             
             if (!materialsError) projectMaterialsData = materials || [];
@@ -444,7 +444,7 @@ function renderFinancesLive() {
     const getMaterialsCost = (projectId) => {
         return projectMaterialsData
             .filter(m => m.project_id === projectId)
-            .reduce((sum, m) => sum + ((m.quantity_reserved || 0) * (m.unit_cost || 0)), 0);
+            .reduce((sum, m) => sum + ((m.quantity_needed || 0) * (m.unit_cost || 0)), 0);
     };
     
     // Filtruj projekty
