@@ -371,7 +371,7 @@
         <div class="toolbar">
             <button class="toolbar-btn primary" onclick="openAddEmployeeModal()">+ Add Employee</button>
             <button class="toolbar-btn" onclick="loadTeam()">🔄 Refresh</button>
-            <button class="toolbar-btn" onclick="openPaymentsModal()">💰 Payments</button>
+            <button class="toolbar-btn" onclick="openWagesModal()">💰 Wages</button>
             <button class="toolbar-btn" onclick="window.location.href='holidays.html'">🏖️ Holidays</button>
             <div class="export-dropdown">
                 <button class="toolbar-btn">Export ▼</button>
@@ -645,49 +645,63 @@
         </div>
     </div>
 
-    <!-- Payments Modal -->
-    <div class="modal" id="paymentsModal">
-        <div class="modal-content" style="width: 800px;">
-            <div class="modal-header">Payments Management</div>
+    <!-- Wages Modal -->
+    <div class="modal" id="wagesModal">
+        <div class="modal-content" style="width: 900px;">
+            <div class="modal-header">Wages Management</div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Add Payment</label>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 10px;">
-                        <select id="paymentEmployee">
-                            <option value="">Select Employee...</option>
-                        </select>
-                        <input type="date" id="paymentDate">
-                        <input type="number" id="paymentBase" placeholder="Base £" step="0.01">
-                        <input type="number" id="paymentBonus" placeholder="Bonus £" step="0.01">
-                        <button class="modal-btn primary" onclick="addPayment()">Add</button>
+                    <label>Add Wage</label>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                        <div>
+                            <small style="color: #888;">Employee</small>
+                            <select id="wageEmployee" style="width: 100%;">
+                                <option value="">Select Employee...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <small style="color: #888;">Period Type</small>
+                            <select id="wagePeriodType" onchange="updateWagePeriodFields()" style="width: 100%;">
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div>
+                            <small style="color: #888;">Week/Month</small>
+                            <select id="wagePeriod" style="width: 100%;">
+                            </select>
+                        </div>
+                        <div>
+                            <small style="color: #888;">Gross Amount £</small>
+                            <input type="number" id="wageAmount" placeholder="0.00" step="0.01" style="width: 100%;">
+                        </div>
+                        <button class="modal-btn primary" onclick="addWage()">Add</button>
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Recent Payments</label>
+                    <label>Recent Wages</label>
                     <div style="max-height: 400px; overflow-y: auto;">
                         <table class="team-table">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
                                     <th>Employee</th>
                                     <th>Period</th>
-                                    <th>Base</th>
-                                    <th>Bonus</th>
-                                    <th>Total</th>
+                                    <th>Dates</th>
+                                    <th>Gross Amount</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="paymentsTableBody">
-                                <!-- Payments will be loaded here -->
+                            <tbody id="wagesTableBody">
+                                <!-- Wages will be loaded here -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="modal-btn" onclick="exportPaymentsCSV()">Export CSV</button>
-                <button class="modal-btn primary" onclick="closeModal('paymentsModal')">Close</button>
+                <button class="modal-btn" onclick="exportWagesCSV()">Export CSV</button>
+                <button class="modal-btn primary" onclick="closeModal('wagesModal')">Close</button>
             </div>
         </div>
     </div>

@@ -4,7 +4,7 @@
 
 let accountingData = [];
 let monthlyOverheadsData = [];
-let skillAssignmentsData = [];
+let wagesData = [];
 let pipelineProjectsData = [];
 let productionProjectsData = [];
 let archivedProjectsData = [];
@@ -107,12 +107,12 @@ async function loadAllAccountingData() {
         
         if (!overheadsError) monthlyOverheadsData = overheads || [];
 
-        const { data: skills, error: skillsError } = await supabaseClient
-            .from('skill_assignments')
+        const { data: wages, error: wagesError } = await supabaseClient
+            .from('wages')
             .select('*')
-            .order('month', { ascending: true });
+            .order('period_start', { ascending: false });
         
-        if (!skillsError) skillAssignmentsData = skills || [];
+        if (!wagesError) wagesData = wages || [];
 
         console.log('✅ All accounting data loaded');
         console.log('Pipeline (LIFE):', pipelineProjectsData.length);
@@ -256,15 +256,11 @@ function getMonthlyBreakdown() {
     });
     
     Object.keys(months).forEach(monthKey => {
-        const skills = skillAssignmentsData.filter(s => s.month === monthKey);
-        const joineryWorkers = skills.find(s => s.skill_type === 'joinery')?.worker_count || 0;
-        const sprayingWorkers = skills.find(s => s.skill_type === 'spraying')?.worker_count || 0;
-        const totalWorkers = joineryWorkers + sprayingWorkers;
-        
-        months[monthKey].joineryWorkers = joineryWorkers;
-        months[monthKey].sprayingWorkers = sprayingWorkers;
-        months[monthKey].totalWorkers = totalWorkers;
-        months[monthKey].valuePerPerson = totalWorkers > 0 ? months[monthKey].totalValue / totalWorkers : 0;
+        // TODO: oblicz workers z wages gdy będą dane
+        months[monthKey].joineryWorkers = 0;
+        months[monthKey].sprayingWorkers = 0;
+        months[monthKey].totalWorkers = 0;
+        months[monthKey].valuePerPerson = 0;
         
         const overhead = monthlyOverheadsData.find(o => o.month === monthKey);
         months[monthKey].overheads = parseFloat(overhead?.overheads_value) || 0;

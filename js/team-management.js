@@ -608,10 +608,10 @@ async function bookHoliday(memberId) {
     }
 }
 
-// ========== PAYMENTS MODAL ==========
-function openPaymentsModal() {
+// ========== WAGES MODAL ==========
+function openWagesModal() {
     // Populate employee select
-    const select = document.getElementById('paymentEmployee');
+    const select = document.getElementById('wageEmployee');
     select.innerHTML = '<option value="">Select Employee...</option>';
     
     teamMembers
@@ -623,127 +623,201 @@ function openPaymentsModal() {
             select.appendChild(option);
         });
     
-    // Set today's date
-    document.getElementById('paymentDate').value = formatDate(new Date());
+    // Initialize period dropdown
+    updateWagePeriodFields();
     
-    // Load recent payments
-    loadRecentPayments();
+    // Load recent wages
+    loadRecentWages();
     
-    openModal('paymentsModal');
+    openModal('wagesModal');
 }
 
-async function loadRecentPayments() {
-    const tbody = document.getElementById('recentPaymentsBody');
-    if (!tbody) {
-        console.warn('recentPaymentsBody element not found');
-        return;
+function updateWagePeriodFields() {
+    const periodType = document.getElementById('wagePeriodType').value;
+    const periodSelect = document.getElementById('wagePeriod');
+    periodSelect.innerHTML = '';
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    
+    if (periodType === 'weekly') {
+        // Generate last 12 weeks
+        for (let i = 0; i < 12; i++) {
+            const weekDate = new Date(now);
+            weekDate.setDate(weekDate.getDate() - (i * 7));
+            
+            const weekNum = getWeekNumber(weekDate);
+            const weekStart = getWeekStart(weekDate);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            const option = document.createElement('option');
+            option.value = JSON.stringify({
+                start: formatDate(weekStart),
+                end: formatDate(weekEnd)
+            });
+            option.textContent = `Week ${weekNum} (${formatDateShort(weekStart)} - ${formatDateShort(weekEnd)})`;
+            periodSelect.appendChild(option);
+        }
+    } else {
+        // Generate last 12 months
+        for (let i = 0; i < 12; i++) {
+            const monthDate = new Date(currentYear, now.getMonth() - i, 1);
+            const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+            
+            const option = document.createElement('option');
+            option.value = JSON.stringify({
+                start: formatDate(monthDate),
+                end: formatDate(monthEnd)
+            });
+            option.textContent = monthDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            periodSelect.appendChild(option);
+        }
     }
+}
+
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
+
+function formatDateShort(date) {
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+async function loadRecentWages() {
+    const tbody = document.getElementById('wagesTableBody');
+    if (!tbody) return;
     
     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading...</td></tr>';
     
     try {
         const { data, error } = await supabaseClient
-            .from('team_payments')
+            .from('wages')
             .select(`
                 *,
                 team_members (
                     name
                 )
             `)
-            .order('payment_date', { ascending: false })
-            .limit(20);
+            .order('period_start', { ascending: false })
+            .limit(30);
         
         if (error) throw error;
         
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No payments found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No wages found</td></tr>';
             return;
         }
         
         tbody.innerHTML = '';
-        data.forEach(payment => {
+        data.forEach(wage => {
             const tr = document.createElement('tr');
-            // Wyświetl kwoty (poprawione nazwy kolumn)
-            const base = parseFloat(payment.base_payment) || 0;
-            const bonus = parseFloat(payment.bonus) || 0;
-            const total = parseFloat(payment.total) || base + bonus;
+            const periodLabel = wage.period_type === 'weekly' 
+                ? `Week ${getWeekNumber(new Date(wage.period_start))}`
+                : new Date(wage.period_start).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
             
             tr.innerHTML = `
-                <td>${formatDateDisplay(payment.payment_date)}</td>
-                <td>${payment.team_members?.name || 'Unknown'}</td>
-                <td>£${base.toFixed(2)}</td>
-                <td>£${bonus.toFixed(2)}</td>
-                <td><strong>£${total.toFixed(2)}</strong></td>
+                <td>${wage.team_members?.name || 'Unknown'}</td>
+                <td>${periodLabel}</td>
+                <td>${formatDateDisplay(wage.period_start)} - ${formatDateDisplay(wage.period_end)}</td>
+                <td><strong>£${parseFloat(wage.gross_amount).toFixed(2)}</strong></td>
+                <td>
+                    <button class="action-btn delete" onclick="deleteWage('${wage.id}')" title="Delete">🗑️</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
         
     } catch (error) {
-        console.error('Error loading payments:', error);
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Error loading payments</td></tr>';
+        console.error('Error loading wages:', error);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Error loading wages</td></tr>';
     }
 }
 
-async function addPayment() {
-    const employeeId = document.getElementById('paymentEmployee').value;
-    const date = document.getElementById('paymentDate').value;
-    const baseAmount = parseFloat(document.getElementById('paymentBase').value) || 0;
-    const bonusAmount = parseFloat(document.getElementById('paymentBonus').value) || 0;
+async function addWage() {
+    const employeeId = document.getElementById('wageEmployee').value;
+    const periodType = document.getElementById('wagePeriodType').value;
+    const periodData = document.getElementById('wagePeriod').value;
+    const amount = parseFloat(document.getElementById('wageAmount').value) || 0;
     
-    if (!employeeId || !date) {
-        alert('Please select employee and date');
+    if (!employeeId) {
+        alert('Please select employee');
         return;
     }
     
-    if (baseAmount <= 0 && bonusAmount <= 0) {
-        alert('Please enter payment amount');
+    if (!periodData) {
+        alert('Please select period');
         return;
     }
     
-    // Calculate period (assuming weekly payments)
-    const paymentDate = new Date(date);
-    const dayOfWeek = paymentDate.getDay();
-    const startOfWeek = new Date(paymentDate);
-    startOfWeek.setDate(paymentDate.getDate() - dayOfWeek + 1); // Monday
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+    if (amount <= 0) {
+        alert('Please enter wage amount');
+        return;
+    }
     
-    // BEZ SZYFROWANIA - przechowuj zwykłe liczby jako tekst
-    const paymentData = {
+    const period = JSON.parse(periodData);
+    
+    const wageData = {
         team_member_id: employeeId,
-        payment_date: date,
-        payment_period: 'weekly',
-        period_start: formatDate(startOfWeek),
-        period_end: formatDate(endOfWeek),
-        base_payment: baseAmount.toFixed(2),  // Poprawione nazwy kolumn
-        bonus: bonusAmount > 0 ? bonusAmount.toFixed(2) : null,
-        total: (baseAmount + bonusAmount).toFixed(2),
-        payment_method: 'bank',
-        notes: null,
-        approved_by: currentUser?.id || null
+        period_type: periodType,
+        period_start: period.start,
+        period_end: period.end,
+        gross_amount: amount
     };
     
     try {
         const { error } = await supabaseClient
-            .from('team_payments')  // Zmienione z 'payments'
-            .insert([paymentData]);
+            .from('wages')
+            .insert([wageData]);
         
         if (error) throw error;
         
-        console.log('✅ Payment added');
+        console.log('✅ Wage added');
         
         // Clear form
-        document.getElementById('paymentEmployee').value = '';
-        document.getElementById('paymentBase').value = '';
-        document.getElementById('paymentBonus').value = '';
+        document.getElementById('wageEmployee').value = '';
+        document.getElementById('wageAmount').value = '';
         
-        // Reload payments
-        loadRecentPayments();
+        // Reload wages
+        loadRecentWages();
         
     } catch (error) {
-        console.error('Error adding payment:', error);
+        console.error('Error adding wage:', error);
         alert('Error: ' + error.message);
     }
+}
+
+async function deleteWage(wageId) {
+    if (!confirm('Delete this wage entry?')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('wages')
+            .delete()
+            .eq('id', wageId);
+        
+        if (error) throw error;
+        
+        loadRecentWages();
+    } catch (error) {
+        console.error('Error deleting wage:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+function exportWagesCSV() {
+    alert('Export CSV - TODO');
 }
 
 // ========== SEARCH & FILTER ==========
