@@ -164,6 +164,7 @@ function openAddEmployeeModal() {
     document.getElementById('empPhone').value = '';
     document.getElementById('empNumber').value = generateEmployeeNumber();
     document.getElementById('empDepartment').value = 'production';
+    document.getElementById('empJobType').value = '';
     document.getElementById('empRole').value = '';
     document.getElementById('empContract').value = 'contract';
     document.getElementById('salaryType').value = 'hourly';
@@ -192,6 +193,7 @@ function editEmployee(id) {
     document.getElementById('empPhone').value = member.phone || '';
     document.getElementById('empNumber').value = member.employee_number || '';
     document.getElementById('empDepartment').value = member.department || 'production';
+    document.getElementById('empJobType').value = member.job_type || '';
     document.getElementById('empRole').value = member.role || '';
     document.getElementById('empContract').value = member.contract_type || 'contract';
     document.getElementById('salaryType').value = member.salary_type || 'hourly';
@@ -232,6 +234,7 @@ async function saveEmployee() {
         phone: document.getElementById('empPhone').value.trim() || null,
         employee_number: document.getElementById('empNumber').value.trim() || null,
         department: document.getElementById('empDepartment').value,
+        job_type: document.getElementById('empJobType').value || null,
         role: document.getElementById('empRole').value.trim() || null,
         contract_type: document.getElementById('empContract').value,
         salary_type: document.getElementById('salaryType').value,
