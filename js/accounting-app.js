@@ -11,7 +11,8 @@ let archivedProjectsData = [];
 let clientsData = [];
 
 let currentYear = new Date().getFullYear();
-let activeTab = 'weekly';
+let activeTab = 'finances';
+let activeFinancesSubTab = 'live';
 
 // ========================================
 // INITIALIZATION
@@ -368,6 +369,9 @@ function renderSummaryCards() {
 
 function renderActiveTab() {
     switch(activeTab) {
+        case 'finances':
+            renderFinances();
+            break;
         case 'weekly':
             renderWeeklyBudget();
             break;
@@ -384,6 +388,162 @@ function renderActiveTab() {
             renderCashFlowForecast();
             break;
     }
+}
+
+// ========== PROJECT FINANCES ==========
+
+function switchFinancesSubTab(subTab) {
+    activeFinancesSubTab = subTab;
+    
+    // Update sub-tab buttons
+    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+        if (btn.dataset.subtab === subTab) {
+            btn.style.background = '#3b82f6';
+            btn.style.border = 'none';
+            btn.style.color = 'white';
+            btn.classList.add('active');
+        } else {
+            btn.style.background = '#27272a';
+            btn.style.border = '1px solid #3f3f46';
+            btn.style.color = '#a1a1aa';
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Show/hide tables
+    document.getElementById('financesLiveTable').style.display = subTab === 'live' ? 'block' : 'none';
+    document.getElementById('financesArchiveTable').style.display = subTab === 'archive' ? 'block' : 'none';
+    
+    renderFinances();
+}
+
+function renderFinances() {
+    if (activeFinancesSubTab === 'live') {
+        renderFinancesLive();
+    } else {
+        renderFinancesArchive();
+    }
+}
+
+function renderFinancesLive() {
+    const container = document.getElementById('financesLiveTable');
+    
+    // Filtruj projekty z bieżącego roku
+    const projects = productionProjectsData.map(p => {
+        const value = parseFloat(p.contract_value) || 0;
+        const cost = parseFloat(p.project_cost) || 0;
+        const profit = value - cost;
+        const margin = value > 0 ? (profit / value * 100) : 0;
+        
+        return {
+            ...p,
+            value,
+            cost,
+            profit,
+            margin
+        };
+    }).sort((a, b) => b.margin - a.margin);
+    
+    if (projects.length === 0) {
+        container.innerHTML = '<p style="color: #999;">No active projects in production.</p>';
+        return;
+    }
+    
+    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Project #</th><th style="padding: 12px; text-align: left;">Name</th><th style="padding: 12px; text-align: right;">Value</th><th style="padding: 12px; text-align: right;">Cost</th><th style="padding: 12px; text-align: right;">Profit</th><th style="padding: 12px; text-align: right;">Margin %</th></tr></thead><tbody>';
+    
+    projects.forEach(p => {
+        const marginColor = p.margin >= 20 ? '#4ade80' : p.margin >= 10 ? '#fee140' : '#f5576c';
+        const costDisplay = p.cost > 0 ? `£${p.cost.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
+        const profitDisplay = p.cost > 0 ? `£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
+        const marginDisplay = p.cost > 0 ? `${p.margin.toFixed(1)}%` : '<span style="color: #666;">—</span>';
+        
+        html += `<tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 12px;">${p.project_number}</td>
+            <td style="padding: 12px;">${p.name}</td>
+            <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+            <td style="padding: 12px; text-align: right;">${costDisplay}</td>
+            <td style="padding: 12px; text-align: right; color: ${p.profit >= 0 ? '#4ade80' : '#f5576c'};">${profitDisplay}</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold; color: ${marginColor};">${marginDisplay}</td>
+        </tr>`;
+    });
+    
+    // Totals
+    const totalValue = projects.reduce((sum, p) => sum + p.value, 0);
+    const totalCost = projects.reduce((sum, p) => sum + p.cost, 0);
+    const totalProfit = totalValue - totalCost;
+    const avgMargin = totalValue > 0 ? (totalProfit / totalValue * 100) : 0;
+    
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
+        <td colspan="2" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
+        <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right;">£${totalCost.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right; color: ${totalProfit >= 0 ? '#4ade80' : '#f5576c'};">£${totalProfit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right; color: #4facfe;">${avgMargin.toFixed(1)}%</td>
+    </tr></tbody></table>`;
+    
+    container.innerHTML = html;
+}
+
+function renderFinancesArchive() {
+    const container = document.getElementById('financesArchiveTable');
+    
+    // Filtruj ukończone projekty
+    const projects = archivedProjectsData
+        .filter(p => p.archive_reason === 'completed')
+        .map(p => {
+            const value = parseFloat(p.actual_value || p.contract_value) || 0;
+            const cost = parseFloat(p.project_cost) || 0;
+            const profit = value - cost;
+            const margin = value > 0 ? (profit / value * 100) : 0;
+            
+            return {
+                ...p,
+                value,
+                cost,
+                profit,
+                margin
+            };
+        })
+        .sort((a, b) => b.margin - a.margin);
+    
+    if (projects.length === 0) {
+        container.innerHTML = '<p style="color: #999;">No completed projects in archive.</p>';
+        return;
+    }
+    
+    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Project #</th><th style="padding: 12px; text-align: left;">Name</th><th style="padding: 12px; text-align: right;">Value</th><th style="padding: 12px; text-align: right;">Cost</th><th style="padding: 12px; text-align: right;">Profit</th><th style="padding: 12px; text-align: right;">Margin %</th></tr></thead><tbody>';
+    
+    projects.forEach(p => {
+        const marginColor = p.margin >= 20 ? '#4ade80' : p.margin >= 10 ? '#fee140' : '#f5576c';
+        const costDisplay = p.cost > 0 ? `£${p.cost.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
+        const profitDisplay = p.cost > 0 ? `£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
+        const marginDisplay = p.cost > 0 ? `${p.margin.toFixed(1)}%` : '<span style="color: #666;">—</span>';
+        
+        html += `<tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 12px;">${p.project_number}</td>
+            <td style="padding: 12px;">${p.name}</td>
+            <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+            <td style="padding: 12px; text-align: right;">${costDisplay}</td>
+            <td style="padding: 12px; text-align: right; color: ${p.profit >= 0 ? '#4ade80' : '#f5576c'};">${profitDisplay}</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold; color: ${marginColor};">${marginDisplay}</td>
+        </tr>`;
+    });
+    
+    // Totals
+    const totalValue = projects.reduce((sum, p) => sum + p.value, 0);
+    const totalCost = projects.reduce((sum, p) => sum + p.cost, 0);
+    const totalProfit = totalValue - totalCost;
+    const avgMargin = totalValue > 0 ? (totalProfit / totalValue * 100) : 0;
+    
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
+        <td colspan="2" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
+        <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right;">£${totalCost.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right; color: ${totalProfit >= 0 ? '#4ade80' : '#f5576c'};">£${totalProfit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right; color: #4facfe;">${avgMargin.toFixed(1)}%</td>
+    </tr></tbody></table>`;
+    
+    container.innerHTML = html;
 }
 
 function renderWeeklyBudget() {
