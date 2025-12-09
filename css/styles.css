@@ -2180,3 +2180,16 @@ textarea:focus {
 .modal-close:hover {
     color: #e0e0e0;
 }
+
+/* ========== ACCOUNTING THEME ========== */
+body.accounting-theme {
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+}
+
+body.accounting-theme .container {
+    overflow: visible;
+    height: auto;
+    min-height: 100vh;
+}
