@@ -105,10 +105,8 @@
         <!-- TABS -->
         <div class="tabs" style="display: flex; gap: 8px; margin: 16px 0; border-bottom: 1px solid #27272a;">
             <button class="tab-btn active" onclick="switchTab('finances')" data-tab="finances" style="padding: 10px 16px; background: transparent; border: none; color: #a1a1aa; cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s;">Project Finances</button>
-            <button class="tab-btn" onclick="switchTab('weekly')" data-tab="weekly" style="padding: 10px 16px; background: transparent; border: none; color: #a1a1aa; cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s;">Weekly Budget</button>
             <button class="tab-btn" onclick="switchTab('monthly')" data-tab="monthly" style="padding: 10px 16px; background: transparent; border: none; color: #a1a1aa; cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s;">Monthly Breakdown</button>
             <button class="tab-btn" onclick="switchTab('clients')" data-tab="clients" style="padding: 10px 16px; background: transparent; border: none; color: #a1a1aa; cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s;">Revenue per Client</button>
-            <button class="tab-btn" onclick="switchTab('forecast')" data-tab="forecast" style="padding: 10px 16px; background: transparent; border: none; color: #a1a1aa; cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s;">Cash Flow Forecast</button>
         </div>
 
         <!-- TAB CONTENT -->
@@ -135,14 +133,6 @@
                 </div>
             </div>
 
-            <!-- WEEKLY BUDGET TAB -->
-            <div id="weeklyTab" class="tab-content" style="display: none;">
-                <h2 style="color: white; margin-bottom: 15px;">Weekly Budget Breakdown</h2>
-                <div id="weeklyBudgetTable" style="background: #1a1a1a; border-radius: 8px; padding: 20px;">
-                    <!-- Table will be generated here -->
-                </div>
-            </div>
-
             <!-- MONTHLY BREAKDOWN TAB -->
             <div id="monthlyTab" class="tab-content" style="display: none;">
                 <div id="monthlyBreakdownTable"></div>
@@ -157,22 +147,6 @@
             <div id="clientsTab" class="tab-content" style="display: none;">
                 <h2 style="color: white; margin-bottom: 15px;">Revenue per Client</h2>
                 <div id="clientsRevenueTable" style="background: #1a1a1a; border-radius: 8px; padding: 20px;">
-                    <!-- Table will be generated here -->
-                </div>
-            </div>
-
-            <!-- FORECAST TAB -->
-            <div id="forecastTab" class="tab-content" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h2 style="color: white; margin: 0;">Cash Flow Forecast</h2>
-                    <select id="forecastWeeksSelector" onchange="updateForecastWeeks()" style="padding: 8px 12px; background: #27272a; color: #d4d4d8; border: 1px solid #3f3f46; border-radius: 2px; font-size: 12px; cursor: pointer;">
-                        <option value="4">Next 4 Weeks</option>
-                        <option value="8" selected>Next 8 Weeks</option>
-                        <option value="12">Next 12 Weeks</option>
-                        <option value="16">Next 16 Weeks</option>
-                    </select>
-                </div>
-                <div id="forecastTable" style="background: #1a1a1a; border-radius: 8px; padding: 20px;">
                     <!-- Table will be generated here -->
                 </div>
             </div>

@@ -315,39 +315,6 @@ function calculateBurnRate() {
     return burnRate;
 }
 
-function getWeeklyBudget() {
-    const weeks = {};
-    
-    productionProjectsData.forEach(p => {
-        if (!p.deadline) return;
-        
-        const deadline = new Date(p.deadline);
-        const weekStart = getWeekStart(deadline);
-        const weekKey = weekStart.toISOString().split('T')[0];
-        
-        if (!weeks[weekKey]) {
-            weeks[weekKey] = {
-                weekStart: weekStart,
-                weekEnd: new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
-                projects: [],
-                totalValue: 0
-            };
-        }
-        
-        weeks[weekKey].projects.push(p);
-        weeks[weekKey].totalValue += parseFloat(p.contract_value) || 0;
-    });
-    
-    return Object.values(weeks).sort((a, b) => a.weekStart - b.weekStart);
-}
-
-function getWeekStart(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
-}
-
 function getMonthlyBreakdown() {
     const months = {};
     
@@ -448,36 +415,6 @@ function getRevenuePerClient() {
     return Object.values(clientRevenue).sort((a, b) => b.totalRevenue - a.totalRevenue);
 }
 
-function getCashFlowForecast(weeksAhead = 8) {
-    const today = new Date();
-    const forecast = [];
-    
-    for (let i = 0; i < weeksAhead; i++) {
-        const weekStart = new Date(today.getTime() + i * 7 * 24 * 60 * 60 * 1000);
-        const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
-        
-        const projectsInWeek = productionProjectsData.filter(p => {
-            if (!p.deadline) return false;
-            const deadline = new Date(p.deadline);
-            return deadline >= weekStart && deadline <= weekEnd;
-        });
-        
-        const totalValue = projectsInWeek.reduce((sum, p) => 
-            sum + (parseFloat(p.contract_value) || 0), 0
-        );
-        
-        forecast.push({
-            weekNumber: i + 1,
-            weekStart,
-            weekEnd,
-            projects: projectsInWeek,
-            totalValue
-        });
-    }
-    
-    return forecast;
-}
-
 // ========================================
 // RENDERING
 // ========================================
@@ -508,20 +445,11 @@ function renderActiveTab() {
         case 'finances':
             renderFinances();
             break;
-        case 'weekly':
-            renderWeeklyBudget();
-            break;
         case 'monthly':
             renderMonthlyBreakdown();
             break;
-        case 'projects':
-            renderProjectProfits();
-            break;
         case 'clients':
             renderRevenuePerClient();
-            break;
-        case 'forecast':
-            renderCashFlowForecast();
             break;
     }
 }
@@ -711,27 +639,6 @@ function renderFinancesArchive() {
     container.innerHTML = html;
 }
 
-function renderWeeklyBudget() {
-    const weeks = getWeeklyBudget();
-    const container = document.getElementById('weeklyBudgetTable');
-    
-    if (weeks.length === 0) {
-        container.innerHTML = '<p style="color: #999;">No projects with deadlines in production.</p>';
-        return;
-    }
-    
-    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Week Start</th><th style="padding: 12px; text-align: left;">Week End</th><th style="padding: 12px; text-align: center;">Projects</th><th style="padding: 12px; text-align: right;">Total Value</th></tr></thead><tbody>';
-    
-    weeks.forEach(week => {
-        html += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${formatDate(week.weekStart)}</td><td style="padding: 12px;">${formatDate(week.weekEnd)}</td><td style="padding: 12px; text-align: center;">${week.projects.length}</td><td style="padding: 12px; text-align: right; font-weight: bold;">£${week.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
-    });
-    
-    const grandTotal = weeks.reduce((sum, w) => sum + w.totalValue, 0);
-    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="3" style="padding: 12px;">TOTAL</td><td style="padding: 12px; text-align: right;">£${grandTotal.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
-    
-    container.innerHTML = html;
-}
-
 function renderMonthlyBreakdown() {
     const months = getMonthlyBreakdown();
     
@@ -831,29 +738,6 @@ function renderRevenuePerClient() {
     html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="2" style="padding: 12px;">TOTAL</td><td style="padding: 12px; text-align: right;">£${grandTotal.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
     
     container.innerHTML = html;
-}
-
-function renderCashFlowForecast() {
-    const weeksSelector = document.getElementById('forecastWeeksSelector');
-    const weeks = weeksSelector ? parseInt(weeksSelector.value) : 8;
-    
-    const forecast = getCashFlowForecast(weeks);
-    const container = document.getElementById('forecastTable');
-    
-    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Week</th><th style="padding: 12px; text-align: left;">Period</th><th style="padding: 12px; text-align: center;">Projects</th><th style="padding: 12px; text-align: right;">Expected Income</th></tr></thead><tbody>';
-    
-    forecast.forEach(f => {
-        html += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">Week ${f.weekNumber}</td><td style="padding: 12px;">${formatDate(f.weekStart)} - ${formatDate(f.weekEnd)}</td><td style="padding: 12px; text-align: center;">${f.projects.length}</td><td style="padding: 12px; text-align: right; font-weight: bold;">£${f.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
-    });
-    
-    const totalForecast = forecast.reduce((sum, f) => sum + f.totalValue, 0);
-    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;"><td colspan="3" style="padding: 12px;">TOTAL (${weeks} weeks)</td><td style="padding: 12px; text-align: right;">£${totalForecast.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr></tbody></table>`;
-    
-    container.innerHTML = html;
-}
-
-function updateForecastWeeks() {
-    renderCashFlowForecast();
 }
 
 // ========================================
