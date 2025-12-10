@@ -351,6 +351,13 @@ function getWeekStart(date) {
 function getMonthlyBreakdown() {
     const months = {};
     
+    // Helper: oblicz materials dla projektu
+    const getMaterialsCost = (projectId) => {
+        return projectMaterialsData
+            .filter(m => m.project_id === projectId)
+            .reduce((sum, m) => sum + ((m.quantity_needed || 0) * (m.unit_cost || 0)), 0);
+    };
+    
     productionProjectsData.forEach(p => {
         if (!p.deadline) return;
         
@@ -361,30 +368,37 @@ function getMonthlyBreakdown() {
             months[monthKey] = {
                 month: monthKey,
                 projects: [],
-                totalValue: 0
+                totalValue: 0,
+                totalMaterials: 0,
+                totalLabour: 0
             };
         }
         
+        const materials = getMaterialsCost(p.id);
+        const labour = calculateLabourForProject(p.id);
+        
         months[monthKey].projects.push(p);
         months[monthKey].totalValue += parseFloat(p.contract_value) || 0;
+        months[monthKey].totalMaterials += materials;
+        months[monthKey].totalLabour += labour;
     });
     
     Object.keys(months).forEach(monthKey => {
-        // TODO: oblicz workers z wages gdy będą dane
-        months[monthKey].joineryWorkers = 0;
-        months[monthKey].sprayingWorkers = 0;
-        months[monthKey].totalWorkers = 0;
-        months[monthKey].valuePerPerson = 0;
-        
         const overhead = monthlyOverheadsData.find(o => o.month === monthKey);
         months[monthKey].overheads = parseFloat(overhead?.overheads_value) || 0;
-        months[monthKey].profit = months[monthKey].totalValue - months[monthKey].overheads;
-        months[monthKey].overheadsPercent = months[monthKey].totalValue > 0 
-            ? (months[monthKey].overheads / months[monthKey].totalValue * 100) 
+        
+        // Real Profit = Value - Materials - Labour - Overheads
+        months[monthKey].realProfit = months[monthKey].totalValue 
+            - months[monthKey].totalMaterials 
+            - months[monthKey].totalLabour 
+            - months[monthKey].overheads;
+        
+        months[monthKey].margin = months[monthKey].totalValue > 0 
+            ? (months[monthKey].realProfit / months[monthKey].totalValue * 100) 
             : 0;
     });
     
-    return Object.values(months).sort((a, b) => a.month.localeCompare(b.month));
+    return Object.values(months).sort((a, b) => b.month.localeCompare(a.month)); // newest first
 }
 
 function getProjectProfits() {
@@ -721,24 +735,61 @@ function renderWeeklyBudget() {
 function renderMonthlyBreakdown() {
     const months = getMonthlyBreakdown();
     
-    let html1 = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Month</th><th style="padding: 12px; text-align: right;">Total Value</th><th style="padding: 12px; text-align: center;">Joinery</th><th style="padding: 12px; text-align: center;">Spraying</th><th style="padding: 12px; text-align: center;">Total Workers</th><th style="padding: 12px; text-align: right;">£ per Person</th></tr></thead><tbody>';
+    // Usuwamy pierwszą tabelę (skill)
+    document.getElementById('monthlyBreakdownTable').innerHTML = '';
+    
+    // Nowa tabela z pełnym podsumowaniem
+    let html = `<table style="width: 100%; border-collapse: collapse; color: white;">
+        <thead>
+            <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
+                <th style="padding: 12px; text-align: left;">Month</th>
+                <th style="padding: 12px; text-align: right;">Revenue</th>
+                <th style="padding: 12px; text-align: right;">Materials</th>
+                <th style="padding: 12px; text-align: right;">Labour</th>
+                <th style="padding: 12px; text-align: right;">Overheads</th>
+                <th style="padding: 12px; text-align: right;">Real Profit</th>
+                <th style="padding: 12px; text-align: right;">Margin</th>
+            </tr>
+        </thead>
+        <tbody>`;
     
     months.forEach(m => {
-        html1 += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${formatMonth(m.month)}</td><td style="padding: 12px; text-align: right; font-weight: bold;">£${m.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: center;">${m.joineryWorkers}</td><td style="padding: 12px; text-align: center;">${m.sprayingWorkers}</td><td style="padding: 12px; text-align: center; font-weight: bold;">${m.totalWorkers}</td><td style="padding: 12px; text-align: right; color: #4facfe;">£${m.valuePerPerson.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td></tr>`;
+        const marginColor = m.margin >= 20 ? '#4ade80' : m.margin >= 10 ? '#fee140' : '#f5576c';
+        const profitColor = m.realProfit >= 0 ? '#4ade80' : '#f5576c';
+        
+        html += `<tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 12px;">${formatMonth(m.month)}</td>
+            <td style="padding: 12px; text-align: right;">£${m.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; text-align: right; color: #f97316;">£${m.totalMaterials.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; text-align: right; color: #8b5cf6;">£${m.totalLabour.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; text-align: right; color: #ef4444;">£${m.overheads.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold; color: ${profitColor};">£${m.realProfit.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold; color: ${marginColor};">${m.margin.toFixed(1)}%</td>
+        </tr>`;
     });
     
-    html1 += '</tbody></table>';
-    document.getElementById('monthlyBreakdownTable').innerHTML = html1;
+    // Totals
+    const totals = months.reduce((acc, m) => ({
+        value: acc.value + m.totalValue,
+        materials: acc.materials + m.totalMaterials,
+        labour: acc.labour + m.totalLabour,
+        overheads: acc.overheads + m.overheads,
+        profit: acc.profit + m.realProfit
+    }), { value: 0, materials: 0, labour: 0, overheads: 0, profit: 0 });
     
-    let html2 = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Month</th><th style="padding: 12px; text-align: right;">Revenue</th><th style="padding: 12px; text-align: right;">Overheads</th><th style="padding: 12px; text-align: right;">Profit</th><th style="padding: 12px; text-align: right;">OH %</th></tr></thead><tbody>';
+    const totalMargin = totals.value > 0 ? (totals.profit / totals.value * 100) : 0;
     
-    months.forEach(m => {
-        const ohColor = m.overheadsPercent > 50 ? '#f5576c' : m.overheadsPercent > 30 ? '#fee140' : '#4ade80';
-        html2 += `<tr style="border-bottom: 1px solid #333;"><td style="padding: 12px;">${formatMonth(m.month)}</td><td style="padding: 12px; text-align: right;">£${m.totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right;">£${m.overheads.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right; color: ${m.profit >= 0 ? '#4ade80' : '#f5576c'};">£${m.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td><td style="padding: 12px; text-align: right; font-weight: bold; color: ${ohColor};">${m.overheadsPercent.toFixed(1)}%</td></tr>`;
-    });
+    html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
+        <td style="padding: 12px;">TOTAL</td>
+        <td style="padding: 12px; text-align: right;">£${totals.value.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #f97316;">£${totals.materials.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #8b5cf6;">£${totals.labour.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #ef4444;">£${totals.overheads.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: ${totals.profit >= 0 ? '#4ade80' : '#f5576c'};">£${totals.profit.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #4facfe;">${totalMargin.toFixed(1)}%</td>
+    </tr></tbody></table>`;
     
-    html2 += '</tbody></table>';
-    document.getElementById('monthlyOverheadsTable').innerHTML = html2;
+    document.getElementById('monthlyOverheadsTable').innerHTML = html;
 }
 
 function renderProjectProfits() {
