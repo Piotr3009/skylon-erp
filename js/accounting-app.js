@@ -10,6 +10,8 @@ let productionProjectsData = [];
 let archivedProjectsData = [];
 let clientsData = [];
 let projectMaterialsData = [];
+let projectPhasesData = [];
+let teamMembersData = [];
 
 let currentYear = new Date().getFullYear();
 let activeTab = 'finances';
@@ -114,6 +116,24 @@ async function loadAllAccountingData() {
         
         if (!wagesError) wagesData = wages || [];
 
+        // Load team members for job_type
+        const { data: team, error: teamError } = await supabaseClient
+            .from('team_members')
+            .select('id, name, job_type')
+            .eq('active', true);
+        
+        if (!teamError) teamMembersData = team || [];
+
+        // Load project phases with assignments (use existing productionIds)
+        if (productionIds.length > 0) {
+            const { data: phases, error: phasesError } = await supabaseClient
+                .from('project_phases')
+                .select('project_id, phase_key, start_date, end_date, work_days, assigned_to')
+                .in('project_id', productionIds);
+            
+            if (!phasesError) projectPhasesData = phases || [];
+        }
+
         console.log('✅ All accounting data loaded');
         console.log('Pipeline (LIFE):', pipelineProjectsData.length);
         console.log('Production:', productionProjectsData.length);
@@ -132,6 +152,100 @@ async function refreshAccountingData() {
 // ========================================
 // CALCULATIONS
 // ========================================
+
+// Helper: oblicz dni nakładające się między dwoma zakresami dat
+function getOverlappingDays(start1, end1, start2, end2) {
+    const s1 = new Date(start1);
+    const e1 = new Date(end1);
+    const s2 = new Date(start2);
+    const e2 = new Date(end2);
+    
+    const overlapStart = new Date(Math.max(s1, s2));
+    const overlapEnd = new Date(Math.min(e1, e2));
+    
+    if (overlapStart > overlapEnd) return 0;
+    
+    // Policz dni robocze (bez weekendów)
+    let days = 0;
+    const current = new Date(overlapStart);
+    while (current <= overlapEnd) {
+        const dayOfWeek = current.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // nie niedziela i sobota
+            days++;
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    return days;
+}
+
+// Oblicz labour cost dla projektu
+function calculateLabourForProject(projectId) {
+    let totalLabour = 0;
+    
+    // Pobierz fazy tego projektu
+    const projectPhases = projectPhasesData.filter(ph => ph.project_id === projectId);
+    
+    // Dla każdej wypłaty
+    wagesData.forEach(wage => {
+        const worker = teamMembersData.find(tm => tm.id === wage.team_member_id);
+        if (!worker) return;
+        
+        const jobType = worker.job_type;
+        const wageAmount = parseFloat(wage.gross_amount) || 0;
+        const wageStart = wage.period_start;
+        const wageEnd = wage.period_end;
+        
+        if (jobType === 'labour') {
+            // LABOUR: dziel na WSZYSTKIE projekty proporcjonalnie do dni
+            let totalDaysAllProjects = 0;
+            let thisProjectDays = 0;
+            
+            // Policz dni wszystkich projektów w tym okresie
+            productionProjectsData.forEach(proj => {
+                const phases = projectPhasesData.filter(ph => ph.project_id === proj.id);
+                phases.forEach(ph => {
+                    if (ph.start_date && ph.end_date) {
+                        const days = getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
+                        totalDaysAllProjects += days;
+                        if (proj.id === projectId) {
+                            thisProjectDays += days;
+                        }
+                    }
+                });
+            });
+            
+            if (totalDaysAllProjects > 0 && thisProjectDays > 0) {
+                totalLabour += (wageAmount / totalDaysAllProjects) * thisProjectDays;
+            }
+            
+        } else if (jobType === 'joiner' || jobType === 'sprayer' || jobType === 'prep') {
+            // JOINER/SPRAYER/PREP: dziel na fazy do których przypisany
+            
+            // Znajdź wszystkie fazy tego pracownika w okresie wypłaty
+            const workerPhases = projectPhasesData.filter(ph => ph.assigned_to === worker.id);
+            
+            let totalWorkerDays = 0;
+            let thisProjectWorkerDays = 0;
+            
+            workerPhases.forEach(ph => {
+                if (ph.start_date && ph.end_date) {
+                    const days = getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
+                    totalWorkerDays += days;
+                    if (ph.project_id === projectId) {
+                        thisProjectWorkerDays += days;
+                    }
+                }
+            });
+            
+            if (totalWorkerDays > 0 && thisProjectWorkerDays > 0) {
+                totalLabour += (wageAmount / totalWorkerDays) * thisProjectWorkerDays;
+            }
+        }
+        // office - ignorujemy
+    });
+    
+    return totalLabour;
+}
 
 function calculateTotalPipelineBudget() {
     console.log('📊 Pipeline projects:', pipelineProjectsData.length);
@@ -447,7 +561,7 @@ function renderFinancesLive() {
     const projects = productionProjectsData.map(p => {
         const value = parseFloat(p.contract_value) || 0;
         const materials = getMaterialsCost(p.id);
-        const labour = parseFloat(p.labour_cost) || 0;
+        const labour = calculateLabourForProject(p.id);
         const totalCost = materials + labour;
         const profit = value - totalCost;
         const margin = value > 0 ? (profit / value * 100) : 0;
