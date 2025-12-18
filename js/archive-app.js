@@ -149,15 +149,7 @@ function updateStats() {
     const total = archivedProjects.length;
     const completed = archivedProjects.filter(p => p.archive_reason === 'completed').length;
     const failed = archivedProjects.filter(p => p.archive_reason === 'failed').length;
-    const cancelled = archivedProjects.filter(p => p.archive_reason === 'cancelled').length;
-    
-    // Debug - pokaż inne archive_reason
-    const otherReasons = archivedProjects
-        .filter(p => !['completed', 'failed', 'cancelled'].includes(p.archive_reason))
-        .map(p => ({ number: p.project_number, reason: p.archive_reason }));
-    if (otherReasons.length > 0) {
-        console.log('⚠️ Projects with unknown archive_reason:', otherReasons);
-    }
+    const cancelled = archivedProjects.filter(p => p.archive_reason === 'cancelled' || p.archive_reason === 'canceled').length;
     
     document.getElementById('totalCount').textContent = total;
     document.getElementById('completedCount').textContent = completed;
@@ -215,9 +207,15 @@ function applyFilters() {
             return false;
         }
         
-        // Reason filter
-        if (reasonFilter && project.archive_reason !== reasonFilter) {
-            return false;
+        // Reason filter (handle both cancelled and canceled spelling)
+        if (reasonFilter) {
+            if (reasonFilter === 'cancelled') {
+                if (project.archive_reason !== 'cancelled' && project.archive_reason !== 'canceled') {
+                    return false;
+                }
+            } else if (project.archive_reason !== reasonFilter) {
+                return false;
+            }
         }
         
         // Client filter
@@ -265,7 +263,10 @@ function createProjectCard(project) {
     const timberWorker = allWorkers[project.timber_worker_id];
     const sprayWorker = allWorkers[project.spray_worker_id];
     
-    const reasonClass = project.archive_reason || 'completed';
+    // Normalize canceled/cancelled spelling
+    let reasonClass = project.archive_reason || 'completed';
+    if (reasonClass === 'canceled') reasonClass = 'cancelled';
+    
     const reasonIcon = {
         'completed': '✅',
         'failed': '❌',
@@ -273,8 +274,7 @@ function createProjectCard(project) {
         'onHold': '⏸️'
     }[reasonClass] || '📦';
     
-    const reasonText = (project.archive_reason || 'completed').charAt(0).toUpperCase() + 
-                       (project.archive_reason || 'completed').slice(1).replace(/([A-Z])/g, ' $1');
+    const reasonText = reasonClass.charAt(0).toUpperCase() + reasonClass.slice(1);
     
     const sourceIcon = project.source === 'pipeline' ? '📄' : '🏭';
     const sourceText = project.source === 'pipeline' ? 'Pipeline' : 'Production';

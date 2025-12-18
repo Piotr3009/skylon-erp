@@ -813,7 +813,7 @@ async function archiveAsFailed() {
 
 async function archiveAsCanceled() {
     const selectedIndex = document.getElementById('pipelineProjectSelect').value;
-    const canceledReason = document.getElementById('canceledReason').value.trim();
+    const cancelledReason = document.getElementById('cancelledReason').value.trim();
     
     if (!selectedIndex) {
         alert('Please select a pipeline project');
@@ -838,10 +838,10 @@ async function archiveAsCanceled() {
         deadline: null,
         created_at: pipelineProject.created_at || new Date().toISOString(),
         archived_date: new Date().toISOString(),
-        archive_reason: 'canceled',
-        archive_notes: canceledReason || 'Client canceled',
+        archive_reason: 'cancelled',
+        archive_notes: cancelledReason || 'Client cancelled',
         source: 'pipeline',
-        // NAPRAWA PROBLEM #3: completed_date = null dla canceled
+        // NAPRAWA PROBLEM #3: completed_date = null dla cancelled
         completed_date: null
     };
     
@@ -858,7 +858,7 @@ async function archiveAsCanceled() {
                 return;
             }
             
-            console.log('✅ Pipeline project archived as canceled');
+            console.log('✅ Pipeline project archived as cancelled');
             
             // Skopiuj pliki z project_files do archived_project_files
             const { data: projectFiles, error: fetchFilesError } = await supabaseClient
@@ -937,7 +937,7 @@ async function archiveAsCanceled() {
     renderPipeline();
     closeModal('pipelineFinishedModal');
     
-    alert(`Project archived as canceled: ${pipelineProject.projectNumber}`);
+    alert(`Project archived as cancelled: ${pipelineProject.projectNumber}`);
 }
 
 // Create production phases
