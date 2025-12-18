@@ -55,6 +55,9 @@ function renderPipelineGridPattern() {
     document.querySelectorAll('.grid-line').forEach(el => el.remove());
     document.querySelectorAll('.sunday-stripe').forEach(el => el.remove());
     
+    // Oblicz wysokość na podstawie liczby projektów (minimum 2000px)
+    const gridHeight = Math.max(2000, pipelineProjects.length * 60 + 500);
+    
     // Vertical grid lines
     for (let i = 0; i <= daysToShow; i++) {
         const line = document.createElement('div');
@@ -63,7 +66,7 @@ function renderPipelineGridPattern() {
             position: absolute;
             left: ${695 + i * dayWidth}px;
             top: 50px;
-            bottom: 0;
+            height: ${gridHeight}px;
             width: 1px;
             background: rgba(255,255,255,0.05);
             pointer-events: none;
@@ -84,7 +87,7 @@ function renderPipelineGridPattern() {
                 position: absolute;
                 left: ${695 + i * dayWidth}px;
                 top: 45px;
-                bottom: 0;
+                height: ${gridHeight}px;
                 width: ${dayWidth}px;
                 background: rgba(7, 79, 138, 0.1);
                 pointer-events: none;
@@ -482,13 +485,14 @@ function renderTodayLine() {
     const daysDiff = Math.round((today - visibleStartDate) / (1000 * 60 * 60 * 24));
     
     if (daysDiff >= 0 && daysDiff < daysToShow) {
+        const gridHeight = Math.max(2000, pipelineProjects.length * 60 + 500);
         const line = document.createElement('div');
         line.className = 'today-line';
         line.style.cssText = `
             position: absolute;
             left: ${695 + daysDiff * dayWidth}px;
             top: 0;
-            bottom: 0;
+            height: ${gridHeight}px;
             width: 2px;
             background: #007acc;
             pointer-events: none;
