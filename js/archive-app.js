@@ -149,10 +149,12 @@ function updateStats() {
     const total = archivedProjects.length;
     const completed = archivedProjects.filter(p => p.archive_reason === 'completed').length;
     const failed = archivedProjects.filter(p => p.archive_reason === 'failed').length;
+    const cancelled = archivedProjects.filter(p => p.archive_reason === 'cancelled').length;
     
     document.getElementById('totalCount').textContent = total;
     document.getElementById('completedCount').textContent = completed;
     document.getElementById('failedCount').textContent = failed;
+    document.getElementById('cancelledCount').textContent = cancelled;
 }
 
 // Populate year filter
