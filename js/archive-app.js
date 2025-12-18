@@ -151,6 +151,14 @@ function updateStats() {
     const failed = archivedProjects.filter(p => p.archive_reason === 'failed').length;
     const cancelled = archivedProjects.filter(p => p.archive_reason === 'cancelled').length;
     
+    // Debug - pokaż inne archive_reason
+    const otherReasons = archivedProjects
+        .filter(p => !['completed', 'failed', 'cancelled'].includes(p.archive_reason))
+        .map(p => ({ number: p.project_number, reason: p.archive_reason }));
+    if (otherReasons.length > 0) {
+        console.log('⚠️ Projects with unknown archive_reason:', otherReasons);
+    }
+    
     document.getElementById('totalCount').textContent = total;
     document.getElementById('completedCount').textContent = completed;
     document.getElementById('failedCount').textContent = failed;
