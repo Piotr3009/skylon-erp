@@ -1457,23 +1457,28 @@ async function saveNewSubcategory() {
 
 // Delete category
 async function deleteCategory(categoryId) {
-    // Check if any stock items use this category
     const category = stockCategories.find(c => c.id === categoryId);
+    if (!category) return;
     
-    const { data: stockCheck } = await supabaseClient
-        .from('stock_items')
-        .select('id')
-        .eq('category', category.name.toLowerCase())
-        .limit(1);
-    
-    if (stockCheck && stockCheck.length > 0) {
-        alert('Cannot delete - products are using this category!');
-        return;
+    // Check if it's a category with subcategories
+    if (category.type === 'category') {
+        const subcats = stockCategories.filter(s => s.type === 'subcategory' && s.parent_category_id === categoryId);
+        if (subcats.length > 0) {
+            alert(`Cannot delete - this category has ${subcats.length} subcategories. Delete them first.`);
+            return;
+        }
     }
     
-    if (!confirm(`Delete "${category.name}"?`)) return;
+    if (!confirm(`Delete "${category.name}"? Any materials using this category will become uncategorized.`)) return;
     
     try {
+        // Clear category_id in project_materials before deleting
+        await supabaseClient
+            .from('project_materials')
+            .update({ category_id: null })
+            .eq('category_id', categoryId);
+        
+        // Now delete the category
         const { error } = await supabaseClient
             .from('stock_categories')
             .delete()
@@ -1483,6 +1488,7 @@ async function deleteCategory(categoryId) {
         
         await loadStockCategories();
         displayCategoriesList();
+        await populateCategoryDropdowns();
         
     } catch (err) {
         console.error('Error deleting category:', err);
