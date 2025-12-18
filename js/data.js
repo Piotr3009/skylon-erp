@@ -379,11 +379,96 @@ async function loadPipelineFromSupabase() {
     }
 }
 
+// Load custom phases from database
+async function loadCustomPhases() {
+    if (typeof supabaseClient === 'undefined') return;
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('custom_phases')
+            .select('*')
+            .order('created_at');
+        
+        if (error) {
+            console.error('Error loading custom phases:', error);
+            return;
+        }
+        
+        if (data && data.length > 0) {
+            data.forEach(cp => {
+                const targetPhases = cp.phase_type === 'pipeline' ? pipelinePhases : productionPhases;
+                
+                // Dodaj tylko jeśli nie istnieje
+                if (!targetPhases[cp.phase_key]) {
+                    targetPhases[cp.phase_key] = {
+                        name: cp.name,
+                        color: cp.color
+                    };
+                    phases[cp.phase_key] = {
+                        name: cp.name,
+                        color: cp.color
+                    };
+                }
+            });
+            console.log(`✅ Loaded ${data.length} custom phases from DB`);
+        }
+    } catch (err) {
+        console.error('Failed to load custom phases:', err);
+    }
+}
+
+// Save custom phase to database
+async function saveCustomPhaseToDb(key, name, color, phaseType) {
+    if (typeof supabaseClient === 'undefined') return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('custom_phases')
+            .insert([{
+                phase_key: key,
+                name: name,
+                color: color,
+                phase_type: phaseType
+            }]);
+        
+        if (error) {
+            console.error('Error saving custom phase:', error);
+        } else {
+            console.log(`✅ Custom phase "${name}" saved to DB`);
+        }
+    } catch (err) {
+        console.error('Failed to save custom phase:', err);
+    }
+}
+
+// Delete custom phase from database
+async function deleteCustomPhaseFromDb(key) {
+    if (typeof supabaseClient === 'undefined') return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('custom_phases')
+            .delete()
+            .eq('phase_key', key);
+        
+        if (error) {
+            console.error('Error deleting custom phase:', error);
+        } else {
+            console.log(`✅ Custom phase "${key}" deleted from DB`);
+        }
+    } catch (err) {
+        console.error('Failed to delete custom phase:', err);
+    }
+}
+
 // NAPRAWIONA funkcja loadData bez duplikowania render()
 async function loadData() {
     // Najpierw próbuj z Supabase
     if (typeof supabaseClient !== 'undefined') {
         try {
+            // Załaduj custom fazy najpierw
+            await loadCustomPhases();
+            
             const [prodLoaded, pipeLoaded] = await Promise.all([
                 loadProjectsFromSupabase(),
                 loadPipelineFromSupabase()

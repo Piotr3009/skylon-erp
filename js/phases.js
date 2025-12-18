@@ -75,7 +75,7 @@ function updateAvailablePhases() {
     });
 }
 
-function addCustomPhase() {
+async function addCustomPhase() {
     const name = document.getElementById('newPhaseName').value.trim();
     const color = document.getElementById('newPhaseColor').value;
     
@@ -87,7 +87,8 @@ function addCustomPhase() {
     const key = name.toLowerCase().replace(/\s+/g, '_');
     
     // ZMIANA 2 - Dodaj do odpowiednich faz
-    const phasesToUpdate = window.location.pathname.includes('pipeline') ? pipelinePhases : productionPhases;
+    const isPipeline = window.location.pathname.includes('pipeline');
+    const phasesToUpdate = isPipeline ? pipelinePhases : productionPhases;
     
     if (phasesToUpdate[key]) {
         alert('Phase already exists');
@@ -97,6 +98,10 @@ function addCustomPhase() {
     phasesToUpdate[key] = { name, color };
     phases[key] = { name, color }; // Also add to global phases for compatibility
     
+    // Zapisz do DB
+    const phaseType = isPipeline ? 'pipeline' : 'production';
+    await saveCustomPhaseToDb(key, name, color, phaseType);
+    
     saveDataQueued();
     updatePhasesLegend();
     updateAvailablePhases();
@@ -104,7 +109,7 @@ function addCustomPhase() {
     document.getElementById('newPhaseName').value = '';
 }
 
-function removePhase(key) {
+async function removePhase(key) {
     const phasesToUpdate = window.location.pathname.includes('pipeline') ? pipelinePhases : productionPhases;
     
     if (confirm('Remove phase "' + phasesToUpdate[key].name + '"?')) {
@@ -119,6 +124,9 @@ function removePhase(key) {
                 project.phases = project.phases.filter(p => p.key !== key);
             }
         });
+        
+        // Usuń z DB
+        await deleteCustomPhaseFromDb(key);
         
         saveDataQueued();
         updatePhasesLegend();
