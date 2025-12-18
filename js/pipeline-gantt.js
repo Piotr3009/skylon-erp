@@ -244,7 +244,7 @@ function renderPipelineProjects() {
             <div class="project-column project-actions">
                 <button class="action-btn" onclick="editPipelineProject(${originalIndex})" title="Edit">✏️</button>
                 <button class="action-btn" onclick="openProjectFilesModal(${originalIndex}, 'pipeline')" title="Project Files">📁</button>
-                <button class="action-btn" onclick="openPipelineProjectNotes(${originalIndex})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
+                <button class="action-btn ${project.notes ? 'has-notes' : 'no-notes'}" onclick="openPipelineProjectNotes(${originalIndex})" title="Project Notes">${project.notes ? '📝' : '📋'}</button>
             </div>
         `;
         
