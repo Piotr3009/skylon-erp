@@ -1,11 +1,12 @@
 // ========== HOLIDAY CALENDAR SYSTEM ==========
 let employees = [];
 let holidays = [];
-let selectedYear = 2025;
+let selectedYear = new Date().getFullYear();
 let activeFilters = new Set(); // Aktywni pracownicy do wyświetlenia
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
+    populateYearSelect();
     await loadEmployees();
     await loadHolidays();
     renderCalendar();
@@ -26,6 +27,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderCalendar();
     });
 });
+
+// Populate year select dynamically (current year -1 to +5)
+function populateYearSelect() {
+    const select = document.getElementById('yearSelect');
+    const currentYear = new Date().getFullYear();
+    
+    select.innerHTML = '';
+    for (let year = currentYear - 1; year <= currentYear + 5; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === currentYear) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    }
+}
 
 // ========== LOAD DATA ==========
 async function loadEmployees() {

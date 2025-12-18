@@ -23,6 +23,13 @@ let activeFinancesSubTab = 'live';
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Accounting module loading...');
+    
+    // Set YTD period dynamically
+    const ytdPeriodEl = document.getElementById('ytdPeriod');
+    if (ytdPeriodEl) {
+        ytdPeriodEl.textContent = `Jan - Dec ${new Date().getFullYear()}`;
+    }
+    
     await loadAllAccountingData();
     populateYearFilter();
     renderDashboard();
