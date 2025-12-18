@@ -1,5 +1,15 @@
 // ========== PIPELINE PROJECT MANAGEMENT ==========
 
+// Convert URLs in text to clickable links
+function linkifyTextPipeline(text) {
+    if (!text) return '';
+    const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+    return text.replace(urlRegex, (url) => {
+        const href = url.startsWith('www.') ? 'https://' + url : url;
+        return `<a href="${href}" target="_blank" style="color: #4CAF50; text-decoration: underline;">${url}</a>`;
+    });
+}
+
 // Sort mode for pipeline
 let pipelineSortMode = 'leadtime'; // 'number', 'date', 'leadtime'
 
@@ -1075,7 +1085,7 @@ function openPipelineProjectNotes(index) {
             <div class="modal-body">
                 <div class="form-group">
                     <label>Notes History</label>
-                    <textarea id="pipelineProjectNotesHistory" readonly placeholder="No notes yet..." style="min-height: 300px; font-size: 14px; background: #2a2a2e; color: #e8e2d5; resize: vertical;">${formatPipelineNotesHistory(project.notes || '')}</textarea>
+                    <div id="pipelineProjectNotesHistory" style="min-height: 300px; max-height: 400px; overflow-y: auto; font-size: 14px; background: #2a2a2e; color: #e8e2d5; padding: 10px; border: 1px solid #3e3e42; border-radius: 3px; white-space: pre-wrap;">${formatPipelineNotesHistoryHTML(project.notes || '')}</div>
                 </div>
                 
                 <div class="form-group" style="margin-top: 15px;">
@@ -1119,7 +1129,7 @@ async function exportPipelineProjectNotesPDF(index) {
     const project = pipelineProjects[index];
     if (!project) return;
     
-    const notes = document.getElementById('pipelineProjectNotesHistory').value.trim();
+    const notes = project.notes ? project.notes.trim() : '';
     
     if (!notes) {
         alert('No notes to export. Please add some notes first.');
@@ -1433,25 +1443,38 @@ function formatPipelineNotesHistory(notesText) {
     if (!notesText || notesText.trim() === '') {
         return '';
     }
-    
-    // Split by lines and format
-    const lines = notesText.split('\n');
-    let formatted = '';
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        // Check if line is author/timestamp (contains " : " and date pattern)
-        if (line.includes(' : ') && /\d{2}\/\d{2}\/\d{4}/.test(line)) {
-            // Author line - smaller font, not bold
-            formatted += line + '\n';
-        } else {
-            // Content line - normal
-            formatted += line + '\n';
-        }
+    return notesText.trim();
+}
+
+function formatPipelineNotesHistoryHTML(notesText) {
+    if (!notesText || notesText.trim() === '') {
+        return '<span style="color: #999; font-style: italic;">No notes yet...</span>';
     }
     
-    return formatted.trim();
+    // Split by double newline to get individual notes
+    const noteBlocks = notesText.split('\n\n');
+    let html = '';
+    
+    noteBlocks.forEach(block => {
+        if (!block.trim()) return;
+        
+        const lines = block.split('\n');
+        html += '<div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #3e3e42;">';
+        
+        lines.forEach((line, idx) => {
+            // First line is author/timestamp
+            if (idx === 0 && line.includes(' : ') && /\d{2}\/\d{2}\/\d{4}/.test(line)) {
+                html += `<div style="font-size: 11px; color: #999; margin-bottom: 5px;">${line}</div>`;
+            } else {
+                // Content line with linkify
+                html += `<div style="font-size: 15px; font-weight: bold; line-height: 1.4;">${linkifyTextPipeline(line)}</div>`;
+            }
+        });
+        
+        html += '</div>';
+    });
+    
+    return html;
 }
 
 function addPipelineProjectNote(index) {
@@ -1501,7 +1524,7 @@ function addPipelineProjectNote(index) {
     document.getElementById('pipelineNoteImportant').checked = false;
     
     // Update history display
-    document.getElementById('pipelineProjectNotesHistory').value = formatPipelineNotesHistory(updatedNotes);
+    document.getElementById('pipelineProjectNotesHistory').innerHTML = formatPipelineNotesHistoryHTML(updatedNotes);
 }
 
 async function savePipelineProjectNotesToDB(index, notes) {

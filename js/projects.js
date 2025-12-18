@@ -1,5 +1,16 @@
 // ========== PROJECT MANAGEMENT ==========
 
+// Convert URLs in text to clickable links
+function linkifyText(text) {
+    if (!text) return '';
+    // Match URLs starting with http://, https://, or www.
+    const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+    return text.replace(urlRegex, (url) => {
+        const href = url.startsWith('www.') ? 'https://' + url : url;
+        return `<a href="${href}" target="_blank" style="color: #4CAF50; text-decoration: underline;">${url}</a>`;
+    });
+}
+
 // Load clients for dropdown - TYLKO JEDNA DEFINICJA
 async function loadClientsDropdown() {
     try {
@@ -1086,8 +1097,8 @@ function renderNotesHistoryHTML(project) {
         html += `${note.author} : ${note.timestamp}`;
         html += '</div>';
         
-        // Note text - bigger and bold
-        html += `<div style="font-size: 15px; font-weight: bold; line-height: 1.4; white-space: pre-wrap;">${note.text}</div>`;
+        // Note text - bigger and bold, with clickable links
+        html += `<div style="font-size: 15px; font-weight: bold; line-height: 1.4; white-space: pre-wrap;">${linkifyText(note.text)}</div>`;
         
         html += '</div>';
     });
