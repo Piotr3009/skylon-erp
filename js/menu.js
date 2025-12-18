@@ -73,11 +73,17 @@
     
     // Counter to track concurrent operations
     let activeOperations = 0;
+    let hideTimeout = null;
     const overlay = () => document.getElementById('globalLoadingOverlay');
     
     // Show loading
     window.showLoading = function() {
         activeOperations++;
+        // Cancel pending hide
+        if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+        }
         const el = overlay();
         if (el) {
             el.style.display = 'flex';
@@ -85,15 +91,20 @@
         }
     };
     
-    // Hide loading
+    // Hide loading with delay
     window.hideLoading = function() {
         activeOperations--;
         if (activeOperations <= 0) {
             activeOperations = 0;
-            const el = overlay();
-            if (el) {
-                el.style.display = 'none';
-            }
+            // Delay hide by 800ms to avoid flickering
+            if (hideTimeout) clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                const el = overlay();
+                if (el && activeOperations === 0) {
+                    el.style.display = 'none';
+                }
+                hideTimeout = null;
+            }, 800);
         }
     };
     
