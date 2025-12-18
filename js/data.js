@@ -169,7 +169,7 @@ let teamMembers = [];
 
 let visibleStartDate = new Date();
 visibleStartDate.setDate(visibleStartDate.getDate() - 7); // Start tydzień wcześniej
-let daysToShow = 150;
+let daysToShow = 300;
 let dayWidth = 36;
 let currentEditProject = null;
 let currentAssignPhase = null;
@@ -933,17 +933,40 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 function getNextProjectNumber() {
-    lastProjectNumber++;
     const year = new Date().getFullYear();
-    const number = String(lastProjectNumber).padStart(3, '0');
-    return `${number}/${year}`;
+    
+    // Znajdź najwyższy numer w bieżącym roku
+    let maxNumber = 0;
+    projects.forEach(p => {
+        if (p.projectNumber && p.projectNumber.includes('/' + year)) {
+            const numPart = parseInt(p.projectNumber.split('/')[0]);
+            if (!isNaN(numPart) && numPart > maxNumber) {
+                maxNumber = numPart;
+            }
+        }
+    });
+    
+    const nextNumber = maxNumber + 1;
+    return `${String(nextNumber).padStart(3, '0')}/${year}`;
 }
 
 function getNextPipelineNumber() {
-    lastPipelineNumber++;
     const year = new Date().getFullYear();
-    const number = String(lastPipelineNumber).padStart(3, '0');
-    return `PL${number}/${year}`;
+    
+    // Znajdź najwyższy numer w bieżącym roku
+    let maxNumber = 0;
+    pipelineProjects.forEach(p => {
+        if (p.projectNumber && p.projectNumber.includes('/' + year)) {
+            // Usuń 'PL' prefix i weź numer
+            const numPart = parseInt(p.projectNumber.replace('PL', '').split('/')[0]);
+            if (!isNaN(numPart) && numPart > maxNumber) {
+                maxNumber = numPart;
+            }
+        }
+    });
+    
+    const nextNumber = maxNumber + 1;
+    return `PL${String(nextNumber).padStart(3, '0')}/${year}`;
 }
 
 function getMaterialList(projectType) {
