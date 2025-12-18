@@ -1088,7 +1088,7 @@ async function deleteStockItem() {
     const id = document.getElementById('editStockId').value;
     const item = stockItems.find(i => i.id === id);
     
-    if (!confirm(`Delete "${item.name}"?\n\nThis will also delete all transaction history for this item.`)) {
+    if (!confirm(`Delete "${item.name}"?\n\nThis will also delete all orders and transaction history for this item.`)) {
         return;
     }
     
@@ -1107,7 +1107,28 @@ async function deleteStockItem() {
             }
         }
         
-        // 2. Usuń stock item
+        // 2. Usuń powiązane zamówienia
+        await supabaseClient
+            .from('stock_orders')
+            .delete()
+            .eq('stock_item_id', id);
+        console.log('✅ Related orders deleted');
+        
+        // 3. Usuń powiązane transakcje
+        await supabaseClient
+            .from('stock_transactions')
+            .delete()
+            .eq('stock_item_id', id);
+        console.log('✅ Related transactions deleted');
+        
+        // 4. Wyczyść powiązania w project_materials
+        await supabaseClient
+            .from('project_materials')
+            .update({ stock_item_id: null })
+            .eq('stock_item_id', id);
+        console.log('✅ Project materials references cleared');
+        
+        // 5. Usuń stock item
         const { error } = await supabaseClient
             .from('stock_items')
             .delete()
