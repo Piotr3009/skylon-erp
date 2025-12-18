@@ -661,6 +661,12 @@ function openStockOutModal(itemId = null) {
     const projectSelect = document.getElementById('stockOutProject');
     projectSelect.innerHTML = '<option value="">-- Select project --</option>';
     
+    // Add OFFICE option for non-project items
+    const officeOption = document.createElement('option');
+    officeOption.value = 'OFFICE';
+    officeOption.textContent = '🏢 OFFICE (No Project)';
+    projectSelect.appendChild(officeOption);
+    
     // Filter only production projects
     const productionProjects = projects.filter(proj => proj.source === 'production');
     
