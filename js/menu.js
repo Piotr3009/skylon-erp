@@ -26,19 +26,33 @@
                 text-align: center;
             ">
                 <div id="loadingSpinner" style="
-                    width: 50px;
-                    height: 50px;
+                    width: 60px;
+                    height: 60px;
                     border: 4px solid #444;
                     border-top: 4px solid #4CAF50;
                     border-radius: 50%;
                     animation: spin 0.8s linear infinite;
-                "></div>
+                    position: relative;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                ">
+                    <img src="favicon.svg" alt="JC" style="
+                        width: 32px;
+                        height: 32px;
+                        animation: spinReverse 0.8s linear infinite;
+                    ">
+                </div>
             </div>
         </div>
         <style>
             @keyframes spin {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
+            }
+            @keyframes spinReverse {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(-360deg); }
             }
             #globalLoadingOverlay.error #loadingSpinner {
                 border-top-color: #ef4444 !important;
