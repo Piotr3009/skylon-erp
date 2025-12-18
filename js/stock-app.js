@@ -457,9 +457,20 @@ function updateStats() {
 // Filter stock
 function filterStock() {
     const category = document.getElementById('categoryFilter').value;
+    const searchInput = document.getElementById('stockSearch');
+    const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
     
     filteredItems = stockItems.filter(item => {
+        // Filter by category
         if (category && item.category !== category) return false;
+        
+        // Filter by search (name or item_number)
+        if (search) {
+            const nameMatch = item.name && item.name.toLowerCase().includes(search);
+            const numberMatch = item.item_number && item.item_number.toLowerCase().includes(search);
+            if (!nameMatch && !numberMatch) return false;
+        }
+        
         return true;
     });
     
