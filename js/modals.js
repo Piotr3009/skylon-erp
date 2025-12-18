@@ -762,59 +762,40 @@ function openOrderSprayModal(projectIndex, phaseIndex) {
     // Calculate work days for duration field
     const workDays = phase.workDays || calculateWorkDays(new Date(phase.start), new Date(phase.end));
     
-    // Set duration field
+    // Set fields
     document.getElementById('sprayOrderDuration').value = workDays;
-    
-    // Get spray materials list
-    const sprayList = getSprayMaterialsList();
-    
-    // Initialize spray materials if not exists
-    if (!phase.sprayMaterials) {
-        phase.sprayMaterials = sprayList.map(mat => ({
-            ...mat,
-            ordered: false,
-            color: ''
-        }));
-    }
-    
-    // Render spray material checklist
-    const container = document.getElementById('sprayMaterialsList');
-    container.innerHTML = '';
-    
-    phase.sprayMaterials.forEach((material, index) => {
-        const div = document.createElement('div');
-        div.className = 'material-item';
-        
-        let colorInput = '';
-        if (material.hasColor) {
-            colorInput = `
-                <input type="text" class="material-color" 
-                       placeholder="RAL code..." 
-                       value="${material.color || ''}"
-                       onchange="updateSprayColor(${projectIndex}, ${phaseIndex}, ${index}, this.value)"
-                       style="width: 100px; padding: 4px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 11px;">
-            `;
-        }
-        
-        div.innerHTML = `
-            <div class="material-checkbox">
-                <input type="checkbox" id="spray_${index}" 
-                       ${material.ordered ? 'checked' : ''}
-                       onchange="updateSprayStatus(${projectIndex}, ${phaseIndex}, ${index})">
-                <label for="spray_${index}">
-                    ${material.item}
-                    ${material.required ? '<span style="color: #ff4444;">*</span>' : ''}
-                </label>
-            </div>
-            ${colorInput}
-        `;
-        container.appendChild(div);
-    });
-    
-    // Update spray order status
-    updateSprayOrderStatus(projectIndex, phaseIndex);
+    document.getElementById('orderSprayStatus').value = phase.status || 'notStarted';
+    document.getElementById('orderSprayNotes').value = phase.notes || '';
     
     openModal('orderSprayModal');
+}
+
+// Save Order Spray phase
+async function saveOrderSprayPhase() {
+    if (!currentEditPhase) return;
+    
+    const { projectIndex, phaseIndex } = currentEditPhase;
+    const project = projects[projectIndex];
+    const phase = project.phases[phaseIndex];
+    
+    const newDuration = parseInt(document.getElementById('sprayOrderDuration').value) || 2;
+    const newStatus = document.getElementById('orderSprayStatus').value;
+    const newNotes = document.getElementById('orderSprayNotes').value.trim();
+    
+    // Update phase
+    phase.workDays = newDuration;
+    phase.status = newStatus;
+    phase.notes = newNotes;
+    
+    // Recalculate end date
+    const startDate = new Date(phase.start);
+    phase.end = addWorkDays(startDate, newDuration).toISOString().split('T')[0];
+    
+    // Save to database
+    await saveProjectToDatabase(project);
+    
+    closeModal('orderSprayModal');
+    renderGantt();
 }
 
 // Save Spray Order duration - FIXED  

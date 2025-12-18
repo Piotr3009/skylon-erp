@@ -325,28 +325,32 @@
     <!-- Order Spray Materials Modal -->
     <div class="modal" id="orderSprayModal">
         <div class="modal-content">
-            <div class="modal-header">Order Spray Materials</div>
+            <div class="modal-header">Edit Order Spray Materials</div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Duration (work days, excluding Sundays)</label>
-                    <input type="number" id="sprayOrderDuration" min="1" value="2" oninput="saveSprayOrderDuration()">
-                </div>
-                
-                <div class="order-status-display" id="sprayOrderStatusText">
-                    <!-- Status will be displayed here -->
+                    <label>Phase Status</label>
+                    <select id="orderSprayStatus">
+                        <option value="notStarted">⏸️ Not Started</option>
+                        <option value="inProgress">▶️ In Progress</option>
+                        <option value="completed">✅ Completed</option>
+                        <option value="problem">⚠️ Problem/Delayed</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
-                    <label>Spray Materials Checklist</label>
-                    <div class="materials-list" id="sprayMaterialsList">
-                        <!-- Spray materials will be listed here -->
-                    </div>
+                    <label>Duration (work days, excluding Sundays)</label>
+                    <input type="number" id="sprayOrderDuration" min="1" value="2">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="orderSprayNotes" placeholder="Add any notes about this phase..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="modal-btn danger" onclick="deleteOrderSprayPhase()" style="margin-right: auto;">Delete Phase</button>
-                <button class="modal-btn" onclick="closeModal('orderSprayModal')">Close</button>
-                <button class="modal-btn success" onclick="confirmSprayOrderComplete()">Confirm Order Complete</button>
+                <button class="modal-btn" onclick="closeModal('orderSprayModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveOrderSprayPhase()">Save</button>
             </div>
         </div>
     </div>
