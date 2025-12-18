@@ -606,6 +606,7 @@ body.pipeline-theme .day-cell {
 
 .chart-body {
     position: relative;
+    min-width: max-content;
 }
 
 /* Project rows */

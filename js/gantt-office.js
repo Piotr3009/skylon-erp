@@ -184,29 +184,27 @@ function renderGridPattern() {
     document.querySelectorAll('.sunday-stripe').forEach(el => el.remove());
     
     const baseLeft = baseLeftOffset();
-    // Oblicz wysokość na podstawie liczby projektów (minimum 2000px)
     const gridHeight = Math.max(2000, projects.length * 60 + 500);
+    const gridWidth = baseLeft + daysToShow * dayWidth;
     const chartBody = document.getElementById('chartBody');
     if (!chartBody) return;
     
-    // Vertical grid lines
-    for (let i = 0; i <= daysToShow; i++) {
-        const line = document.createElement('div');
-        line.className = 'grid-line';
-        line.style.cssText = `
-            position: absolute;
-            left: ${baseLeft + i * dayWidth}px;
-            top: 0;
-            height: ${gridHeight}px;
-            width: 1px;
-            background: rgba(255,255,255,0.03);
-            pointer-events: none;
-            z-index: 0;
-        `;
-        chartBody.appendChild(line);
-    }
+    // Ustaw minimalną wielkość chartBody
+    chartBody.style.minWidth = gridWidth + 'px';
+    chartBody.style.minHeight = gridHeight + 'px';
     
-    // GREEN STRIPES FOR SUNDAYS
+    // Użyj CSS repeating-linear-gradient dla linii pionowych
+    chartBody.style.backgroundImage = `repeating-linear-gradient(
+        to right,
+        transparent,
+        transparent ${dayWidth - 1}px,
+        rgba(255,255,255,0.03) ${dayWidth - 1}px,
+        rgba(255,255,255,0.03) ${dayWidth}px
+    )`;
+    chartBody.style.backgroundSize = `${dayWidth}px 100%`;
+    chartBody.style.backgroundPosition = `${baseLeft}px 0`;
+    
+    // Sunday stripes - te muszą być jako elementy bo zależą od daty
     for (let i = 0; i < daysToShow; i++) {
         const date = new Date(visibleStartDate);
         date.setDate(date.getDate() + i);
@@ -218,7 +216,7 @@ function renderGridPattern() {
                 position: absolute;
                 left: ${baseLeft + i * dayWidth}px;
                 top: 0;
-                height: ${gridHeight}px;
+                bottom: 0;
                 width: ${dayWidth}px;
                 background: rgba(0, 255, 0, 0.05);
                 pointer-events: none;
@@ -625,7 +623,6 @@ function renderTodayLine() {
     
     if (daysDiff >= 0 && daysDiff < daysToShow) {
         const baseLeft = baseLeftOffset();
-        const gridHeight = Math.max(2000, projects.length * 60 + 500);
         const chartBody = document.getElementById('chartBody');
         if (!chartBody) return;
         
@@ -635,7 +632,7 @@ function renderTodayLine() {
             position: absolute;
             left: ${baseLeft + daysDiff * dayWidth}px;
             top: 0;
-            height: ${gridHeight}px;
+            bottom: 0;
             width: 2px;
             background: #007acc;
             pointer-events: none;

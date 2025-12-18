@@ -55,29 +55,28 @@ function renderPipelineGridPattern() {
     document.querySelectorAll('.grid-line').forEach(el => el.remove());
     document.querySelectorAll('.sunday-stripe').forEach(el => el.remove());
     
-    // Oblicz wysokość na podstawie liczby projektów (minimum 2000px)
+    const baseLeft = 695;
     const gridHeight = Math.max(2000, pipelineProjects.length * 60 + 500);
+    const gridWidth = baseLeft + daysToShow * dayWidth;
     const chartBody = document.getElementById('chartBody');
     if (!chartBody) return;
     
-    // Vertical grid lines
-    for (let i = 0; i <= daysToShow; i++) {
-        const line = document.createElement('div');
-        line.className = 'grid-line';
-        line.style.cssText = `
-            position: absolute;
-            left: ${695 + i * dayWidth}px;
-            top: 0;
-            height: ${gridHeight}px;
-            width: 1px;
-            background: rgba(255,255,255,0.05);
-            pointer-events: none;
-            z-index: 0;
-        `;
-        chartBody.appendChild(line);
-    }
+    // Ustaw minimalną wielkość chartBody
+    chartBody.style.minWidth = gridWidth + 'px';
+    chartBody.style.minHeight = gridHeight + 'px';
     
-    // GREEN STRIPES FOR SUNDAYS
+    // Użyj CSS repeating-linear-gradient dla linii pionowych
+    chartBody.style.backgroundImage = `repeating-linear-gradient(
+        to right,
+        transparent,
+        transparent ${dayWidth - 1}px,
+        rgba(255,255,255,0.05) ${dayWidth - 1}px,
+        rgba(255,255,255,0.05) ${dayWidth}px
+    )`;
+    chartBody.style.backgroundSize = `${dayWidth}px 100%`;
+    chartBody.style.backgroundPosition = `${baseLeft}px 0`;
+    
+    // Sunday stripes (blue for pipeline)
     for (let i = 0; i < daysToShow; i++) {
         const date = new Date(visibleStartDate);
         date.setDate(date.getDate() + i);
@@ -87,9 +86,9 @@ function renderPipelineGridPattern() {
             stripe.className = 'sunday-stripe';
             stripe.style.cssText = `
                 position: absolute;
-                left: ${695 + i * dayWidth}px;
+                left: ${baseLeft + i * dayWidth}px;
                 top: 0;
-                height: ${gridHeight}px;
+                bottom: 0;
                 width: ${dayWidth}px;
                 background: rgba(7, 79, 138, 0.1);
                 pointer-events: none;
@@ -487,7 +486,6 @@ function renderTodayLine() {
     const daysDiff = Math.round((today - visibleStartDate) / (1000 * 60 * 60 * 24));
     
     if (daysDiff >= 0 && daysDiff < daysToShow) {
-        const gridHeight = Math.max(2000, pipelineProjects.length * 60 + 500);
         const chartBody = document.getElementById('chartBody');
         if (!chartBody) return;
         
@@ -497,7 +495,7 @@ function renderTodayLine() {
             position: absolute;
             left: ${695 + daysDiff * dayWidth}px;
             top: 0;
-            height: ${gridHeight}px;
+            bottom: 0;
             width: 2px;
             background: #007acc;
             pointer-events: none;
