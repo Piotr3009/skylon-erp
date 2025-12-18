@@ -2641,12 +2641,6 @@ function addSupplierToItem() {
         return;
     }
     
-    // Check if already added
-    if (tempStockSuppliers.find(s => s.id === supplierId)) {
-        alert('Supplier already added');
-        return;
-    }
-    
     const supplier = suppliers.find(s => s.id === supplierId);
     if (!supplier) return;
     
@@ -2702,12 +2696,6 @@ function addSupplierToEditItem() {
     
     if (!supplierId) {
         alert('Please select a supplier');
-        return;
-    }
-    
-    // Check if already added
-    if (tempEditStockSuppliers.find(s => s.id === supplierId)) {
-        alert('Supplier already added');
         return;
     }
     
