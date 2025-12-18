@@ -1413,6 +1413,7 @@ async function saveNewCategory() {
         closeModal('addCategoryModal');
         await loadStockCategories();
         displayCategoriesList();
+        await populateCategoryDropdowns();
         
     } catch (err) {
         console.error('Error saving category:', err);
@@ -1446,6 +1447,7 @@ async function saveNewSubcategory() {
         closeModal('addSubcategoryModal');
         await loadStockCategories();
         displayCategoriesList();
+        await populateCategoryDropdowns();
         
     } catch (err) {
         console.error('Error saving subcategory:', err);
