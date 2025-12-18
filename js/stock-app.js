@@ -2524,8 +2524,61 @@ async function openPendingOrdersModal(itemId) {
                     ` : ''}
                     
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button onclick="markAsDelivered('${order.id}')" class="toolbar-btn success" style="flex: 1;">✅ Mark as Delivered</button>
+                        <button onclick="showDeliveryForm('${order.id}', ${order.quantity_ordered}, ${item.cost_per_unit || 0}, '${item.unit}')" class="toolbar-btn success" style="flex: 1;">✅ Mark as Delivered</button>
                         <button onclick="cancelOrder('${order.id}')" class="toolbar-btn danger">❌ Cancel</button>
+                    </div>
+                    
+                    <!-- Delivery form - hidden by default -->
+                    <div id="deliveryForm_${order.id}" style="display: none; margin-top: 15px; padding: 15px; background: #252526; border-radius: 5px; border: 1px solid #4CAF50;">
+                        <div style="font-size: 12px; color: #4CAF50; margin-bottom: 12px; font-weight: 600;">📦 Confirm Delivery</div>
+                        
+                        <!-- Reference from DB -->
+                        <div style="background: #2d2d30; padding: 10px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #2196F3;">
+                            <div style="font-size: 11px; color: #2196F3; margin-bottom: 8px;">Reference (from DB)</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 12px;">
+                                <div>
+                                    <div style="color: #999;">Qty</div>
+                                    <div style="color: #e8e2d5; font-weight: 600;">${order.quantity_ordered} ${item.unit}</div>
+                                </div>
+                                <div>
+                                    <div style="color: #999;">Unit Cost</div>
+                                    <div style="color: #e8e2d5; font-weight: 600;">£${(item.cost_per_unit || 0).toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="color: #999;">Expected Total</div>
+                                    <div style="color: #e8e2d5; font-weight: 600;">£${(order.quantity_ordered * (item.cost_per_unit || 0)).toFixed(2)}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Invoice input -->
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 12px; color: #999; display: block; margin-bottom: 5px;">Total Cost from Invoice (£)</label>
+                            <input type="number" id="invoiceCost_${order.id}" step="0.01" min="0" 
+                                placeholder="Enter total invoice cost" 
+                                value="${(order.quantity_ordered * (item.cost_per_unit || 0)).toFixed(2)}"
+                                oninput="updateDeliveryCostPreview('${order.id}', ${order.quantity_ordered}, ${item.cost_per_unit || 0})"
+                                style="width: 100%; padding: 8px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 14px;">
+                        </div>
+                        
+                        <!-- Calculated unit cost -->
+                        <div id="costPreview_${order.id}" style="background: #2d2d30; padding: 10px; border-radius: 4px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 12px; color: #999;">New Unit Cost:</span>
+                                <span id="newUnitCost_${order.id}" style="font-size: 16px; font-weight: 600; color: #4CAF50;">£${(item.cost_per_unit || 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Warning -->
+                        <div id="costWarning_${order.id}" style="display: none; background: #5d4037; padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 12px; color: #ffcc80;">
+                            ⚠️ <span id="costWarningText_${order.id}"></span>
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="hideDeliveryForm('${order.id}')" class="toolbar-btn" style="flex: 1;">Cancel</button>
+                            <button onclick="confirmDeliveryWithCost('${order.id}')" class="toolbar-btn success" style="flex: 1;">✅ Confirm Delivery</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -2595,6 +2648,117 @@ async function markAsDelivered(orderId) {
         
     } catch (err) {
         console.error('Error marking as delivered:', err);
+        alert('Error: ' + err.message);
+    }
+}
+
+// Show delivery form
+function showDeliveryForm(orderId, quantity, unitCost, unit) {
+    // Hide all other delivery forms first
+    document.querySelectorAll('[id^="deliveryForm_"]').forEach(form => {
+        form.style.display = 'none';
+    });
+    
+    // Show this form
+    document.getElementById(`deliveryForm_${orderId}`).style.display = 'block';
+}
+
+// Hide delivery form
+function hideDeliveryForm(orderId) {
+    document.getElementById(`deliveryForm_${orderId}`).style.display = 'none';
+}
+
+// Update cost preview when user types
+function updateDeliveryCostPreview(orderId, quantity, oldUnitCost) {
+    const totalCost = parseFloat(document.getElementById(`invoiceCost_${orderId}`).value) || 0;
+    const newUnitCost = quantity > 0 ? totalCost / quantity : 0;
+    
+    // Update new unit cost display
+    document.getElementById(`newUnitCost_${orderId}`).textContent = `£${newUnitCost.toFixed(2)}`;
+    
+    // Check difference and show warning if > 20%
+    const warningDiv = document.getElementById(`costWarning_${orderId}`);
+    const warningText = document.getElementById(`costWarningText_${orderId}`);
+    
+    if (oldUnitCost > 0) {
+        const difference = Math.abs((newUnitCost - oldUnitCost) / oldUnitCost) * 100;
+        
+        if (difference > 20) {
+            warningDiv.style.display = 'block';
+            const direction = newUnitCost > oldUnitCost ? 'higher' : 'lower';
+            warningText.textContent = `${difference.toFixed(0)}% ${direction} than previous cost. Please verify invoice.`;
+        } else {
+            warningDiv.style.display = 'none';
+        }
+    } else {
+        warningDiv.style.display = 'none';
+    }
+}
+
+// Confirm delivery with cost
+async function confirmDeliveryWithCost(orderId) {
+    const totalCost = parseFloat(document.getElementById(`invoiceCost_${orderId}`).value) || 0;
+    
+    if (totalCost <= 0) {
+        alert('Please enter the invoice total cost');
+        return;
+    }
+    
+    try {
+        const order = stockOrders.find(o => o.id === orderId);
+        if (!order) throw new Error('Order not found');
+        
+        const item = stockItems.find(i => i.id === order.stock_item_id);
+        if (!item) throw new Error('Stock item not found');
+        
+        const newUnitCost = totalCost / order.quantity_ordered;
+        
+        // 1. Update order status to delivered
+        const { error: orderError } = await supabaseClient
+            .from('stock_orders')
+            .update({
+                status: 'delivered',
+                delivered_date: new Date().toISOString()
+            })
+            .eq('id', orderId);
+        
+        if (orderError) throw orderError;
+        
+        // 2. Create Stock IN transaction
+        const { error: transactionError } = await supabaseClient
+            .from('stock_transactions')
+            .insert([{
+                stock_item_id: order.stock_item_id,
+                type: 'IN',
+                quantity: order.quantity_ordered,
+                supplier_id: order.supplier_id,
+                notes: `Order delivered. Invoice total: £${totalCost.toFixed(2)}`,
+                created_by: 'System'
+            }]);
+        
+        if (transactionError) throw transactionError;
+        
+        // 3. Update stock item quantity AND cost_per_unit
+        const newQty = (parseFloat(item.current_quantity) || 0) + parseFloat(order.quantity_ordered);
+        
+        const { error: updateError } = await supabaseClient
+            .from('stock_items')
+            .update({
+                current_quantity: newQty,
+                cost_per_unit: newUnitCost,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', order.stock_item_id);
+        
+        if (updateError) throw updateError;
+        
+        console.log('✅ Order delivered with cost update');
+        await loadStockOrders();
+        await loadStockItems();
+        closeModal('pendingOrdersModal');
+        
+    } catch (err) {
+        console.error('Error confirming delivery:', err);
         alert('Error: ' + err.message);
     }
 }
