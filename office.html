@@ -468,6 +468,18 @@
     <!-- Hidden file input -->
     <input type="file" id="fileInput" accept=".json" style="display: none;">
 
+    <!-- Load Materials Modal -->
+    <div id="materialsModalContainer"></div>
+    <script>
+        // Load materials-modal.html into DOM
+        fetch('materials-modal.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('materialsModalContainer').innerHTML = html;
+            })
+            .catch(err => console.error('Error loading materials modal:', err));
+    </script>
+
     <!-- Scripts in correct order -->
     <script src="js/utils.js?v=6"></script>
     <script src="js/calendar.js?v=6"></script>
