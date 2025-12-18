@@ -321,36 +321,32 @@
     <!-- Order Materials Modal -->
     <div class="modal" id="orderMaterialsModal">
         <div class="modal-content">
-            <div class="modal-header">Order Materials</div>
+            <div class="modal-header">Edit Order Materials</div>
             <div class="modal-body">
                 <div class="form-group">
+                    <label>Phase Status</label>
+                    <select id="orderMaterialsStatus">
+                        <option value="notStarted">⏸️ Not Started</option>
+                        <option value="inProgress">▶️ In Progress</option>
+                        <option value="completed">✅ Completed</option>
+                        <option value="problem">⚠️ Problem/Delayed</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
                     <label>Duration (work days, excluding Sundays)</label>
-                    <input type="number" id="orderDuration" min="1" value="3" oninput="saveOrderDuration()">
-                </div>
-                
-                <div class="order-status-display" id="orderStatusText">
-                    <!-- Status will be displayed here -->
+                    <input type="number" id="orderDuration" min="1" value="3">
                 </div>
                 
                 <div class="form-group">
-                    <label>Materials Checklist (* = required)</label>
-                    <div class="materials-list" id="materialsList">
-                        <!-- Materials will be listed here -->
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Add Custom Material</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="newMaterialName" placeholder="Material name" style="flex: 1;">
-                        <button class="modal-btn primary" onclick="addCustomMaterial()">Add</button>
-                    </div>
+                    <label>Notes</label>
+                    <textarea id="orderMaterialsNotes" placeholder="Add any notes about this phase..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="modal-btn danger" onclick="deleteOrderPhase()" style="margin-right: auto;">Delete Phase</button>
-                <button class="modal-btn" onclick="closeModal('orderMaterialsModal')">Close</button>
-                <button class="modal-btn success" onclick="confirmOrderComplete()">Confirm Order Complete</button>
+                <button class="modal-btn" onclick="closeModal('orderMaterialsModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveOrderMaterialsPhase()">Save</button>
             </div>
         </div>
     </div>
@@ -387,28 +383,32 @@
     <!-- Order Glazing Modal -->
     <div class="modal" id="orderGlazingModal">
         <div class="modal-content">
-            <div class="modal-header">Order Glazing</div>
+            <div class="modal-header">Edit Order Glazing</div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Duration (work days, excluding Sundays)</label>
-                    <input type="number" id="glazingOrderDuration" min="1" value="2" oninput="saveGlazingOrderDuration()">
-                </div>
-                
-                <div class="order-status-display" id="glazingOrderStatusText">
-                    <!-- Status will be displayed here -->
+                    <label>Phase Status</label>
+                    <select id="orderGlazingStatus">
+                        <option value="notStarted">⏸️ Not Started</option>
+                        <option value="inProgress">▶️ In Progress</option>
+                        <option value="completed">✅ Completed</option>
+                        <option value="problem">⚠️ Problem/Delayed</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
-                    <label>Glazing Materials Checklist</label>
-                    <div class="materials-list" id="glazingMaterialsList">
-                        <!-- Glazing materials will be listed here -->
-                    </div>
+                    <label>Duration (work days, excluding Sundays)</label>
+                    <input type="number" id="glazingOrderDuration" min="1" value="2">
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="orderGlazingNotes" placeholder="Add any notes about this phase..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="modal-btn danger" onclick="deleteOrderGlazingPhase()" style="margin-right: auto;">Delete Phase</button>
-                <button class="modal-btn" onclick="closeModal('orderGlazingModal')">Close</button>
-                <button class="modal-btn success" onclick="confirmGlazingOrderComplete()">Confirm Order Complete</button>
+                <button class="modal-btn" onclick="closeModal('orderGlazingModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveOrderGlazingPhase()">Save</button>
             </div>
         </div>
     </div>

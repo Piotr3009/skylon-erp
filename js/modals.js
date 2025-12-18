@@ -497,59 +497,40 @@ function openOrderGlazingModal(projectIndex, phaseIndex) {
     // Calculate work days for duration field
     const workDays = phase.workDays || calculateWorkDays(new Date(phase.start), new Date(phase.end));
     
-    // Set duration field
+    // Set fields
     document.getElementById('glazingOrderDuration').value = workDays;
-    
-    // Get glazing materials list
-    const glazingList = getGlazingMaterialsList();
-    
-    // Initialize glazing materials if not exists
-    if (!phase.glazingMaterials) {
-        phase.glazingMaterials = glazingList.map(mat => ({
-            ...mat,
-            ordered: false,
-            size: ''
-        }));
-    }
-    
-    // Render glazing material checklist
-    const container = document.getElementById('glazingMaterialsList');
-    container.innerHTML = '';
-    
-    phase.glazingMaterials.forEach((material, index) => {
-        const div = document.createElement('div');
-        div.className = 'material-item';
-        
-        let sizeInput = '';
-        if (material.hasSize) {
-            sizeInput = `
-                <input type="text" class="material-size" 
-                       placeholder="Size/dimensions..." 
-                       value="${material.size || ''}"
-                       onchange="updateGlazingSize(${projectIndex}, ${phaseIndex}, ${index}, this.value)"
-                       style="width: 120px; padding: 4px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 11px;">
-            `;
-        }
-        
-        div.innerHTML = `
-            <div class="material-checkbox">
-                <input type="checkbox" id="glazing_${index}" 
-                       ${material.ordered ? 'checked' : ''}
-                       onchange="updateGlazingStatus(${projectIndex}, ${phaseIndex}, ${index})">
-                <label for="glazing_${index}">
-                    ${material.item}
-                    ${material.required ? '<span style="color: #ff4444;">*</span>' : ''}
-                </label>
-            </div>
-            ${sizeInput}
-        `;
-        container.appendChild(div);
-    });
-    
-    // Update glazing order status
-    updateGlazingOrderStatus(projectIndex, phaseIndex);
+    document.getElementById('orderGlazingStatus').value = phase.status || 'notStarted';
+    document.getElementById('orderGlazingNotes').value = phase.notes || '';
     
     openModal('orderGlazingModal');
+}
+
+// Save Order Glazing phase
+async function saveOrderGlazingPhase() {
+    if (!currentEditPhase) return;
+    
+    const { projectIndex, phaseIndex } = currentEditPhase;
+    const project = projects[projectIndex];
+    const phase = project.phases[phaseIndex];
+    
+    const newDuration = parseInt(document.getElementById('glazingOrderDuration').value) || 2;
+    const newStatus = document.getElementById('orderGlazingStatus').value;
+    const newNotes = document.getElementById('orderGlazingNotes').value.trim();
+    
+    // Update phase
+    phase.workDays = newDuration;
+    phase.status = newStatus;
+    phase.notes = newNotes;
+    
+    // Recalculate end date
+    const startDate = new Date(phase.start);
+    phase.end = addWorkDays(startDate, newDuration).toISOString().split('T')[0];
+    
+    // Save to database
+    await saveProjectToDatabase(project);
+    
+    closeModal('orderGlazingModal');
+    renderGantt();
 }
 
 // Save Glazing Order duration - FIXED
@@ -699,69 +680,40 @@ function openOrderMaterialsModal(projectIndex, phaseIndex) {
     // Calculate work days for duration field
     const workDays = phase.workDays || calculateWorkDays(new Date(phase.start), new Date(phase.end));
     
-    // Set duration field
+    // Set fields
     document.getElementById('orderDuration').value = workDays;
-    
-    // Get material list for project type
-    const materialList = getMaterialList(project.type);
-    
-    // Initialize materials if not exists
-    if (!phase.materials) {
-        phase.materials = materialList.map(mat => ({
-            ...mat,
-            ordered: false,
-            notes: ''
-        }));
-    }
-    
-    // Render material checklist
-    const container = document.getElementById('materialsList');
-    container.innerHTML = '';
-    
-    phase.materials.forEach((material, index) => {
-        const div = document.createElement('div');
-        div.className = 'material-item';
-        div.innerHTML = `
-            <div class="material-checkbox">
-                <input type="checkbox" id="mat_${index}" 
-                       ${material.ordered ? 'checked' : ''}
-                       onchange="updateMaterialStatus(${projectIndex}, ${phaseIndex}, ${index})">
-                <label for="mat_${index}">
-                    ${material.item}
-                    ${material.required ? '<span style="color: #ff4444;">*</span>' : ''}
-                </label>
-            </div>
-            <input type="text" class="material-note" 
-                   placeholder="Notes..." 
-                   value="${material.notes || ''}"
-                   onchange="updateMaterialNote(${projectIndex}, ${phaseIndex}, ${index}, this.value)"
-                   style="width: 150px; padding: 4px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; font-size: 11px;">
-        `;
-        container.appendChild(div);
-    });
-    
-    // Add custom materials
-    if (phase.customMaterials && phase.customMaterials.length > 0) {
-        phase.customMaterials.forEach((material, index) => {
-            const div = document.createElement('div');
-            div.className = 'material-item';
-            div.innerHTML = `
-                <div class="material-checkbox">
-                    <input type="checkbox" id="custom_${index}" 
-                           ${material.ordered ? 'checked' : ''}
-                           onchange="updateCustomMaterialStatus(${projectIndex}, ${phaseIndex}, ${index})">
-                    <label for="custom_${index}">${material.item}</label>
-                </div>
-                <button class="action-btn delete" onclick="removeCustomMaterial(${projectIndex}, ${phaseIndex}, ${index})">✕</button>
-            `;
-            container.appendChild(div);
-        });
-    }
-    
-    // Update order status
-    updateOrderStatus(projectIndex, phaseIndex);
+    document.getElementById('orderMaterialsStatus').value = phase.status || 'notStarted';
+    document.getElementById('orderMaterialsNotes').value = phase.notes || '';
     
     openModal('orderMaterialsModal');
+}
+
+// Save Order Materials phase
+async function saveOrderMaterialsPhase() {
+    if (!currentEditPhase) return;
+    
+    const { projectIndex, phaseIndex } = currentEditPhase;
+    const project = projects[projectIndex];
+    const phase = project.phases[phaseIndex];
+    
+    const newDuration = parseInt(document.getElementById('orderDuration').value) || 3;
+    const newStatus = document.getElementById('orderMaterialsStatus').value;
+    const newNotes = document.getElementById('orderMaterialsNotes').value.trim();
+    
+    // Update phase
+    phase.workDays = newDuration;
+    phase.status = newStatus;
+    phase.notes = newNotes;
+    
+    // Recalculate end date
+    const startDate = new Date(phase.start);
+    phase.end = addWorkDays(startDate, newDuration).toISOString().split('T')[0];
+    
+    // Save to database
+    await saveProjectToDatabase(project);
+    
+    closeModal('orderMaterialsModal');
+    renderGantt();
 }
 
 // Save Order duration - FIXED
