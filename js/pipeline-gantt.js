@@ -57,6 +57,8 @@ function renderPipelineGridPattern() {
     
     // Oblicz wysokość na podstawie liczby projektów (minimum 2000px)
     const gridHeight = Math.max(2000, pipelineProjects.length * 60 + 500);
+    const chartBody = document.getElementById('chartBody');
+    if (!chartBody) return;
     
     // Vertical grid lines
     for (let i = 0; i <= daysToShow; i++) {
@@ -65,14 +67,14 @@ function renderPipelineGridPattern() {
         line.style.cssText = `
             position: absolute;
             left: ${695 + i * dayWidth}px;
-            top: 50px;
+            top: 0;
             height: ${gridHeight}px;
             width: 1px;
             background: rgba(255,255,255,0.05);
             pointer-events: none;
             z-index: 0;
         `;
-        document.querySelector('.chart-wrapper').appendChild(line);
+        chartBody.appendChild(line);
     }
     
     // GREEN STRIPES FOR SUNDAYS
@@ -86,7 +88,7 @@ function renderPipelineGridPattern() {
             stripe.style.cssText = `
                 position: absolute;
                 left: ${695 + i * dayWidth}px;
-                top: 45px;
+                top: 0;
                 height: ${gridHeight}px;
                 width: ${dayWidth}px;
                 background: rgba(7, 79, 138, 0.1);
@@ -95,7 +97,7 @@ function renderPipelineGridPattern() {
                 border-left: 1px solid rgba(41, 15, 173, 0.2);
                 border-right: 1px solid rgba(41, 15, 173, 0.2);
             `;
-            document.querySelector('.chart-wrapper').appendChild(stripe);
+            chartBody.appendChild(stripe);
         }
     }
 }
@@ -486,6 +488,9 @@ function renderTodayLine() {
     
     if (daysDiff >= 0 && daysDiff < daysToShow) {
         const gridHeight = Math.max(2000, pipelineProjects.length * 60 + 500);
+        const chartBody = document.getElementById('chartBody');
+        if (!chartBody) return;
+        
         const line = document.createElement('div');
         line.className = 'today-line';
         line.style.cssText = `
@@ -498,7 +503,7 @@ function renderTodayLine() {
             pointer-events: none;
             z-index: 5;
         `;
-        document.querySelector('.chart-wrapper').appendChild(line);
+        chartBody.appendChild(line);
     }
 }
 

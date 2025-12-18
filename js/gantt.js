@@ -189,6 +189,10 @@ function renderGridPattern() {
     document.querySelectorAll('.sunday-stripe').forEach(el => el.remove());
     
     const baseLeft = baseLeftOffset();
+    // Oblicz wysokość na podstawie liczby projektów (minimum 2000px)
+    const gridHeight = Math.max(2000, projects.length * 60 + 500);
+    const chartBody = document.getElementById('chartBody');
+    if (!chartBody) return;
     
     // Vertical grid lines
     for (let i = 0; i <= daysToShow; i++) {
@@ -197,14 +201,14 @@ function renderGridPattern() {
         line.style.cssText = `
             position: absolute;
             left: ${baseLeft + i * dayWidth}px;
-            top: 50px;
-            bottom: 0;
+            top: 0;
+            height: ${gridHeight}px;
             width: 1px;
             background: rgba(255,255,255,0.03);
             pointer-events: none;
             z-index: 0;
         `;
-        document.querySelector('.chart-wrapper').appendChild(line);
+        chartBody.appendChild(line);
     }
     
     // GREEN STRIPES FOR SUNDAYS
@@ -218,8 +222,8 @@ function renderGridPattern() {
             stripe.style.cssText = `
                 position: absolute;
                 left: ${baseLeft + i * dayWidth}px;
-                top: 45px;
-                bottom: 0;
+                top: 0;
+                height: ${gridHeight}px;
                 width: ${dayWidth}px;
                 background: rgba(0, 255, 0, 0.05);
                 pointer-events: none;
@@ -227,7 +231,7 @@ function renderGridPattern() {
                 border-left: 1px solid rgba(0, 255, 0, 0.2);
                 border-right: 1px solid rgba(0, 255, 0, 0.2);
             `;
-            document.querySelector('.chart-wrapper').appendChild(stripe);
+            chartBody.appendChild(stripe);
         }
     }
 }
@@ -625,19 +629,23 @@ function renderTodayLine() {
     
     if (daysDiff >= 0 && daysDiff < daysToShow) {
         const baseLeft = baseLeftOffset();
+        const gridHeight = Math.max(2000, projects.length * 60 + 500);
+        const chartBody = document.getElementById('chartBody');
+        if (!chartBody) return;
+        
         const line = document.createElement('div');
         line.className = 'today-line';
         line.style.cssText = `
             position: absolute;
             left: ${baseLeft + daysDiff * dayWidth}px;
             top: 0;
-            bottom: 0;
+            height: ${gridHeight}px;
             width: 2px;
             background: #007acc;
             pointer-events: none;
             z-index: 5;
         `;
-        document.querySelector('.chart-wrapper').appendChild(line);
+        chartBody.appendChild(line);
     }
 }
 
