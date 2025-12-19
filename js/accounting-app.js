@@ -125,11 +125,10 @@ async function loadAllAccountingData() {
         
         if (!wagesError) wagesData = wages || [];
 
-        // Load team members for job_type
+        // Load team members for job_type (ALL - including inactive, for historical wages)
         const { data: team, error: teamError } = await supabaseClient
             .from('team_members')
-            .select('id, name, job_type')
-            .eq('active', true);
+            .select('id, name, job_type, active');
         
         if (!teamError) teamMembersData = team || [];
 
@@ -233,12 +232,18 @@ function calculateLabourForProject(projectId) {
     // Dla każdej wypłaty
     wagesData.forEach(wage => {
         const worker = teamMembersData.find(tm => tm.id === wage.team_member_id);
-        if (!worker) return;
+        if (!worker) {
+            console.warn('⚠️ Worker not found for wage:', wage.team_member_id, 'Amount:', wage.gross_amount);
+            return;
+        }
         
         const jobType = worker.job_type;
         const wageAmount = parseFloat(wage.gross_amount) || 0;
         const wageStart = wage.period_start;
         const wageEnd = wage.period_end;
+        
+        // DEBUG: pokaż info o wage
+        console.log(`💰 Wage: ${worker.name} (${jobType || 'NO JOB TYPE'}) £${wageAmount} [${wageStart} - ${wageEnd}]`);
         
         if (jobType === 'labour') {
             // LABOUR: dziel na WSZYSTKIE projekty proporcjonalnie do dni
@@ -282,9 +287,18 @@ function calculateLabourForProject(projectId) {
                 }
             });
             
+            // DEBUG: pokaż ile dni znaleziono
+            if (workerPhases.length === 0) {
+                console.warn(`   ⚠️ ${worker.name}: NO phases assigned! Wage £${wageAmount} NOT counted!`);
+            } else {
+                console.log(`   📅 ${worker.name}: ${workerPhases.length} phases, ${totalWorkerDays} total days in period`);
+            }
+            
             if (totalWorkerDays > 0 && thisProjectWorkerDays > 0) {
                 totalLabour += (wageAmount / totalWorkerDays) * thisProjectWorkerDays;
             }
+        } else {
+            console.warn(`   ⚠️ ${worker.name}: job_type='${jobType}' not handled! Wage £${wageAmount} NOT counted!`);
         }
         // office - ignorujemy
     });
