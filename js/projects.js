@@ -940,7 +940,43 @@ async function confirmMoveToArchive() {
                 console.log('✅ Project materials deleted from active table');
             }
             
-            // 3e. Usuń fazy projektu (project_phases)
+            // 3e. NAJPIERW skopiuj fazy do archived_project_phases (dla kalkulacji labour)
+            console.log('📦 Copying project phases to archive...');
+            const { data: projectPhases, error: fetchPhasesError } = await supabaseClient
+                .from('project_phases')
+                .select('*')
+                .eq('project_id', project.id);
+            
+            if (fetchPhasesError) {
+                console.error('⚠️ Warning: Error fetching project phases:', fetchPhasesError);
+            } else if (projectPhases && projectPhases.length > 0) {
+                const archivedPhases = projectPhases.map(ph => ({
+                    archived_project_id: archivedProjectId,
+                    project_number: project.projectNumber,
+                    phase_key: ph.phase_key,
+                    start_date: ph.start_date,
+                    end_date: ph.end_date,
+                    work_days: ph.work_days,
+                    status: ph.status,
+                    assigned_to: ph.assigned_to,
+                    notes: ph.notes,
+                    order_position: ph.order_position
+                }));
+                
+                const { error: archivePhasesError } = await supabaseClient
+                    .from('archived_project_phases')
+                    .insert(archivedPhases);
+                
+                if (archivePhasesError) {
+                    console.error('⚠️ Warning: Error archiving project phases:', archivePhasesError);
+                } else {
+                    console.log(`✅ ${projectPhases.length} phases copied to archived_project_phases`);
+                }
+            } else {
+                console.log('ℹ️ No phases to archive');
+            }
+            
+            // 3f. Usuń fazy projektu (project_phases)
             const { error: deletePhasesError } = await supabaseClient
                 .from('project_phases')
                 .delete()

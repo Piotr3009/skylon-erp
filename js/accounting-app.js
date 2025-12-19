@@ -10,7 +10,9 @@ let productionProjectsData = [];
 let archivedProjectsData = [];
 let clientsData = [];
 let projectMaterialsData = [];
+let archivedProjectMaterialsData = [];
 let projectPhasesData = [];
+let archivedProjectPhasesData = [];
 let teamMembersData = [];
 
 let currentYear = new Date().getFullYear();
@@ -141,10 +143,43 @@ async function loadAllAccountingData() {
             if (!phasesError) projectPhasesData = phases || [];
         }
 
+        // Load archived project phases for labour calculation
+        const archivedIds = archivedProjectsData.map(p => p.id);
+        if (archivedIds.length > 0) {
+            const { data: archivedPhases, error: archivedPhasesError } = await supabaseClient
+                .from('archived_project_phases')
+                .select('archived_project_id, phase_key, start_date, end_date, work_days, assigned_to')
+                .in('archived_project_id', archivedIds);
+            
+            // Mapuj archived_project_id na project_id dla spójności
+            if (!archivedPhasesError && archivedPhases) {
+                archivedProjectPhasesData = archivedPhases.map(ph => ({
+                    ...ph,
+                    project_id: ph.archived_project_id
+                }));
+            }
+            
+            // Load archived project materials
+            const { data: archivedMaterials, error: archivedMaterialsError } = await supabaseClient
+                .from('archived_project_materials')
+                .select('archived_project_id, quantity_needed, unit_cost')
+                .in('archived_project_id', archivedIds);
+            
+            // Mapuj archived_project_id na project_id dla spójności
+            if (!archivedMaterialsError && archivedMaterials) {
+                archivedProjectMaterialsData = archivedMaterials.map(m => ({
+                    ...m,
+                    project_id: m.archived_project_id
+                }));
+            }
+        }
+
         console.log('✅ All accounting data loaded');
         console.log('Pipeline (LIFE):', pipelineProjectsData.length);
         console.log('Production:', productionProjectsData.length);
         console.log('Archived:', archivedProjectsData.length);
+        console.log('Archived Phases:', archivedProjectPhasesData.length);
+        console.log('Archived Materials:', archivedProjectMaterialsData.length);
 
     } catch (error) {
         console.error('Error loading accounting data:', error);
@@ -189,8 +224,11 @@ function getOverlappingDays(start1, end1, start2, end2) {
 function calculateLabourForProject(projectId) {
     let totalLabour = 0;
     
-    // Pobierz fazy tego projektu
-    const projectPhases = projectPhasesData.filter(ph => ph.project_id === projectId);
+    // Połącz fazy z aktywnych i zarchiwizowanych projektów
+    const allPhases = [...projectPhasesData, ...archivedProjectPhasesData];
+    
+    // Połącz wszystkie projekty (aktywne + archived)
+    const allProjects = [...productionProjectsData, ...archivedProjectsData];
     
     // Dla każdej wypłaty
     wagesData.forEach(wage => {
@@ -207,9 +245,9 @@ function calculateLabourForProject(projectId) {
             let totalDaysAllProjects = 0;
             let thisProjectDays = 0;
             
-            // Policz dni wszystkich projektów w tym okresie
-            productionProjectsData.forEach(proj => {
-                const phases = projectPhasesData.filter(ph => ph.project_id === proj.id);
+            // Policz dni wszystkich projektów w tym okresie (aktywne + archived)
+            allProjects.forEach(proj => {
+                const phases = allPhases.filter(ph => ph.project_id === proj.id);
                 phases.forEach(ph => {
                     if (ph.start_date && ph.end_date) {
                         const days = getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
@@ -228,8 +266,8 @@ function calculateLabourForProject(projectId) {
         } else if (jobType === 'joiner' || jobType === 'sprayer' || jobType === 'prep') {
             // JOINER/SPRAYER/PREP: dziel na fazy do których przypisany
             
-            // Znajdź wszystkie fazy tego pracownika w okresie wypłaty
-            const workerPhases = projectPhasesData.filter(ph => ph.assigned_to === worker.id);
+            // Znajdź wszystkie fazy tego pracownika w okresie wypłaty (aktywne + archived)
+            const workerPhases = allPhases.filter(ph => ph.assigned_to === worker.id);
             
             let totalWorkerDays = 0;
             let thisProjectWorkerDays = 0;
@@ -332,6 +370,62 @@ function getMonthlyBreakdown() {
             .reduce((sum, m) => sum + ((m.quantity_needed || 0) * (m.unit_cost || 0)), 0);
     };
     
+    // Helper: oblicz labour per miesiąc (według miesiąca wypłaty)
+    const getLabourForMonth = (monthKey) => {
+        let totalLabour = 0;
+        
+        // Połącz fazy z aktywnych i zarchiwizowanych projektów
+        const allPhases = [...projectPhasesData, ...archivedProjectPhasesData];
+        const allProjects = [...productionProjectsData, ...archivedProjectsData];
+        
+        wagesData.forEach(wage => {
+            // Sprawdź czy wypłata jest w tym miesiącu
+            const wageMonth = wage.period_start.substring(0, 7); // "2025-12"
+            if (wageMonth !== monthKey) return;
+            
+            const worker = teamMembersData.find(tm => tm.id === wage.team_member_id);
+            if (!worker) return;
+            
+            const jobType = worker.job_type;
+            const wageAmount = parseFloat(wage.gross_amount) || 0;
+            const wageStart = wage.period_start;
+            const wageEnd = wage.period_end;
+            
+            if (jobType === 'labour' || jobType === 'joiner' || jobType === 'sprayer' || jobType === 'prep') {
+                // Oblicz total projekt-dni w okresie wypłaty
+                let totalProjectDays = 0;
+                
+                if (jobType === 'labour') {
+                    // LABOUR: wszystkie projekty
+                    allProjects.forEach(proj => {
+                        const phases = allPhases.filter(ph => ph.project_id === proj.id);
+                        phases.forEach(ph => {
+                            if (ph.start_date && ph.end_date) {
+                                totalProjectDays += getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
+                            }
+                        });
+                    });
+                } else {
+                    // JOINER/SPRAYER/PREP: tylko fazy przypisane do tego pracownika
+                    const workerPhases = allPhases.filter(ph => ph.assigned_to === worker.id);
+                    workerPhases.forEach(ph => {
+                        if (ph.start_date && ph.end_date) {
+                            totalProjectDays += getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
+                        }
+                    });
+                }
+                
+                // Cała wypłata trafia do tego miesiąca
+                if (totalProjectDays > 0) {
+                    totalLabour += wageAmount;
+                }
+            }
+        });
+        
+        return totalLabour;
+    };
+    
+    // Buduj miesiące z production projects (revenue + materials według deadline)
     productionProjectsData.forEach(p => {
         if (!p.deadline) return;
         
@@ -349,15 +443,30 @@ function getMonthlyBreakdown() {
         }
         
         const materials = getMaterialsCost(p.id);
-        const labour = calculateLabourForProject(p.id);
         
         months[monthKey].projects.push(p);
         months[monthKey].totalValue += parseFloat(p.contract_value) || 0;
         months[monthKey].totalMaterials += materials;
-        months[monthKey].totalLabour += labour;
     });
     
+    // Dodaj miesiące z wages (nawet jeśli nie ma projektów z deadline w tym miesiącu)
+    wagesData.forEach(wage => {
+        const wageMonth = wage.period_start.substring(0, 7);
+        if (!months[wageMonth]) {
+            months[wageMonth] = {
+                month: wageMonth,
+                projects: [],
+                totalValue: 0,
+                totalMaterials: 0,
+                totalLabour: 0
+            };
+        }
+    });
+    
+    // Oblicz labour dla każdego miesiąca (według miesiąca wypłaty)
     Object.keys(months).forEach(monthKey => {
+        months[monthKey].totalLabour = getLabourForMonth(monthKey);
+        
         const overhead = monthlyOverheadsData.find(o => o.month === monthKey);
         months[monthKey].overheads = parseFloat(overhead?.overheads_value) || 0;
         
@@ -587,19 +696,31 @@ function renderFinancesLive() {
 function renderFinancesArchive() {
     const container = document.getElementById('financesArchiveTable');
     
+    // Helper: oblicz materials dla archived projektu
+    const getMaterialsCostArchived = (projectId) => {
+        // Szukamy w archived_project_materials jeśli istnieje, lub używamy zapisanego kosztu
+        return archivedProjectMaterialsData
+            .filter(m => m.project_id === projectId)
+            .reduce((sum, m) => sum + ((m.quantity_needed || 0) * (m.unit_cost || 0)), 0);
+    };
+    
     // Filtruj ukończone projekty
     const projects = archivedProjectsData
         .filter(p => p.archive_reason === 'completed')
         .map(p => {
             const value = parseFloat(p.actual_value || p.contract_value) || 0;
-            const cost = parseFloat(p.project_cost) || 0;
-            const profit = value - cost;
+            const materials = getMaterialsCostArchived(p.id);
+            const labour = calculateLabourForProject(p.id);
+            const totalCost = materials + labour;
+            const profit = value - totalCost;
             const margin = value > 0 ? (profit / value * 100) : 0;
             
             return {
                 ...p,
                 value,
-                cost,
+                materials,
+                labour,
+                totalCost,
                 profit,
                 margin
             };
@@ -611,19 +732,35 @@ function renderFinancesArchive() {
         return;
     }
     
-    let html = '<table style="width: 100%; border-collapse: collapse; color: white;"><thead><tr style="background: #2a2a2a; border-bottom: 2px solid #444;"><th style="padding: 12px; text-align: left;">Project #</th><th style="padding: 12px; text-align: left;">Name</th><th style="padding: 12px; text-align: right;">Value</th><th style="padding: 12px; text-align: right;">Cost</th><th style="padding: 12px; text-align: right;">Profit</th><th style="padding: 12px; text-align: right;">Margin %</th></tr></thead><tbody>';
+    let html = `<table style="width: 100%; border-collapse: collapse; color: white;">
+        <thead>
+            <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
+                <th style="padding: 12px; text-align: left;">Project #</th>
+                <th style="padding: 12px; text-align: left;">Name</th>
+                <th style="padding: 12px; text-align: right;">Value</th>
+                <th style="padding: 12px; text-align: right;">Materials</th>
+                <th style="padding: 12px; text-align: right;">Labour</th>
+                <th style="padding: 12px; text-align: right;">Profit</th>
+                <th style="padding: 12px; text-align: right;">Margin %</th>
+            </tr>
+        </thead>
+        <tbody>`;
     
     projects.forEach(p => {
+        const hasCosts = p.materials > 0 || p.labour > 0;
         const marginColor = p.margin >= 20 ? '#4ade80' : p.margin >= 10 ? '#fee140' : '#f5576c';
-        const costDisplay = p.cost > 0 ? `£${p.cost.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
-        const profitDisplay = p.cost > 0 ? `£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 0})}` : '<span style="color: #666;">—</span>';
-        const marginDisplay = p.cost > 0 ? `${p.margin.toFixed(1)}%` : '<span style="color: #666;">—</span>';
+        
+        const materialsDisplay = p.materials > 0 ? `£${p.materials.toLocaleString('en-GB', {minimumFractionDigits: 2})}` : '<span style="color: #666;">—</span>';
+        const labourDisplay = p.labour > 0 ? `£${p.labour.toLocaleString('en-GB', {minimumFractionDigits: 2})}` : '<span style="color: #666;">—</span>';
+        const profitDisplay = hasCosts ? `£${p.profit.toLocaleString('en-GB', {minimumFractionDigits: 2})}` : '<span style="color: #666;">—</span>';
+        const marginDisplay = hasCosts ? `${p.margin.toFixed(1)}%` : '<span style="color: #666;">—</span>';
         
         html += `<tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">${p.project_number}</td>
             <td style="padding: 12px;">${p.name}</td>
-            <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-            <td style="padding: 12px; text-align: right;">${costDisplay}</td>
+            <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; text-align: right; color: #f97316;">${materialsDisplay}</td>
+            <td style="padding: 12px; text-align: right; color: #8b5cf6;">${labourDisplay}</td>
             <td style="padding: 12px; text-align: right; color: ${p.profit >= 0 ? '#4ade80' : '#f5576c'};">${profitDisplay}</td>
             <td style="padding: 12px; text-align: right; font-weight: bold; color: ${marginColor};">${marginDisplay}</td>
         </tr>`;
@@ -631,15 +768,17 @@ function renderFinancesArchive() {
     
     // Totals
     const totalValue = projects.reduce((sum, p) => sum + p.value, 0);
-    const totalCost = projects.reduce((sum, p) => sum + p.cost, 0);
-    const totalProfit = totalValue - totalCost;
+    const totalMaterials = projects.reduce((sum, p) => sum + p.materials, 0);
+    const totalLabour = projects.reduce((sum, p) => sum + p.labour, 0);
+    const totalProfit = totalValue - totalMaterials - totalLabour;
     const avgMargin = totalValue > 0 ? (totalProfit / totalValue * 100) : 0;
     
     html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
         <td colspan="2" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
-        <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-        <td style="padding: 12px; text-align: right;">£${totalCost.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
-        <td style="padding: 12px; text-align: right; color: ${totalProfit >= 0 ? '#4ade80' : '#f5576c'};">£${totalProfit.toLocaleString('en-GB', {minimumFractionDigits: 0})}</td>
+        <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #f97316;">£${totalMaterials.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: #8b5cf6;">£${totalLabour.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+        <td style="padding: 12px; text-align: right; color: ${totalProfit >= 0 ? '#4ade80' : '#f5576c'};">£${totalProfit.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
         <td style="padding: 12px; text-align: right; color: #4facfe;">${avgMargin.toFixed(1)}%</td>
     </tr></tbody></table>`;
     
