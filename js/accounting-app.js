@@ -243,30 +243,26 @@ function calculateLabourForProject(projectId) {
         const wageEnd = wage.period_end;
         
         if (jobType === 'labour') {
-            // LABOUR: dziel równo na WSZYSTKIE projekty które mają fazy timber/glazing w tym okresie
-            let projectsWithTimberGlazing = new Set();
-            let thisProjectHasTimberGlazing = false;
+            // LABOUR: dziel proporcjonalnie na projekt-dni (timber + glazing)
+            let totalProjectDays = 0;
+            let thisProjectDays = 0;
             
             allProjects.forEach(proj => {
                 const phases = allPhases.filter(ph => ph.project_id === proj.id);
                 phases.forEach(ph => {
-                    // Sprawdź czy to faza timber lub glazing
                     const isTimberGlazing = ph.phase_key === 'timber' || ph.phase_key === 'glazing';
                     if (isTimberGlazing && ph.start_date && ph.end_date) {
                         const days = getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
-                        if (days > 0) {
-                            projectsWithTimberGlazing.add(proj.id);
-                            if (proj.id === projectId) {
-                                thisProjectHasTimberGlazing = true;
-                            }
+                        totalProjectDays += days;
+                        if (proj.id === projectId) {
+                            thisProjectDays += days;
                         }
                     }
                 });
             });
             
-            // Dziel równo na wszystkie projekty z timber/glazing
-            if (projectsWithTimberGlazing.size > 0 && thisProjectHasTimberGlazing) {
-                totalLabour += wageAmount / projectsWithTimberGlazing.size;
+            if (totalProjectDays > 0 && thisProjectDays > 0) {
+                totalLabour += (wageAmount / totalProjectDays) * thisProjectDays;
             }
             
         } else if (jobType === 'joiner') {
