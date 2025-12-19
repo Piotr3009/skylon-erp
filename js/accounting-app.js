@@ -403,13 +403,9 @@ function getMonthlyBreakdown() {
             .reduce((sum, m) => sum + ((m.quantity_needed || 0) * (m.unit_cost || 0)), 0);
     };
     
-    // Helper: oblicz labour per miesiąc (według miesiąca wypłaty)
+    // Helper: oblicz labour per miesiąc (WSZYSTKIE wages z danego miesiąca)
     const getLabourForMonth = (monthKey) => {
         let totalLabour = 0;
-        
-        // Połącz fazy z aktywnych i zarchiwizowanych projektów
-        const allPhases = [...projectPhasesData, ...archivedProjectPhasesData];
-        const allProjects = [...productionProjectsData, ...archivedProjectsData];
         
         wagesData.forEach(wage => {
             // Sprawdź czy wypłata jest w tym miesiącu
@@ -421,54 +417,9 @@ function getMonthlyBreakdown() {
             
             const jobType = worker.job_type;
             const wageAmount = parseFloat(wage.gross_amount) || 0;
-            const wageStart = wage.period_start;
-            const wageEnd = wage.period_end;
             
-            let hasMatchingPhases = false;
-            
-            if (jobType === 'labour') {
-                // LABOUR: sprawdź czy są projekty z timber/glazing w tym okresie
-                allProjects.forEach(proj => {
-                    const phases = allPhases.filter(ph => ph.project_id === proj.id);
-                    phases.forEach(ph => {
-                        const isTimberGlazing = ph.phase_key === 'timber' || ph.phase_key === 'glazing';
-                        if (isTimberGlazing && ph.start_date && ph.end_date) {
-                            const days = getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
-                            if (days > 0) hasMatchingPhases = true;
-                        }
-                    });
-                });
-            } else if (jobType === 'joiner') {
-                // JOINER: sprawdź czy ma przypisane fazy timber
-                const workerTimberPhases = allPhases.filter(ph => 
-                    ph.assigned_to === worker.id && ph.phase_key === 'timber'
-                );
-                workerTimberPhases.forEach(ph => {
-                    if (ph.start_date && ph.end_date) {
-                        const days = getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
-                        if (days > 0) hasMatchingPhases = true;
-                    }
-                });
-            } else if (jobType === 'sprayer' || jobType === 'prep') {
-                // SPRAYER: fazy spray gdzie przypisany, PREP: wszystkie fazy spray
-                let sprayPhases;
-                if (jobType === 'sprayer') {
-                    sprayPhases = allPhases.filter(ph => 
-                        ph.assigned_to === worker.id && ph.phase_key === 'spray'
-                    );
-                } else {
-                    sprayPhases = allPhases.filter(ph => ph.phase_key === 'spray');
-                }
-                sprayPhases.forEach(ph => {
-                    if (ph.start_date && ph.end_date) {
-                        const days = getOverlappingDays(ph.start_date, ph.end_date, wageStart, wageEnd);
-                        if (days > 0) hasMatchingPhases = true;
-                    }
-                });
-            }
-            
-            // Cała wypłata trafia do tego miesiąca jeśli są pasujące fazy
-            if (hasMatchingPhases) {
+            // Licz wszystkich poza office
+            if (jobType !== 'office') {
                 totalLabour += wageAmount;
             }
         });
