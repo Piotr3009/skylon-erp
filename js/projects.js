@@ -957,6 +957,7 @@ async function confirmMoveToArchive() {
                     archived_project_id: archivedProjectId,
                     project_number: project.projectNumber,
                     phase_key: ph.phase_key,
+                    segment_no: ph.segment_no || 1,
                     start_date: ph.start_date,
                     end_date: ph.end_date,
                     work_days: ph.work_days,
