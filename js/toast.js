@@ -1,7 +1,7 @@
 // JC Toast Notification System
 // Usage: showToast('Message', 'success') or showToast('Error!', 'error')
 
-function showToast(message, type = 'info', duration = 3000) {
+function showToast(message, type = 'info', duration = 5000) {
     // Create container if not exists
     let container = document.getElementById('jc-toast-container');
     if (!container) {
