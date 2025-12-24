@@ -22,14 +22,14 @@ async function uploadImage(file, folder = 'equipment') {
     
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-        alert('File too large! Max 5MB for images');
+        showToast('File too large! Max 5MB for images', 'info');
         return null;
     }
     
     // Check file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-        alert('Invalid file type! Only JPG, PNG, WEBP allowed');
+        showToast('Invalid file type! Only JPG, PNG, WEBP allowed', 'info');
         return null;
     }
     
@@ -55,7 +55,7 @@ async function uploadImage(file, folder = 'equipment') {
         
     } catch (err) {
         console.error('Error uploading image:', err);
-        alert('Error uploading image: ' + err.message);
+        showToast('Error uploading: ' + err.message, 'error');
         return null;
     }
 }
@@ -66,7 +66,7 @@ async function uploadDocument(file, folder = 'equipment') {
     
     // Check file size (max 20MB)
     if (file.size > 20 * 1024 * 1024) {
-        alert('File too large! Max 20MB for documents');
+        showToast('File too large! Max 20MB for documents', 'info');
         return null;
     }
     
@@ -79,7 +79,7 @@ async function uploadDocument(file, folder = 'equipment') {
     ];
     
     if (!allowedTypes.includes(file.type)) {
-        alert('Invalid file type! Only PDF, DOC, DOCX, JPG, PNG allowed');
+        showToast('Invalid file type! Only PDF, DOC, DOCX, JPG, PNG allowed', 'info');
         return null;
     }
     
@@ -104,7 +104,7 @@ async function uploadDocument(file, folder = 'equipment') {
         
     } catch (err) {
         console.error('Error uploading document:', err);
-        alert('Error uploading document: ' + err.message);
+        showToast('Error uploading: ' + err.message, 'error');
         return null;
     }
 }
@@ -187,7 +187,7 @@ async function loadAllEquipment() {
         
     } catch (err) {
         console.error('Error loading equipment:', err);
-        alert('Error loading data: ' + err.message);
+        showToast('Error loading: ' + err.message, 'error');
     }
 }
 
@@ -627,7 +627,7 @@ async function saveMachine() {
     const name = document.getElementById('machineName').value.trim();
     
     if (!name) {
-        alert('Please enter machine name');
+        showToast('Please enter machine name', 'warning');
         return;
     }
     
@@ -682,7 +682,7 @@ async function saveMachine() {
         
     } catch (err) {
         console.error('Error saving machine:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -733,12 +733,12 @@ async function saveVan() {
     const regPlate = document.getElementById('vanRegPlate').value.trim().toUpperCase();
     
     if (!name) {
-        alert('Please enter van name');
+        showToast('Please enter van name', 'warning');
         return;
     }
     
     if (!regPlate) {
-        alert('Please enter registration plate');
+        showToast('Please enter registration plate', 'warning');
         return;
     }
     
@@ -794,7 +794,7 @@ async function saveVan() {
         
     } catch (err) {
         console.error('Error saving van:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -829,7 +829,7 @@ async function saveTool() {
     const name = document.getElementById('toolName').value.trim();
     
     if (!name) {
-        alert('Please enter tool name');
+        showToast('Please enter tool name', 'warning');
         return;
     }
     
@@ -838,7 +838,7 @@ async function saveTool() {
     if (category === 'custom') {
         const customCategory = document.getElementById('toolCustomCategory').value.trim().toLowerCase();
         if (!customCategory) {
-            alert('Please enter custom category name');
+            showToast('Please enter custom category name', 'warning');
             return;
         }
         category = customCategory;
@@ -893,7 +893,7 @@ async function saveTool() {
         
     } catch (err) {
         console.error('Error saving tool:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1117,7 +1117,7 @@ async function deleteMachine(id) {
         
     } catch (err) {
         console.error('Error deleting machine:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1195,7 +1195,7 @@ async function deleteVan(id) {
         
     } catch (err) {
         console.error('Error deleting van:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1239,7 +1239,7 @@ async function deleteTool(id) {
         
     } catch (err) {
         console.error('Error deleting tool:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1544,7 +1544,7 @@ async function saveDocument() {
     const notes = document.getElementById('docNotes').value.trim();
     
     if (!file) {
-        alert('Please select a file');
+        showToast('Please select a file', 'warning');
         return;
     }
     
@@ -1582,7 +1582,7 @@ async function saveDocument() {
         
     } catch (err) {
         console.error('Error saving document:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1631,7 +1631,7 @@ async function deleteDocument(docId) {
         
     } catch (err) {
         console.error('Error deleting document:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1644,7 +1644,7 @@ async function generateMachinesReport() {
     
     if (error) {
         console.error('Error loading services:', error);
-        alert('Error loading service data');
+        showToast('Error loading service data', 'error');
         return;
     }
     
@@ -2353,12 +2353,12 @@ async function saveServiceRecord() {
     const notes = document.getElementById('serviceNotes').value.trim();
     
     if (!serviceDate) {
-        alert('Please enter service date');
+        showToast('Please enter service date', 'warning');
         return;
     }
     
     if (!totalCost || totalCost <= 0) {
-        alert('Please enter total service cost');
+        showToast('Please enter total service cost', 'warning');
         return;
     }
     
@@ -2391,7 +2391,7 @@ async function saveServiceRecord() {
         
     } catch (err) {
         console.error('Error saving service record:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -2415,7 +2415,7 @@ async function deleteServiceRecord(serviceId) {
         
     } catch (err) {
         console.error('Error deleting service record:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 

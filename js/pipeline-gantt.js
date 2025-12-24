@@ -527,7 +527,7 @@ async function addPipelineGoogleDriveLink(projectIndex) {
     
     if (newUrl !== null && newUrl !== currentUrl) {
         if (newUrl && !newUrl.includes('drive.google.com')) {
-            alert('Please enter a valid Google Drive URL');
+            showToast('Please enter a valid Google Drive URL', 'warning');
             return;
         }
         
@@ -542,7 +542,7 @@ async function addPipelineGoogleDriveLink(projectIndex) {
                 
                 if (error) {
                     console.error('Error updating Google Drive URL:', error);
-                    alert('Error saving to database. URL saved locally only.');
+                    showToast('Error saving to database. URL saved locally only.', 'error');
                 }
             } catch (err) {
                 console.error('Database connection error:', err);
@@ -590,9 +590,9 @@ function openPipelineGoogleDrivePicker(projectIndex) {
                 
                 if (error) {
                     console.error('Error saving:', error);
-                    alert('Failed to save Google Drive folder');
+                    showToast('Failed to save Google Drive folder', 'error');
                 } else {
-                    alert(`Folder "${folder.name}" linked!`);
+                    showToast(`Folder "${folder.name}" linked!`, 'info');
                 }
             }
             

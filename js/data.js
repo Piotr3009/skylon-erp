@@ -683,7 +683,7 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
         
         if (error) {
             console.error('❌ Error updating single phase:', error);
-            alert('ERROR: Failed to update phase!\n\n' + error.message);
+            showToast('Error: ' + error.message, 'error');
             return false;
         }
         
@@ -691,7 +691,7 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
         
     } catch (err) {
         console.error('❌ Failed to update phase:', err);
-        alert('ERROR: Unexpected error while updating phase.\n\n' + err.message);
+        showToast('Error: ' + err.message, 'error');
         return false;
     }
 }
@@ -809,10 +809,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
             console.error('Project ID:', projectId);
             console.error('Phases data:', phasesForRPC);
             
-            alert('ERROR: Failed to save phases!\n\n' + 
-                  'Error: ' + error.message + '\n\n' +
-                  'Your phases are still safe in database.\n' +
-                  'Nothing was changed.');
+            showToast('Failed to save phases: ' + error.message, 'error');
             return false;
         }
 
@@ -821,7 +818,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
 
     } catch (err) {
         console.error('❌ Failed to save phases:', err);
-        alert('ERROR: Unexpected error while saving phases.\n\n' + err.message);
+        showToast('Error: ' + err.message, 'error');
         return false;
     }
 }
@@ -1091,9 +1088,9 @@ function importJSON() {
                 saveDataQueued();
                 updatePhasesLegend();
                 render();
-                alert('Data imported successfully');
+                showToast('Data imported successfully', 'success');
             } catch (err) {
-                alert('Error importing file: ' + err.message);
+                showToast('Error importing: ' + err.message, 'error');
             }
         };
         reader.readAsText(file);

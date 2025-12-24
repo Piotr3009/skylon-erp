@@ -223,7 +223,7 @@ async function saveEmployee() {
     const name = document.getElementById('empName').value.trim();
     
     if (!name) {
-        alert('Please enter employee name');
+        showToast('Please enter employee name', 'warning');
         return;
     }
     
@@ -282,7 +282,7 @@ async function saveEmployee() {
         
     } catch (error) {
         console.error('Error saving employee:', error);
-        alert('Error saving employee: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
     }
 }
 
@@ -388,7 +388,7 @@ async function deactivateEmployee(id) {
         
     } catch (error) {
         console.error('Error deactivating employee:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 // ========== ARCHIVE EMPLOYEE TO ARCHIVES SCHEMA ==========
@@ -407,7 +407,7 @@ async function archiveEmployee(id) {
     };
     
     if (!reason || !reasons[reason]) {
-        alert('Please select a valid reason');
+        showToast('Please select a valid reason', 'warning');
         return;
     }
     
@@ -512,12 +512,12 @@ async function archiveEmployee(id) {
             .eq('assigned_to_worker_id', id);
         if (vanError) console.warn('vans:', vanError.message);
 
-        alert(`✅ ${member.name} has been archived successfully!`);
+        showToast(`${member.name} has been archived successfully!`, 'success');
         loadTeam();
         
     } catch (err) {
         console.error('Error archiving employee:', err);
-        alert('❌ Error archiving employee: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -559,13 +559,13 @@ async function bookHoliday(memberId) {
     
     const days = parseInt(document.getElementById(`holiday-${memberId}`).value) || 0;
     if (days <= 0) {
-        alert('Please enter valid number of days');
+        showToast('Please enter valid number of days', 'warning');
         return;
     }
     
     const remaining = member.holiday_remaining || member.holiday_allowance || 0;
     if (days > remaining) {
-        alert(`Cannot book ${days} days. Only ${remaining} days remaining.`);
+        showToast(`Cannot book ${days} days. Only ${remaining} days remaining.`, 'error');
         return;
     }
     
@@ -591,7 +591,7 @@ async function bookHoliday(memberId) {
         
     } catch (error) {
         console.error('Error booking holiday:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -760,17 +760,17 @@ async function addWage() {
     const amount = parseFloat(document.getElementById('wageAmount').value) || 0;
     
     if (!employeeId) {
-        alert('Please select employee');
+        showToast('Please select employee', 'warning');
         return;
     }
     
     if (!periodData) {
-        alert('Please select period');
+        showToast('Please select period', 'warning');
         return;
     }
     
     if (amount <= 0) {
-        alert('Please enter wage amount');
+        showToast('Please enter wage amount', 'warning');
         return;
     }
     
@@ -801,7 +801,7 @@ async function addWage() {
         
     } catch (error) {
         console.error('Error adding wage:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -819,12 +819,12 @@ async function deleteWage(wageId) {
         loadRecentWages();
     } catch (error) {
         console.error('Error deleting wage:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
 function exportWagesCSV() {
-    alert('Export CSV - TODO');
+    showToast('Export CSV - TODO', 'info');
 }
 
 // ========== SEARCH & FILTER ==========
@@ -910,7 +910,7 @@ async function exportPaymentsCSV() {
         if (error) throw error;
         
         if (!data || data.length === 0) {
-            alert('No payments to export');
+            showToast('No payments to export', 'info');
             return;
         }
         
@@ -945,7 +945,7 @@ async function exportPaymentsCSV() {
         
     } catch (error) {
         console.error('Error exporting payments:', error);
-        alert('Error exporting payments: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -1098,7 +1098,7 @@ window.saveRoleChange = async function() {
         
         if (fetchError) {
             console.error("Error fetching profile:", fetchError);
-            alert("Error: Could not find user account.");
+            showToast("Error: Could not find user account.", 'info');
             return;
         }
         
@@ -1110,11 +1110,11 @@ window.saveRoleChange = async function() {
         
         if (updateError) {
             console.error("Error updating role:", updateError);
-            alert("Error updating role: " + updateError.message);
+            showToast("Error: " + updateError.message, 'error');
             return;
         }
         
-        alert("Role updated successfully!");
+        showToast("Role updated successfully!", 'info');
         
         closeChangeRoleModal();
         
@@ -1123,7 +1123,7 @@ window.saveRoleChange = async function() {
         
     } catch (err) {
         console.error("Error:", err);
-        alert("Error updating role.");
+        showToast("Error updating role.", 'info');
     }
 }
 
@@ -1236,7 +1236,7 @@ window.saveRoleChangeForUser = async function(userId) {
         
         if (error) throw error;
         
-        alert("Role updated successfully!");
+        showToast("Role updated successfully!", 'info');
         
         closeChangeRoleModal();
         await loadSystemAccounts();
@@ -1244,7 +1244,7 @@ window.saveRoleChangeForUser = async function(userId) {
         
     } catch (err) {
         console.error("Error updating role:", err);
-        alert("Error updating role: " + err.message);
+        showToast("Error: " + err.message, 'error');
     }
 };
 

@@ -231,7 +231,7 @@ async function loadStockItems() {
         
     } catch (err) {
         console.error('Error loading stock:', err);
-        alert('Error loading stock items');
+        showToast('Error loading stock items', 'error');
     }
 }
 
@@ -479,7 +479,7 @@ async function refreshStock() {
     await loadSuppliers();
     await loadProjects();
     updateStats();
-    alert('Stock refreshed!');
+    showToast('Stock refreshed!', 'info');
 }
 
 // Open modals
@@ -736,7 +736,7 @@ async function saveStockItem() {
     const imageFile = document.getElementById('stockImage').files[0];
     
     if (!name) {
-        alert('Please enter item name');
+        showToast('Please enter item name', 'warning');
         return;
     }
     
@@ -791,7 +791,7 @@ async function saveStockItem() {
         
     } catch (err) {
         console.error('Error saving stock item:', err);
-        alert('Error saving stock item: ' + err.message);
+        showToast('Error saving: ' + err.message, 'error');
     }
 }
 
@@ -806,28 +806,28 @@ async function saveStockIn() {
     const notes = document.getElementById('stockInNotes').value.trim();
     
     if (!itemId) {
-        alert('Please select an item');
+        showToast('Please select an item', 'warning');
         return;
     }
     
     if (!supplierId) {
-        alert('Please select a supplier');
+        showToast('Please select a supplier', 'warning');
         return;
     }
     
     // WALIDACJA: Worker MUSI być wybrany
     if (!workerId) {
-        alert('Please select who received this delivery');
+        showToast('Please select who received this delivery', 'warning');
         return;
     }
     
     if (!qty || qty <= 0) {
-        alert('Please enter valid quantity');
+        showToast('Please enter valid quantity', 'warning');
         return;
     }
     
     if (!costPerUnit || costPerUnit <= 0) {
-        alert('Please enter cost per unit');
+        showToast('Please enter cost per unit', 'warning');
         return;
     }
     
@@ -874,7 +874,7 @@ async function saveStockIn() {
         
     } catch (err) {
         console.error('Error recording stock IN:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -887,30 +887,30 @@ async function saveStockOut() {
     const notes = document.getElementById('stockOutNotes').value.trim();
     
     if (!itemId) {
-        alert('Please select an item');
+        showToast('Please select an item', 'warning');
         return;
     }
     
     if (!qty || qty <= 0) {
-        alert('Please enter valid quantity');
+        showToast('Please enter valid quantity', 'warning');
         return;
     }
     
     if (!projectNumber) {
-        alert('Please select a project');
+        showToast('Please select a project', 'warning');
         return;
     }
     
     // WALIDACJA: Worker MUSI być wybrany
     if (!workerId) {
-        alert('Please select who is taking this material');
+        showToast('Please select who is taking this material', 'warning');
         return;
     }
     
     const item = stockItems.find(i => i.id === itemId);
     
     if (qty > item.current_quantity) {
-        alert(`Not enough stock! Available: ${item.current_quantity} ${item.unit}`);
+        showToast(`Not enough stock! Available: ${item.current_quantity} ${item.unit}`, 'info');
         return;
     }
     
@@ -943,14 +943,14 @@ async function saveStockOut() {
         
     } catch (err) {
         console.error('Error recording stock OUT:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
 function editStockItem(itemId) {
     const item = stockItems.find(i => i.id === itemId);
     if (!item) {
-        alert('Item not found');
+        showToast('Item not found', 'info');
         return;
     }
     
@@ -1047,7 +1047,7 @@ async function updateStockItem() {
     const currentImageUrl = document.getElementById('editStockImageUrl').value;
     
     if (!name) {
-        alert('Please enter item name');
+        showToast('Please enter item name', 'warning');
         return;
     }
     
@@ -1085,7 +1085,7 @@ async function updateStockItem() {
         
     } catch (err) {
         console.error('Error updating stock item:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1142,7 +1142,7 @@ async function deleteStockItem() {
         
     } catch (err) {
         console.error('Error deleting stock item:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1232,7 +1232,7 @@ async function uploadStockImage(file, itemNumber) {
         
     } catch (err) {
         console.error('Error uploading image:', err);
-        alert('Error uploading image: ' + err.message);
+        showToast('Error uploading: ' + err.message, 'error');
         return null;
     }
 }
@@ -1246,7 +1246,7 @@ async function saveSupplier() {
     const notes = document.getElementById('supplierNotes').value.trim();
     
     if (!name) {
-        alert('Please enter supplier name');
+        showToast('Please enter supplier name', 'warning');
         return;
     }
     
@@ -1277,7 +1277,7 @@ async function saveSupplier() {
         
     } catch (err) {
         console.error('Error saving supplier:', err);
-        alert('Error saving supplier: ' + err.message);
+        showToast('Error saving: ' + err.message, 'error');
     }
 }
 
@@ -1411,7 +1411,7 @@ async function saveNewCategory() {
     const name = document.getElementById('newCategoryName').value.trim();
     
     if (!name) {
-        alert('Please enter category name');
+        showToast('Please enter category name', 'warning');
         return;
     }
     
@@ -1426,7 +1426,7 @@ async function saveNewCategory() {
         
         if (error) throw error;
         
-        alert('Category added successfully!');
+        showToast('Category added successfully!', 'success');
         closeModal('addCategoryModal');
         await loadStockCategories();
         displayCategoriesList();
@@ -1434,7 +1434,7 @@ async function saveNewCategory() {
         
     } catch (err) {
         console.error('Error saving category:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1444,7 +1444,7 @@ async function saveNewSubcategory() {
     const parentId = document.getElementById('subcategoryParent').value;
     
     if (!name || !parentId) {
-        alert('Please fill all fields');
+        showToast('Please fill all fields', 'warning');
         return;
     }
     
@@ -1460,7 +1460,7 @@ async function saveNewSubcategory() {
         
         if (error) throw error;
         
-        alert('Subcategory added successfully!');
+        showToast('Subcategory added successfully!', 'success');
         closeModal('addSubcategoryModal');
         await loadStockCategories();
         displayCategoriesList();
@@ -1468,7 +1468,7 @@ async function saveNewSubcategory() {
         
     } catch (err) {
         console.error('Error saving subcategory:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1481,7 +1481,7 @@ async function deleteCategory(categoryId) {
     if (category.type === 'category') {
         const subcats = stockCategories.filter(s => s.type === 'subcategory' && s.parent_category_id === categoryId);
         if (subcats.length > 0) {
-            alert(`Cannot delete - this category has ${subcats.length} subcategories. Delete them first.`);
+            showToast(`Cannot delete - this category has ${subcats.length} subcategories. Delete them first.`, 'error');
             return;
         }
     }
@@ -1509,7 +1509,7 @@ async function deleteCategory(categoryId) {
         
     } catch (err) {
         console.error('Error deleting category:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1563,7 +1563,7 @@ async function uploadDocument() {
     const typeInput = document.getElementById('documentType');
     
     if (!fileInput.files || fileInput.files.length === 0) {
-        alert('Please select a file');
+        showToast('Please select a file', 'warning');
         return;
     }
     
@@ -1614,12 +1614,12 @@ async function uploadDocument() {
         fileInput.value = '';
         typeInput.value = 'Certificate';
         
-        alert('Document uploaded successfully!');
+        showToast('Document uploaded successfully!', 'success');
         
     } catch (err) {
         console.error('Error uploading document:', err);
         console.error('Error details:', JSON.stringify(err, null, 2));
-        alert('Error uploading document: ' + (err.message || JSON.stringify(err)));
+        showToast('Error uploading: ' + (err.message || JSON.stringify(err, 'error')));
     }
 }
 
@@ -1656,11 +1656,11 @@ async function deleteDocument(index) {
         const updatedItem = stockItems.find(i => i.id === currentDocumentItemId);
         renderDocumentsList(updatedItem.documents);
         
-        alert('Document deleted successfully!');
+        showToast('Document deleted successfully!', 'success');
         
     } catch (err) {
         console.error('Error deleting document:', err);
-        alert('Error deleting document: ' + err.message);
+        showToast('Error deleting: ' + err.message, 'error');
     }
 }
 
@@ -1766,7 +1766,7 @@ async function generateStockReport() {
         
     } catch (err) {
         console.error('Error generating report:', err);
-        alert('Error generating report: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -2410,17 +2410,17 @@ async function saveStockOrder() {
     const notes = document.getElementById('orderNotes').value.trim();
     
     if (!quantity || quantity <= 0) {
-        alert('Please enter valid quantity');
+        showToast('Please enter valid quantity', 'warning');
         return;
     }
     
     if (!workerId) {
-        alert('Please select who is ordering');
+        showToast('Please select who is ordering', 'warning');
         return;
     }
     
     if (!supplierId) {
-        alert('Please select a supplier');
+        showToast('Please select a supplier', 'warning');
         return;
     }
     
@@ -2445,7 +2445,7 @@ async function saveStockOrder() {
         
     } catch (err) {
         console.error('Error placing order:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -2630,7 +2630,7 @@ async function markAsDelivered(orderId) {
         
     } catch (err) {
         console.error('Error marking as delivered:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -2682,7 +2682,7 @@ async function confirmDeliveryWithCost(orderId) {
     const totalCost = parseFloat(document.getElementById(`invoiceCost_${orderId}`).value) || 0;
     
     if (totalCost <= 0) {
-        alert('Please enter the invoice total cost');
+        showToast('Please enter the invoice total cost', 'warning');
         return;
     }
     
@@ -2740,7 +2740,7 @@ async function confirmDeliveryWithCost(orderId) {
         
     } catch (err) {
         console.error('Error confirming delivery:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -2766,7 +2766,7 @@ async function cancelOrder(orderId) {
         
     } catch (err) {
         console.error('Error cancelling order:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -2781,7 +2781,7 @@ function addSupplierToItem() {
     const supplierId = supplierSelect.value;
     
     if (!supplierId) {
-        alert('Please select a supplier');
+        showToast('Please select a supplier', 'warning');
         return;
     }
     
@@ -2839,7 +2839,7 @@ function addSupplierToEditItem() {
     const supplierId = supplierSelect.value;
     
     if (!supplierId) {
-        alert('Please select a supplier');
+        showToast('Please select a supplier', 'warning');
         return;
     }
     
@@ -3065,14 +3065,14 @@ async function generatePendingOrdersPDF() {
         if (error) throw error;
         
         if (!orders || orders.length === 0) {
-            alert('No pending orders found!');
+            showToast('No pending orders found!', 'info');
             return;
         }
         
         // Generuj PDF
         const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
         if (!jsPDF) {
-            alert('PDF library not loaded. Please refresh the page.');
+            showToast('PDF library not loaded. Please refresh the page.', 'warning');
             return;
         }
         const doc = new jsPDF('landscape');
@@ -3176,7 +3176,7 @@ async function generatePendingOrdersPDF() {
         
     } catch (error) {
         console.error('Error generating PDF:', error);
-        alert('Error generating PDF: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 

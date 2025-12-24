@@ -382,13 +382,13 @@ async function saveHoliday() {
     const notes = document.getElementById('modalNotes').value;
     
     if ((employeeId !== 'all' && !employeeId) || !dateFrom || !dateTo) {
-        alert('Please fill in all required fields');
+        showToast('Please fill in all required fields', 'warning');
         return;
     }
     
     // Validate dates
     if (new Date(dateTo) < new Date(dateFrom)) {
-        alert('End date cannot be before start date');
+        showToast('End date cannot be before start date', 'info');
         return;
     }
     
@@ -436,7 +436,7 @@ async function saveHoliday() {
         
     } catch (error) {
         console.error('Error saving holiday:', error);
-        alert('Error saving holiday: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
     }
 }
 
@@ -544,7 +544,7 @@ async function deleteHoliday(holidayId) {
         
     } catch (error) {
         console.error('Error deleting holiday:', error);
-        alert('Error deleting holiday: ' + error.message);
+        showToast('Error deleting: ' + error.message, 'error');
     }
 }
 

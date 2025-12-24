@@ -914,7 +914,7 @@ async function exportProjectsByRange() {
     const toDate = document.getElementById('exportToDate').value;
     
     if (!fromDate || !toDate) {
-        alert('Please select both dates');
+        showToast('Please select both dates', 'warning');
         return;
     }
     

@@ -87,7 +87,7 @@ function saveOrderDuration() {
     const newDuration = parseInt(input.value);
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         input.value = phase.workDays || 4;
         return;
     }
@@ -97,11 +97,9 @@ function saveOrderDuration() {
     
     if (!validation.valid) {
         if (validation.reason === 'phase_exceeds') {
-            alert(`This phase would exceed the project deadline!\n\nMaximum allowed: ${validation.maxAllowed} days`);
+            showToast(`This phase would exceed the project deadline!\n\nMaximum allowed: ${validation.maxAllowed} days`, 'info');
         } else {
-            alert(`This would push other phases beyond deadline!\n\n` +
-                  `Maximum allowed: ${validation.maxAllowed} days\n` +
-                  `(${validation.totalDays} days to deadline - ${validation.daysForOthers} days needed for remaining phases)`);
+            showToast(`Phases would exceed deadline! Max: ${validation.maxAllowed} days`, 'warning');
         }
         
         // Revert to old value
@@ -137,7 +135,7 @@ function saveOrderDuration() {
             });
             
             if (needsRevert) {
-                alert('Auto-arrange would exceed deadline. Reverting changes.');
+                showToast('Auto-arrange would exceed deadline. Reverting changes.', 'info');
                 project.phases = oldPhases;
                 input.value = phase.workDays || 4;
         renderUniversal();
@@ -162,7 +160,7 @@ function saveSprayOrderDuration() {
     const newDuration = parseInt(input.value);
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         input.value = phase.workDays || 4;
         return;
     }
@@ -172,11 +170,9 @@ function saveSprayOrderDuration() {
     
     if (!validation.valid) {
         if (validation.reason === 'phase_exceeds') {
-            alert(`This phase would exceed the project deadline!\n\nMaximum allowed: ${validation.maxAllowed} days`);
+            showToast(`This phase would exceed the project deadline!\n\nMaximum allowed: ${validation.maxAllowed} days`, 'info');
         } else {
-            alert(`This would push other phases beyond deadline!\n\n` +
-                  `Maximum allowed: ${validation.maxAllowed} days\n` +
-                  `(${validation.totalDays} days to deadline - ${validation.daysForOthers} days needed for remaining phases)`);
+            showToast(`Phases would exceed deadline! Max: ${validation.maxAllowed} days`, 'warning');
         }
         
         // Revert to old value
@@ -212,7 +208,7 @@ function saveSprayOrderDuration() {
             });
             
             if (needsRevert) {
-                alert('Auto-arrange would exceed deadline. Reverting changes.');
+                showToast('Auto-arrange would exceed deadline. Reverting changes.', 'info');
                 project.phases = oldPhases;
                 input.value = phase.workDays || 4;
         renderUniversal();
@@ -237,7 +233,7 @@ function saveGlazingOrderDuration() {
     const newDuration = parseInt(input.value);
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         input.value = phase.workDays || 4;
         return;
     }
@@ -247,11 +243,9 @@ function saveGlazingOrderDuration() {
     
     if (!validation.valid) {
         if (validation.reason === 'phase_exceeds') {
-            alert(`This phase would exceed the project deadline!\n\nMaximum allowed: ${validation.maxAllowed} days`);
+            showToast(`This phase would exceed the project deadline!\n\nMaximum allowed: ${validation.maxAllowed} days`, 'info');
         } else {
-            alert(`This would push other phases beyond deadline!\n\n` +
-                  `Maximum allowed: ${validation.maxAllowed} days\n` +
-                  `(${validation.totalDays} days to deadline - ${validation.daysForOthers} days needed for remaining phases)`);
+            showToast(`Phases would exceed deadline! Max: ${validation.maxAllowed} days`, 'warning');
         }
         
         // Revert to old value
@@ -287,7 +281,7 @@ function saveGlazingOrderDuration() {
             });
             
             if (needsRevert) {
-                alert('Auto-arrange would exceed deadline. Reverting changes.');
+                showToast('Auto-arrange would exceed deadline. Reverting changes.', 'info');
                 project.phases = oldPhases;
                 input.value = phase.workDays || 4;
         renderUniversal();

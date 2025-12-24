@@ -80,7 +80,7 @@ async function addCustomPhase() {
     const color = document.getElementById('newPhaseColor').value;
     
     if (!name) {
-        alert('Please enter a phase name');
+        showToast('Please enter a phase name', 'warning');
         return;
     }
     
@@ -91,7 +91,7 @@ async function addCustomPhase() {
     const phasesToUpdate = isPipeline ? pipelinePhases : productionPhases;
     
     if (phasesToUpdate[key]) {
-        alert('Phase already exists');
+        showToast('Phase already exists', 'info');
         return;
     }
     

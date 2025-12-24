@@ -9,7 +9,7 @@ function addTeamMember() {
     const color = document.getElementById('newMemberColor').value;
     
     if (!name) {
-        alert('Please enter team member name');
+        showToast('Please enter team member name', 'warning');
         return;
     }
     

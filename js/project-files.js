@@ -27,7 +27,7 @@ async function openProjectFilesModal(projectIndex, stage) {
     }
     
     if (!project) {
-        alert('Project not found');
+        showToast('Project not found', 'info');
         return;
     }
     
@@ -797,7 +797,7 @@ async function createNewSubfolder(parentFolder) {
     const sanitized = subfolderName.trim().replace(/[^a-zA-Z0-9\s\-_]/g, '');
     
     if (!sanitized) {
-        alert('Invalid folder name');
+        showToast('Invalid folder name', 'info');
         return;
     }
     
@@ -832,7 +832,7 @@ async function createNewSubfolder(parentFolder) {
         
     } catch (err) {
         console.error('Error creating subfolder:', err);
-        alert('Error creating subfolder: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -1013,7 +1013,7 @@ async function handleFileUpload(event) {
     
     const folderName = currentProjectFiles.currentFolder;
     if (!folderName) {
-        alert('Please select a folder first');
+        showToast('Please select a folder first', 'warning');
         return;
     }
     
@@ -1034,7 +1034,7 @@ async function handleFileUpload(event) {
         
     } catch (err) {
         console.error('Upload error:', err);
-        alert('Error uploading files. Please try again.');
+        showToast('Error uploading files. Please try again.', 'error');
     } finally {
         uploadBtn.disabled = false;
         uploadBtn.textContent = '📤 Upload Files';
@@ -1122,7 +1122,7 @@ async function previewFile(filePath, fileType, fileName) {
         
     } catch (err) {
         console.error('Preview error:', err);
-        alert('Error opening file');
+        showToast('Error opening file', 'error');
     }
 }
 
@@ -1147,7 +1147,7 @@ async function downloadFile(fileId, filePath, fileName) {
         
     } catch (err) {
         console.error('Download error:', err);
-        alert('Error downloading file');
+        showToast('Error downloading file', 'error');
     }
 }
 
@@ -1177,7 +1177,7 @@ async function deleteFile(fileId, filePath) {
         
     } catch (err) {
         console.error('Delete error:', err);
-        alert('Error deleting file');
+        showToast('Error deleting file', 'error');
     }
 }
 
@@ -1198,13 +1198,13 @@ async function createNewFolder() {
     const sanitized = folderName.toLowerCase().trim().replace(/\s+/g, '-');
     
     if (!sanitized) {
-        alert('Invalid folder name');
+        showToast('Invalid folder name', 'info');
         return;
     }
     
     // Check if folder already exists
     if (projectFolders.includes(sanitized)) {
-        alert('Folder already exists!');
+        showToast('Folder already exists!', 'info');
         return;
     }
     
@@ -1231,7 +1231,7 @@ async function createNewFolder() {
         
     } catch (err) {
         console.error('Error creating folder:', err);
-        alert('Error creating folder. Please try again.');
+        showToast('Error creating folder. Please try again.', 'error');
     }
 }
 

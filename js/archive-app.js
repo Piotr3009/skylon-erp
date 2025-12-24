@@ -369,7 +369,7 @@ function openEditModal(projectId) {
     currentEditingProject = archivedProjects.find(p => p.id === projectId);
     
     if (!currentEditingProject) {
-        alert('Project not found');
+        showToast('Project not found', 'info');
         return;
     }
     
@@ -417,11 +417,11 @@ async function saveArchiveEdit() {
         updateStats();
         closeEditModal();
         
-        alert('Project updated successfully!');
+        showToast('Project updated successfully!', 'success');
         
     } catch (err) {
         console.error('Error updating project:', err);
-        alert('Error updating project: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -431,7 +431,7 @@ function openDeleteModal(projectId) {
     currentEditingProject = archivedProjects.find(p => p.id === projectId);
     
     if (!currentEditingProject) {
-        alert('Project not found');
+        showToast('Project not found', 'info');
         return;
     }
     
@@ -515,11 +515,11 @@ async function confirmDeleteArchive() {
         updateStats();
         closeDeleteModal();
         
-        alert('Project and all associated files deleted successfully!');
+        showToast('Project and all associated files deleted successfully!', 'success');
         
     } catch (err) {
         console.error('Error deleting project:', err);
-        alert('Error deleting project: ' + err.message);
+        showToast('Error deleting: ' + err.message, 'error');
     }
 }
 
@@ -630,7 +630,7 @@ function formatFileSize(bytes) {
 
 async function previewArchiveFile(filePath, fileType, fileName) {
     if (!filePath) {
-        alert('File path not available');
+        showToast('File path not available', 'info');
         return;
     }
     
@@ -651,13 +651,13 @@ async function previewArchiveFile(filePath, fileType, fileName) {
         }
     } catch (error) {
         console.error('Error previewing file:', error);
-        alert('Error previewing file');
+        showToast('Error previewing file', 'error');
     }
 }
 
 async function downloadArchiveFile(filePath, fileName) {
     if (!filePath) {
-        alert('File path not available');
+        showToast('File path not available', 'info');
         return;
     }
     
@@ -669,7 +669,7 @@ async function downloadArchiveFile(filePath, fileName) {
         
         if (error) {
             console.error('Error downloading file:', error);
-            alert('Error downloading file: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
             return;
         }
         
@@ -686,7 +686,7 @@ async function downloadArchiveFile(filePath, fileName) {
         }
     } catch (error) {
         console.error('Error downloading file:', error);
-        alert('Error downloading file');
+        showToast('Error downloading file', 'error');
     }
 }
 
@@ -704,7 +704,7 @@ async function openArchiveMaterialsModal(projectNumber, projectId) {
         
         if (error) {
             console.error('Error loading materials:', error);
-            alert('Error loading materials: ' + error.message);
+            showToast('Error loading: ' + error.message, 'error');
             return;
         }
         
@@ -787,7 +787,7 @@ async function openArchiveMaterialsModal(projectNumber, projectId) {
         
     } catch (error) {
         console.error('Error:', error);
-        alert('Error loading materials');
+        showToast('Error loading materials', 'error');
     }
 }
 

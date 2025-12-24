@@ -192,9 +192,9 @@ function importPipelineJSON() {
                 saveDataQueued();
                 updatePhasesLegend();  // Użyj wspólnej funkcji
                 renderPipeline();
-                alert('Pipeline data imported successfully');
+                showToast('Pipeline data imported successfully', 'success');
             } catch (err) {
-                alert('Error importing file: ' + err.message);
+                showToast('Error importing: ' + err.message, 'error');
             }
         };
         reader.readAsText(file);
@@ -215,7 +215,7 @@ async function savePipelinePhaseChanges() {
     const status = document.getElementById('phaseStatus').value;
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         return;
     }
     

@@ -218,7 +218,7 @@ async function stopDrag(e) {
             p.category === 'office'
         );
         if (!checkMaxTwoOverlaps(officePhasesOnly)) {
-            alert('Cannot move/resize: More than 2 phases would overlap at the same time!');
+            showToast('Cannot move/resize: More than 2 phases would overlap at the same time!', 'error');
             
             // Przywróć oryginalne fazy
             project.phases = oldPhases;
@@ -255,9 +255,9 @@ async function stopDrag(e) {
             const deadlineDate = new Date(project.deadline);
             
             if (phaseEnd > deadlineDate) {
-                alert('Cannot move/resize phase beyond project deadline!');
+                showToast('Cannot move/resize phase beyond project deadline!', 'error');
             } else {
-                alert('This change would push other phases beyond the deadline!');
+                showToast('This change would push other phases beyond the deadline!', 'info');
             }
             
             // Przywróć WSZYSTKIE oryginalne fazy

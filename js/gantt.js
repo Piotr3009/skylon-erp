@@ -729,7 +729,7 @@ function saveDeadlineFromModal(index) {
         
         // Sprawdź czy deadline nie jest w przeszłości
         if (deadlineDate < today) {
-            alert('Deadline cannot be in the past!');
+            showToast('Deadline cannot be in the past!', 'info');
             return;
         }
         
@@ -739,7 +739,7 @@ function saveDeadlineFromModal(index) {
         
         // Sprawdź minimalne wymagania
         if (phasesCount > 0 && availableWorkDays < phasesCount) {
-            alert(`Deadline too short! Need at least ${phasesCount} working days for ${phasesCount} phases.`);
+            showToast(`Deadline too short! Need at least ${phasesCount} working days for ${phasesCount} phases.`, 'info');
             return;
         }
         
@@ -855,7 +855,7 @@ async function addGoogleDriveLink(projectIndex) {
         if (newUrl !== null && newUrl !== currentUrl) {
             // Validate URL
             if (newUrl && !newUrl.includes('drive.google.com')) {
-                alert('Please enter a valid Google Drive URL');
+                showToast('Please enter a valid Google Drive URL', 'warning');
                 return;
             }
             
@@ -872,7 +872,7 @@ async function addGoogleDriveLink(projectIndex) {
                     
                     if (error) {
                         console.error('Error updating Google Drive URL:', error);
-                        alert('Error saving to database. URL saved locally only.');
+                        showToast('Error saving to database. URL saved locally only.', 'error');
                     }
                 } catch (err) {
                     console.error('Database connection error:', err);

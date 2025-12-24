@@ -156,17 +156,17 @@ async function savePipelineProject() {
     const projectType = selectedTypeElement ? selectedTypeElement.dataset.type : 'other';
     
     if (!name) {
-        alert('Please enter a project name');
+        showToast('Please enter a project name', 'warning');
         return;
     }
     
     if (!projectNumber) {
-        alert('Please enter a pipeline number');
+        showToast('Please enter a pipeline number', 'warning');
         return;
     }
     
     if (!clientId) {
-        alert('Please select a client from database!');
+        showToast('Please select a client from database!', 'warning');
         return;
     }
     
@@ -445,12 +445,12 @@ async function convertToProduction() {
     const deadline = document.getElementById('productionDeadline').value;
     
     if (!selectedIndex) {
-        alert('Please select a pipeline project');
+        showToast('Please select a pipeline project', 'warning');
         return;
     }
     
     if (!deadline) {
-        alert('Please set production deadline from contract!');
+        showToast('Please set production deadline from contract!', 'warning');
         return;
     }
     
@@ -462,7 +462,7 @@ async function convertToProduction() {
     const deadlineDate = new Date(deadline);
     
     if (deadlineDate < today) {
-        alert('Deadline cannot be in the past!');
+        showToast('Deadline cannot be in the past!', 'info');
         return;
     }
     
@@ -510,7 +510,7 @@ async function convertToProduction() {
     // Check if we have enough days for all phases
     const availableWorkDays = workingDaysBetween(today, deadlineDate);
     if (availableWorkDays < phases.length) {
-        alert(`Deadline too short! Need at least ${phases.length} working days for ${phases.length} phases.`);
+        showToast(`Deadline too short! Need at least ${phases.length} working days for ${phases.length} phases.`, 'info');
         return;
     }
     
@@ -582,7 +582,7 @@ async function convertToProduction() {
                 
                 if (error) {
                     console.error('❌ Error saving project:', error);
-                    alert(`Error saving project: ${error.message}`);
+                    showToast(`Error saving project: ${error.message}`, 'error');
                     return;
                 }
                 
@@ -601,7 +601,7 @@ async function convertToProduction() {
             if (phaseSaveResult) {
             } else {
                 console.error('❌ Failed to save phases');
-                alert('Warning: Project saved but phases failed to save!');
+                showToast('Warning: Project saved but phases failed to save!', 'error');
             }
             
             await updateClientProjectCount(productionProject.client_id);
@@ -658,7 +658,7 @@ async function convertToProduction() {
     renderPipeline();
     closeModal('pipelineFinishedModal');
     
-    alert(`Project converted to production: ${productionProject.projectNumber}\nDeadline: ${deadline}\nClient transferred.\nPlease go to Production page to see it.`);
+    showToast(`Project converted to production: ${productionProject.projectNumber}\nDeadline: ${deadline}\nClient transferred.\nPlease go to Production page to see it.`, 'warning');
 }
 
 // Archive as failed
@@ -667,7 +667,7 @@ async function archiveAsFailed() {
     const failedReason = document.getElementById('failedReason').value.trim();
     
     if (!selectedIndex) {
-        alert('Please select a pipeline project');
+        showToast('Please select a pipeline project', 'warning');
         return;
     }
     
@@ -705,7 +705,7 @@ async function archiveAsFailed() {
             
             if (error) {
                 console.error('Error archiving pipeline project:', error);
-                alert('Error saving to archive. Please try again.');
+                showToast('Error saving to archive. Please try again.', 'error');
                 return;
             }
             
@@ -769,7 +769,7 @@ async function archiveAsFailed() {
             
         } catch (err) {
             console.error('Database error:', err);
-            alert('Error connecting to database.');
+            showToast('Error connecting to database.', 'error');
             return;
         }
     }
@@ -786,7 +786,7 @@ async function archiveAsFailed() {
     renderPipeline();
     closeModal('pipelineFinishedModal');
     
-    alert(`Project archived as failed: ${pipelineProject.projectNumber}`);
+    showToast(`Project archived as failed: ${pipelineProject.projectNumber}`, 'error');
 }
 
 async function archiveAsCanceled() {
@@ -794,7 +794,7 @@ async function archiveAsCanceled() {
     const cancelledReason = document.getElementById('cancelledReason').value.trim();
     
     if (!selectedIndex) {
-        alert('Please select a pipeline project');
+        showToast('Please select a pipeline project', 'warning');
         return;
     }
     
@@ -832,7 +832,7 @@ async function archiveAsCanceled() {
             
             if (error) {
                 console.error('Error archiving pipeline project:', error);
-                alert('Error saving to archive. Please try again.');
+                showToast('Error saving to archive. Please try again.', 'error');
                 return;
             }
             
@@ -896,7 +896,7 @@ async function archiveAsCanceled() {
             
         } catch (err) {
             console.error('Database error:', err);
-            alert('Error connecting to database.');
+            showToast('Error connecting to database.', 'error');
             return;
         }
     }
@@ -913,7 +913,7 @@ async function archiveAsCanceled() {
     renderPipeline();
     closeModal('pipelineFinishedModal');
     
-    alert(`Project archived as cancelled: ${pipelineProject.projectNumber}`);
+    showToast(`Project archived as cancelled: ${pipelineProject.projectNumber}`, 'info');
 }
 
 // Create production phases
@@ -1108,7 +1108,7 @@ async function exportPipelineProjectNotesPDF(index) {
     const notes = project.notes ? project.notes.trim() : '';
     
     if (!notes) {
-        alert('No notes to export. Please add some notes first.');
+        showToast('No notes to export. Please add some notes first.', 'warning');
         return;
     }
     
@@ -1189,7 +1189,7 @@ async function exportPipelineProjectNotesPDF(index) {
             
             if (uploadError) {
                 console.error('Upload error:', uploadError);
-                alert('Error uploading PDF. Downloading locally instead.');
+                showToast('Error uploading PDF. Downloading locally instead.', 'error');
                 downloadLocally();
                 return;
             }
@@ -1218,14 +1218,14 @@ async function exportPipelineProjectNotesPDF(index) {
             // Re-render to show "Open PDF" button
             renderPipeline();
             
-            alert('PDF generated and saved successfully!\n\nYou can now access it anytime using the "Open PDF" button.');
+            showToast('PDF generated and saved successfully!\n\nYou can now access it anytime using the "Open PDF" button.', 'success');
             
             // Open PDF in new tab
             window.open(pdfUrl, '_blank');
             
         } catch (err) {
             console.error('Error:', err);
-            alert('Error uploading PDF. Downloading locally instead.');
+            showToast('Error uploading PDF. Downloading locally instead.', 'error');
             downloadLocally();
         }
     } else {
@@ -1445,7 +1445,7 @@ function addPipelineProjectNote(index) {
     const newNoteText = document.getElementById('pipelineProjectNewNote').value.trim();
     
     if (!newNoteText) {
-        alert('Please enter a note before adding.');
+        showToast('Please enter a note before adding.', 'warning');
         return;
     }
     
@@ -1497,7 +1497,7 @@ async function savePipelineProjectNotesToDB(index, notes) {
             
             if (error) {
                 console.error('❌ Error saving notes:', error);
-                alert('Error saving note to database');
+                showToast('Error saving note to database', 'error');
                 return;
             }
             
@@ -1507,7 +1507,7 @@ async function savePipelineProjectNotesToDB(index, notes) {
             
         } catch (err) {
             console.error('❌ Error:', err);
-            alert('Error saving note');
+            showToast('Error saving note', 'error');
         }
     } else {
         renderPipelineProjects();

@@ -38,7 +38,7 @@ async function loadMonthOverheads() {
     const month = document.getElementById('settingsMonth').value;
     
     if (!month) {
-        alert('Please select a month');
+        showToast('Please select a month', 'warning');
         return;
     }
     
@@ -78,7 +78,7 @@ async function loadMonthOverheads() {
         
     } catch (err) {
         console.error('Error loading overheads:', err);
-        alert('Error loading data: ' + err.message);
+        showToast('Error loading: ' + err.message, 'error');
     }
 }
 
@@ -215,7 +215,7 @@ async function saveMonthlyOverheads() {
     const month = document.getElementById('settingsMonth').value;
     
     if (!month) {
-        alert('Please select a month');
+        showToast('Please select a month', 'warning');
         return;
     }
     
@@ -239,7 +239,7 @@ async function saveMonthlyOverheads() {
         });
         
         if (allItems.length === 0) {
-            alert('Please add at least one overhead item');
+            showToast('Please add at least one overhead item', 'warning');
             return;
         }
         
@@ -248,7 +248,7 @@ async function saveMonthlyOverheads() {
         for (const item of allItems) {
             const key = `${item.month}-${item.category}-${item.item_name}`;
             if (itemKeys.has(key)) {
-                alert(`Duplicate item found: "${item.item_name}" in ${item.category}. Each item name must be unique within its category.`);
+                showToast(`Duplicate item found: "${item.item_name}" in ${item.category}. Each item name must be unique within its category.`, 'info');
                 return;
             }
             itemKeys.add(key);
@@ -288,7 +288,7 @@ async function saveMonthlyOverheads() {
             markOverheadsConfirmed();
         }
         
-        alert('✅ Monthly overheads saved successfully!');
+        showToast('Monthly overheads saved successfully!', 'success');
         closeMonthlySettingsModal();
         
         // Refresh accounting data
@@ -298,7 +298,7 @@ async function saveMonthlyOverheads() {
         
     } catch (err) {
         console.error('Error saving overheads:', err);
-        alert('Error saving: ' + err.message);
+        showToast('Error saving: ' + err.message, 'error');
     }
 }
 
@@ -307,7 +307,7 @@ async function copyFromPreviousMonth() {
     const currentMonth = document.getElementById('settingsMonth').value;
     
     if (!currentMonth) {
-        alert('Please select a month first');
+        showToast('Please select a month first', 'warning');
         return;
     }
     
@@ -330,7 +330,7 @@ async function copyFromPreviousMonth() {
         if (loadError) throw loadError;
         
         if (!prevData || prevData.length === 0) {
-            alert(`No data found for previous month (${prevMonth})`);
+            showToast(`No data found for previous month (${prevMonth})`, 'info');
             return;
         }
         
@@ -357,12 +357,12 @@ async function copyFromPreviousMonth() {
         
         if (insertError) throw insertError;
         
-        alert(`✅ Copied ${copiedItems.length} items from ${prevMonth}`);
+        showToast(`Copied ${copiedItems.length} items from ${prevMonth}`, 'success');
         loadMonthOverheads();
         
     } catch (err) {
         console.error('Error copying from previous month:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 

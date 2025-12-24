@@ -227,7 +227,7 @@ async function addPhaseSegment() {
         }
     } catch (err) {
         console.error('Error saving new segment:', err);
-        alert('Error adding segment: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
         // Cofnij dodanie
         project.phases.pop();
         return;
@@ -307,7 +307,7 @@ async function deleteCurrentPhase() {
 
         } catch (error) {
             console.error('Error deleting phase:', error);
-            alert('Error deleting phase. Please try again.');
+            showToast('Error deleting phase. Please try again.', 'error');
             closeModal('phaseEditModal');
             currentEditPhase = null;
         }
@@ -480,7 +480,7 @@ async function savePhaseChanges() {
     const status = document.getElementById('phaseStatus').value;
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         return;
     }
     
@@ -498,7 +498,7 @@ async function savePhaseChanges() {
         
         if (phaseEnd > deadlineDate) {
             const maxAllowed = workingDaysBetween(start, deadlineDate);
-            alert(`This phase would exceed the project deadline!\n\nMaximum allowed: ${maxAllowed} days`);
+            showToast(`This phase would exceed the project deadline!\n\nMaximum allowed: ${maxAllowed} days`, 'info');
             return;
         }
     }
@@ -553,7 +553,7 @@ async function savePhaseChanges() {
             });
             
             if (anyPhaseExceedsDeadline) {
-                alert('Auto-arrange pushed some phases beyond deadline! Please adjust manually.');
+                showToast('Auto-arrange pushed some phases beyond deadline! Please adjust manually.', 'warning');
             }
         }
     }
@@ -654,7 +654,7 @@ async function saveGlazingOrderDuration() {
     const newDuration = parseInt(document.getElementById('glazingOrderDuration').value);
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         return;
     }
     
@@ -757,7 +757,7 @@ function confirmGlazingOrderComplete() {
     // Check if glass needs dimensions
     const glassNeedsSize = (phase.glazingMaterials || []).some(m => m.hasSize && m.ordered && !m.size);
     if (glassNeedsSize) {
-        alert('Please specify dimensions for all selected glass');
+        showToast('Please specify dimensions for all selected glass', 'warning');
         return;
     }
     
@@ -837,7 +837,7 @@ async function saveOrderDuration() {
     const newDuration = parseInt(document.getElementById('orderDuration').value);
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         return;
     }
     
@@ -919,7 +919,7 @@ async function saveSprayOrderDuration() {
     const newDuration = parseInt(document.getElementById('sprayOrderDuration').value);
     
     if (newDuration < 1) {
-        alert('Duration must be at least 1 day');
+        showToast('Duration must be at least 1 day', 'warning');
         return;
     }
     
@@ -1030,7 +1030,7 @@ function confirmSprayOrderComplete() {
     // Check if paint needs color
     const paintMaterial = (phase.sprayMaterials || []).find(m => m.item === 'Paint');
     if (paintMaterial && paintMaterial.ordered && !paintMaterial.color) {
-        alert('Please specify paint color (RAL code)');
+        showToast('Please specify paint color (RAL code)', 'warning');
         return;
     }
     
@@ -1113,7 +1113,7 @@ function addCustomMaterial() {
     
     const itemName = document.getElementById('newMaterialName').value.trim();
     if (!itemName) {
-        alert('Please enter material name');
+        showToast('Please enter material name', 'warning');
         return;
     }
     

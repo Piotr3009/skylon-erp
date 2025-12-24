@@ -181,7 +181,7 @@
         
         if (!canAccessPage(currentPage)) {
             console.warn('Access denied to:', currentPage);
-            alert('You do not have permission to access this page.');
+            showToast('You do not have permission to access this page.', 'info');
             window.location.href = 'index.html'; // Redirect to production
         }
     };

@@ -63,7 +63,7 @@ function openGoogleDrivePicker(project) {
     
     // Check if APIs are loaded
     if (!gisInited || !pickerInited) {
-        alert('Google APIs are still loading. Please try again in a moment.');
+        showToast('Google APIs are still loading. Please try again in a moment.', 'warning');
         return;
     }
 
@@ -130,9 +130,9 @@ async function pickerCallback(data) {
 
             if (error) {
                 console.error('Error saving to Supabase:', error);
-                alert('Failed to save Google Drive folder');
+                showToast('Failed to save Google Drive folder', 'error');
             } else {
-                alert(`Folder "${folder.name}" linked successfully!`);
+                showToast(`Folder "${folder.name}" linked successfully!`, 'success');
                 
                 // Re-render to show the change
                 if (typeof render !== 'undefined') render();

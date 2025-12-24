@@ -167,7 +167,7 @@ async function openMaterialsReport() {
         
     } catch (error) {
         console.error('Error loading materials report:', error);
-        alert('Error loading materials report: ' + error.message);
+        showToast('Error loading: ' + error.message, 'error');
     }
 }
 
@@ -339,7 +339,7 @@ async function dismissAlert(alertId) {
         
     } catch (error) {
         console.error('Error dismissing alert:', error);
-        alert('Error dismissing alert. Please try again.');
+        showToast('Error dismissing alert. Please try again.', 'error');
     }
 }
 
@@ -349,7 +349,7 @@ async function confirmAlert(alertId) {
     const confirmedBy = staffSelect?.value;
     
     if (!confirmedBy) {
-        alert('Please select a staff member who confirmed the order.');
+        showToast('Please select a staff member who confirmed the order.', 'warning');
         return;
     }
     
@@ -416,7 +416,7 @@ async function confirmAlert(alertId) {
         
     } catch (error) {
         console.error('Error confirming alert:', error);
-        alert('Error confirming alert. Please try again.');
+        showToast('Error confirming alert. Please try again.', 'error');
     }
 }
 
@@ -513,7 +513,7 @@ async function snoozeAlert(alertId) {
     modal.querySelector('#customSnoozeBtn').onclick = async () => {
         const days = parseInt(modal.querySelector('#customDays').value);
         if (!days || days < 1 || days > 30) {
-            alert('Please enter a number between 1 and 30');
+            showToast('Please enter a number between 1 and 30', 'warning');
             return;
         }
         closeModal();
@@ -561,6 +561,6 @@ async function executeSnooze(alertId, hours, days) {
         const timeText = hours ? `${hours} hours` : `${days} days`;
     } catch (error) {
         console.error('Error snoozing alert:', error);
-        alert('Error snoozing alert. Please try again.');
+        showToast('Error snoozing alert. Please try again.', 'error');
     }
 }

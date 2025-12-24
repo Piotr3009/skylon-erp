@@ -13,7 +13,7 @@ const projectStage = urlParams.get('stage') || 'production';
 // Load everything on page load
 window.addEventListener('DOMContentLoaded', async () => {
     if (!projectId) {
-        alert('No project ID provided!');
+        showToast('No project ID provided!', 'info');
         window.history.back();
         return;
     }
@@ -74,7 +74,7 @@ async function loadProjectData() {
         
     } catch (err) {
         console.error('Error loading project data:', err);
-        alert('Error loading project data: ' + err.message);
+        showToast('Error loading: ' + err.message, 'error');
     }
 }
 
@@ -382,6 +382,6 @@ function generateSignOffSection() {
 }
 
 async function downloadPDF() {
-    alert('PDF download will be implemented with jsPDF library to convert the preview to PDF format.');
+    showToast('PDF download will be implemented with jsPDF library to convert the preview to PDF format.', 'info');
     // TODO: Implement jsPDF conversion
 }

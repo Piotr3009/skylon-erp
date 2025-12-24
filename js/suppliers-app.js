@@ -23,7 +23,7 @@ async function loadSuppliers() {
         
     } catch (err) {
         console.error('Error loading suppliers:', err);
-        alert('Error loading suppliers');
+        showToast('Error loading suppliers', 'error');
     }
 }
 
@@ -116,7 +116,7 @@ function openAddSupplierModal() {
 function editSupplier(supplierId) {
     const supplier = suppliers.find(s => s.id === supplierId);
     if (!supplier) {
-        alert('Supplier not found');
+        showToast('Supplier not found', 'info');
         return;
     }
     
@@ -144,7 +144,7 @@ async function saveSupplier() {
     const notes = document.getElementById('supplierNotes').value.trim();
     
     if (!name) {
-        alert('Please enter supplier name');
+        showToast('Please enter supplier name', 'warning');
         return;
     }
     
@@ -180,7 +180,7 @@ async function saveSupplier() {
         
     } catch (err) {
         console.error('Error saving supplier:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
@@ -206,7 +206,7 @@ async function deleteSupplier() {
         
     } catch (err) {
         console.error('Error deleting supplier:', err);
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
     }
 }
 

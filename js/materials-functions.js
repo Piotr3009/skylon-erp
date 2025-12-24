@@ -62,7 +62,7 @@ async function loadProjectMaterials(projectId) {
         
     } catch (error) {
         console.error('Error loading materials:', error);
-        alert('Error loading materials list: ' + error.message);
+        showToast('Error loading: ' + error.message, 'error');
     }
 }
 
@@ -391,7 +391,7 @@ async function loadCategoriesAndItems() {
         
     } catch (error) {
         console.error('Error loading categories and items:', error);
-        alert('Error loading data: ' + error.message);
+        showToast('Error loading: ' + error.message, 'error');
     }
 }
 
@@ -607,17 +607,17 @@ async function saveMaterial() {
         const unit = document.getElementById('addMaterialUnit').value.trim();
         
         if (!stage) {
-            alert('Please select a stage');
+            showToast('Please select a stage', 'warning');
             return;
         }
         
         if (!quantity || quantity <= 0) {
-            alert('Please enter a valid quantity');
+            showToast('Please enter a valid quantity', 'warning');
             return;
         }
         
         if (!unit) {
-            alert('Please enter a unit');
+            showToast('Please enter a unit', 'warning');
             return;
         }
         
@@ -637,7 +637,7 @@ async function saveMaterial() {
         if (materialType === 'stock') {
             // Stock item
             if (!selectedStockItem) {
-                alert('Please select a stock item');
+                showToast('Please select a stock item', 'warning');
                 return;
             }
             
@@ -659,17 +659,17 @@ async function saveMaterial() {
             const bespokeImageFile = document.getElementById('bespokeImageUpload').files[0];
             
             if (!bespokeName) {
-                alert('Please enter item name');
+                showToast('Please enter item name', 'warning');
                 return;
             }
             
             if (!bespokeCategory) {
-                alert('Please select a category');
+                showToast('Please select a category', 'warning');
                 return;
             }
             
             if (!bespokeUnitCost || bespokeUnitCost < 0) {
-                alert('Please enter a valid unit cost');
+                showToast('Please enter a valid unit cost', 'warning');
                 return;
             }
             
@@ -680,7 +680,7 @@ async function saveMaterial() {
                     imageUrl = await uploadBespokeImage(bespokeImageFile);
                 } catch (uploadError) {
                     console.error('Error uploading image:', uploadError);
-                    alert('Warning: Image upload failed, but material will be saved without image.');
+                    showToast('Warning: Image upload failed, but material will be saved without image.', 'error');
                 }
             }
             
@@ -752,7 +752,7 @@ async function saveMaterial() {
                 .eq('id', selectedStockItem.id);
         }
         
-        alert('Material added successfully!');
+        showToast('Material added successfully!', 'success');
         closeAddMaterialModal();
         
         // Reload materials list
@@ -760,7 +760,7 @@ async function saveMaterial() {
         
     } catch (error) {
         console.error('Error saving material:', error);
-        alert('Error saving material: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
     }
 }
 
@@ -777,7 +777,7 @@ async function updateMaterialNotes(materialId, notes) {
         
     } catch (error) {
         console.error('Error updating notes:', error);
-        alert('Error updating notes: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -814,7 +814,7 @@ async function showRecordUsageModal(materialId) {
         
         if (!nameEl || !neededEl || !reservedEl || !usedEl || !wasteEl) {
             console.error('Record usage modal elements not found in DOM');
-            alert('Error: Modal not loaded properly');
+            showToast('Error: Modal not loaded properly', 'error');
             return;
         }
         
@@ -830,7 +830,7 @@ async function showRecordUsageModal(materialId) {
         
     } catch (error) {
         console.error('Error loading material:', error);
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -846,7 +846,7 @@ async function saveMaterialUsage() {
         const wasteReason = document.getElementById('recordWasteReason').value.trim();
         
         if (!quantityUsed || quantityUsed <= 0) {
-            alert('Please enter quantity used');
+            showToast('Please enter quantity used', 'warning');
             return;
         }
         
@@ -856,7 +856,7 @@ async function saveMaterialUsage() {
         // WALIDACJA: Dla STOCK items - sprawdź czy zarezerwowano
         // Dla BESPOKE - pomiń (nie ma w stocku)
         if (!material.is_bespoke && quantityReserved === 0) {
-            alert('❌ Cannot mark as used!\n\nThis material has NOT been reserved from stock (quantity reserved = 0).\n\nYou must first:\n1. Order this material\n2. Receive it into stock\n3. Material will be automatically reserved\n\nThen you can mark as used.');
+            showToast('Cannot mark as used!\n\nThis material has NOT been reserved from stock (quantity reserved = 0).\n\nYou must first:\n1. Order this material\n2. Receive it into stock\n3. Material will be automatically reserved\n\nThen you can mark as used.', 'error');
             return;
         }
         
@@ -948,7 +948,7 @@ async function saveMaterialUsage() {
             if (stockError) throw stockError;
         }
         
-        alert('✅ Material usage recorded successfully!');
+        showToast('Material usage recorded successfully!', 'success');
         closeRecordUsageModal();
         
         // Reload materials
@@ -956,7 +956,7 @@ async function saveMaterialUsage() {
         
     } catch (error) {
         console.error('Error recording usage:', error);
-        alert('Error recording usage: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -987,7 +987,7 @@ async function exportShoppingListPDF() {
         if (error) throw error;
         
         if (materials.length === 0) {
-            alert('No materials added yet!');
+            showToast('No materials added yet!', 'success');
             return;
         }
         
@@ -1163,7 +1163,7 @@ async function exportShoppingListPDF() {
         
     } catch (error) {
         console.error('Error generating PDF:', error);
-        alert('Error generating PDF: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 // Edit Material
@@ -1266,7 +1266,7 @@ async function editMaterial(materialId) {
         
     } catch (error) {
         console.error('Error loading material:', error);
-        alert('Error loading material: ' + error.message);
+        showToast('Error loading: ' + error.message, 'error');
     }
 }
 
@@ -1277,7 +1277,7 @@ async function saveEditedMaterial() {
         const newNotes = document.getElementById('addMaterialNotes').value.trim() || null;
         
         if (!newQuantityNeeded || newQuantityNeeded <= 0) {
-            alert('Please enter a valid quantity');
+            showToast('Please enter a valid quantity', 'warning');
             return;
         }
         
@@ -1313,7 +1313,7 @@ async function saveEditedMaterial() {
                     
                 } catch (imgError) {
                     console.error('Error handling image update:', imgError);
-                    alert('Warning: Image update failed, other changes will be saved.');
+                    showToast('Warning: Image update failed, other changes will be saved.', 'error');
                 }
             }
             
@@ -1411,7 +1411,7 @@ async function saveEditedMaterial() {
             if (error) throw error;
         }
         
-        alert('✅ Material updated successfully!');
+        showToast('Material updated successfully!', 'success');
         closeAddMaterialModal();
         
         // Reset edit mode
@@ -1423,7 +1423,7 @@ async function saveEditedMaterial() {
         
     } catch (error) {
         console.error('Error saving material:', error);
-        alert('Error saving material: ' + error.message);
+        showToast('Error saving: ' + error.message, 'error');
     }
 }
 
@@ -1493,20 +1493,20 @@ async function deleteMaterial(materialId) {
         
     } catch (err) {
         console.error('Error deleting material:', err);
-        alert('Error deleting material: ' + err.message);
+        showToast('Error deleting: ' + err.message, 'error');
     }
 }
 
 // Export Materials PDF
 function exportMaterialsPDF() {
     // TODO: Implement PDF export
-    alert('PDF export functionality - coming soon');
+    showToast('PDF export functionality - coming soon', 'info');
 }
 
 // Generate Shopping List
 function generateShoppingList() {
     // TODO: Implement shopping list generation
-    alert('Shopping list functionality - coming soon');
+    showToast('Shopping list functionality - coming soon', 'info');
 }
 
 // ========== BESPOKE IMAGE HANDLING ==========

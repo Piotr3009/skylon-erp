@@ -164,17 +164,17 @@ async function saveProject() {
     const projectType = selectedTypeElement ? selectedTypeElement.dataset.type : 'other';
     
     if (!name) {
-        alert('Please enter a project name');
+        showToast('Please enter a project name', 'warning');
         return;
     }
     
     if (!projectNumber) {
-        alert('Please enter a project number');
+        showToast('Please enter a project number', 'warning');
         return;
     }
     
     if (!clientId) {
-        alert('Please select a client from database!');
+        showToast('Please select a client from database!', 'warning');
         return;
     }
     
@@ -349,7 +349,7 @@ if (currentEditProject !== null && projects[currentEditProject]) {
     //     const availableWorkDays = workingDaysBetween(today, deadlineDate);
     //     
     //     if (availableWorkDays < selectedPhases.length) {
-    //         alert(`Deadline too short! Need at least ${selectedPhases.length} working days for ${selectedPhases.length} phases.`);
+    //         showToast(`Deadline too short! Need at least ${selectedPhases.length} working days for ${selectedPhases.length} phases.`, 'info');
     //         return;
     //     }
     //     
@@ -631,13 +631,13 @@ async function confirmMoveToArchive() {
     const actualFinalValue = parseFloat(document.getElementById('actualFinalValue').value) || null;
     
     if (!selectedIndex) {
-        alert('Please select a project to archive');
+        showToast('Please select a project to archive', 'warning');
         return;
     }
     
     const projectIndex = parseInt(selectedIndex);
     if (!projects[projectIndex]) {
-        alert('Project not found');
+        showToast('Project not found', 'info');
         return;
     }
     
@@ -659,22 +659,19 @@ async function confirmMoveToArchive() {
                     `- ${m.item_name} (${m.quantity_needed} ${m.unit})`
                 ).join('\n');
                 
-                alert(`❌ Cannot archive project!\n\n` +
-                      `The following materials have not been confirmed as used:\n\n` +
-                      `${materialsList}\n\n` +
-                      `Please go to Materials List and click "Record Usage" for each material.`);
+                showToast('Cannot archive! Some materials not confirmed as used. Check Materials List.', 'error');
                 return;
             }
         } catch (err) {
             console.error('Error checking materials:', err);
-            alert('Error checking materials status. Please try again.');
+            showToast('Error checking materials status. Please try again.', 'error');
             return;
         }
     }
     
     // Walidacja: jeśli completed i nie zaznaczono "same as quote", musi być actual value
     if (reason === 'completed' && !budgetSameAsQuote && !actualFinalValue) {
-        alert('Please enter the actual final value or confirm that budget was same as quote');
+        showToast('Please enter the actual final value or confirm that budget was same as quote', 'warning');
         return;
     }
     
@@ -737,7 +734,7 @@ async function confirmMoveToArchive() {
             
             if (error) {
                 console.error('Error archiving project:', error);
-                alert('Error saving to archive. Please try again.');
+                showToast('Error saving to archive. Please try again.', 'error');
                 return;
             }
             
@@ -793,7 +790,7 @@ async function confirmMoveToArchive() {
             
             if (fetchArchivedError || !archivedProjectData) {
                 console.error('❌ Error fetching archived project:', fetchArchivedError);
-                alert('ERROR: Could not find archived project. Cannot continue.');
+                showToast('ERROR: Could not find archived project. Cannot continue.', 'error');
                 return;
             }
             
@@ -840,9 +837,7 @@ async function confirmMoveToArchive() {
                 
                 if (archiveMaterialsError) {
                     console.error('❌ CRITICAL: Error archiving project materials:', archiveMaterialsError);
-                    alert('ERROR: Could not archive project materials!\n\n' +
-                          'Error: ' + archiveMaterialsError.message + '\n\n' +
-                          'Archiving process stopped.');
+                    showToast('Could not archive project materials: ' + archiveMaterialsError.message, 'error');
                     return;
                 } else {
                 }
@@ -959,7 +954,7 @@ async function confirmMoveToArchive() {
             
             if (deleteError) {
                 console.error('❌ CRITICAL: Error deleting project from database:', deleteError);
-                alert('CRITICAL ERROR: Project was archived but NOT deleted from production!\n\n' +
+                showToast('Critical Error: ' +
                       'Error: ' + deleteError.message + '\n\n' +
                       'Project ID: ' + project.id + '\n' +
                       'Materials ARE safely archived, but project still exists in production.\n' +
@@ -975,7 +970,7 @@ async function confirmMoveToArchive() {
             
         } catch (err) {
             console.error('Database error:', err);
-            alert('Error connecting to database.');
+            showToast('Error connecting to database.', 'error');
             return;
         }
     }
@@ -988,7 +983,7 @@ async function confirmMoveToArchive() {
     closeModal('moveToArchiveModal');
     
     const reasonText = document.querySelector(`#archiveReason option[value="${reason}"]`)?.textContent || reason;
-    alert(`✅ Project archived successfully: ${project.projectNumber}\nReason: ${reasonText}`);
+    showToast(`Project archived successfully: ${project.projectNumber}\nReason: ${reasonText}`, 'success');
 }
 
 // ========== PROJECT NOTES ==========
@@ -1112,7 +1107,7 @@ function addProductionProjectNote(index) {
     const newNoteText = document.getElementById('productionProjectNewNote').value.trim();
     
     if (!newNoteText) {
-        alert('Please enter a note before adding.');
+        showToast('Please enter a note before adding.', 'warning');
         return;
     }
     
@@ -1170,7 +1165,7 @@ async function saveProductionProjectNotesToDB(project, notesJSON) {
             
             if (error) {
                 console.error('❌ Error saving notes:', error);
-                alert('Error saving note to database');
+                showToast('Error saving note to database', 'error');
                 return;
             }
             
@@ -1181,7 +1176,7 @@ async function saveProductionProjectNotesToDB(project, notesJSON) {
             
         } catch (err) {
             console.error('❌ Error:', err);
-            alert('Error saving note');
+            showToast('Error saving note', 'error');
         }
     } else {
         render();
@@ -1198,7 +1193,7 @@ async function exportProductionProjectNotesPDF(index) {
     const notes = parseProjectNotes(project.notes);
     
     if (notes.length === 0) {
-        alert('No notes to export. Please add some notes first.');
+        showToast('No notes to export. Please add some notes first.', 'warning');
         return;
     }
     
@@ -1306,7 +1301,7 @@ async function exportProductionProjectNotesPDF(index) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        alert('PDF downloaded locally!');
+        showToast('PDF downloaded locally!', 'info');
     }
     
     // Upload to Supabase Storage
@@ -1325,7 +1320,7 @@ async function exportProductionProjectNotesPDF(index) {
             
             if (uploadError) {
                 console.error('Upload error:', uploadError);
-                alert('Error uploading PDF. Downloading locally instead.');
+                showToast('Error uploading PDF. Downloading locally instead.', 'error');
                 downloadLocally();
                 return;
             }
@@ -1354,7 +1349,7 @@ async function exportProductionProjectNotesPDF(index) {
             // Re-render to show "Open PDF" button
             render();
             
-            alert('PDF generated and saved successfully!\n\nYou can now access it anytime using the "Open PDF" button.');
+            showToast('PDF generated and saved successfully!\n\nYou can now access it anytime using the "Open PDF" button.', 'success');
             
             // Refresh modal to show Open PDF button
             closeProductionProjectNotes();
@@ -1362,7 +1357,7 @@ async function exportProductionProjectNotesPDF(index) {
             
         } catch (err) {
             console.error('Storage error:', err);
-            alert('Error uploading to storage. Downloading locally instead.');
+            showToast('Error uploading to storage. Downloading locally instead.', 'error');
             downloadLocally();
         }
     } else {
@@ -1490,7 +1485,7 @@ window.addEventListener('DOMContentLoaded', () => {
 function openProductionSheet(index) {
     const project = projects[index];
     if (!project || !project.id) {
-        alert('Project not found');
+        showToast('Project not found', 'info');
         return;
     }
     
