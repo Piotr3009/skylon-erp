@@ -27,7 +27,7 @@ async function loadProjectData() {
     try {
         // Load project
         const { data: project, error: projectError } = await supabaseClient
-            .from(projectStage === 'pipeline' ? 'pipeline_projects' : 'production_projects')
+            .from(projectStage === 'pipeline' ? 'pipeline_projects' : 'projects')
             .select('*')
             .eq('id', projectId)
             .single();
@@ -382,6 +382,63 @@ function generateSignOffSection() {
 }
 
 async function downloadPDF() {
-    showToast('PDF download will be implemented with jsPDF library to convert the preview to PDF format.', 'info');
-    // TODO: Implement jsPDF conversion
+    const previewContent = document.getElementById('previewContent');
+    
+    if (!previewContent || !currentProject) {
+        showToast('No preview to export', 'error');
+        return;
+    }
+    
+    showToast('Generating PDF...', 'info');
+    
+    try {
+        // Temporarily adjust styles for better PDF output
+        const originalBg = previewContent.style.background;
+        previewContent.style.background = '#ffffff';
+        
+        // Capture the preview as canvas
+        const canvas = await html2canvas(previewContent, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+        
+        // Restore original styles
+        previewContent.style.background = originalBg;
+        
+        // Calculate dimensions
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Create PDF
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        let heightLeft = imgHeight;
+        let position = 0;
+        
+        // Add first page
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        // Add additional pages if needed
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+        
+        // Save PDF
+        const filename = `${currentProject.project_number || 'project'}-production-sheet.pdf`.replace(/\//g, '-');
+        pdf.save(filename);
+        
+        showToast('PDF downloaded successfully', 'success');
+        
+    } catch (error) {
+        showToast('Error generating PDF: ' + error.message, 'error');
+    }
 }

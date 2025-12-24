@@ -823,8 +823,63 @@ async function deleteWage(wageId) {
     }
 }
 
-function exportWagesCSV() {
-    showToast('Export CSV - TODO', 'info');
+async function exportWagesCSV() {
+    try {
+        showToast('Exporting wages...', 'info');
+        
+        // Load all wages
+        const { data, error } = await supabaseClient
+            .from('wages')
+            .select(`
+                *,
+                team_members (
+                    name,
+                    job_type,
+                    employee_number
+                )
+            `)
+            .order('period_start', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            showToast('No wages to export', 'warning');
+            return;
+        }
+        
+        // Build CSV
+        const headers = ['Employee', 'Employee No', 'Job Type', 'Period Type', 'Period Start', 'Period End', 'Gross Amount', 'Created'];
+        
+        const rows = data.map(wage => [
+            wage.team_members?.name || 'Unknown',
+            wage.team_members?.employee_number || '-',
+            wage.team_members?.job_type || '-',
+            wage.period_type || '-',
+            wage.period_start || '-',
+            wage.period_end || '-',
+            parseFloat(wage.gross_amount || 0).toFixed(2),
+            wage.created_at ? new Date(wage.created_at).toLocaleDateString('en-GB') : '-'
+        ]);
+        
+        // Convert to CSV string
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+        
+        // Download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `wages-export-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        
+        showToast(`Exported ${data.length} wage records`, 'success');
+        
+    } catch (error) {
+        showToast('Error exporting: ' + error.message, 'error');
+    }
 }
 
 // ========== SEARCH & FILTER ==========

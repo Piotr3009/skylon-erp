@@ -1498,15 +1498,412 @@ async function deleteMaterial(materialId) {
 }
 
 // Export Materials PDF
-function exportMaterialsPDF() {
-    // TODO: Implement PDF export
-    showToast('PDF export functionality - coming soon', 'info');
+async function exportMaterialsPDF() {
+    if (!currentMaterialsProject) {
+        showToast('No project selected', 'error');
+        return;
+    }
+    
+    try {
+        // Load materials
+        const { data: materials, error } = await supabaseClient
+            .from('project_materials')
+            .select(`
+                *,
+                stock_items (
+                    id,
+                    name,
+                    item_number,
+                    size,
+                    thickness,
+                    unit,
+                    cost_per_unit
+                ),
+                stock_categories!category_id (
+                    id,
+                    name
+                ),
+                suppliers (
+                    id,
+                    name
+                )
+            `)
+            .eq('project_id', currentMaterialsProject.id)
+            .order('used_in_stage', { ascending: true });
+        
+        if (error) throw error;
+        
+        if (!materials || materials.length === 0) {
+            showToast('No materials to export', 'warning');
+            return;
+        }
+        
+        // Initialize jsPDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const margin = 15;
+        let y = margin;
+        
+        // Header
+        doc.setFillColor(39, 39, 42);
+        doc.rect(0, 0, 210, 35, 'F');
+        
+        doc.setTextColor(78, 201, 176);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('MATERIALS LIST', margin, 20);
+        
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Project: ${currentMaterialsProject.projectNumber} - ${currentMaterialsProject.name}`, margin, 28);
+        
+        y = 45;
+        
+        // Group by stage
+        const grouped = {
+            'Production': [],
+            'Spraying': [],
+            'Installation': []
+        };
+        
+        materials.forEach(m => {
+            if (grouped[m.used_in_stage]) {
+                grouped[m.used_in_stage].push(m);
+            }
+        });
+        
+        let totalCost = 0;
+        
+        // Render each stage
+        Object.keys(grouped).forEach(stage => {
+            if (grouped[stage].length === 0) return;
+            
+            // Check if need new page
+            if (y > 250) {
+                doc.addPage();
+                y = margin;
+            }
+            
+            // Stage header
+            doc.setFillColor(45, 45, 48);
+            doc.rect(margin, y, 180, 8, 'F');
+            doc.setTextColor(78, 201, 176);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${stage.toUpperCase()} STAGE`, margin + 3, y + 6);
+            y += 12;
+            
+            // Table header
+            doc.setFillColor(55, 55, 58);
+            doc.rect(margin, y, 180, 7, 'F');
+            doc.setTextColor(180, 180, 180);
+            doc.setFontSize(8);
+            doc.text('Material', margin + 2, y + 5);
+            doc.text('Size', margin + 70, y + 5);
+            doc.text('Qty', margin + 105, y + 5);
+            doc.text('Unit', margin + 120, y + 5);
+            doc.text('Supplier', margin + 135, y + 5);
+            doc.text('Cost', margin + 165, y + 5);
+            y += 10;
+            
+            // Table rows
+            doc.setTextColor(220, 220, 220);
+            doc.setFont('helvetica', 'normal');
+            
+            grouped[stage].forEach((m, index) => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = margin;
+                }
+                
+                // Alternating row colors
+                if (index % 2 === 0) {
+                    doc.setFillColor(40, 40, 43);
+                    doc.rect(margin, y - 4, 180, 7, 'F');
+                }
+                
+                const materialName = m.is_bespoke ? 
+                    `[BESPOKE] ${m.custom_name || 'Custom Item'}` : 
+                    (m.stock_items?.name || 'Unknown');
+                
+                const size = m.is_bespoke ? 
+                    (m.custom_description || '-') : 
+                    (m.stock_items?.size || '-');
+                
+                const unit = m.is_bespoke ? 
+                    (m.custom_unit || 'pcs') : 
+                    (m.stock_items?.unit || 'pcs');
+                
+                const supplier = m.suppliers?.name || '-';
+                
+                const costPerUnit = m.is_bespoke ? 
+                    (m.custom_cost_per_unit || 0) : 
+                    (m.stock_items?.cost_per_unit || 0);
+                
+                const lineCost = m.quantity_needed * costPerUnit;
+                totalCost += lineCost;
+                
+                // Truncate long text
+                const truncName = materialName.length > 35 ? materialName.substring(0, 32) + '...' : materialName;
+                const truncSize = size.length > 18 ? size.substring(0, 15) + '...' : size;
+                const truncSupplier = supplier.length > 15 ? supplier.substring(0, 12) + '...' : supplier;
+                
+                doc.text(truncName, margin + 2, y);
+                doc.text(truncSize, margin + 70, y);
+                doc.text(String(m.quantity_needed), margin + 105, y);
+                doc.text(unit, margin + 120, y);
+                doc.text(truncSupplier, margin + 135, y);
+                doc.text(`£${lineCost.toFixed(2)}`, margin + 165, y);
+                
+                y += 7;
+            });
+            
+            y += 5;
+        });
+        
+        // Total
+        if (y > 265) {
+            doc.addPage();
+            y = margin;
+        }
+        
+        y += 5;
+        doc.setFillColor(39, 39, 42);
+        doc.rect(margin, y, 180, 10, 'F');
+        doc.setTextColor(78, 201, 176);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ESTIMATED TOTAL:', margin + 120, y + 7);
+        doc.text(`£${totalCost.toFixed(2)}`, margin + 165, y + 7);
+        
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')} | Page ${i} of ${pageCount}`, margin, 290);
+        }
+        
+        // Save
+        const filename = `${currentMaterialsProject.projectNumber.replace(/\//g, '-')}-materials.pdf`;
+        doc.save(filename);
+        
+        showToast('Materials PDF exported successfully', 'success');
+        
+    } catch (error) {
+        showToast('Error generating PDF: ' + error.message, 'error');
+    }
 }
 
 // Generate Shopping List
-function generateShoppingList() {
-    // TODO: Implement shopping list generation
-    showToast('Shopping list functionality - coming soon', 'info');
+async function generateShoppingList() {
+    if (!currentMaterialsProject) {
+        showToast('No project selected', 'error');
+        return;
+    }
+    
+    try {
+        // Load materials that need ordering (not reserved or not enough in stock)
+        const { data: materials, error } = await supabaseClient
+            .from('project_materials')
+            .select(`
+                *,
+                stock_items (
+                    id,
+                    name,
+                    item_number,
+                    size,
+                    thickness,
+                    unit,
+                    cost_per_unit,
+                    current_quantity,
+                    reserved_quantity
+                ),
+                stock_categories!category_id (
+                    id,
+                    name
+                ),
+                suppliers (
+                    id,
+                    name,
+                    email,
+                    phone
+                )
+            `)
+            .eq('project_id', currentMaterialsProject.id)
+            .order('used_in_stage', { ascending: true });
+        
+        if (error) throw error;
+        
+        if (!materials || materials.length === 0) {
+            showToast('No materials in this project', 'warning');
+            return;
+        }
+        
+        // Filter items that need ordering
+        const toOrder = materials.filter(m => {
+            if (m.is_bespoke) {
+                return m.status !== 'ordered' && m.status !== 'received';
+            }
+            // Stock items - check if reserved
+            return m.quantity_reserved < m.quantity_needed;
+        });
+        
+        if (toOrder.length === 0) {
+            showToast('All materials are already reserved or ordered!', 'success');
+            return;
+        }
+        
+        // Group by supplier
+        const bySupplier = {};
+        
+        toOrder.forEach(m => {
+            const supplierName = m.suppliers?.name || 'No Supplier';
+            const supplierId = m.supplier_id || 'none';
+            
+            if (!bySupplier[supplierId]) {
+                bySupplier[supplierId] = {
+                    name: supplierName,
+                    email: m.suppliers?.email || null,
+                    phone: m.suppliers?.phone || null,
+                    items: []
+                };
+            }
+            
+            const qtyToOrder = m.is_bespoke ? 
+                m.quantity_needed : 
+                (m.quantity_needed - m.quantity_reserved);
+            
+            if (qtyToOrder > 0) {
+                bySupplier[supplierId].items.push({
+                    name: m.is_bespoke ? `[BESPOKE] ${m.custom_name}` : m.stock_items?.name,
+                    itemNumber: m.stock_items?.item_number || '-',
+                    size: m.is_bespoke ? m.custom_description : m.stock_items?.size,
+                    quantity: qtyToOrder,
+                    unit: m.is_bespoke ? m.custom_unit : m.stock_items?.unit,
+                    stage: m.used_in_stage
+                });
+            }
+        });
+        
+        // Generate PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const margin = 15;
+        let y = margin;
+        
+        // Header
+        doc.setFillColor(39, 39, 42);
+        doc.rect(0, 0, 210, 35, 'F');
+        
+        doc.setTextColor(246, 173, 85);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SHOPPING LIST', margin, 20);
+        
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Project: ${currentMaterialsProject.projectNumber} - ${currentMaterialsProject.name}`, margin, 28);
+        
+        y = 45;
+        
+        // Summary
+        doc.setTextColor(150, 150, 150);
+        doc.setFontSize(9);
+        doc.text(`Items to order: ${toOrder.length} | Suppliers: ${Object.keys(bySupplier).length} | Generated: ${new Date().toLocaleDateString('en-GB')}`, margin, y);
+        y += 10;
+        
+        // Render by supplier
+        Object.values(bySupplier).forEach(supplier => {
+            if (supplier.items.length === 0) return;
+            
+            // Check if need new page
+            if (y > 240) {
+                doc.addPage();
+                y = margin;
+            }
+            
+            // Supplier header
+            doc.setFillColor(45, 45, 48);
+            doc.rect(margin, y, 180, 12, 'F');
+            doc.setTextColor(246, 173, 85);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text(supplier.name.toUpperCase(), margin + 3, y + 5);
+            
+            doc.setTextColor(150, 150, 150);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            const contactInfo = [supplier.email, supplier.phone].filter(Boolean).join(' | ');
+            if (contactInfo) {
+                doc.text(contactInfo, margin + 3, y + 10);
+            }
+            y += 16;
+            
+            // Table header
+            doc.setFillColor(55, 55, 58);
+            doc.rect(margin, y, 180, 7, 'F');
+            doc.setTextColor(180, 180, 180);
+            doc.setFontSize(8);
+            doc.text('Item', margin + 2, y + 5);
+            doc.text('Item No.', margin + 70, y + 5);
+            doc.text('Size', margin + 95, y + 5);
+            doc.text('Qty', margin + 140, y + 5);
+            doc.text('Stage', margin + 160, y + 5);
+            y += 10;
+            
+            // Items
+            doc.setTextColor(220, 220, 220);
+            
+            supplier.items.forEach((item, index) => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = margin;
+                }
+                
+                if (index % 2 === 0) {
+                    doc.setFillColor(40, 40, 43);
+                    doc.rect(margin, y - 4, 180, 7, 'F');
+                }
+                
+                const truncName = (item.name || '').length > 35 ? item.name.substring(0, 32) + '...' : (item.name || '');
+                const truncSize = (item.size || '').length > 22 ? item.size.substring(0, 19) + '...' : (item.size || '-');
+                
+                doc.text(truncName, margin + 2, y);
+                doc.text(item.itemNumber || '-', margin + 70, y);
+                doc.text(truncSize, margin + 95, y);
+                doc.text(`${item.quantity} ${item.unit || ''}`, margin + 140, y);
+                doc.text(item.stage || '', margin + 160, y);
+                
+                y += 7;
+            });
+            
+            y += 8;
+        });
+        
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.text(`Shopping List - ${currentMaterialsProject.projectNumber} | Page ${i} of ${pageCount}`, margin, 290);
+        }
+        
+        // Save
+        const filename = `${currentMaterialsProject.projectNumber.replace(/\//g, '-')}-shopping-list.pdf`;
+        doc.save(filename);
+        
+        showToast('Shopping list PDF generated', 'success');
+        
+    } catch (error) {
+        showToast('Error generating shopping list: ' + error.message, 'error');
+    }
 }
 
 // ========== BESPOKE IMAGE HANDLING ==========
