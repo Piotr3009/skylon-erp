@@ -10,7 +10,7 @@ async function loadTeamMembersForPhase(phaseKey) {
             // Timber i Glazing → dział Production
             query = supabaseClient
                 .from('team_members')
-                .select('id, name, employee_number, color')
+                .select('id, name, employee_number, color, color_code')
                 .eq('active', true)
                 .eq('department', 'production')
                 .order('name');
@@ -19,7 +19,7 @@ async function loadTeamMembersForPhase(phaseKey) {
             // Spray → dział Spray
             query = supabaseClient
                 .from('team_members')
-                .select('id, name, employee_number, color')
+                .select('id, name, employee_number, color, color_code')
                 .eq('active', true)
                 .eq('department', 'spray')
                 .order('name');
@@ -28,7 +28,7 @@ async function loadTeamMembersForPhase(phaseKey) {
             // Dispatch → działy Drivers LUB Installation
             query = supabaseClient
                 .from('team_members')
-                .select('id, name, employee_number, color')
+                .select('id, name, employee_number, color, color_code')
                 .eq('active', true)
                 .or('department.eq.drivers,department.eq.installation')
                 .order('name');
@@ -77,8 +77,12 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
     // Calculate work days - USE phase.workDays if available
     const workDays = phase.workDays || calculateWorkDays(new Date(phase.start), new Date(phase.end));
     
-    // Set modal title
-    document.getElementById('phaseEditTitle').textContent = `Edit ${phaseConfig.name}`;
+    // Policz segmenty tej fazy
+    const segmentCount = project.phases.filter(p => p.key === phase.key).length;
+    const segmentLabel = segmentCount > 1 ? ` #${phase.segmentNo || 1}` : '';
+    
+    // Set modal title z numerem segmentu
+    document.getElementById('phaseEditTitle').textContent = `Edit ${phaseConfig.name}${segmentLabel}`;
     
     // Fill fields
     document.getElementById('phaseDuration').value = workDays;
@@ -119,13 +123,99 @@ function openPhaseEditModal(projectIndex, phaseIndex) {
         assignSection.style.display = 'none';
     }
     
-    // Pokaż przycisk Delete Phase
+    // Pokaż/ukryj przyciski segmentów
     const deleteBtn = document.getElementById('deletePhaseBtn');
+    const addSegmentBtn = document.getElementById('addSegmentBtn');
+    
     if (deleteBtn) {
+        // Zmień tekst przycisku w zależności od liczby segmentów
+        if (segmentCount > 1) {
+            deleteBtn.textContent = `Delete Segment #${phase.segmentNo || 1}`;
+        } else {
+            deleteBtn.textContent = 'Delete Phase';
+        }
         deleteBtn.style.display = 'inline-block';
     }
     
+    // Pokaż przycisk Add Segment (tylko dla faz produkcyjnych)
+    if (addSegmentBtn) {
+        const canHaveSegments = ['timber', 'spray', 'glazing', 'qc'].includes(phase.key);
+        addSegmentBtn.style.display = canHaveSegments ? 'inline-block' : 'none';
+        addSegmentBtn.dataset.phaseKey = phase.key;
+    }
+    
     openModal('phaseEditModal');
+}
+
+// Add new segment of the same phase
+async function addPhaseSegment() {
+    if (!currentEditPhase) return;
+    
+    const { projectIndex, phaseIndex } = currentEditPhase;
+    const project = projects[projectIndex];
+    const currentPhase = project.phases[phaseIndex];
+    
+    // Znajdź najwyższy segment_no dla tej fazy
+    const sameKeyPhases = project.phases.filter(p => p.key === currentPhase.key);
+    const maxSegmentNo = Math.max(...sameKeyPhases.map(p => p.segmentNo || 1));
+    const newSegmentNo = maxSegmentNo + 1;
+    
+    // Oblicz datę startu nowego segmentu (dzień po końcu ostatniego segmentu tej fazy)
+    const lastSegment = sameKeyPhases.reduce((latest, p) => {
+        if (!latest) return p;
+        const latestEnd = new Date(computeEnd(latest));
+        const pEnd = new Date(computeEnd(p));
+        return pEnd > latestEnd ? p : latest;
+    }, null);
+    
+    const lastEnd = new Date(computeEnd(lastSegment));
+    const newStart = new Date(lastEnd);
+    newStart.setDate(newStart.getDate() + 1);
+    
+    // Pomiń niedziele
+    while (newStart.getDay() === 0) {
+        newStart.setDate(newStart.getDate() + 1);
+    }
+    
+    // Stwórz nowy segment
+    const newSegment = {
+        key: currentPhase.key,
+        segmentNo: newSegmentNo,
+        start: formatDate(newStart),
+        workDays: 3, // domyślnie 3 dni
+        status: 'notStarted',
+        assignedTo: null,
+        notes: null
+    };
+    
+    // Dodaj do projektu
+    project.phases.push(newSegment);
+    
+    // Zapisz do bazy
+    try {
+        const { data: projectData } = await supabaseClient
+            .from('projects')
+            .select('id')
+            .eq('project_number', project.projectNumber)
+            .single();
+        
+        if (projectData) {
+            await savePhasesToSupabase(projectData.id, project.phases, true);
+        }
+    } catch (err) {
+        console.error('Error saving new segment:', err);
+        alert('Error adding segment: ' + err.message);
+        // Cofnij dodanie
+        project.phases.pop();
+        return;
+    }
+    
+    // Zamknij modal i odśwież
+    closeModal('phaseEditModal');
+    render();
+    
+    // Pokaż potwierdzenie
+    console.log(`✅ Added ${currentPhase.key} segment #${newSegmentNo}`);
 }
 
 // PUNKT 5 - Open Delivery Glazing modal
@@ -142,7 +232,12 @@ async function deleteCurrentPhase() {
     const phase = project.phases[phaseIndex];
     const phaseConfig = isPipeline ? pipelinePhases[phase.key] : phases[phase.key];
     
-    if (confirm(`Delete phase "${phaseConfig.name}" from this project?`)) {
+    // Sprawdź ile segmentów ma ta faza
+    const segmentCount = project.phases.filter(p => p.key === phase.key).length;
+    const segmentLabel = segmentCount > 1 ? ` #${phase.segmentNo || 1}` : '';
+    const deleteType = segmentCount > 1 ? 'segment' : 'phase';
+    
+    if (confirm(`Delete ${deleteType} "${phaseConfig.name}${segmentLabel}" from this project?`)) {
         try {
             // Usuń fazę
             project.phases.splice(phaseIndex, 1);
@@ -1143,7 +1238,7 @@ function toggleActualValueField() {
 
 // Helper functions for materials
 function getMaterialList(projectType) {
-    return materialsList[projectType] || materialsList.other;
+    return materialLists[projectType] || materialLists.other;
 }
 
 function getGlazingMaterialsList() {
