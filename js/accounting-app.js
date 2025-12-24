@@ -642,10 +642,20 @@ function renderFinancesLive() {
         return;
     }
     
+    // Helper: format date as MM/YYYY
+    const formatDL = (dateStr) => {
+        if (!dateStr) return '<span style="color: #666;">—</span>';
+        const d = new Date(dateStr);
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${month}/${year}`;
+    };
+    
     let html = `<table style="width: 100%; border-collapse: collapse; color: white;">
         <thead>
             <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
                 <th style="padding: 12px; text-align: left;">Project #</th>
+                <th style="padding: 12px; text-align: left;">DL</th>
                 <th style="padding: 12px; text-align: left;">Name</th>
                 <th style="padding: 12px; text-align: right;">Value</th>
                 <th style="padding: 12px; text-align: right;">Materials</th>
@@ -667,6 +677,7 @@ function renderFinancesLive() {
         
         html += `<tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">${p.project_number}</td>
+            <td style="padding: 12px; color: #999;">${formatDL(p.deadline)}</td>
             <td style="padding: 12px;">${p.name}</td>
             <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
             <td style="padding: 12px; text-align: right; color: #f97316;">${materialsDisplay}</td>
@@ -684,7 +695,7 @@ function renderFinancesLive() {
     const avgMargin = totalValue > 0 ? (totalProfit / totalValue * 100) : 0;
     
     html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
-        <td colspan="2" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
+        <td colspan="3" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
         <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
         <td style="padding: 12px; text-align: right; color: #f97316;">£${totalMaterials.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
         <td style="padding: 12px; text-align: right; color: #8b5cf6;">£${totalLabour.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
@@ -734,10 +745,20 @@ function renderFinancesArchive() {
         return;
     }
     
+    // Helper: format date as MM/YYYY
+    const formatDL = (dateStr) => {
+        if (!dateStr) return '<span style="color: #666;">—</span>';
+        const d = new Date(dateStr);
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${month}/${year}`;
+    };
+    
     let html = `<table style="width: 100%; border-collapse: collapse; color: white;">
         <thead>
             <tr style="background: #2a2a2a; border-bottom: 2px solid #444;">
                 <th style="padding: 12px; text-align: left;">Project #</th>
+                <th style="padding: 12px; text-align: left;">DL</th>
                 <th style="padding: 12px; text-align: left;">Name</th>
                 <th style="padding: 12px; text-align: right;">Value</th>
                 <th style="padding: 12px; text-align: right;">Materials</th>
@@ -759,6 +780,7 @@ function renderFinancesArchive() {
         
         html += `<tr style="border-bottom: 1px solid #333;">
             <td style="padding: 12px;">${p.project_number}</td>
+            <td style="padding: 12px; color: #999;">${formatDL(p.completed_date)}</td>
             <td style="padding: 12px;">${p.name}</td>
             <td style="padding: 12px; text-align: right;">£${p.value.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
             <td style="padding: 12px; text-align: right; color: #f97316;">${materialsDisplay}</td>
@@ -776,7 +798,7 @@ function renderFinancesArchive() {
     const avgMargin = totalValue > 0 ? (totalProfit / totalValue * 100) : 0;
     
     html += `<tr style="background: #2a2a2a; font-weight: bold; border-top: 2px solid #444;">
-        <td colspan="2" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
+        <td colspan="3" style="padding: 12px;">TOTAL (${projects.length} projects)</td>
         <td style="padding: 12px; text-align: right;">£${totalValue.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
         <td style="padding: 12px; text-align: right; color: #f97316;">£${totalMaterials.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
         <td style="padding: 12px; text-align: right; color: #8b5cf6;">£${totalLabour.toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
