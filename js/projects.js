@@ -971,17 +971,27 @@ async function confirmMoveToArchive() {
             }
             
             // KROK 4: Na końcu usuń główny projekt z tabeli projects - KRYTYCZNE!
-            // Używamy ID dla 100% pewności (project_number może być duplikat)
-            if (!project.id) {
-                showToast('Error: Project ID is missing. Cannot delete from production.', 'error');
+            // Pobierz świeże ID z bazy na podstawie project_number (lokalne ID może być nieaktualne)
+            const { data: freshProject, error: fetchError } = await supabaseClient
+                .from('projects')
+                .select('id')
+                .eq('project_number', project.projectNumber)
+                .single();
+            
+            if (fetchError || !freshProject) {
+                showToast('Error: Could not find project in database. It may have been already deleted.', 'warning');
+                // Usuń z lokalnej tablicy mimo wszystko
+                projects.splice(projectIndex, 1);
+                saveDataQueued();
+                render();
+                closeModal('moveToArchiveModal');
                 return;
             }
             
-            const { error: deleteError, count } = await supabaseClient
+            const { error: deleteError } = await supabaseClient
                 .from('projects')
                 .delete()
-                .eq('id', project.id)
-                .select();
+                .eq('id', freshProject.id);
             
             if (deleteError) {
                 showToast('Critical Error: Cannot delete project from production. ' + deleteError.message, 'error');
