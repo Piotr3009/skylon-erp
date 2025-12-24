@@ -264,12 +264,12 @@ function renderProjects() {
     const sortedProjects = getSortedProjects();
     
     sortedProjects.forEach((project, sortIndex) => {
-        // DIAGNOSTYKA - sprawdź czy są duplikaty faz
+        // DIAGNOSTYKA - sprawdź czy są duplikaty faz (uwzględniając segmenty)
         if (project.phases) {
-            const phaseKeys = project.phases.map(p => p.key);
-            const uniqueKeys = [...new Set(phaseKeys)];
-            if (phaseKeys.length !== uniqueKeys.length) {
-                console.error(`DUPLIKATY FAZ w projekcie ${project.name}:`, phaseKeys);
+            const phaseIds = project.phases.map(p => `${p.key}#${p.segmentNo || 1}`);
+            const uniqueIds = [...new Set(phaseIds)];
+            if (phaseIds.length !== uniqueIds.length) {
+                console.error(`DUPLIKATY FAZ w projekcie ${project.name}:`, phaseIds);
             }
         }
         

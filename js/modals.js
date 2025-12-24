@@ -201,6 +201,29 @@ async function addPhaseSegment() {
         
         if (projectData) {
             await savePhasesToSupabase(projectData.id, project.phases, true);
+            
+            // WAŻNE: Pobierz fazy z bazy żeby mieć id nowego segmentu
+            const { data: phasesData } = await supabaseClient
+                .from('project_phases')
+                .select('*')
+                .eq('project_id', projectData.id);
+            
+            if (phasesData) {
+                // Zaktualizuj lokalne fazy z id z bazy
+                project.phases = phasesData.map(phase => ({
+                    id: phase.id,
+                    key: phase.phase_key,
+                    segmentNo: phase.segment_no || 1,
+                    start: phase.start_date,
+                    end: phase.end_date,
+                    workDays: phase.work_days,
+                    status: phase.status,
+                    assignedTo: phase.assigned_to,
+                    notes: phase.notes,
+                    materials: phase.materials,
+                    orderConfirmed: phase.order_confirmed
+                }));
+            }
         }
     } catch (err) {
         console.error('Error saving new segment:', err);
