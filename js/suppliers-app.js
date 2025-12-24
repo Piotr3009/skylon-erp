@@ -18,7 +18,6 @@ async function loadSuppliers() {
         if (error) throw error;
         
         suppliers = data || [];
-        console.log('✅ Loaded', suppliers.length, 'suppliers');
         
         renderSuppliersTable();
         
@@ -167,7 +166,6 @@ async function saveSupplier() {
                 .eq('id', id);
             
             if (error) throw error;
-            console.log('✅ Supplier updated');
         } else {
             // Insert new
             const { error } = await supabaseClient
@@ -175,7 +173,6 @@ async function saveSupplier() {
                 .insert([supplierData]);
             
             if (error) throw error;
-            console.log('✅ Supplier added');
         }
         
         closeModal('supplierModal');
@@ -204,7 +201,6 @@ async function deleteSupplier() {
         
         if (error) throw error;
         
-        console.log('✅ Supplier deleted');
         closeModal('supplierModal');
         await loadSuppliers();
         
@@ -223,7 +219,6 @@ function closeModal(modalId) {
 window.addEventListener("permissionsLoaded", function() {
     if (!window.currentUserRole) return;
     
-    console.log("🔒 Applying suppliers permissions for role:", window.currentUserRole);
     
     // Manager/Worker/Viewer = read-only mode (for Suppliers - TYLKO Worker i Viewer, Manager ma full access)
     if (window.currentUserRole === "worker" || window.currentUserRole === "viewer") {
@@ -239,6 +234,5 @@ window.addEventListener("permissionsLoaded", function() {
             buttons.forEach(btn => btn.style.display = "none");
         });
         
-        console.log("🔒 Suppliers read-only mode applied");
     }
 });

@@ -424,7 +424,6 @@ async function loadSuppliers() {
 // Populate category dropdowns
 function populateCategoryDropdowns() {
     const mainCategories = stockCategories.filter(c => c.type === 'category');
-    console.log('📦 Populating categories:', mainCategories.length, 'categories found');
     
     // Stock category dropdown
     const categorySelect = document.getElementById('addMaterialCategory');
@@ -436,7 +435,6 @@ function populateCategoryDropdowns() {
         categorySelect.appendChild(option);
     });
     
-    console.log('✅ Stock category dropdown populated with', categorySelect.options.length - 1, 'options');
     
     // Bespoke category dropdown
     const bespokeCategorySelect = document.getElementById('bespokeMaterialCategory');
@@ -448,7 +446,6 @@ function populateCategoryDropdowns() {
         bespokeCategorySelect.appendChild(option);
     });
     
-    console.log('✅ Bespoke category dropdown populated with', bespokeCategorySelect.options.length - 1, 'options');
 }
 
 // Stage change
@@ -518,7 +515,6 @@ function onSubcategoryChange() {
 // Populate stock items dropdown
 function populateStockItems(categoryId, subcategoryId) {
     const category = stockCategories.find(c => c.id === categoryId);
-    console.log('🔍 Populating stock items for category:', category?.name, 'subcategory:', subcategoryId);
     
     // Filtruj items po category name
     let filteredItems = stockItems.filter(item => {
@@ -527,23 +523,19 @@ function populateStockItems(categoryId, subcategoryId) {
         return match;
     });
     
-    console.log('📦 Items after category filter:', filteredItems.length);
     
     // Jeśli jest subcategory - dodatkowy filtr
     if (subcategoryId) {
         const subcategory = stockCategories.find(c => c.id === subcategoryId);
-        console.log('🔍 Filtering by subcategory:', subcategory?.name);
         
         filteredItems = filteredItems.filter(item => {
             if (!item.subcategory) return false;
             const match = item.subcategory.toLowerCase() === subcategory.name.toLowerCase();
             if (match) {
-                console.log('  ✅ Match:', item.name, '- subcategory:', item.subcategory);
             }
             return match;
         });
         
-        console.log('📦 Items after subcategory filter:', filteredItems.length);
     }
     
     const itemSelect = document.getElementById('addMaterialStockItem');
@@ -572,7 +564,6 @@ function populateStockItems(categoryId, subcategoryId) {
             option.textContent = text;
             itemSelect.appendChild(option);
         });
-        console.log('✅ Populated dropdown with', filteredItems.length, 'items');
     }
     
     document.getElementById('stockItemGroup').style.display = 'block';
@@ -783,7 +774,6 @@ async function updateMaterialNotes(materialId, notes) {
         
         if (error) throw error;
         
-        console.log('✅ Notes updated for material:', materialId);
         
     } catch (error) {
         console.error('Error updating notes:', error);
@@ -1497,7 +1487,6 @@ async function deleteMaterial(materialId) {
         
         if (deleteError) throw deleteError;
         
-        console.log('✅ Material deleted and stock returned');
         
         // Reload materials list
         await loadProjectMaterials(currentMaterialsProject.id);
@@ -1510,14 +1499,12 @@ async function deleteMaterial(materialId) {
 
 // Export Materials PDF
 function exportMaterialsPDF() {
-    console.log('Export materials PDF');
     // TODO: Implement PDF export
     alert('PDF export functionality - coming soon');
 }
 
 // Generate Shopping List
 function generateShoppingList() {
-    console.log('Generate shopping list');
     // TODO: Implement shopping list generation
     alert('Shopping list functionality - coming soon');
 }

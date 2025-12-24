@@ -94,7 +94,6 @@ function migratePhaseCategories() {
     });
     
     if (migrated > 0) {
-        console.log(`✅ Migrated ${migrated} phases with missing category`);
         saveData(); // Zapisz zmigrowane dane
     }
 }
@@ -103,7 +102,6 @@ function migratePhaseCategories() {
 window.addEventListener('permissionsLoaded', function() {
     if (!window.currentUserRole) return;
     
-    console.log('🔒 Applying production permissions for role:', window.currentUserRole);
     
     // Worker/Viewer = read-only mode
     if (window.currentUserRole === 'worker' || window.currentUserRole === 'viewer') {

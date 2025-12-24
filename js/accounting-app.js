@@ -24,7 +24,6 @@ let activeFinancesSubTab = 'live';
 // ========================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Accounting module loading...');
     
     // Set YTD period dynamically
     const ytdPeriodEl = document.getElementById('ytdPeriod');
@@ -57,7 +56,6 @@ async function loadAllAccountingData() {
             .select('*')
             .eq('status', 'active');
         
-        console.log('🔍 RAW Pipeline data from DB:', pipeline);
         
         if (!pipelineError) {
             pipelineProjectsData = pipeline || [];
@@ -90,7 +88,6 @@ async function loadAllAccountingData() {
             .select('*')
             .eq('status', 'active');
         
-        console.log('🔍 RAW Production data from DB:', production);
         
         if (!productionError) productionProjectsData = production || [];
 
@@ -173,12 +170,6 @@ async function loadAllAccountingData() {
             }
         }
 
-        console.log('✅ All accounting data loaded');
-        console.log('Pipeline (LIFE):', pipelineProjectsData.length);
-        console.log('Production:', productionProjectsData.length);
-        console.log('Archived:', archivedProjectsData.length);
-        console.log('Archived Phases:', archivedProjectPhasesData.length);
-        console.log('Archived Materials:', archivedProjectMaterialsData.length);
 
     } catch (error) {
         console.error('Error loading accounting data:', error);
@@ -326,34 +317,26 @@ function calculateLabourForProject(projectId) {
 }
 
 function calculateTotalPipelineBudget() {
-    console.log('📊 Pipeline projects:', pipelineProjectsData.length);
     pipelineProjectsData.forEach(p => {
-        console.log(`  - ${p.project_number}: estimated_value = ${p.estimated_value}`);
     });
     
     const total = pipelineProjectsData.reduce((sum, p) => {
         return sum + (parseFloat(p.estimated_value) || 0);
     }, 0);
-    console.log('💰 Total Pipeline Budget:', total);
     return total;
 }
 
 function calculateTotalProductionBudget() {
-    console.log('📊 Production projects:', productionProjectsData.length);
     productionProjectsData.forEach(p => {
-        console.log(`  - ${p.project_number}: contract_value = ${p.contract_value}`);
     });
     
     const total = productionProjectsData.reduce((sum, p) => {
         return sum + (parseFloat(p.contract_value) || 0);
     }, 0);
-    console.log('💰 Total Production Budget:', total);
     return total;
 }
 
 function calculateYTDTurnover(year = currentYear) {
-    console.log('📊 Calculating YTD for year:', year);
-    console.log('📊 Archived projects:', archivedProjectsData.length);
     
     const filtered = archivedProjectsData.filter(p => {
         if (!p.completed_date && !p.archived_date) return false;
@@ -361,27 +344,21 @@ function calculateYTDTurnover(year = currentYear) {
         return date.getFullYear() === year && p.archive_reason === 'completed';
     });
     
-    console.log('📊 Completed projects for', year, ':', filtered.length);
     filtered.forEach(p => {
         const value = parseFloat(p.actual_value || p.contract_value) || 0;
-        console.log(`  - ${p.project_number}: value = £${value}`);
     });
     
     const ytd = filtered.reduce((sum, p) => sum + (parseFloat(p.actual_value || p.contract_value) || 0), 0);
-    console.log('💰 Total YTD Turnover:', ytd);
     return ytd;
 }
 
 function calculateBurnRate() {
-    console.log('📊 Monthly overheads data:', monthlyOverheadsData.length);
     
     if (monthlyOverheadsData.length === 0) {
-        console.log('⚠️ No monthly overheads data');
         return 0;
     }
     
     monthlyOverheadsData.forEach(o => {
-        console.log(`  - ${o.month}: overheads = £${o.overheads_value}`);
     });
     
     const avgOverheads = monthlyOverheadsData.reduce((sum, o) => 
@@ -389,7 +366,6 @@ function calculateBurnRate() {
     ) / monthlyOverheadsData.length;
     
     const burnRate = avgOverheads / 30;
-    console.log('💰 Daily Burn Rate:', burnRate);
     return burnRate;
 }
 

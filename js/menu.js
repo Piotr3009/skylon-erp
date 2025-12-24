@@ -190,7 +190,6 @@
                     };
                 }
                 
-                console.log('✅ Global loading system initialized');
             }
         }, 100);
         
@@ -244,7 +243,6 @@ function applyMenuPermissions() {
         }
     });
     
-    console.log('✅ Menu permissions applied for role:', window.currentUserRole);
 }
 
 // Load menu when DOM is ready

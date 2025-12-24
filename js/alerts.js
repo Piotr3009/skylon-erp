@@ -337,7 +337,6 @@ async function dismissAlert(alertId) {
             }, 300);
         }
         
-        console.log('Alert dismissed:', alertId);
     } catch (error) {
         console.error('Error dismissing alert:', error);
         alert('Error dismissing alert. Please try again.');
@@ -415,7 +414,6 @@ async function confirmAlert(alertId) {
             }, 300);
         }
         
-        console.log('Alert confirmed:', alertId, 'by:', confirmedBy);
     } catch (error) {
         console.error('Error confirming alert:', error);
         alert('Error confirming alert. Please try again.');
@@ -424,7 +422,6 @@ async function confirmAlert(alertId) {
 
 // Załaduj alerty po załadowaniu strony
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Loading office alerts...');
     loadActiveAlerts();
     
     // Odświeżaj alerty co 5 minut
@@ -562,7 +559,6 @@ async function executeSnooze(alertId, hours, days) {
         }
         
         const timeText = hours ? `${hours} hours` : `${days} days`;
-        console.log(`Alert snoozed for ${timeText}:`, alertId);
     } catch (error) {
         console.error('Error snoozing alert:', error);
         alert('Error snoozing alert. Please try again.');

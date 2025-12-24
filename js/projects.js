@@ -44,9 +44,7 @@ async function loadClientsDropdown() {
                 option.textContent = `${client.client_number} - ${client.company_name || client.contact_person}`;
                 select.appendChild(option);
             });
-            console.log('✅ Loaded', data.length, 'clients');
         } else {
-            console.log('No clients in database');
         }
     } catch (err) {
         console.error('Błąd ładowania klientów:', err);
@@ -74,7 +72,6 @@ async function addProject() {
             
             if (lastProject && lastProject.length > 0) {
                 const projectNum = lastProject[0].project_number;
-                console.log('Ostatni numer Production z bazy:', projectNum);
                 
                 // Format: "001.2025" - wyciągnij cyfry przed kropką
                 const match = projectNum.match(/^(\d{3})\//);
@@ -89,7 +86,6 @@ async function addProject() {
             const currentYear = new Date().getFullYear();
             const generatedNumber = `${String(nextNumber).padStart(3, '0')}/${currentYear}`;
             document.getElementById('projectNumber').value = generatedNumber;
-            console.log('Wygenerowany numer Production:', generatedNumber);
             
         } catch (err) {
             console.error('Błąd pobierania numeracji:', err);
@@ -115,7 +111,6 @@ async function addProject() {
     
     // WAŻNE: Potem załaduj klientów BEZ await - użyjemy then()
     loadClientsDropdown().then(() => {
-        console.log('Clients loaded');
     }).catch(err => {
         console.error('Error loading clients:', err);
     });
@@ -327,8 +322,6 @@ async function saveProject() {
     phases: selectedPhases
 };
 
-console.log('💾 Saving project data:', projectData);
-console.log('💰 Contract Value:', contractValue, typeof contractValue);
 
 // PRESERVE id and google_drive fields when editing
 if (currentEditProject !== null && projects[currentEditProject]) {
@@ -387,37 +380,28 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 google_drive_folder_id: projectData.google_drive_folder_id || null
             };
             
-            console.log('📤 Sending to Supabase:', projectForDB);
-            console.log('💷 CONTRACT_VALUE in object:', projectForDB.contract_value, typeof projectForDB.contract_value);
-            console.log('🔍 Full object keys:', Object.keys(projectForDB));
             
             let supabaseResponse;
             if (currentEditProject !== null) {
                 // UPDATE existing project by project_number
-                console.log('🔄 UPDATE mode - project_number:', projectForDB.project_number);
                 supabaseResponse = await supabaseClient
                     .from('projects')
                     .update(projectForDB)
                     .eq('project_number', projectForDB.project_number)
                     .select(); // DODAJ select() żeby zobaczyć co zostało zapisane
                     
-                console.log('📊 Updated data returned:', supabaseResponse.data);
                 if (supabaseResponse.data && supabaseResponse.data[0]) {
-                    console.log('✅ ZAPISANA wartość contract_value:', supabaseResponse.data[0].contract_value);
                 }
             } else {
                 // INSERT new project
-                console.log('➕ INSERT mode');
                 supabaseResponse = await supabaseClient
                     .from('projects')
                     .insert(projectForDB);
             }
             
             const { error } = supabaseResponse;
-            console.log('📥 Supabase response error:', error);
                 
             if (!error) {
-                console.log('✅ Project saved to Supabase with client');
                 
                 // Pobierz ID zapisanego projektu
                 const { data: savedProject } = await supabaseClient
@@ -428,7 +412,6 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 
                 // ZAPISZ FAZY DO TABELI project_phases
                 if (savedProject && projectData.phases && projectData.phases.length > 0) {
-                    console.log('💾 Zapisuję', projectData.phases.length, 'faz do tabeli project_phases dla projektu', savedProject.id);
                     
                     const phaseSaveResult = await savePhasesToSupabase(
                         savedProject.id,
@@ -437,7 +420,6 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                     );
                     
                     if (phaseSaveResult) {
-                        console.log('✅ All phases saved successfully');
                     } else {
                         console.error('❌ Failed to save phases');
                     }
@@ -449,7 +431,6 @@ if (currentEditProject !== null && projects[currentEditProject]) {
                 console.error('❌ Error saving project:', error);
             }
         } catch (err) {
-            console.log('⚠️ Project saved locally only:', err);
         }
     }
     
@@ -626,27 +607,20 @@ function autoAdjustPhasesToDeadline(project, startDate, deadlineDate) {
 
 // ========== MOVE TO ARCHIVE ==========
 function openMoveToArchiveModal() {
-    console.log('🔍 Opening Move to Archive modal...');
-    console.log('📊 Projects count:', projects.length);
     updateCompletedProjectSelect();
     openModal('moveToArchiveModal');
-    console.log('✅ Modal opened');
 }
 
 function updateCompletedProjectSelect() {
     const select = document.getElementById('completedProjectSelect');
-    console.log('🔍 Select element:', select);
     select.innerHTML = '<option value="">Select project...</option>';
     
-    console.log('🔍 Projects to add:', projects);
     projects.forEach((project, index) => {
         const option = document.createElement('option');
         option.value = index;
         option.textContent = `${project.projectNumber} - ${project.name}`;
         select.appendChild(option);
-        console.log('➕ Added project:', option.textContent);
     });
-    console.log('✅ Total options:', select.options.length);
 }
 
 async function confirmMoveToArchive() {
@@ -767,7 +741,6 @@ async function confirmMoveToArchive() {
                 return;
             }
             
-            console.log('✅ Project archived to database');
             
             // Skopiuj pliki z project_files do archived_project_files
             const { data: projectFiles, error: fetchFilesError } = await supabaseClient
@@ -798,7 +771,6 @@ async function confirmMoveToArchive() {
                 if (archiveFilesError) {
                     console.error('Error archiving project files:', archiveFilesError);
                 } else {
-                    console.log(`✅ ${projectFiles.length} files copied to archived_project_files`);
                 }
                 
                 // Usuń pliki z project_files
@@ -813,7 +785,6 @@ async function confirmMoveToArchive() {
             }
             
             // KROK 1: Pobierz ID zarchiwizowanego projektu (potrzebne do materiałów)
-            console.log('📦 Getting archived project ID...');
             const { data: archivedProjectData, error: fetchArchivedError } = await supabaseClient
                 .from('archived_projects')
                 .select('id')
@@ -827,10 +798,8 @@ async function confirmMoveToArchive() {
             }
             
             const archivedProjectId = archivedProjectData.id;
-            console.log('✅ Archived project ID:', archivedProjectId);
             
             // KROK 2: Skopiuj materiały do archived_project_materials
-            console.log('📦 Copying project materials to archive...');
             const { data: projectMaterials, error: fetchMaterialsError } = await supabaseClient
                 .from('project_materials')
                 .select('*')
@@ -876,14 +845,11 @@ async function confirmMoveToArchive() {
                           'Archiving process stopped.');
                     return;
                 } else {
-                    console.log(`✅ ${projectMaterials.length} materials copied to archived_project_materials`);
                 }
             } else {
-                console.log('ℹ️ No materials to archive');
             }
             
             // KROK 3: Teraz można bezpiecznie usuwać powiązane rekordy
-            console.log('🧹 Cleaning up related records for project ID:', project.id);
             
             // 3a. Usuń alerty projektu (project_alerts)
             const { error: deleteAlertsError } = await supabaseClient
@@ -894,7 +860,6 @@ async function confirmMoveToArchive() {
             if (deleteAlertsError) {
                 console.error('⚠️ Warning: Error deleting project alerts:', deleteAlertsError);
             } else {
-                console.log('✅ Project alerts deleted');
             }
             
             // 3b. Usuń statusy przeczytania notatek (project_important_notes_reads)
@@ -906,7 +871,6 @@ async function confirmMoveToArchive() {
             if (deleteNotesReadsError) {
                 console.error('⚠️ Warning: Error deleting notes read status:', deleteNotesReadsError);
             } else {
-                console.log('✅ Notes read status deleted');
             }
             
             // 3c. Usuń stock_transactions związane z materiałami projektu
@@ -927,7 +891,6 @@ async function confirmMoveToArchive() {
                 if (deleteTransactionsError) {
                     console.error('⚠️ Warning: Error deleting stock transactions:', deleteTransactionsError);
                 } else {
-                    console.log('✅ Stock transactions deleted');
                 }
             }
             
@@ -940,11 +903,9 @@ async function confirmMoveToArchive() {
             if (deleteMaterialsError) {
                 console.error('⚠️ Warning: Error deleting project materials:', deleteMaterialsError);
             } else {
-                console.log('✅ Project materials deleted from active table');
             }
             
             // 3e. NAJPIERW skopiuj fazy do archived_project_phases (dla kalkulacji labour)
-            console.log('📦 Copying project phases to archive...');
             const { data: projectPhases, error: fetchPhasesError } = await supabaseClient
                 .from('project_phases')
                 .select('*')
@@ -974,10 +935,8 @@ async function confirmMoveToArchive() {
                 if (archivePhasesError) {
                     console.error('⚠️ Warning: Error archiving project phases:', archivePhasesError);
                 } else {
-                    console.log(`✅ ${projectPhases.length} phases copied to archived_project_phases`);
                 }
             } else {
-                console.log('ℹ️ No phases to archive');
             }
             
             // 3f. Usuń fazy projektu (project_phases)
@@ -989,12 +948,10 @@ async function confirmMoveToArchive() {
             if (deletePhasesError) {
                 console.error('⚠️ Warning: Error deleting project phases:', deletePhasesError);
             } else {
-                console.log('✅ Project phases deleted');
             }
             
             // KROK 4: Na końcu usuń główny projekt z tabeli projects - KRYTYCZNE!
             // Używamy ID dla 100% pewności (project_number może być duplikat)
-            console.log('🗑️ Deleting main project record...');
             const { error: deleteError } = await supabaseClient
                 .from('projects')
                 .delete()
@@ -1010,7 +967,6 @@ async function confirmMoveToArchive() {
                 return; // STOP - nie usuwaj z lokalnej tablicy!
             }
             
-            console.log('✅ Project deleted from production database (ID: ' + project.id + ')');
             
             // Update client project count
             if (project.client_id) {
@@ -1218,7 +1174,6 @@ async function saveProductionProjectNotesToDB(project, notesJSON) {
                 return;
             }
             
-            console.log('✅ Note added successfully!');
             render();
             
             // Update pulse indicators
@@ -1229,7 +1184,6 @@ async function saveProductionProjectNotesToDB(project, notesJSON) {
             alert('Error saving note');
         }
     } else {
-        console.log('💾 Saved to local data');
         render();
         
         // Update pulse indicators
@@ -1360,7 +1314,6 @@ async function exportProductionProjectNotesPDF(index) {
         try {
             const filePath = `production/${filename}`;
             
-            console.log('📤 Uploading PDF to Storage...');
             
             // Upload file
             const { data: uploadData, error: uploadError } = await supabaseClient.storage
@@ -1377,7 +1330,6 @@ async function exportProductionProjectNotesPDF(index) {
                 return;
             }
             
-            console.log('✅ PDF uploaded successfully');
             
             // Get public URL
             const { data: urlData } = supabaseClient.storage
@@ -1398,7 +1350,6 @@ async function exportProductionProjectNotesPDF(index) {
             
             project.pdf_url = pdfUrl;
             
-            console.log('✅ PDF URL saved to database');
             
             // Re-render to show "Open PDF" button
             render();
@@ -1445,7 +1396,6 @@ async function markProductionNotesAsRead(projectId) {
             if (error) {
                 console.error('❌ Error updating read status:', error);
             } else {
-                console.log('✅ Notes marked as read (updated)');
                 render();
                 
                 // Update pulse indicators
@@ -1465,7 +1415,6 @@ async function markProductionNotesAsRead(projectId) {
             if (error) {
                 console.error('❌ Error marking notes as read:', error);
             } else {
-                console.log('✅ Notes marked as read (inserted)');
                 render();
                 
                 // Update pulse indicators

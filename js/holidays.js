@@ -114,7 +114,6 @@ async function loadHolidays() {
         if (error) throw error;
         
         holidays = data || [];
-        console.log('Loaded holidays:', holidays);
         
     } catch (error) {
         console.error('Error loading holidays:', error);
@@ -412,7 +411,6 @@ async function saveHoliday() {
             
             if (error) throw error;
             
-            console.log(`Holiday saved for ${employees.length} employees`);
         } else {
             // Dodaj urlop dla jednego pracownika
             const { error } = await supabaseClient
@@ -428,7 +426,6 @@ async function saveHoliday() {
             
             if (error) throw error;
             
-            console.log('Holiday saved successfully');
         }
         
         closeModal();
@@ -530,7 +527,6 @@ async function deleteHoliday(holidayId) {
         
         if (error) throw error;
         
-        console.log('Holiday deleted');
         await loadEmployees();
         await loadHolidays();
         renderCalendar();
@@ -552,4 +548,3 @@ async function deleteHoliday(holidayId) {
     }
 }
 
-console.log('Holiday Calendar System loaded');

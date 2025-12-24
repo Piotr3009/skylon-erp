@@ -325,7 +325,6 @@ async function deletePipelineCurrentPhase() {
 window.addEventListener('permissionsLoaded', function() {
     if (!window.currentUserRole) return;
     
-    console.log('🔒 Applying pipeline permissions for role:', window.currentUserRole);
     
     // Worker/Viewer = read-only mode
     if (window.currentUserRole === 'worker' || window.currentUserRole === 'viewer') {

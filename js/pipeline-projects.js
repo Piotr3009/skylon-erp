@@ -72,7 +72,6 @@ async function addPipelineProject() {
             
             if (lastProject && lastProject.length > 0) {
                 const projectNum = lastProject[0].project_number;
-                console.log('Ostatni numer z bazy:', projectNum);
                 
                 // Format: "PL001/2025" - wyciągnij cyfry między "PL" a "/"
                 const match = projectNum.match(/PL(\d{3})\//);
@@ -87,7 +86,6 @@ async function addPipelineProject() {
             const currentYear = new Date().getFullYear();
             const generatedNumber = `PL${String(nextNumber).padStart(3, '0')}/${currentYear}`;
             document.getElementById('projectNumber').value = generatedNumber;
-            console.log('Wygenerowany numer:', generatedNumber);
             
         } catch (err) {
             console.error('Błąd pobierania numeracji:', err);
@@ -268,7 +266,6 @@ async function savePipelineProject() {
                 .single();
                 
             if (!error && savedProject) {
-                console.log('✅ Pipeline zapisany w Supabase');
                 
                 // SAVE PHASES TO DATABASE
                 if (projectData.phases && projectData.phases.length > 0) {
@@ -290,7 +287,6 @@ async function savePipelineProject() {
                 console.error('❌ Błąd zapisu pipeline:', error);
             }
         } catch (err) {
-            console.log('⚠️ Pipeline tylko lokalnie:', err);
         }
     }
     
@@ -364,14 +360,12 @@ async function deletePipelineProject(index) {
                     if (error) {
                         console.error('❌ Błąd usuwania pipeline z DB:', error);
                     } else {
-                        console.log('✅ Pipeline usunięty z bazy');
                         
                         // Update client project count
                         await updateClientProjectCount(clientId);
                     }
                 }
             } catch (err) {
-                console.log('⚠️ Brak połączenia z DB, usuwam tylko lokalnie');
             }
         }
         
@@ -494,7 +488,6 @@ async function convertToProduction() {
             const year = new Date().getFullYear();
             productionProjectNumber = `${String(nextNumber).padStart(3, '0')}/${year}`;
             
-            console.log('🔢 Generated production number:', productionProjectNumber);
         } catch (err) {
             console.error('Error getting next number:', err);
             const year = new Date().getFullYear();
@@ -530,7 +523,6 @@ async function convertToProduction() {
         phases: phases
     };
     
-    console.log('🔧 PRZED autoAdjust - fazy:', productionProject.phases.map(p => ({
         key: p.key,
         start: p.start,
         workDays: p.workDays
@@ -539,7 +531,6 @@ async function convertToProduction() {
     // Auto-adjust phases to deadline - WŁĄCZONE!
     autoAdjustPhasesToDeadline(productionProject, today, deadlineDate);
     
-    console.log('🔧 PO autoAdjust - fazy:', productionProject.phases.map(p => ({
         key: p.key,
         start: p.start,
         workDays: p.workDays
@@ -553,8 +544,6 @@ async function convertToProduction() {
     // Save to production DB with client_id and phases
     if (typeof supabaseClient !== 'undefined') {
         try {
-            console.log('💾 [START] Attempting to save project:', productionProjectNumber);
-            console.log('💾 Project data:', {
                 project_number: productionProject.projectNumber,
                 type: productionProject.type,
                 name: productionProject.name,
@@ -573,7 +562,6 @@ async function convertToProduction() {
             let projectToSave;
             
             if (existingProject) {
-                console.log('⚠️ Project already exists, updating phases only:', existingProject);
                 projectToSave = existingProject;
             } else {
                 // Projekt nie istnieje - utwórz nowy
@@ -598,14 +586,10 @@ async function convertToProduction() {
                     return;
                 }
                 
-                console.log('✅ Production project saved to DB');
                 projectToSave = savedProject;
             }
             
             // ZAPISZ FAZY - zawsze, niezależnie czy projekt był nowy czy istniejący
-            console.log('📊 Saved project ID:', projectToSave.id);
-            console.log('📊 Phases to save:', productionProject.phases.length);
-            console.log('📊 Phases data:', productionProject.phases);
             
             const phaseSaveResult = await savePhasesToSupabase(
                 projectToSave.id,
@@ -613,10 +597,8 @@ async function convertToProduction() {
                 true  // true = production
             );
             
-            console.log('📊 Phase save result:', phaseSaveResult);
             
             if (phaseSaveResult) {
-                console.log('✅ All phases saved successfully');
             } else {
                 console.error('❌ Failed to save phases');
                 alert('Warning: Project saved but phases failed to save!');
@@ -625,7 +607,6 @@ async function convertToProduction() {
             await updateClientProjectCount(productionProject.client_id);
             
             // PRZENIEŚ PLIKI Z PIPELINE DO PRODUCTION
-            console.log('📦 Moving project files...');
             const { data: pipelineDbProject } = await supabaseClient
                 .from('pipeline_projects')
                 .select('id')
@@ -671,7 +652,6 @@ async function convertToProduction() {
                 .delete()
                 .eq('project_number', pipelineProject.projectNumber);
                 
-            console.log('✅ Removed from pipeline DB');
         }
     }
     
@@ -729,7 +709,6 @@ async function archiveAsFailed() {
                 return;
             }
             
-            console.log('✅ Pipeline project archived to database');
             
             // Skopiuj pliki z project_files do archived_project_files
             const { data: projectFiles, error: fetchFilesError } = await supabaseClient
@@ -760,7 +739,6 @@ async function archiveAsFailed() {
                 if (archiveFilesError) {
                     console.error('Error archiving project files:', archiveFilesError);
                 } else {
-                    console.log(`✅ ${projectFiles.length} files copied to archived_project_files`);
                 }
                 
                 // Usuń pliki z project_files
@@ -858,7 +836,6 @@ async function archiveAsCanceled() {
                 return;
             }
             
-            console.log('✅ Pipeline project archived as cancelled');
             
             // Skopiuj pliki z project_files do archived_project_files
             const { data: projectFiles, error: fetchFilesError } = await supabaseClient
@@ -889,7 +866,6 @@ async function archiveAsCanceled() {
                 if (archiveFilesError) {
                     console.error('Error archiving project files:', archiveFilesError);
                 } else {
-                    console.log(`✅ ${projectFiles.length} files copied to archived_project_files`);
                 }
                 
                 // Usuń pliki z project_files
@@ -1202,7 +1178,6 @@ async function exportPipelineProjectNotesPDF(index) {
         try {
             const filePath = `pipeline/${filename}`;
             
-            console.log('📤 Uploading PDF to Storage...');
             
             // Upload file
             const { data: uploadData, error: uploadError } = await supabaseClient.storage
@@ -1219,7 +1194,6 @@ async function exportPipelineProjectNotesPDF(index) {
                 return;
             }
             
-            console.log('✅ PDF uploaded successfully');
             
             // Get public URL
             const { data: urlData } = supabaseClient.storage
@@ -1240,7 +1214,6 @@ async function exportPipelineProjectNotesPDF(index) {
             
             project.pdf_url = pdfUrl;
             
-            console.log('✅ PDF URL saved to database');
             
             // Re-render to show "Open PDF" button
             renderPipeline();
@@ -1274,7 +1247,6 @@ async function createProjectFolders(stage, projectNumber) {
     
     const subfolders = ['estimates', 'drawings', 'photos', 'emails', 'notes', 'others'];
     
-    console.log(`📁 Creating folders for ${stage}/${folderName}...`);
     
     try {
         for (const subfolder of subfolders) {
@@ -1293,7 +1265,6 @@ async function createProjectFolders(stage, projectNumber) {
             }
         }
         
-        console.log(`✅ Folders created: ${stage}/${folderName}/`);
     } catch (err) {
         console.error('Error creating folders:', err);
     }
@@ -1302,7 +1273,6 @@ async function createProjectFolders(stage, projectNumber) {
 // ========== MOVE PROJECT FILES BETWEEN STAGES ==========
 async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProjectNumber, newProjectNumber) {
     if (typeof supabaseClient === 'undefined') {
-        console.log('⚠️ Supabase not available - skipping file move');
         return;
     }
     
@@ -1312,9 +1282,6 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
         const oldStoragePath = oldProjectNumber.replace('/', '-');
         const newStoragePath = newProjectNumber.replace('/', '-');
         
-        console.log('📦 Starting file move...');
-        console.log('   From:', `pipeline/${oldStoragePath}/`);
-        console.log('   To:', `production/${newStoragePath}/`);
         
         // 1. Lista wszystkich plików w folderze pipeline
         const { data: filesList, error: listError } = await supabaseClient.storage
@@ -1330,11 +1297,9 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
         }
         
         if (!filesList || filesList.length === 0) {
-            console.log('ℹ️ No files to move');
             return;
         }
         
-        console.log(`📄 Found ${filesList.length} items in pipeline folder`);
         
         // 2. Przenoszenie plików rekursywnie
         let movedCount = 0;
@@ -1367,7 +1332,6 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
                     if (moveError) {
                         console.error(`❌ Error moving ${file.name}:`, moveError);
                     } else {
-                        console.log(`✅ Moved: ${file.name}`);
                         movedCount++;
                     }
                 }
@@ -1383,13 +1347,11 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
                 if (moveError) {
                     console.error(`❌ Error moving ${item.name}:`, moveError);
                 } else {
-                    console.log(`✅ Moved: ${item.name}`);
                     movedCount++;
                 }
             }
         }
         
-        console.log(`✅ Moved ${movedCount} files from pipeline to production`);
         
         // 3. Aktualizuj rekordy w tabeli project_files
         const { data: fileRecords, error: recordsError } = await supabaseClient
@@ -1403,7 +1365,6 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
         }
         
         if (fileRecords && fileRecords.length > 0) {
-            console.log(`📊 Updating ${fileRecords.length} file records in database...`);
             
             for (const record of fileRecords) {
                 const newFilePath = record.file_path.replace(
@@ -1423,14 +1384,11 @@ async function moveProjectFiles(pipelineProjectId, productionProjectId, oldProje
                 if (updateError) {
                     console.error(`❌ Error updating record ${record.id}:`, updateError);
                 } else {
-                    console.log(`✅ Updated record: ${record.file_name}`);
                 }
             }
             
-            console.log('✅ All file records updated');
         }
         
-        console.log('✅ File move completed successfully');
         
     } catch (err) {
         console.error('❌ Error moving project files:', err);
@@ -1543,7 +1501,6 @@ async function savePipelineProjectNotesToDB(index, notes) {
                 return;
             }
             
-            console.log('✅ Note added successfully!');
             
             // Update render to show note indicator
             renderPipelineProjects();
@@ -1553,7 +1510,6 @@ async function savePipelineProjectNotesToDB(index, notes) {
             alert('Error saving note');
         }
     } else {
-        console.log('💾 Saved to local data');
         renderPipelineProjects();
     }
 }

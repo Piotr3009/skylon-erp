@@ -826,7 +826,6 @@ async function createNewSubfolder(parentFolder) {
         
         if (error) throw error;
         
-        console.log(`✅ Subfolder created: ${newFolderPath}`);
         
         // Reload to show new subfolder
         await loadFolderContents(parentFolder);
@@ -1053,7 +1052,6 @@ async function uploadSingleFile(file, folderName) {
     
     const filePath = `${folderPath}/${sanitizedFileName}`;
     
-    console.log(`📤 Uploading: ${file.name} → ${sanitizedFileName}`);
     
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
@@ -1086,7 +1084,6 @@ async function uploadSingleFile(file, folderName) {
     
     if (dbError) throw dbError;
     
-    console.log('✅ File uploaded:', file.name);
 }
 
 // ========== FILE PREVIEW ==========
@@ -1174,7 +1171,6 @@ async function deleteFile(fileId, filePath) {
         
         if (dbError) throw dbError;
         
-        console.log('✅ File deleted');
         
         // Reload files list
         await loadFolderFiles(currentProjectFiles.currentFolder);
@@ -1229,7 +1225,6 @@ async function createNewFolder() {
         // Add to projectFolders array
         projectFolders.push(sanitized);
         
-        console.log(`✅ Folder created: ${sanitized}`);
         
         // Reload folder list
         await showFolderList();
@@ -1270,7 +1265,6 @@ async function ensurePdfJsLoaded() {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
             pdfJsLoaded = true;
             pdfJsLoading = false;
-            console.log('✅ PDF.js loaded');
             resolve(true);
         };
         script.onerror = () => {

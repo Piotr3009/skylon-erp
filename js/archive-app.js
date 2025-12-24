@@ -51,7 +51,6 @@ async function loadClients() {
             clientFilter.appendChild(option);
         });
         
-        console.log('✅ Loaded', data.length, 'clients');
     } catch (err) {
         console.error('Error loading clients:', err);
     }
@@ -70,7 +69,6 @@ async function loadWorkers() {
             allWorkers[worker.id] = worker;
         });
         
-        console.log('✅ Loaded', data.length, 'workers');
     } catch (err) {
         console.error('Error loading workers:', err);
     }
@@ -93,7 +91,6 @@ async function loadArchivedProjects() {
         
         filteredProjects = [...archivedProjects];
         
-        console.log('✅ Loaded', archivedProjects.length, 'archived projects');
         
         // Update stats
         updateStats();
@@ -137,7 +134,6 @@ async function loadProjectFileSizes() {
             project.storage_size = sizesByProject[project.project_number] || 0;
         });
         
-        console.log('✅ Loaded file sizes for projects');
         
     } catch (err) {
         console.error('Error calculating file sizes:', err);
@@ -410,7 +406,6 @@ async function saveArchiveEdit() {
         
         if (error) throw error;
         
-        console.log('✅ Project updated successfully');
         
         // Update local data
         currentEditingProject.contract_value = contractValue;
@@ -457,7 +452,6 @@ async function confirmDeleteArchive() {
     if (!currentEditingProject) return;
     
     try {
-        console.log('🗑️ Deleting archived project:', currentEditingProject.project_number);
         
         // 1. Usuń pliki z archived_project_files
         const { data: files, error: fetchFilesError } = await supabaseClient
@@ -468,7 +462,6 @@ async function confirmDeleteArchive() {
         if (fetchFilesError) {
             console.error('Error fetching files:', fetchFilesError);
         } else if (files && files.length > 0) {
-            console.log(`📁 Found ${files.length} files to delete`);
             
             // Usuń fizyczne pliki z Supabase Storage
             const filePaths = files.map(f => f.file_path);
@@ -479,7 +472,6 @@ async function confirmDeleteArchive() {
             if (storageError) {
                 console.error('Error deleting files from storage:', storageError);
             } else {
-                console.log(`✅ Deleted ${files.length} files from storage`);
             }
             
             // Usuń rekordy z tabeli archived_project_files
@@ -491,7 +483,6 @@ async function confirmDeleteArchive() {
             if (deleteFilesError) {
                 console.error('Error deleting file records:', deleteFilesError);
             } else {
-                console.log(`✅ Deleted ${files.length} file records from database`);
             }
         }
         
@@ -504,7 +495,6 @@ async function confirmDeleteArchive() {
         if (deleteMaterialsError) {
             console.error('Error deleting materials:', deleteMaterialsError);
         } else {
-            console.log('✅ Deleted materials from database');
         }
         
         // 3. Usuń projekt z archived_projects
@@ -515,7 +505,6 @@ async function confirmDeleteArchive() {
         
         if (error) throw error;
         
-        console.log('✅ Project deleted successfully');
         
         // Remove from local arrays
         archivedProjects = archivedProjects.filter(p => p.id !== currentEditingProject.id);
@@ -704,7 +693,6 @@ async function downloadArchiveFile(filePath, fileName) {
 // ========== MATERIALS MODAL ==========
 
 async function openArchiveMaterialsModal(projectNumber, projectId) {
-    console.log('📦 Loading materials for project:', projectNumber);
     
     try {
         // Load materials from archived_project_materials
@@ -796,7 +784,6 @@ async function openArchiveMaterialsModal(projectNumber, projectId) {
         
         document.body.appendChild(modal);
         
-        console.log('✅ Loaded', (materials || []).length, 'materials');
         
     } catch (error) {
         console.error('Error:', error);

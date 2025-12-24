@@ -35,7 +35,6 @@ function loadGoogleAPIs() {
     pickerScript.onload = () => {
         gapi.load('picker', () => {
             pickerInited = true;
-            console.log('✅ Google Picker API loaded');
         });
     };
     document.head.appendChild(pickerScript);
@@ -52,12 +51,10 @@ function gisLoaded() {
                 return;
             }
             accessToken = response.access_token;
-            console.log('✅ Access token obtained');
             createPicker();
         }
     });
     gisInited = true;
-    console.log('✅ Google Identity Services loaded');
 }
 
 // Open Google Drive Picker for a project
@@ -100,7 +97,6 @@ function createPicker() {
 async function pickerCallback(data) {
     if (data.action === google.picker.Action.PICKED) {
         const folder = data.docs[0];
-        console.log('Selected folder:', folder);
 
         // Prepare folder URL
         const folderUrl = folder.url || `https://drive.google.com/drive/folders/${folder.id}`;
@@ -136,7 +132,6 @@ async function pickerCallback(data) {
                 console.error('Error saving to Supabase:', error);
                 alert('Failed to save Google Drive folder');
             } else {
-                console.log('✅ Google Drive folder saved!');
                 alert(`Folder "${folder.name}" linked successfully!`);
                 
                 // Re-render to show the change

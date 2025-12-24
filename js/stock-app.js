@@ -159,7 +159,6 @@ async function loadTeamMembers() {
         if (error) throw error;
         
         teamMembers = data || [];
-        console.log('✅ Loaded', teamMembers.length, 'team members');
         
     } catch (err) {
         console.error('Error loading team members:', err);
@@ -177,7 +176,6 @@ async function loadSuppliers() {
         if (error) throw error;
         
         suppliers = data || [];
-        console.log('✅ Loaded', suppliers.length, 'suppliers');
         
     } catch (err) {
         console.error('Error loading suppliers:', err);
@@ -205,7 +203,6 @@ async function loadProjects() {
             ...(pipeProjects || []).map(p => ({ ...p, source: 'pipeline' }))
         ];
         
-        console.log('✅ Loaded', projects.length, 'projects');
         
     } catch (err) {
         console.error('Error loading projects:', err);
@@ -228,7 +225,6 @@ async function loadStockItems() {
         // Load stock orders to calculate ordered quantities
         await loadStockOrders();
         
-        console.log('✅ Loaded', stockItems.length, 'stock items');
         
         renderStockTable();
         updateStats();
@@ -790,7 +786,6 @@ async function saveStockItem() {
         
         if (error) throw error;
         
-        console.log('✅ Stock item added:', itemNumber);
         closeModal('addStockModal');
         await loadStockItems();
         
@@ -846,10 +841,6 @@ async function saveStockIn() {
         const newQty = Math.round((oldQty + qty) * 100) / 100;
         const newAvgCost = Math.round((((oldQty * oldCost) + (qty * costPerUnit)) / newQty) * 100) / 100;
         
-        console.log('📊 Weighted Average Calculation:');
-        console.log('Old:', oldQty, 'units @', oldCost);
-        console.log('New:', qty, 'units @', costPerUnit);
-        console.log('Result:', newQty, 'units @', newAvgCost.toFixed(2));
         
         // Create transaction with supplier AND worker
         const { error: txError } = await supabaseClient
@@ -878,7 +869,6 @@ async function saveStockIn() {
         
         if (updateError) throw updateError;
         
-        console.log('✅ Stock IN recorded with supplier');
         closeModal('stockInModal');
         await loadStockItems();
         
@@ -948,7 +938,6 @@ async function saveStockOut() {
         
         if (updateError) throw updateError;
         
-        console.log('✅ Stock OUT recorded');
         closeModal('stockOutModal');
         await loadStockItems();
         
@@ -1091,7 +1080,6 @@ async function updateStockItem() {
         
         if (error) throw error;
         
-        console.log('✅ Stock item updated');
         closeModal('editStockModal');
         await loadStockItems();
         
@@ -1120,7 +1108,6 @@ async function deleteStockItem() {
             if (imageError) {
                 console.error('Error deleting image:', imageError);
             } else {
-                console.log('✅ Image deleted from storage');
             }
         }
         
@@ -1129,21 +1116,18 @@ async function deleteStockItem() {
             .from('stock_orders')
             .delete()
             .eq('stock_item_id', id);
-        console.log('✅ Related orders deleted');
         
         // 3. Usuń powiązane transakcje
         await supabaseClient
             .from('stock_transactions')
             .delete()
             .eq('stock_item_id', id);
-        console.log('✅ Related transactions deleted');
         
         // 4. Wyczyść powiązania w project_materials
         await supabaseClient
             .from('project_materials')
             .update({ stock_item_id: null })
             .eq('stock_item_id', id);
-        console.log('✅ Project materials references cleared');
         
         // 5. Usuń stock item
         const { error } = await supabaseClient
@@ -1153,7 +1137,6 @@ async function deleteStockItem() {
         
         if (error) throw error;
         
-        console.log('✅ Stock item deleted completely');
         closeModal('editStockModal');
         await loadStockItems();
         
@@ -1229,7 +1212,6 @@ async function uploadStockImage(file, itemNumber) {
         const fileName = `${itemNumber}.${fileExt}`;
         const filePath = `${fileName}`;
         
-        console.log('📤 Uploading image:', filePath);
         
         // Upload to Supabase Storage
         const { data, error } = await supabaseClient.storage
@@ -1246,7 +1228,6 @@ async function uploadStockImage(file, itemNumber) {
             .from('stock-images')
             .getPublicUrl(filePath);
         
-        console.log('✅ Image uploaded:', urlData.publicUrl);
         return urlData.publicUrl;
         
     } catch (err) {
@@ -1284,7 +1265,6 @@ async function saveSupplier() {
         
         if (error) throw error;
         
-        console.log('✅ Supplier added');
         closeModal('addSupplierModal');
         
         // Reload suppliers and update dropdown
@@ -1355,7 +1335,6 @@ async function loadStockCategories() {
         if (error) throw error;
         
         stockCategories = data || [];
-        console.log('✅ Loaded', stockCategories.length, 'stock categories');
         
     } catch (err) {
         console.error('Error loading stock categories:', err);
@@ -2351,7 +2330,6 @@ async function loadStockOrders() {
         if (error) throw error;
         
         stockOrders = data || [];
-        console.log('✅ Stock orders loaded:', stockOrders.length);
         
         // Calculate ordered_quantity for each stock item
         calculateOrderedQuantities();
@@ -2461,7 +2439,6 @@ async function saveStockOrder() {
         
         if (error) throw error;
         
-        console.log('✅ Stock order placed');
         closeModal('orderStockModal');
         await loadStockOrders();
         renderStockTable();
@@ -2647,7 +2624,6 @@ async function markAsDelivered(orderId) {
         
         if (updateError) throw updateError;
         
-        console.log('✅ Order marked as delivered');
         await loadStockOrders();
         await loadStockItems();
         closeModal('pendingOrdersModal');
@@ -2758,7 +2734,6 @@ async function confirmDeliveryWithCost(orderId) {
         
         if (updateError) throw updateError;
         
-        console.log('✅ Order delivered with cost update');
         await loadStockOrders();
         await loadStockItems();
         closeModal('pendingOrdersModal');
@@ -2785,7 +2760,6 @@ async function cancelOrder(orderId) {
         
         if (error) throw error;
         
-        console.log('✅ Order cancelled');
         await loadStockOrders();
         renderStockTable();
         closeModal('pendingOrdersModal');
@@ -3210,7 +3184,6 @@ async function generatePendingOrdersPDF() {
 window.addEventListener("permissionsLoaded", function() {
     if (!window.currentUserRole) return;
     
-    console.log("🔒 Applying stock permissions for role:", window.currentUserRole);
     
     // Manager/Worker/Viewer = read-only mode  
     if (window.currentUserRole === "manager" || window.currentUserRole === "worker" || window.currentUserRole === "viewer") {
@@ -3230,6 +3203,5 @@ window.addEventListener("permissionsLoaded", function() {
             buttons.forEach(btn => btn.style.display = "none");
         });
         
-        console.log("🔒 Stock read-only mode applied");
     }
 });

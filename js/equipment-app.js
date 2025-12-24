@@ -39,7 +39,6 @@ async function uploadImage(file, folder = 'equipment') {
         const fileName = `${folder}_${timestamp}.${fileExt}`;
         const filePath = `${folder}/${fileName}`;
         
-        console.log('Uploading image:', filePath);
         
         const { data, error } = await supabaseClient.storage
             .from('equipment-images')
@@ -52,7 +51,6 @@ async function uploadImage(file, folder = 'equipment') {
             .from('equipment-images')
             .getPublicUrl(filePath);
         
-        console.log('✅ Image uploaded:', publicUrl);
         return publicUrl;
         
     } catch (err) {
@@ -90,7 +88,6 @@ async function uploadDocument(file, folder = 'equipment') {
         const fileName = `${folder}_${timestamp}_${file.name}`;
         const filePath = `${folder}/${fileName}`;
         
-        console.log('Uploading document:', filePath);
         
         const { data, error } = await supabaseClient.storage
             .from('equipment-documents')
@@ -103,7 +100,6 @@ async function uploadDocument(file, folder = 'equipment') {
             .from('equipment-documents')
             .getPublicUrl(filePath);
         
-        console.log('✅ Document uploaded:', publicUrl);
         return publicUrl;
         
     } catch (err) {
@@ -164,7 +160,6 @@ async function loadAllEquipment() {
         
         if (machinesError) throw machinesError;
         machines = machinesData || [];
-        console.log('✅ Loaded', machines.length, 'machines');
         
         // Load vans
         const { data: vansData, error: vansError } = await supabaseClient
@@ -180,7 +175,6 @@ async function loadAllEquipment() {
         
         if (vansError) throw vansError;
         vans = vansData || [];
-        console.log('✅ Loaded', vans.length, 'vans');
         
         // Load small tools
         const { data: toolsData, error: toolsError } = await supabaseClient
@@ -190,7 +184,6 @@ async function loadAllEquipment() {
         
         if (toolsError) throw toolsError;
         smallTools = toolsData || [];
-        console.log('✅ Loaded', smallTools.length, 'small tools');
         
     } catch (err) {
         console.error('Error loading equipment:', err);
@@ -215,7 +208,6 @@ async function loadToolCategories() {
         const defaults = ['saws', 'bits', 'clamps', 'measuring', 'other'];
         toolCategories = [...new Set([...defaults, ...uniqueCategories])].sort();
         
-        console.log('✅ Loaded categories:', toolCategories);
         
     } catch (err) {
         console.error('Error loading categories:', err);
@@ -674,7 +666,6 @@ async function saveMachine() {
                 .eq('id', currentEditItem);
             
             if (error) throw error;
-            console.log('✅ Machine updated');
         } else {
             // Insert new
             const { error } = await supabaseClient
@@ -682,7 +673,6 @@ async function saveMachine() {
                 .insert([machineData]);
             
             if (error) throw error;
-            console.log('✅ Machine added');
         }
         
         closeModal('machineModal');
@@ -788,7 +778,6 @@ async function saveVan() {
                 .eq('id', currentEditItem);
             
             if (error) throw error;
-            console.log('✅ Van updated');
         } else {
             // Insert new
             const { error } = await supabaseClient
@@ -796,7 +785,6 @@ async function saveVan() {
                 .insert([vanData]);
             
             if (error) throw error;
-            console.log('✅ Van added');
         }
         
         closeModal('vanModal');
@@ -888,7 +876,6 @@ async function saveTool() {
                 .eq('id', currentEditItem);
             
             if (error) throw error;
-            console.log('✅ Tool updated');
         } else {
             // Insert new
             const { error } = await supabaseClient
@@ -896,7 +883,6 @@ async function saveTool() {
                 .insert([toolData]);
             
             if (error) throw error;
-            console.log('✅ Tool added');
         }
         
         closeModal('toolModal');
@@ -1070,7 +1056,6 @@ async function deleteMachine(id) {
             if (imageError) {
                 console.error('Error deleting image:', imageError);
             } else {
-                console.log('✅ Image deleted from storage');
             }
         }
         
@@ -1081,7 +1066,6 @@ async function deleteMachine(id) {
             .eq('machine_id', id);
         
         if (!docsError && docs && docs.length > 0) {
-            console.log(`📁 Found ${docs.length} documents to delete`);
             
             // Usuń fizyczne pliki
             for (const doc of docs) {
@@ -1106,7 +1090,6 @@ async function deleteMachine(id) {
             if (deleteDocsError) {
                 console.error('Error deleting document records:', deleteDocsError);
             } else {
-                console.log('✅ Documents deleted');
             }
         }
         
@@ -1128,7 +1111,6 @@ async function deleteMachine(id) {
         
         if (error) throw error;
         
-        console.log('✅ Machine deleted completely');
         await loadAllEquipment();
         renderView();
         updateStats();
@@ -1162,7 +1144,6 @@ async function deleteVan(id) {
             if (imageError) {
                 console.error('Error deleting image:', imageError);
             } else {
-                console.log('✅ Image deleted from storage');
             }
         }
         
@@ -1173,7 +1154,6 @@ async function deleteVan(id) {
             .eq('van_id', id);
         
         if (!docsError && docs && docs.length > 0) {
-            console.log(`📁 Found ${docs.length} documents to delete`);
             
             // Usuń fizyczne pliki
             for (const doc of docs) {
@@ -1198,7 +1178,6 @@ async function deleteVan(id) {
             if (deleteDocsError) {
                 console.error('Error deleting document records:', deleteDocsError);
             } else {
-                console.log('✅ Documents deleted');
             }
         }
         
@@ -1210,7 +1189,6 @@ async function deleteVan(id) {
         
         if (error) throw error;
         
-        console.log('✅ Van deleted completely');
         await loadAllEquipment();
         renderView();
         updateStats();
@@ -1244,7 +1222,6 @@ async function deleteTool(id) {
             if (imageError) {
                 console.error('Error deleting image:', imageError);
             } else {
-                console.log('✅ Image deleted from storage');
             }
         }
         
@@ -1256,7 +1233,6 @@ async function deleteTool(id) {
         
         if (error) throw error;
         
-        console.log('✅ Tool deleted completely');
         await loadAllEquipment();
         renderView();
         updateStats();
@@ -1327,7 +1303,6 @@ async function loadServiceHistory(machineId) {
         if (error) throw error;
         
         currentServiceHistory = data || [];
-        console.log('✅ Loaded', currentServiceHistory.length, 'service records');
         
     } catch (err) {
         console.error('Error loading service history:', err);
@@ -1349,7 +1324,6 @@ async function loadDocuments(type, itemId) {
         if (error) throw error;
         
         currentDocuments = data || [];
-        console.log('✅ Loaded', currentDocuments.length, 'documents');
         
     } catch (err) {
         console.error('Error loading documents:', err);
@@ -1600,7 +1574,6 @@ async function saveDocument() {
         
         if (error) throw error;
         
-        console.log('✅ Document uploaded');
         closeModal('uploadDocModal');
         
         // Reload documents
@@ -1640,7 +1613,6 @@ async function deleteDocument(docId) {
             if (storageError) {
                 console.error('Error deleting file from storage:', storageError);
             } else {
-                console.log('✅ File deleted from storage');
             }
         }
         
@@ -1652,7 +1624,6 @@ async function deleteDocument(docId) {
         
         if (error) throw error;
         
-        console.log('✅ Document deleted completely');
         
         // Reload documents
         await loadDocuments(currentDetailsItem.type, currentDetailsItem.id);
@@ -2280,7 +2251,6 @@ function viewImage(url) {
     window.open(url, '_blank');
 }
 
-console.log('✅ Equipment Management App loaded');
 
 // ========== SERVICE HISTORY ==========
 function renderServiceHistoryList() {
@@ -2413,7 +2383,6 @@ async function saveServiceRecord() {
         
         if (error) throw error;
         
-        console.log('✅ Service record added');
         closeModal('addServiceModal');
         
         // Reload service history
@@ -2437,7 +2406,6 @@ async function deleteServiceRecord(serviceId) {
         
         if (error) throw error;
         
-        console.log('✅ Service record deleted');
         
         // Reload service history
         if (currentDetailsItem && currentDetailsItem.type === 'machine') {

@@ -248,7 +248,6 @@ async function saveEmployee() {
         // USUNIĘTE: status: 'Active' - to jest wyliczane w VIEW!
     };
 
-    console.log('Sending data:', employeeData);
     
     // Add emergency contact if provided
     const emergencyName = document.getElementById('emergencyName').value.trim();
@@ -269,7 +268,6 @@ async function saveEmployee() {
                 .eq('id', currentEditEmployee);
             
             if (error) throw error;
-            console.log('✅ Employee updated');
         } else {
             // Insert new
             const { error } = await supabaseClient
@@ -277,7 +275,6 @@ async function saveEmployee() {
                 .insert([employeeData]);
             
             if (error) throw error;
-            console.log('✅ Employee added');
         }
         
         closeModal('employeeModal');
@@ -387,7 +384,6 @@ async function deactivateEmployee(id) {
         
         if (error) throw error;
         
-        console.log('✅ Employee deactivated');
         loadTeam();
         
     } catch (error) {
@@ -435,7 +431,6 @@ async function archiveEmployee(id) {
             })
             .eq('id', id);
         if (archiveError) throw archiveError;
-        console.log('✅ Team member archived');
 
         // 2. Usuń dostęp - user_profiles
         const { error: userError } = await supabaseClient
@@ -443,7 +438,6 @@ async function archiveEmployee(id) {
             .delete()
             .eq('team_member_id', id);
         if (userError) console.warn('user_profiles:', userError.message);
-        else console.log('✅ User profile deleted');
 
         // 3. Pobierz urlopy i zapisz do historii przed usunięciem
         const { data: holidays, error: fetchHolidaysError } = await supabaseClient
@@ -460,7 +454,6 @@ async function archiveEmployee(id) {
                 .update({ holidays_history: holidays })
                 .eq('id', id);
             if (historyError) console.warn('holidays_history:', historyError.message);
-            else console.log(`✅ Saved ${holidays.length} holidays to history`);
         }
 
         // 4. Usuń urlopy z tabeli employee_holidays
@@ -469,7 +462,6 @@ async function archiveEmployee(id) {
             .delete()
             .eq('employee_id', id);
         if (holidaysError) console.warn('employee_holidays:', holidaysError.message);
-        else console.log('✅ Holidays deleted');
 
         // 5. Odepnij z project_phases (assigned_to)
         const { error: phasesError } = await supabaseClient
@@ -477,7 +469,6 @@ async function archiveEmployee(id) {
             .update({ assigned_to: null })
             .eq('assigned_to', id);
         if (phasesError) console.warn('project_phases assigned_to:', phasesError.message);
-        else console.log('✅ Unassigned from project phases');
 
         // 6. Odepnij z project_phases (materials_ordered_confirmed_by)
         const { error: phases2Error } = await supabaseClient
@@ -485,7 +476,6 @@ async function archiveEmployee(id) {
             .update({ materials_ordered_confirmed_by: null })
             .eq('materials_ordered_confirmed_by', id);
         if (phases2Error) console.warn('project_phases materials_ordered:', phases2Error.message);
-        else console.log('✅ Unassigned from materials confirmation');
 
         // 7. Odepnij z projects (timber_worker_id)
         const { error: timberError } = await supabaseClient
@@ -493,7 +483,6 @@ async function archiveEmployee(id) {
             .update({ timber_worker_id: null })
             .eq('timber_worker_id', id);
         if (timberError) console.warn('projects timber:', timberError.message);
-        else console.log('✅ Unassigned as timber worker');
 
         // 8. Odepnij z projects (spray_worker_id)
         const { error: sprayError } = await supabaseClient
@@ -501,7 +490,6 @@ async function archiveEmployee(id) {
             .update({ spray_worker_id: null })
             .eq('spray_worker_id', id);
         if (sprayError) console.warn('projects spray:', sprayError.message);
-        else console.log('✅ Unassigned as spray worker');
 
         // 9. Odepnij z projects (admin_id)
         const { error: adminError } = await supabaseClient
@@ -509,7 +497,6 @@ async function archiveEmployee(id) {
             .update({ admin_id: null })
             .eq('admin_id', id);
         if (adminError) console.warn('projects admin:', adminError.message);
-        else console.log('✅ Unassigned as admin');
 
         // 10. Odepnij z projects (sales_person_id)
         const { error: salesError } = await supabaseClient
@@ -517,7 +504,6 @@ async function archiveEmployee(id) {
             .update({ sales_person_id: null })
             .eq('sales_person_id', id);
         if (salesError) console.warn('projects sales:', salesError.message);
-        else console.log('✅ Unassigned as sales person');
 
         // 11. Odepnij van
         const { error: vanError } = await supabaseClient
@@ -525,7 +511,6 @@ async function archiveEmployee(id) {
             .update({ assigned_to_worker_id: null })
             .eq('assigned_to_worker_id', id);
         if (vanError) console.warn('vans:', vanError.message);
-        else console.log('✅ Van unassigned');
 
         alert(`✅ ${member.name} has been archived successfully!`);
         loadTeam();
@@ -601,7 +586,6 @@ async function bookHoliday(memberId) {
         
         if (error) throw error;
         
-        console.log('✅ Holiday booked');
         loadTeam();
         openHolidaysModal(); // Refresh modal
         
@@ -807,7 +791,6 @@ async function addWage() {
         
         if (error) throw error;
         
-        console.log('✅ Wage added');
         
         // Clear form
         document.getElementById('wageEmployee').value = '';
@@ -1050,7 +1033,6 @@ window.onclick = function(event) {
 }
 
 // ========== INITIALIZATION ==========
-console.log('Team Management System loaded');
 
 // ========== CHANGE ROLE MODAL ==========
 let currentRoleChangeTeamMemberId = null;
@@ -1132,7 +1114,6 @@ window.saveRoleChange = async function() {
             return;
         }
         
-        console.log("✅ Role updated successfully");
         alert("Role updated successfully!");
         
         closeChangeRoleModal();
@@ -1255,7 +1236,6 @@ window.saveRoleChangeForUser = async function(userId) {
         
         if (error) throw error;
         
-        console.log("✅ Role updated successfully");
         alert("Role updated successfully!");
         
         closeChangeRoleModal();

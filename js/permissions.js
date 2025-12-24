@@ -125,7 +125,6 @@
                 window.currentUserRole = profile.role || 'viewer';
                 window.currentUserId = profile.id;
                 window.currentUserProfile = profile;
-                console.log('✅ User role loaded:', window.currentUserRole);
                 return profile;
             }
             
@@ -271,7 +270,6 @@
                 // Dispatch event that permissions are ready
                 window.dispatchEvent(new Event('permissionsLoaded'));
                 
-                console.log('✅ Permissions system initialized');
             }
         }, 100);
         
@@ -314,7 +312,6 @@
             `;
             document.head.appendChild(style);
             
-            console.log('🔒 Read-only mode applied');
         }
     }
 

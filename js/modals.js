@@ -238,7 +238,6 @@ async function addPhaseSegment() {
     render();
     
     // Pokaż potwierdzenie
-    console.log(`✅ Added ${currentPhase.key} segment #${newSegmentNo}`);
 }
 
 // PUNKT 5 - Open Delivery Glazing modal
@@ -286,7 +285,6 @@ async function deleteCurrentPhase() {
 
                     if (!fetchError && projectData) {
                         await savePhasesToSupabase(projectData.id, project.phases, true);
-                        console.log('✅ Phase deleted and database updated');
                     }
                 } catch (err) {
                     console.error('Error saving phases after delete:', err);
@@ -472,8 +470,6 @@ async function savePhaseChanges() {
     const project = isPipeline ? pipelineProjects[projectIndex] : projects[projectIndex];
     
     // DIAGNOSTYKA
-    console.log('PRZED ZAPISEM - liczba faz:', project.phases.length);
-    console.log('PRZED ZAPISEM - klucze faz:', project.phases.map(p => p.key));
     
     const phase = project.phases[phaseIndex];
     const phasesConfig = isPipeline ? pipelinePhases : phases;
@@ -543,8 +539,6 @@ async function savePhaseChanges() {
         autoArrangeFromPhase(projectIndex, phaseIndex); // ZMIENIONE z 0 na phaseIndex
         
         // DIAGNOSTYKA
-        console.log('PO AUTO-ARRANGE - liczba faz:', project.phases.length);
-        console.log('PO AUTO-ARRANGE - klucze faz:', project.phases.map(p => p.key));
         
         // CHECK IF AUTO-ARRANGE EXCEEDS DEADLINE
         if (project.deadline) {
@@ -592,8 +586,6 @@ async function savePhaseChanges() {
     currentEditPhase = null;
     
     // DIAGNOSTYKA
-    console.log('PO ZAPISIE - liczba faz:', project.phases.length);
-    console.log('PO ZAPISIE - klucze faz:', project.phases.map(p => p.key));
     
     // Renderuj odpowiedni widok - Pipeline lub normalny Gantt
     if (window.location.pathname.includes('pipeline')) {

@@ -328,12 +328,10 @@ async function loadPipelineFromSupabase() {
                 .in('pipeline_project_id', projectIds)
                 .order('order_position');
             
-            console.log('📊 Loaded phases from DB:', phasesData?.length || 0);
             
             // Merge projects with phases
             pipelineProjects = data.map(dbProject => {
                 const projectPhases = phasesData?.filter(p => p.pipeline_project_id === dbProject.id) || [];
-                console.log(`Project ${dbProject.project_number}: ${projectPhases.length} phases`);
                 
                 return {
                     id: dbProject.id,
@@ -411,7 +409,6 @@ async function loadCustomPhases() {
                     };
                 }
             });
-            console.log(`✅ Loaded ${data.length} custom phases from DB`);
         }
     } catch (err) {
         console.error('Failed to load custom phases:', err);
@@ -435,7 +432,6 @@ async function saveCustomPhaseToDb(key, name, color, phaseType) {
         if (error) {
             console.error('Error saving custom phase:', error);
         } else {
-            console.log(`✅ Custom phase "${name}" saved to DB`);
         }
     } catch (err) {
         console.error('Failed to save custom phase:', err);
@@ -455,7 +451,6 @@ async function deleteCustomPhaseFromDb(key) {
         if (error) {
             console.error('Error deleting custom phase:', error);
         } else {
-            console.log(`✅ Custom phase "${key}" deleted from DB`);
         }
     } catch (err) {
         console.error('Failed to delete custom phase:', err);
@@ -637,7 +632,6 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
     try {
         const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
         
-        console.log(`✏️ Updating single phase: ${phase.key} (id: ${phase.id}) for project ${projectId}`);
         
         // Oblicz end_date jeśli trzeba
         let endDate = phase.end;
@@ -693,7 +687,6 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
             return false;
         }
         
-        console.log(`✅ Successfully updated phase ${phase.key} segment #${phase.segmentNo || 1}`);
         return true;
         
     } catch (err) {
@@ -716,8 +709,6 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
             return false;
         }
 
-        console.log(`💾 Calling ${functionName} for project ${projectId} (fullReplace: ${fullReplace})`);
-        console.log(`📦 Saving ${phases.length} phases via RPC (atomic transaction)`);
 
         // Helper: sprawdź czy data jest valid
         const isValidDate = (dateStr) => {
@@ -740,7 +731,6 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
             // WALIDACJA: Napraw invalid start_date
             let startDate = phase.start;
             if (!isValidDate(startDate)) {
-                console.log(`📅 Phase ${phase.key}: invalid start date, setting to today`);
                 startDate = getTodayStr();
             }
 
@@ -749,13 +739,11 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
             
             // WALIDACJA: Napraw invalid end_date
             if (!isValidDate(endDate)) {
-                console.log(`📅 Phase ${phase.key}: calculating end from workDays`);
                 endDate = null; // wymusi przeliczenie poniżej
             }
             
             // Jeśli end < start, też napraw
             if (endDate && new Date(endDate) < new Date(startDate)) {
-                console.log(`📅 Phase ${phase.key}: end before start, recalculating`);
                 endDate = null;
             }
 
@@ -828,8 +816,6 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
             return false;
         }
 
-        console.log(`✅ Successfully saved ${phases.length} phases via RPC (atomic transaction)`);
-        console.log(`🔒 Database lock ensured no concurrent modifications (fullReplace: ${fullReplace})`);
         
         return true;
 

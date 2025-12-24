@@ -5,13 +5,11 @@ let originalProjects = null;
 
 // Initialize workers lists in dropdowns
 function initializeFilterDropdowns() {
-    console.log('🔧 Initializing filter dropdowns...');
     
     // Wait for teamMembers to be loaded
     const waitForTeamMembers = setInterval(() => {
         if (typeof teamMembers !== 'undefined' && teamMembers && teamMembers.length > 0) {
             clearInterval(waitForTeamMembers);
-            console.log('✅ Team members loaded:', teamMembers.length);
             populateWorkerDropdowns();
         }
     }, 100);
@@ -48,7 +46,6 @@ function populateWorkerDropdowns() {
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         productionList.appendChild(unassignedBtn);
 
-        console.log(`✅ Production dropdown populated with ${productionWorkers.length + sprayWorkers.length} workers`);
     }
 
     // Timber workers list - ONLY production department
@@ -71,7 +68,6 @@ function populateWorkerDropdowns() {
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         timberList.appendChild(unassignedBtn);
 
-        console.log(`✅ Timber dropdown populated with ${productionWorkers.length} production workers`);
     }
 
     // Spray workers list - ONLY spray department
@@ -94,7 +90,6 @@ function populateWorkerDropdowns() {
         unassignedBtn.innerHTML = '<span style="color: #999;">(Unassigned)</span>';
         sprayList.appendChild(unassignedBtn);
 
-        console.log(`✅ Spray dropdown populated with ${sprayWorkers.length} spray workers`);
     }
 }
 
@@ -126,7 +121,6 @@ document.addEventListener('click', (e) => {
 // ========== FILTERING FUNCTIONS ==========
 
 function setProductionFilter(workerId) {
-    console.log('🏭 Setting production filter (timber+glazing+spray):', workerId);
 
     currentFilter = {
         type: 'production',
@@ -142,7 +136,6 @@ function setProductionFilter(workerId) {
 }
 
 function setTimberFilter(workerId) {
-    console.log('🪵 Setting timber/glazing filter:', workerId);
 
     currentFilter = {
         type: 'timberGlazing',
@@ -158,7 +151,6 @@ function setTimberFilter(workerId) {
 }
 
 function setSprayFilter(workerId) {
-    console.log('🎨 Setting spray filter:', workerId);
 
     currentFilter = {
         type: 'spray',
@@ -174,7 +166,6 @@ function setSprayFilter(workerId) {
 }
 
 function clearFilters() {
-    console.log('✖ Clearing filters');
     
     currentFilter = null;
     
@@ -196,7 +187,6 @@ function applyFilter() {
     
     const { type, workerId } = currentFilter;
     
-    console.log(`🔍 Applying ${type} filter for worker:`, workerId);
     
     // Save original projects if not already saved
     if (!originalProjects) {
@@ -236,7 +226,6 @@ function applyFilter() {
         });
     });
     
-    console.log(`✅ Filtered to ${filteredProjects.length} projects`);
     
     // Create filtered view with only target phases visible
     const viewProjects = filteredProjects.map(project => ({
@@ -259,4 +248,3 @@ if (document.readyState === 'loading') {
     initializeFilterDropdowns();
 }
 
-console.log('✅ Sort-filter.js loaded');
