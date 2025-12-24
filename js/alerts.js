@@ -433,15 +433,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Snooze alert (remind me later)
 async function snoozeAlert(alertId) {
-    const hours = prompt('Remind me in how many hours? (1-48)', '4');
+    // Modal wyboru czasu snooze
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'snoozeModal';
+    modal.style.display = 'flex';
     
-    if (!hours || isNaN(hours) || hours < 1 || hours > 48) {
-        return;
-    }
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px; background: #1a1a1a; border: 1px solid #404040;">
+            <div class="modal-header" style="background: #252525; border-bottom: 1px solid #404040; color: #fff; padding: 16px 20px;">
+                <div style="font-size: 18px; font-weight: 600;">⏰ Remind Me Later</div>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="margin-bottom: 16px;">
+                    <label style="color: #999; font-size: 13px; display: block; margin-bottom: 8px;">Select reminder time:</label>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="snooze-option" data-hours="24" style="
+                            background: #333; border: 1px solid #555; color: #e0e0e0;
+                            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+                            font-size: 14px;
+                        ">24 hours</button>
+                        <button class="snooze-option" data-days="2" style="
+                            background: #333; border: 1px solid #555; color: #e0e0e0;
+                            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+                            font-size: 14px;
+                        ">2 days</button>
+                        <button class="snooze-option" data-days="5" style="
+                            background: #333; border: 1px solid #555; color: #e0e0e0;
+                            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+                            font-size: 14px;
+                        ">5 days</button>
+                        <button class="snooze-option" data-days="7" style="
+                            background: #333; border: 1px solid #555; color: #e0e0e0;
+                            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+                            font-size: 14px;
+                        ">1 week</button>
+                    </div>
+                </div>
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #404040;">
+                    <label style="color: #999; font-size: 13px; display: block; margin-bottom: 8px;">Or custom days (1-30):</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" id="customDays" min="1" max="30" placeholder="Days" style="
+                            background: #252525; border: 1px solid #404040; color: #e0e0e0;
+                            padding: 10px 12px; border-radius: 6px; width: 100px; font-size: 14px;
+                        ">
+                        <button id="customSnoozeBtn" style="
+                            background: #4a9eff; border: none; color: #fff;
+                            padding: 10px 16px; border-radius: 6px; cursor: pointer;
+                            font-size: 14px;
+                        ">Set</button>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 16px 20px; background: #252525; border-top: 1px solid #404040; display: flex; justify-content: flex-end;">
+                <button id="cancelSnooze" style="
+                    background: #333; border: 1px solid #555; color: #e0e0e0;
+                    padding: 10px 24px; border-radius: 6px; font-size: 14px; cursor: pointer;
+                ">Cancel</button>
+            </div>
+        </div>
+    `;
     
+    document.body.appendChild(modal);
+    
+    // Event handlers
+    const closeModal = () => modal.remove();
+    
+    modal.querySelector('#cancelSnooze').onclick = closeModal;
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    
+    // Preset buttons
+    modal.querySelectorAll('.snooze-option').forEach(btn => {
+        btn.onclick = async () => {
+            const hours = btn.dataset.hours ? parseInt(btn.dataset.hours) : null;
+            const days = btn.dataset.days ? parseInt(btn.dataset.days) : null;
+            closeModal();
+            await executeSnooze(alertId, hours, days);
+        };
+    });
+    
+    // Custom days
+    modal.querySelector('#customSnoozeBtn').onclick = async () => {
+        const days = parseInt(modal.querySelector('#customDays').value);
+        if (!days || days < 1 || days > 30) {
+            alert('Please enter a number between 1 and 30');
+            return;
+        }
+        closeModal();
+        await executeSnooze(alertId, null, days);
+    };
+}
+
+// Execute snooze with hours or days
+async function executeSnooze(alertId, hours, days) {
     try {
         const snoozeUntil = new Date();
-        snoozeUntil.setHours(snoozeUntil.getHours() + parseInt(hours));
+        
+        if (hours) {
+            snoozeUntil.setHours(snoozeUntil.getHours() + hours);
+        } else if (days) {
+            snoozeUntil.setDate(snoozeUntil.getDate() + days);
+        }
         
         const { error } = await supabaseClient
             .from('project_alerts')
@@ -469,7 +561,8 @@ async function snoozeAlert(alertId) {
             }, 300);
         }
         
-        console.log(`Alert snoozed for ${hours} hours:`, alertId);
+        const timeText = hours ? `${hours} hours` : `${days} days`;
+        console.log(`Alert snoozed for ${timeText}:`, alertId);
     } catch (error) {
         console.error('Error snoozing alert:', error);
         alert('Error snoozing alert. Please try again.');
