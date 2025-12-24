@@ -13,12 +13,13 @@ function renderUniversal() {
     }
 }
 
-// Deduplikacja faz - usuwa duplikaty na podstawie klucza i daty
+// Deduplikacja faz - usuwa duplikaty na podstawie id lub klucza+segmentu
 function dedupeProjectPhases(phases) {
     if (!Array.isArray(phases)) return phases;
     const seen = new Set();
     return phases.filter(p => {
-        const k = `${p.key}|${p.start || ''}|${p.end || ''}`;
+        // Preferuj id, fallback na key+segmentNo
+        const k = p.id || `${p.key}|${p.segmentNo || 1}`;
         if (seen.has(k)) return false;
         seen.add(k);
         return true;

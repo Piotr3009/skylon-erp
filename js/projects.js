@@ -704,13 +704,16 @@ async function confirmMoveToArchive() {
         return;
     }
     
-    // Znajdź workers przypisanych do faz timber i spray
+    // Znajdź workers przypisanych do faz timber i spray (główny segment)
     let timberWorkerId = null;
     let sprayWorkerId = null;
     
     if (project.phases) {
-        const timberPhase = project.phases.find(p => p.key === 'timber');
-        const sprayPhase = project.phases.find(p => p.key === 'spray');
+        // Znajdź pierwszy segment (segment_no = 1) lub najwcześniejszy
+        const timberPhase = project.phases.find(p => p.key === 'timber' && (p.segmentNo || 1) === 1)
+                         || project.phases.find(p => p.key === 'timber');
+        const sprayPhase = project.phases.find(p => p.key === 'spray' && (p.segmentNo || 1) === 1)
+                        || project.phases.find(p => p.key === 'spray');
         
         if (timberPhase && timberPhase.assignedTo) timberWorkerId = timberPhase.assignedTo;
         if (sprayPhase && sprayPhase.assignedTo) sprayWorkerId = sprayPhase.assignedTo;

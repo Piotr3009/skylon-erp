@@ -3,6 +3,22 @@
 const PRODUCTION_PHASES = ['timber', 'spray', 'glazing', 'qc'];
 const OFFICE_PHASES = ['md', 'siteSurvey', 'order', 'orderGlazing', 'orderSpray', 'dispatch', 'installation'];
 
+// Helper: znajdź najwcześniejszy segment danej fazy (dla sortowania)
+function getEarliestPhaseSegment(phases, phaseKey) {
+    const matching = phases?.filter(p => p.key === phaseKey) || [];
+    if (matching.length === 0) return null;
+    return matching.reduce((earliest, p) => {
+        if (!earliest || !earliest.start) return p;
+        if (!p.start) return earliest;
+        return new Date(p.start) < new Date(earliest.start) ? p : earliest;
+    }, null);
+}
+
+// Helper: policz ile segmentów ma dana faza
+function countPhaseSegments(phases, phaseKey) {
+    return phases?.filter(p => p.key === phaseKey).length || 0;
+}
+
 (function ensureDualOverlayCSS(){
     if (document.getElementById('dual-overlay-style')) return;
     const style = document.createElement('style');
@@ -54,8 +70,9 @@ function getSortedProjects() {
         });
     } else if (currentSortMode === 'timber') {
         sortedProjects.sort((a, b) => {
-            const timberA = a.phases?.find(p => p.key === 'timber');
-            const timberB = b.phases?.find(p => p.key === 'timber');
+            // Znajdź najwcześniejszy segment timber
+            const timberA = getEarliestPhaseSegment(a.phases, 'timber');
+            const timberB = getEarliestPhaseSegment(b.phases, 'timber');
             
             if (!timberA || !timberA.start) return 1;
             if (!timberB || !timberB.start) return -1;
@@ -64,8 +81,9 @@ function getSortedProjects() {
         });
     } else if (currentSortMode === 'spray') {
         sortedProjects.sort((a, b) => {
-            const sprayA = a.phases?.find(p => p.key === 'spray');
-            const sprayB = b.phases?.find(p => p.key === 'spray');
+            // Znajdź najwcześniejszy segment spray
+            const sprayA = getEarliestPhaseSegment(a.phases, 'spray');
+            const sprayB = getEarliestPhaseSegment(b.phases, 'spray');
             
             if (!sprayA || !sprayA.start) return 1;
             if (!sprayB || !sprayB.start) return -1;
@@ -307,7 +325,10 @@ function renderProjects() {
             
             // 1. Renderuj PRODUCTION jako przezroczyste tło (read-only)
             const sortedProduction = [...productionPhases].sort((a, b) => {
-                return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+                const keyOrder = productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+                if (keyOrder !== 0) return keyOrder;
+                // Drugorzędnie sortuj po segmentNo
+                return (a.segmentNo || 1) - (b.segmentNo || 1);
             });
             
             sortedProduction.forEach(phase => {
@@ -326,7 +347,10 @@ function renderProjects() {
             
             // 2. Renderuj OFFICE jako normalne (edytowalne)
             const sortedOffice = [...officePhases].sort((a, b) => {
-                return productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+                const keyOrder = productionPhaseOrder.indexOf(a.key) - productionPhaseOrder.indexOf(b.key);
+                if (keyOrder !== 0) return keyOrder;
+                // Drugorzędnie sortuj po segmentNo
+                return (a.segmentNo || 1) - (b.segmentNo || 1);
             });
             
             sortedOffice.forEach(phase => {
@@ -457,7 +481,11 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps, isRe
         const topDiv = document.createElement('div');
         topDiv.className = 'phase-top';
         topDiv.style.background = phaseConfig.color;
-        topDiv.innerHTML = '<span>' + phaseConfig.name + '</span>';
+        
+        // Dodaj numer segmentu jeśli jest więcej niż 1
+        const segmentCount = countPhaseSegments(project.phases, phase.key);
+        const segmentLabel = segmentCount > 1 ? ` #${phase.segmentNo || 1}` : '';
+        topDiv.innerHTML = '<span>' + phaseConfig.name + segmentLabel + '</span>';
         container.appendChild(topDiv);
         
         return container;
@@ -474,7 +502,10 @@ function createPhaseBar(phase, project, projectIndex, phaseIndex, overlaps, isRe
     
     topDiv.style.background = phaseConfig.color;
     
-    topDiv.innerHTML = `<span>${phaseConfig.name}</span>`;
+    // Dodaj numer segmentu jeśli jest więcej niż 1
+    const segmentCount = countPhaseSegments(project.phases, phase.key);
+    const segmentLabel = segmentCount > 1 ? ` #${phase.segmentNo || 1}` : '';
+    topDiv.innerHTML = `<span>${phaseConfig.name}${segmentLabel}</span>`;
     
     // Bottom part
     const bottomDiv = document.createElement('div');

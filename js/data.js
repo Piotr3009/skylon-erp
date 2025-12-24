@@ -273,7 +273,8 @@ async function loadProjectsFromSupabase() {
                         };
                         
                         return {
-                        
+                        id: phase.id,
+                        segmentNo: phase.segment_no || 1,
                         key: phase.phase_key,
                         start: fixDate(phase.start_date),
                         end: fixDate(phase.end_date),
@@ -636,7 +637,7 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
     try {
         const tableName = isProduction ? 'project_phases' : 'pipeline_phases';
         
-        console.log(`✏️ Updating single phase: ${phase.key} for project ${projectId}`);
+        console.log(`✏️ Updating single phase: ${phase.key} (id: ${phase.id}) for project ${projectId}`);
         
         // Oblicz end_date jeśli trzeba
         let endDate = phase.end;
@@ -665,13 +666,26 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
             updateData.order_confirmed = phase.orderConfirmed || false;
         }
         
-        // Update tylko jednego rekordu
+        // Update po ID jeśli dostępne (dla segmentów)
         const idField = isProduction ? 'project_id' : 'pipeline_project_id';
-        const { error } = await supabaseClient
-            .from(tableName)
-            .update(updateData)
-            .eq(idField, projectId)
-            .eq('phase_key', phase.key);
+        let query = supabaseClient.from(tableName).update(updateData);
+        
+        if (phase.id) {
+            // Update po unikalnym ID - bezpieczne dla segmentów
+            query = query.eq('id', phase.id);
+        } else {
+            // Fallback: update po project_id + phase_key (+ segment_no tylko dla production)
+            query = query
+                .eq(idField, projectId)
+                .eq('phase_key', phase.key);
+            
+            // segment_no tylko dla production (pipeline nie ma tej kolumny)
+            if (isProduction) {
+                query = query.eq('segment_no', phase.segmentNo || 1);
+            }
+        }
+        
+        const { error } = await query;
         
         if (error) {
             console.error('❌ Error updating single phase:', error);
@@ -679,7 +693,7 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
             return false;
         }
         
-        console.log(`✅ Successfully updated phase ${phase.key} (no logs created)`);
+        console.log(`✅ Successfully updated phase ${phase.key} segment #${phase.segmentNo || 1}`);
         return true;
         
     } catch (err) {
@@ -689,7 +703,7 @@ async function updateSinglePhase(projectId, phase, isProduction = true) {
     }
 }
 
-async function savePhasesToSupabase(projectId, phases, isProduction = true) {
+async function savePhasesToSupabase(projectId, phases, isProduction = true, fullReplace = true) {
     try {
         const functionName = isProduction ? 
             'safe_upsert_project_phases' : 
@@ -702,7 +716,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
             return false;
         }
 
-        console.log(`💾 Calling ${functionName} for project ${projectId}`);
+        console.log(`💾 Calling ${functionName} for project ${projectId} (fullReplace: ${fullReplace})`);
         console.log(`📦 Saving ${phases.length} phases via RPC (atomic transaction)`);
 
         // Helper: sprawdź czy data jest valid
@@ -747,14 +761,21 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
 
             if (!endDate && startDate) {
                 try {
-                    const workDays = phase.workDays || 4;
-                    const start = new Date(startDate);
-                    const end = new Date(start);
-                    end.setDate(end.getDate() + workDays - 1);
-                    const year = end.getFullYear();
-                    const month = String(end.getMonth() + 1).padStart(2, '0');
-                    const day = String(end.getDate()).padStart(2, '0');
-                    endDate = `${year}-${month}-${day}`;
+                    // Użyj computeEnd jeśli dostępne, inaczej prosta matematyka
+                    if (typeof computeEnd === 'function') {
+                        const tempPhase = { ...phase, start: startDate };
+                        const computedEnd = computeEnd(tempPhase);
+                        endDate = formatDate(computedEnd);
+                    } else {
+                        const workDays = phase.workDays || 4;
+                        const start = new Date(startDate);
+                        const end = new Date(start);
+                        end.setDate(end.getDate() + workDays - 1);
+                        const year = end.getFullYear();
+                        const month = String(end.getMonth() + 1).padStart(2, '0');
+                        const day = String(end.getDate()).padStart(2, '0');
+                        endDate = `${year}-${month}-${day}`;
+                    }
                 } catch (err) {
                     console.error('Error computing phase end:', err);
                     endDate = startDate; // fallback: end = start
@@ -763,6 +784,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
 
             const phaseData = {
                 phase_key: phase.key,
+                segment_no: phase.segmentNo || 1,
                 start_date: startDate,
                 end_date: endDate || startDate,
                 work_days: phase.workDays || (isProduction ? 4 : 3),
@@ -770,6 +792,11 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
                 notes: phase.notes || null,
                 order_position: index
             };
+
+            // Dodaj id jeśli istnieje (dla update istniejącego segmentu)
+            if (phase.id) {
+                phaseData.id = phase.id;
+            }
 
             // Dodaj pola tylko dla production
             if (isProduction) {
@@ -784,7 +811,8 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         // Wywołaj funkcję RPC - WSZYSTKO W JEDNEJ TRANSAKCJI!
         const { data, error } = await supabaseClient.rpc(functionName, {
             phases: phasesForRPC,
-            [projectIdParam]: projectId
+            [projectIdParam]: projectId,
+            p_full_replace: fullReplace
         });
 
         if (error) {
@@ -801,8 +829,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true) {
         }
 
         console.log(`✅ Successfully saved ${phases.length} phases via RPC (atomic transaction)`);
-        console.log('🔒 Database lock ensured no concurrent modifications');
-        console.log('💯 ZERO RISK - phases will NEVER disappear!');
+        console.log(`🔒 Database lock ensured no concurrent modifications (fullReplace: ${fullReplace})`);
         
         return true;
 
