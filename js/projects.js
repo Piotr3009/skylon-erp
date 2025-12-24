@@ -728,6 +728,12 @@ async function confirmMoveToArchive() {
     // Zapisz do bazy
     if (typeof supabaseClient !== 'undefined') {
         try {
+            // First, delete existing archived record if exists (to avoid duplicates)
+            await supabaseClient
+                .from('archived_projects')
+                .delete()
+                .eq('project_number', project.projectNumber);
+            
             const { data, error } = await supabaseClient
                 .from('archived_projects')
                 .insert([archivedProject]);
@@ -947,18 +953,19 @@ async function confirmMoveToArchive() {
             
             // KROK 4: Na końcu usuń główny projekt z tabeli projects - KRYTYCZNE!
             // Używamy ID dla 100% pewności (project_number może być duplikat)
-            const { error: deleteError } = await supabaseClient
+            if (!project.id) {
+                showToast('Error: Project ID is missing. Cannot delete from production.', 'error');
+                return;
+            }
+            
+            const { error: deleteError, count } = await supabaseClient
                 .from('projects')
                 .delete()
-                .eq('id', project.id);
+                .eq('id', project.id)
+                .select();
             
             if (deleteError) {
-                console.error('❌ CRITICAL: Error deleting project from database:', deleteError);
-                showToast('Critical Error: ' +
-                      'Error: ' + deleteError.message + '\n\n' +
-                      'Project ID: ' + project.id + '\n' +
-                      'Materials ARE safely archived, but project still exists in production.\n' +
-                      'Please contact admin or delete manually from database.');
+                showToast('Critical Error: Cannot delete project from production. ' + deleteError.message, 'error');
                 return; // STOP - nie usuwaj z lokalnej tablicy!
             }
             
@@ -983,7 +990,7 @@ async function confirmMoveToArchive() {
     closeModal('moveToArchiveModal');
     
     const reasonText = document.querySelector(`#archiveReason option[value="${reason}"]`)?.textContent || reason;
-    showToast(`Project archived successfully: ${project.projectNumber}\nReason: ${reasonText}`, 'success');
+    showToast(`Project ${project.projectNumber} archived and removed from production`, 'success');
 }
 
 // ========== PROJECT NOTES ==========
