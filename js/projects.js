@@ -62,28 +62,41 @@ async function addProject() {
     // POBIERZ NUMERACJĘ Z BAZY DANYCH
     if (typeof supabaseClient !== 'undefined') {
         try {
-            const { data: lastProject, error } = await supabaseClient
+            // Check both projects AND archived_projects for highest number
+            const { data: lastProject, error: err1 } = await supabaseClient
                 .from('projects')
                 .select('project_number')
                 .order('project_number', { ascending: false })
                 .limit(1);
             
-            let nextNumber = 1;
+            const { data: lastArchived, error: err2 } = await supabaseClient
+                .from('archived_projects')
+                .select('project_number')
+                .order('project_number', { ascending: false })
+                .limit(1);
             
+            let maxNumber = 0;
+            const currentYear = new Date().getFullYear();
+            
+            // Check projects table
             if (lastProject && lastProject.length > 0) {
-                const projectNum = lastProject[0].project_number;
-                
-                // Format: "001.2025" - wyciągnij cyfry przed kropką
-                const match = projectNum.match(/^(\d{3})\//);
-                if (match && match[1]) {
-                    const lastNum = parseInt(match[1]);
-                    if (!isNaN(lastNum)) {
-                        nextNumber = lastNum + 1;
-                    }
+                const match = lastProject[0].project_number.match(/^(\d{3})\/(\d{4})/);
+                if (match && match[2] === String(currentYear)) {
+                    const num = parseInt(match[1]);
+                    if (!isNaN(num) && num > maxNumber) maxNumber = num;
                 }
             }
             
-            const currentYear = new Date().getFullYear();
+            // Check archived_projects table
+            if (lastArchived && lastArchived.length > 0) {
+                const match = lastArchived[0].project_number.match(/^(\d{3})\/(\d{4})/);
+                if (match && match[2] === String(currentYear)) {
+                    const num = parseInt(match[1]);
+                    if (!isNaN(num) && num > maxNumber) maxNumber = num;
+                }
+            }
+            
+            const nextNumber = maxNumber + 1;
             const generatedNumber = `${String(nextNumber).padStart(3, '0')}/${currentYear}`;
             document.getElementById('projectNumber').value = generatedNumber;
             
@@ -728,11 +741,17 @@ async function confirmMoveToArchive() {
     // Zapisz do bazy
     if (typeof supabaseClient !== 'undefined') {
         try {
-            // First, delete existing archived record if exists (to avoid duplicates)
-            await supabaseClient
+            // Check if project number already exists in archive
+            const { data: existing } = await supabaseClient
                 .from('archived_projects')
-                .delete()
-                .eq('project_number', project.projectNumber);
+                .select('project_number')
+                .eq('project_number', project.projectNumber)
+                .limit(1);
+            
+            if (existing && existing.length > 0) {
+                showToast(`Cannot archive! Project number ${project.projectNumber} already exists in archive. Please change the project number first.`, 'error');
+                return;
+            }
             
             const { data, error } = await supabaseClient
                 .from('archived_projects')
