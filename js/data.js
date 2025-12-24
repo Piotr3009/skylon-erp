@@ -740,7 +740,7 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
             // WALIDACJA: Napraw invalid start_date
             let startDate = phase.start;
             if (!isValidDate(startDate)) {
-                console.warn(`⚠️ Invalid start date for phase ${phase.key}, setting to today`);
+                console.log(`📅 Phase ${phase.key}: invalid start date, setting to today`);
                 startDate = getTodayStr();
             }
 
@@ -749,13 +749,13 @@ async function savePhasesToSupabase(projectId, phases, isProduction = true, full
             
             // WALIDACJA: Napraw invalid end_date
             if (!isValidDate(endDate)) {
-                console.warn(`⚠️ Invalid end date for phase ${phase.key}, calculating from workDays`);
+                console.log(`📅 Phase ${phase.key}: calculating end from workDays`);
                 endDate = null; // wymusi przeliczenie poniżej
             }
             
             // Jeśli end < start, też napraw
             if (endDate && new Date(endDate) < new Date(startDate)) {
-                console.warn(`⚠️ End date before start for phase ${phase.key}, recalculating`);
+                console.log(`📅 Phase ${phase.key}: end before start, recalculating`);
                 endDate = null;
             }
 
