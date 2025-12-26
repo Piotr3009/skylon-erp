@@ -1829,7 +1829,8 @@ async function generateDrawingsSection() {
 }
 
 // Render PDF to array of base64 images
-async function renderPdfToImages(url, scale = 1.5) {
+// Scale 4 = good quality for A3 print (~200 DPI)
+async function renderPdfToImages(url, scale = 4) {
     const images = [];
     
     try {
@@ -1855,7 +1856,7 @@ async function renderPdfToImages(url, scale = 1.5) {
             }).promise;
             
             // Convert to base64 image
-            images.push(canvas.toDataURL('image/jpeg', 0.9));
+            images.push(canvas.toDataURL('image/jpeg', 0.95));
         }
     } catch (err) {
         console.error('Error rendering PDF:', err);
