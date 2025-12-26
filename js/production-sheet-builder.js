@@ -1296,10 +1296,10 @@ async function generatePreview() {
     html += generateMaterialsSection();
     
     // DRAWINGS
-    html += generateDrawingsSection();
+    html += await generateDrawingsSection();
     
     // PHOTOS
-    html += generatePhotosSection();
+    html += await generatePhotosSection();
     
     // SPRAY PACK
     html += generateSprayPackSection();
@@ -1742,7 +1742,7 @@ function generateMaterialsSection() {
     return html;
 }
 
-function generateDrawingsSection() {
+async function generateDrawingsSection() {
     const sectionNum = ++pdfSectionNumber;
     
     // Find drawings attachment
@@ -1750,30 +1750,76 @@ function generateDrawingsSection() {
     const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
     
     let html = `
-        <div style="margin-bottom: 30px;">
+        <div style="margin-bottom: 30px; page-break-before: always;">
             <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Drawings</h2>
     `;
     
+    // Get file to embed
+    let fileToEmbed = null;
     if (drawingsAttachment) {
-        html += `
-            <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 15px;">
-                <strong style="color: #2e7d32;">📐 Linked Drawing:</strong>
-                <div style="margin-top: 8px;">
-                    <a href="${drawingsAttachment.file_url}" target="_blank" style="color: #1976d2; text-decoration: underline;">
-                        ${drawingsAttachment.file_name || 'View Drawing'}
-                    </a>
-                </div>
-            </div>
-        `;
+        fileToEmbed = {
+            url: drawingsAttachment.file_url,
+            name: drawingsAttachment.file_name || 'drawing'
+        };
     } else if (drawingsFromFiles.length > 0) {
-        html += `
-            <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-bottom: 15px;">
-                <strong style="color: #1565c0;">📐 Project Drawings (${drawingsFromFiles.length} file${drawingsFromFiles.length > 1 ? 's' : ''}):</strong>
-                <ul style="margin: 10px 0 0 20px;">
-                    ${drawingsFromFiles.map(f => `<li>${f.file_name}</li>`).join('')}
-                </ul>
-            </div>
-        `;
+        // Get public URL for first drawing file
+        const firstFile = drawingsFromFiles[0];
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(firstFile.file_path);
+        fileToEmbed = {
+            url: urlData.publicUrl,
+            name: firstFile.file_name
+        };
+    }
+    
+    if (fileToEmbed) {
+        const fileName = fileToEmbed.name.toLowerCase();
+        const isPdf = fileName.endsWith('.pdf');
+        const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+        
+        html += `<div style="text-align: center; margin: 15px 0;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 10px;">📄 ${fileToEmbed.name}</div>`;
+        
+        if (isImage) {
+            // Embed image directly
+            html += `<img src="${fileToEmbed.url}" style="max-width: 100%; max-height: 800px; border: 1px solid #ddd;" crossorigin="anonymous" />`;
+        } else if (isPdf) {
+            // Render PDF pages as images
+            try {
+                const images = await renderPdfToImages(fileToEmbed.url);
+                if (images.length > 0) {
+                    html += images.map((imgData, i) => `
+                        <div style="margin-bottom: 20px; ${i > 0 ? 'page-break-before: always;' : ''}">
+                            <div style="font-size: 10px; color: #999; margin-bottom: 5px;">Page ${i + 1} of ${images.length}</div>
+                            <img src="${imgData}" style="max-width: 100%; border: 1px solid #ddd;" />
+                        </div>
+                    `).join('');
+                } else {
+                    html += `<div style="color: #f59e0b;">⚠️ Could not render PDF. <a href="${fileToEmbed.url}" target="_blank">Open PDF</a></div>`;
+                }
+            } catch (err) {
+                console.error('PDF render error:', err);
+                html += `<div style="color: #f59e0b;">⚠️ Could not render PDF. <a href="${fileToEmbed.url}" target="_blank">Open PDF</a></div>`;
+            }
+        } else {
+            // Unknown format - show link
+            html += `<a href="${fileToEmbed.url}" target="_blank" style="color: #1976d2;">Download ${fileToEmbed.name}</a>`;
+        }
+        
+        html += `</div>`;
+        
+        // Show additional files if more than one
+        if (drawingsFromFiles.length > 1) {
+            html += `
+                <div style="background: #f5f5f5; padding: 10px; margin-top: 15px; font-size: 11px;">
+                    <strong>Additional drawings in project:</strong>
+                    <ul style="margin: 5px 0 0 20px;">
+                        ${drawingsFromFiles.slice(1).map(f => `<li>${f.file_name}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
     } else {
         html += `<div style="color: #ef4444; font-style: italic;">⚠️ No drawings attached - required!</div>`;
     }
@@ -1782,7 +1828,43 @@ function generateDrawingsSection() {
     return html;
 }
 
-function generatePhotosSection() {
+// Render PDF to array of base64 images
+async function renderPdfToImages(url, scale = 1.5) {
+    const images = [];
+    
+    try {
+        // Load PDF
+        const loadingTask = pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        
+        // Render each page
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale });
+            
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            // Render page to canvas
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+            
+            // Convert to base64 image
+            images.push(canvas.toDataURL('image/jpeg', 0.9));
+        }
+    } catch (err) {
+        console.error('Error rendering PDF:', err);
+    }
+    
+    return images;
+}
+
+async function generatePhotosSection() {
     const sectionNum = ++pdfSectionNumber;
     
     // Find photos attachment
@@ -1795,32 +1877,46 @@ function generatePhotosSection() {
     }
     
     let html = `
-        <div style="margin-bottom: 30px;">
+        <div style="margin-bottom: 30px; page-break-before: always;">
             <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Reference Photos</h2>
     `;
     
+    // Collect all photos to embed
+    let photosToEmbed = [];
+    
     if (photosAttachment) {
-        html += `
-            <div style="background: #fce4ec; border-left: 4px solid #e91e63; padding: 15px; margin-bottom: 15px;">
-                <strong style="color: #c2185b;">📷 Linked Photo:</strong>
-                <div style="margin-top: 8px;">
-                    <a href="${photosAttachment.file_url}" target="_blank" style="color: #1976d2; text-decoration: underline;">
-                        ${photosAttachment.file_name || 'View Photo'}
-                    </a>
-                </div>
-            </div>
-        `;
+        photosToEmbed.push({
+            url: photosAttachment.file_url,
+            name: photosAttachment.file_name || 'photo'
+        });
     }
     
-    if (photosFromFiles.length > 0) {
-        html += `
-            <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 15px;">
-                <strong style="color: #e65100;">📷 Project Photos (${photosFromFiles.length} file${photosFromFiles.length > 1 ? 's' : ''}):</strong>
-                <ul style="margin: 10px 0 0 20px;">
-                    ${photosFromFiles.map(f => `<li>${f.file_name}</li>`).join('')}
-                </ul>
-            </div>
-        `;
+    // Add photos from project files
+    for (const file of photosFromFiles) {
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        photosToEmbed.push({
+            url: urlData.publicUrl,
+            name: file.file_name
+        });
+    }
+    
+    // Embed each photo
+    for (const photo of photosToEmbed) {
+        const fileName = photo.name.toLowerCase();
+        const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+        
+        html += `<div style="margin-bottom: 20px; text-align: center;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 5px;">📷 ${photo.name}</div>`;
+        
+        if (isImage) {
+            html += `<img src="${photo.url}" style="max-width: 100%; max-height: 600px; border: 1px solid #ddd;" crossorigin="anonymous" />`;
+        } else {
+            html += `<a href="${photo.url}" target="_blank" style="color: #1976d2;">View ${photo.name}</a>`;
+        }
+        
+        html += `</div>`;
     }
     
     html += `</div>`;
