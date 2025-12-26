@@ -470,7 +470,7 @@ function addCopyrightFooter() {
     
     const year = new Date().getFullYear();
     footer.innerHTML = `
-        <span>© ${year} Skylon Development. All rights reserved.</span>
+        <span>© ${year} Skylon Development LTD. All rights reserved.</span>
         <span style="color: #555;">Joinery Core v1.0</span>
     `;
     
