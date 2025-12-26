@@ -9,6 +9,7 @@ let currentSheet = null;
 let checklistItems = [];
 let checklistStatus = {};
 let scopeDescription = ''; // Production manager's description
+let sprayDescription = ''; // Spray instructions
 let projectData = {
     project: null,
     client: null,
@@ -61,7 +62,7 @@ const CHECKLIST_SECTIONS = [
         title: 'Drawings',
         icon: '📐',
         items: [
-            { key: 'ATT_DRAWINGS_MAIN', label: 'Main Drawings (PDF)', source: 'UPLOAD', required: true, uploadType: 'DRAWINGS_MAIN', accept: '.pdf' }
+            { key: 'ATT_DRAWINGS_MAIN', label: 'Main Drawings (PDF)', source: 'SELECT_FILE', required: true, fileFolder: 'drawings' }
         ]
     },
     {
@@ -69,7 +70,7 @@ const CHECKLIST_SECTIONS = [
         title: 'Photos',
         icon: '📷',
         items: [
-            { key: 'ATT_PHOTOS', label: 'Reference Photos', source: 'UPLOAD', required: false, uploadType: 'PHOTOS', accept: '.jpg,.jpeg,.png,.pdf' }
+            { key: 'ATT_PHOTOS', label: 'Reference Photos', source: 'SELECT_FILE', required: false, fileFolder: 'photos' }
         ]
     },
     {
@@ -77,9 +78,7 @@ const CHECKLIST_SECTIONS = [
         title: 'Materials',
         icon: '🪵',
         items: [
-            { key: 'MAT_PRODUCTION', label: 'Production Materials', source: 'AUTO', required: true, goTo: 'materials' },
-            { key: 'MAT_SPRAYING', label: 'Spraying Materials', source: 'AUTO', required: false },
-            { key: 'MAT_INSTALLATION', label: 'Installation Materials', source: 'AUTO', required: false }
+            { key: 'MAT_LIST', label: 'Materials List', source: 'AUTO', required: true, showMaterialsPdf: true }
         ]
     },
     {
@@ -88,7 +87,9 @@ const CHECKLIST_SECTIONS = [
         icon: '🎨',
         conditional: true, // tylko jeśli projekt ma fazę spray
         items: [
-            { key: 'SPRAY_COLORS', label: 'Colour Codes', source: 'UPLOAD', required: true, uploadType: 'SPRAY_COLORS', accept: '.pdf,.jpg,.jpeg,.png' }
+            { key: 'SPRAY_DESCRIPTION', label: 'Spray Instructions', source: 'MANUAL', required: false, isSprayText: true },
+            { key: 'SPRAY_COLORS', label: 'Colour Reference', source: 'SELECT_FILE', required: false, fileFolder: 'spray' },
+            { key: 'SPRAY_DISCLAIMER', label: 'Spraying Manager Notice', source: 'INFO', required: false, isDisclaimer: true }
         ]
     },
     {
@@ -130,6 +131,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     await loadAllData();
     buildChecklist();
     updateDescriptionUI(); // Update description button if text exists
+    updateSprayUI(); // Update spray button if text exists
     await checkAllItems();
     updateProgress();
     generatePreview();
@@ -230,6 +232,10 @@ async function loadAllData() {
             if (existingSheet.snapshot_json?.scopeDescription) {
                 scopeDescription = existingSheet.snapshot_json.scopeDescription;
             }
+            // Load sprayDescription from snapshot if exists
+            if (existingSheet.snapshot_json?.sprayDescription) {
+                sprayDescription = existingSheet.snapshot_json.sprayDescription;
+            }
         }
         
     } catch (err) {
@@ -328,10 +334,54 @@ function createChecklistItem(item, sectionKey) {
         return div;
     }
     
+    // Special handling for Materials PDF
+    if (item.showMaterialsPdf) {
+        div.innerHTML = `
+            <div class="ps-item-icon" id="icon-${item.key}">⏳</div>
+            <div class="ps-item-content">
+                <div class="ps-item-label">${item.label}</div>
+                <div class="ps-item-meta" id="meta-${item.key}">Loading...</div>
+            </div>
+            <button class="ps-item-action go" onclick="openMaterialsPdf()">📄 View PDF</button>
+        `;
+        return div;
+    }
+    
+    // Special handling for Spray Instructions (opens modal)
+    if (item.isSprayText) {
+        div.innerHTML = `
+            <div class="ps-item-icon" id="icon-${item.key}">✏️</div>
+            <div class="ps-item-content">
+                <div class="ps-item-label">${item.label}</div>
+                <div class="ps-item-meta" id="meta-${item.key}">Click to add • Optional</div>
+            </div>
+            <button class="ps-item-action go" id="btn-${item.key}" onclick="openSprayModal()">+ Add</button>
+        `;
+        return div;
+    }
+    
+    // Special handling for Disclaimer
+    if (item.isDisclaimer) {
+        div.style.background = '#2d2d30';
+        div.style.borderLeft = '3px solid #f59e0b';
+        div.innerHTML = `
+            <div class="ps-item-icon">⚠️</div>
+            <div class="ps-item-content">
+                <div class="ps-item-label" style="color: #f59e0b;">${item.label}</div>
+                <div class="ps-item-meta" style="color: #888; font-size: 11px; line-height: 1.4; margin-top: 5px;">
+                    Please review ALL project documentation - there may be important information for spraying in other sections.
+                </div>
+            </div>
+        `;
+        return div;
+    }
+    
     // Determine action button (standard items)
     let actionBtn = '';
     if (item.source === 'UPLOAD') {
         actionBtn = `<button class="ps-item-action upload" onclick="openUploadModal('${item.key}', '${item.uploadType}', '${item.accept || ''}')">📁 Upload</button>`;
+    } else if (item.source === 'SELECT_FILE') {
+        actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openSelectFilesModal('${item.key}', '${item.fileFolder}')">📁 Select</button>`;
     } else if (item.goTo) {
         actionBtn = `<button class="ps-item-action go" onclick="goToSection('${item.goTo}')">→ Go</button>`;
     }
@@ -362,6 +412,200 @@ function closeDescriptionModal() {
     document.getElementById('psDescriptionModal').classList.remove('active');
 }
 
+// ========== MATERIALS PDF ==========
+function openMaterialsPdf() {
+    // Open materials PDF in new tab - uses the existing MAT button functionality
+    const url = `generate-materials-pdf.html?project_id=${projectId}&stage=${projectStage}`;
+    window.open(url, '_blank');
+}
+
+// ========== SELECT FILES MODAL ==========
+let currentSelectKey = null;
+let currentSelectFolder = null;
+
+function openSelectFilesModal(key, folder) {
+    currentSelectKey = key;
+    currentSelectFolder = folder;
+    
+    document.getElementById('psSelectDrawingsModal').classList.add('active');
+    loadProjectFiles(folder);
+}
+
+function closeSelectDrawingsModal() {
+    document.getElementById('psSelectDrawingsModal').classList.remove('active');
+    currentSelectKey = null;
+    currentSelectFolder = null;
+}
+
+async function loadProjectFiles(folder) {
+    const container = document.getElementById('drawingsFilesList');
+    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading files...</div>';
+    
+    // Filter files by folder
+    const folderFiles = projectData.files.filter(f => f.folder_name === folder);
+    
+    // Also check already selected attachments
+    const selectedFile = projectData.attachments.find(a => 
+        a.attachment_type === (folder === 'drawings' ? 'DRAWINGS_MAIN' : 'PHOTOS')
+    );
+    
+    if (folderFiles.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
+                <div>No files in "${folder}" folder.</div>
+                <div style="font-size: 11px; margin-top: 5px;">Upload a new file below.</div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = folderFiles.map(file => {
+        const isSelected = selectedFile?.file_url === file.file_url || 
+                          selectedFile?.file_name === file.file_name;
+        const fileExt = file.file_name?.split('.').pop()?.toUpperCase() || 'FILE';
+        
+        return `
+            <div class="file-select-item" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: ${isSelected ? '#1a3a1a' : '#252526'}; border: 1px solid ${isSelected ? '#22c55e' : '#3e3e42'}; border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="selectProjectFile('${file.id}', '${file.file_url}', '${file.file_name?.replace(/'/g, "\\'")}')">
+                <div style="width: 40px; height: 40px; background: #3e3e42; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #888;">
+                    ${fileExt}
+                </div>
+                <div style="flex: 1;">
+                    <div style="color: #e8e2d5; font-size: 13px;">${file.file_name || 'Unnamed file'}</div>
+                    <div style="color: #666; font-size: 11px;">${file.description || folder}</div>
+                </div>
+                ${isSelected ? '<div style="color: #22c55e; font-size: 18px;">✓</div>' : '<div style="color: #4a9eff; font-size: 12px;">Select</div>'}
+            </div>
+        `;
+    }).join('');
+}
+
+async function selectProjectFile(fileId, fileUrl, fileName) {
+    showToast('Linking file...', 'info');
+    
+    try {
+        // Ensure we have a sheet
+        if (!currentSheet) {
+            await createDraftSheet();
+        }
+        
+        const attachmentType = currentSelectFolder === 'drawings' ? 'DRAWINGS_MAIN' : 'PHOTOS';
+        
+        // Remove old attachment of this type
+        const oldAttachments = projectData.attachments.filter(a => a.attachment_type === attachmentType);
+        for (const old of oldAttachments) {
+            await supabaseClient
+                .from('production_sheet_attachments')
+                .delete()
+                .eq('id', old.id);
+        }
+        projectData.attachments = projectData.attachments.filter(a => a.attachment_type !== attachmentType);
+        
+        // Create new attachment record (linking to existing file)
+        const { data: attachment, error } = await supabaseClient
+            .from('production_sheet_attachments')
+            .insert({
+                sheet_id: currentSheet.id,
+                attachment_type: attachmentType,
+                file_name: fileName,
+                file_url: fileUrl,
+                file_size: 0,
+                file_type: 'linked'
+            })
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        projectData.attachments.push(attachment);
+        
+        showToast('File linked!', 'success');
+        closeSelectDrawingsModal();
+        
+        // Update UI
+        await checkAllItems();
+        updateProgress();
+        generatePreview();
+        
+    } catch (err) {
+        console.error('Error linking file:', err);
+        showToast('Error: ' + err.message, 'error');
+    }
+}
+
+async function handleNewDrawingUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    showToast('Uploading file...', 'info');
+    
+    try {
+        // Ensure we have a sheet
+        if (!currentSheet) {
+            await createDraftSheet();
+        }
+        
+        const attachmentType = currentSelectFolder === 'drawings' ? 'DRAWINGS_MAIN' : 'PHOTOS';
+        
+        // Remove old attachment
+        const oldAttachments = projectData.attachments.filter(a => a.attachment_type === attachmentType);
+        for (const old of oldAttachments) {
+            await supabaseClient
+                .from('production_sheet_attachments')
+                .delete()
+                .eq('id', old.id);
+        }
+        projectData.attachments = projectData.attachments.filter(a => a.attachment_type !== attachmentType);
+        
+        // Upload to Supabase Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${attachmentType}_${Date.now()}.${fileExt}`;
+        const filePath = `production-sheets/${currentSheet.id}/${fileName}`;
+        
+        const { error: uploadError } = await supabaseClient.storage
+            .from('project-files')
+            .upload(filePath, file);
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: urlData } = supabaseClient.storage
+            .from('project-files')
+            .getPublicUrl(filePath);
+        
+        // Save attachment record
+        const { data: attachment, error } = await supabaseClient
+            .from('production_sheet_attachments')
+            .insert({
+                sheet_id: currentSheet.id,
+                attachment_type: attachmentType,
+                file_name: file.name,
+                file_url: urlData.publicUrl,
+                file_size: file.size,
+                file_type: file.type
+            })
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        projectData.attachments.push(attachment);
+        
+        showToast('File uploaded!', 'success');
+        closeSelectDrawingsModal();
+        
+        await checkAllItems();
+        updateProgress();
+        generatePreview();
+        
+    } catch (err) {
+        console.error('Upload error:', err);
+        showToast('Error: ' + err.message, 'error');
+    }
+    
+    // Reset input
+    event.target.value = '';
+}
+
 function saveDescription() {
     scopeDescription = document.getElementById('descriptionModalText').value;
     closeDescriptionModal();
@@ -373,6 +617,47 @@ function saveDescription() {
     generatePreview();
     
     showToast('Description saved!', 'success');
+}
+
+// ========== SPRAY MODAL ==========
+function openSprayModal() {
+    document.getElementById('sprayModalText').value = sprayDescription;
+    document.getElementById('psSprayModal').classList.add('active');
+}
+
+function closeSprayModal() {
+    document.getElementById('psSprayModal').classList.remove('active');
+}
+
+function saveSprayDescription() {
+    sprayDescription = document.getElementById('sprayModalText').value;
+    closeSprayModal();
+    
+    // Update UI
+    updateSprayUI();
+    checkAllItems();
+    updateProgress();
+    generatePreview();
+    
+    showToast('Spray instructions saved!', 'success');
+}
+
+function updateSprayUI() {
+    const metaEl = document.getElementById('meta-SPRAY_DESCRIPTION');
+    const btnEl = document.getElementById('btn-SPRAY_DESCRIPTION');
+    const iconEl = document.getElementById('icon-SPRAY_DESCRIPTION');
+    
+    if (!metaEl || !btnEl || !iconEl) return; // May not exist if no spray phase
+    
+    if (sprayDescription.trim()) {
+        metaEl.textContent = `${sprayDescription.trim().length} characters`;
+        btnEl.textContent = '✎ Edit';
+        iconEl.textContent = '✅';
+    } else {
+        metaEl.textContent = 'Click to add • Optional';
+        btnEl.textContent = '+ Add';
+        iconEl.textContent = '✏️';
+    }
 }
 
 function updateDescriptionUI() {
@@ -498,29 +783,31 @@ async function checkItem(item) {
             break;
             
         // MATERIALS
-        case 'MAT_PRODUCTION':
-            const prodMats = projectData.materials.filter(m => m.used_in_stage === 'Production');
-            result.done = prodMats.length > 0;
-            result.meta = `${prodMats.length} item(s)`;
-            break;
-            
-        case 'MAT_SPRAYING':
-            const sprayMats = projectData.materials.filter(m => m.used_in_stage === 'Spraying');
-            result.done = true; // Optional
-            result.meta = `${sprayMats.length} item(s)`;
-            break;
-            
-        case 'MAT_INSTALLATION':
-            const instMats = projectData.materials.filter(m => m.used_in_stage === 'Installation');
-            result.done = true; // Optional
-            result.meta = `${instMats.length} item(s)`;
+        case 'MAT_LIST':
+            const totalMats = projectData.materials.length;
+            const prodMats = projectData.materials.filter(m => m.used_in_stage === 'Production').length;
+            const sprayMats = projectData.materials.filter(m => m.used_in_stage === 'Spraying').length;
+            const instMats = projectData.materials.filter(m => m.used_in_stage === 'Installation').length;
+            result.done = totalMats > 0;
+            result.meta = `${totalMats} total (Prod: ${prodMats}, Spray: ${sprayMats}, Install: ${instMats})`;
             break;
             
         // SPRAY
+        case 'SPRAY_DESCRIPTION':
+            result.done = sprayDescription.trim().length > 0;
+            result.meta = sprayDescription.trim().length > 0 ? `${sprayDescription.trim().length} characters` : 'Optional';
+            break;
+            
         case 'SPRAY_COLORS':
-            const hasSprayColors = projectData.attachments.some(a => a.attachment_type === 'SPRAY_COLORS');
+            const hasSprayColors = projectData.attachments.some(a => a.attachment_type === 'SPRAY_COLORS') ||
+                                   projectData.files.some(f => f.folder_name === 'spray');
             result.done = hasSprayColors;
-            result.meta = hasSprayColors ? 'Uploaded' : 'Required for spray projects';
+            result.meta = hasSprayColors ? 'Selected' : 'Optional';
+            break;
+            
+        case 'SPRAY_DISCLAIMER':
+            result.done = true; // Always shown as info
+            result.meta = 'Information';
             break;
             
         // ROUTING
@@ -828,7 +1115,8 @@ async function saveAndClose() {
         
         // Build partial snapshot with editable fields
         const partialSnapshot = {
-            scopeDescription: scopeDescription
+            scopeDescription: scopeDescription,
+            sprayDescription: sprayDescription
         };
         
         // Save current state to sheet
@@ -1301,10 +1589,25 @@ function generateSprayPackSection() {
         <div style="margin-bottom: 30px; page-break-inside: avoid;">
             <h2 style="color: #333; border-bottom: 2px solid #8b5cf6; padding-bottom: 10px;">${sectionNum}. 🎨 Spray / Finish Pack</h2>
             
+            <!-- DISCLAIMER -->
+            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <strong style="color: #856404;">⚠️ SPRAYING MANAGER NOTICE:</strong>
+                <p style="margin: 10px 0 0 0; color: #856404; font-size: 12px;">
+                    Please review ALL project documentation - there may be important information for spraying in other sections (Scope, Notes, BOM, etc).
+                </p>
+            </div>
+            
+            ${sprayDescription.trim() ? `
+                <div style="background: #e8f5e9; border-left: 4px solid #22c55e; padding: 15px; margin-bottom: 20px;">
+                    <strong style="color: #1b5e20;">📋 Spray Instructions:</strong>
+                    <div style="white-space: pre-wrap; margin-top: 10px; color: #333;">${sprayDescription}</div>
+                </div>
+            ` : ''}
+            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <!-- Colour Codes -->
                 <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
-                    <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">Colour Codes</h3>
+                    <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">Colour Codes (from BOM)</h3>
                     ${colours.length > 0 ? `
                         <ul style="margin: 0; padding-left: 20px;">
                             ${colours.map(c => `<li style="margin-bottom: 5px;"><strong>${c}</strong></li>`).join('')}
@@ -1312,11 +1615,10 @@ function generateSprayPackSection() {
                     ` : `<div style="color: #666; font-style: italic;">No colours specified in elements</div>`}
                 </div>
                 
-                <!-- Finish Instructions -->
+                <!-- Manual Notes Area -->
                 <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
-                    <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">Finish Instructions</h3>
+                    <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">Additional Notes</h3>
                     <div style="background: #ffffcc; padding: 10px; border-radius: 4px; min-height: 60px;">
-                        <div style="color: #666; font-size: 10px;">Notes / instructions:</div>
                         <div style="border-bottom: 1px solid #ccc; margin-top: 15px;"></div>
                         <div style="border-bottom: 1px solid #ccc; margin-top: 15px;"></div>
                         <div style="border-bottom: 1px solid #ccc; margin-top: 15px;"></div>
@@ -1325,8 +1627,8 @@ function generateSprayPackSection() {
             </div>
             
             ${sprayAttachment ? `
-                <div style="background: #e8f5e9; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                    <strong>📎 Colour Reference:</strong> ${sprayAttachment.file_name}
+                <div style="background: #e3f2fd; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                    <strong>📎 Colour Reference File:</strong> ${sprayAttachment.file_name}
                     <span style="color: #666; font-size: 11px;">(see attached)</span>
                 </div>
             ` : ''}
