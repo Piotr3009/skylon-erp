@@ -1275,47 +1275,670 @@ async function generatePreview() {
     const container = document.getElementById('psPdfPreview');
     pdfSectionNumber = 0; // Reset counter
     
-    let html = `<div style="font-family: Arial, sans-serif; font-size: 12px; line-height: 1.5;">`;
+    // Load company logo
+    let logoUrl = null;
+    try {
+        const { data: settings } = await supabaseClient
+            .from('company_settings')
+            .select('logo_url')
+            .single();
+        logoUrl = settings?.logo_url || null;
+    } catch (err) {
+        console.log('No company logo found');
+    }
     
-    // COVER PAGE
-    html += generateCoverPage();
+    let pages = [];
     
-    // TABLE OF CONTENTS
-    html += generateTOC();
+    // PAGE 1: Cover + Contents
+    pages.push(generateCoverPageNew(logoUrl));
     
-    // SCOPE & NOTES
-    html += generateScopeSection();
+    // PAGE 2: Scope & Notes
+    pages.push(generateScopePage());
     
-    // BOM
-    html += generateBOMSection();
+    // PAGE 3: BOM
+    pages.push(generateBOMPage());
     
-    // CUT LIST
-    html += generateCutListSection();
+    // PAGE 4: Cut List
+    pages.push(generateCutListPage());
     
-    // MATERIALS
-    html += generateMaterialsSection();
+    // PAGE 5: Materials
+    pages.push(generateMaterialsPage());
     
-    // DRAWINGS
-    html += await generateDrawingsSection();
+    // PAGE 6+: Drawings (may be multiple pages)
+    const drawingPages = await generateDrawingPages();
+    pages.push(...drawingPages);
     
-    // PHOTOS
-    html += await generatePhotosSection();
+    // PAGE: Photos (if any)
+    const photoPages = await generatePhotoPages();
+    pages.push(...photoPages);
     
-    // SPRAY PACK
-    html += generateSprayPackSection();
+    // PAGE: Spray Pack (if applicable)
+    const sprayPage = generateSprayPage();
+    if (sprayPage) pages.push(sprayPage);
     
-    // ROUTING
-    html += generateRoutingSection();
+    // PAGE: Phases / Timeline
+    pages.push(generatePhasesPage());
     
-    // BLOCKERS
-    html += generateBlockersSection();
+    // PAGE: Blockers
+    pages.push(generateBlockersPage());
     
-    // QC + SIGN-OFF
-    html += generateQCSection();
+    // PAGE: QC & Sign-off
+    pages.push(generateQCPage());
     
-    html += `</div>`;
+    // Build HTML with all pages
+    const totalPages = pages.length;
+    let html = pages.map((pageContent, idx) => `
+        <div class="ps-page" data-page="${idx + 1}">
+            <div class="ps-page-header">Page ${idx + 1} of ${totalPages}</div>
+            ${pageContent}
+        </div>
+    `).join('');
     
     container.innerHTML = html;
+}
+
+// ========== PAGE 1: COVER + CONTENTS ==========
+function generateCoverPageNew(logoUrl) {
+    const project = projectData.project;
+    const client = projectData.client;
+    const isIncomplete = !checklistItems.filter(i => i.required).every(i => checklistStatus[i.key]?.done);
+    
+    // Build contents list
+    const hasSprayPhase = projectData.phases.some(p => 
+        p.phase_key && p.phase_key.toLowerCase().includes('spray')
+    );
+    const hasPhotos = projectData.attachments.some(a => a.attachment_type === 'PHOTOS') ||
+                     projectData.files.some(f => f.folder_name === 'photos');
+    
+    const sections = [
+        'Scope & Notes',
+        'Elements (BOM)',
+        'Cut List',
+        'Materials',
+        'Drawings'
+    ];
+    if (hasPhotos) sections.push('Reference Photos');
+    if (hasSprayPhase) sections.push('Spray / Finish Pack');
+    sections.push('Phases / Timeline');
+    sections.push('Blockers');
+    sections.push('QC Checklist & Sign-off');
+    
+    return `
+        ${isIncomplete ? '<div class="ps-incomplete-banner">⚠️ INCOMPLETE - Some required items are missing</div>' : ''}
+        
+        <div class="ps-cover-top">
+            <div class="ps-cover-logo">
+                ${logoUrl ? `<img src="${logoUrl}" alt="Company Logo" crossorigin="anonymous" />` : '<div style="width:150px;height:150px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;border:2px dashed #ccc;">No Logo</div>'}
+            </div>
+            <div class="ps-cover-info">
+                <div class="ps-cover-title">PRODUCTION SHEET</div>
+                <div class="ps-cover-project">${project?.project_number || 'N/A'}</div>
+                <div class="ps-cover-name">${project?.name || 'Untitled Project'}</div>
+                
+                <div class="ps-cover-details">
+                    <div class="ps-cover-detail"><strong>Client:</strong> ${client?.company_name || 'N/A'}</div>
+                    <div class="ps-cover-detail"><strong>Contact:</strong> ${client?.contact_person || 'N/A'}</div>
+                    <div class="ps-cover-detail"><strong>Type:</strong> ${project?.type || 'N/A'}</div>
+                    <div class="ps-cover-detail"><strong>Deadline:</strong> ${project?.deadline ? new Date(project.deadline).toLocaleDateString('en-GB') : 'N/A'}</div>
+                    <div class="ps-cover-detail"><strong>Version:</strong> PS v${currentSheet?.version || 1}</div>
+                    <div class="ps-cover-detail"><strong>Status:</strong> ${isIncomplete ? '<span style="color:#ef4444;">Incomplete</span>' : '<span style="color:#22c55e;">Complete</span>'}</div>
+                </div>
+                
+                <div style="margin-top: 40px; font-size: 11px; color: #666;">
+                    Generated: ${new Date().toLocaleString('en-GB')}<br>
+                    Joinery Core by Skylon Development LTD
+                </div>
+            </div>
+        </div>
+        
+        <div class="ps-cover-bottom">
+            <h2>Contents</h2>
+            <div class="ps-contents-grid">
+                ${sections.map((s, i) => `<div class="ps-contents-item">${i + 1}. ${s}</div>`).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// ========== PAGE 2: SCOPE & NOTES ==========
+function generateScopePage() {
+    const project = projectData.project;
+    const notesRaw = project?.notes || '';
+    const allNotes = parseProjectNotesPS(notesRaw);
+    const importantNotes = allNotes.filter(n => n.important === true);
+    
+    const importantNotesHtml = importantNotes.length > 0 
+        ? importantNotes.map((note, idx) => {
+            const isEdited = editedNotes[idx] !== undefined;
+            const displayText = isEdited ? editedNotes[idx] : (note.text || '');
+            return `<div style="margin-bottom: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107;">
+                <div style="font-size: 11px; color: #856404; margin-bottom: 8px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '<span style="color: #22c55e;">(edited for PS)</span>' : ''}</div>
+                <div style="white-space: pre-wrap; font-size: 13px;">${displayText}</div>
+            </div>`;
+        }).join('')
+        : '<div style="color: #666; font-style: italic;">No important notes flagged.</div>';
+    
+    return `
+        <h1 class="ps-section-title">1. Scope & Notes</h1>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+                <h3 style="color: #333; margin-bottom: 15px;">Project Type</h3>
+                <div style="font-size: 16px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                    ${project?.type || 'N/A'}
+                </div>
+                
+                ${scopeDescription.trim() ? `
+                    <h3 style="color: #333; margin: 25px 0 15px 0;">Production Description</h3>
+                    <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3;">
+                        <div style="white-space: pre-wrap; font-size: 13px;">${scopeDescription}</div>
+                    </div>
+                ` : ''}
+            </div>
+            
+            <div>
+                <h3 style="color: #333; margin-bottom: 15px;">Important Notes</h3>
+                ${importantNotesHtml}
+            </div>
+        </div>
+    `;
+}
+
+// ========== PAGE 3: BOM ==========
+function generateBOMPage() {
+    const elements = projectData.elements;
+    
+    let tableRows = '';
+    if (elements.length > 0) {
+        tableRows = elements.map((el, idx) => `
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${idx + 1}</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">${el.name || 'N/A'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">${el.element_type || 'N/A'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${el.width || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${el.height || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">${el.material || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">${el.glass_spec || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">${el.notes || '-'}</td>
+            </tr>
+        `).join('');
+    } else {
+        tableRows = '<tr><td colspan="8" style="border: 1px solid #ddd; padding: 20px; text-align: center; color: #666;">No elements defined. Add elements in the checklist.</td></tr>';
+    }
+    
+    return `
+        <h1 class="ps-section-title">2. Elements (BOM)</h1>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+                <tr style="background: #4a9eff; color: white;">
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center; width: 40px;">#</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Name</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Type</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">W (mm)</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">H (mm)</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Material</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Glass</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 20px; font-size: 11px; color: #666;">
+            Total elements: ${elements.length}
+        </div>
+    `;
+}
+
+// ========== PAGE 4: CUT LIST ==========
+function generateCutListPage() {
+    const elements = projectData.elements;
+    
+    // Generate blank cut list rows
+    const rowCount = Math.max(elements.length * 3, 10);
+    let rows = '';
+    for (let i = 0; i < rowCount; i++) {
+        rows += `
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px; height: 25px;"></td>
+                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;"><div style="width: 18px; height: 18px; border: 2px solid #333; margin: 0 auto;"></div></td>
+            </tr>
+        `;
+    }
+    
+    return `
+        <h1 class="ps-section-title">3. Cut List</h1>
+        
+        <p style="color: #666; margin-bottom: 15px; font-size: 12px;">
+            Fill in timber dimensions. Reference BOM for element specifications.
+        </p>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+                <tr style="background: #f5f5f5;">
+                    <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 25%;">Element</th>
+                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Qty</th>
+                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Length</th>
+                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Width</th>
+                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center; width: 60px;">✓</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+    `;
+}
+
+// ========== PAGE 5: MATERIALS ==========
+function generateMaterialsPage() {
+    const materials = projectData.materials;
+    
+    const byStage = {
+        'Production': materials.filter(m => m.used_in_stage === 'Production'),
+        'Spraying': materials.filter(m => m.used_in_stage === 'Spraying'),
+        'Installation': materials.filter(m => m.used_in_stage === 'Installation')
+    };
+    
+    let html = `<h1 class="ps-section-title">4. Materials</h1>`;
+    
+    if (materials.length === 0) {
+        html += '<div style="color: #666; font-style: italic; padding: 20px;">No materials assigned to this project.</div>';
+        return html;
+    }
+    
+    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">';
+    
+    Object.entries(byStage).forEach(([stage, mats]) => {
+        html += `<div>
+            <h3 style="color: #333; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid ${stage === 'Production' ? '#4a9eff' : stage === 'Spraying' ? '#f59e0b' : '#22c55e'};">${stage}</h3>`;
+        
+        if (mats.length > 0) {
+            html += '<table style="width: 100%; border-collapse: collapse; font-size: 11px;">';
+            html += `<thead><tr style="background: #f5f5f5;">
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Qty</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">✓</th>
+            </tr></thead><tbody>`;
+            
+            mats.forEach(m => {
+                const itemName = m.stock_items?.name || m.item_name || 'Unknown';
+                const unit = m.unit || m.stock_items?.unit || '';
+                html += `<tr>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${itemName}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.quantity_needed} ${unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+        } else {
+            html += '<div style="color: #999; font-size: 11px; padding: 10px;">No materials</div>';
+        }
+        
+        html += '</div>';
+    });
+    
+    html += '</div>';
+    
+    return html;
+}
+
+// ========== PAGES: DRAWINGS ==========
+async function generateDrawingPages() {
+    const pages = [];
+    
+    const drawingsAttachment = projectData.attachments.find(a => a.attachment_type === 'DRAWINGS_MAIN');
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    
+    let fileToEmbed = null;
+    if (drawingsAttachment) {
+        fileToEmbed = {
+            url: drawingsAttachment.file_url,
+            name: drawingsAttachment.file_name || 'drawing'
+        };
+    } else if (drawingsFromFiles.length > 0) {
+        const firstFile = drawingsFromFiles[0];
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(firstFile.file_path);
+        fileToEmbed = {
+            url: urlData.publicUrl,
+            name: firstFile.file_name
+        };
+    }
+    
+    if (!fileToEmbed) {
+        // No drawings - show warning page
+        pages.push(`
+            <h1 class="ps-section-title">5. Drawings</h1>
+            <div style="padding: 40px; text-align: center; color: #ef4444;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <div style="font-size: 18px;">No drawings attached</div>
+                <div style="font-size: 14px; color: #666; margin-top: 10px;">This is a required item. Please add drawings before finalizing.</div>
+            </div>
+        `);
+        return pages;
+    }
+    
+    const fileName = fileToEmbed.name.toLowerCase();
+    const isPdf = fileName.endsWith('.pdf');
+    const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+    
+    if (isImage) {
+        pages.push(`
+            <h1 class="ps-section-title">5. Drawings</h1>
+            <div class="ps-drawing-full">
+                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${fileToEmbed.name}</div>
+                <img src="${fileToEmbed.url}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" crossorigin="anonymous" />
+            </div>
+        `);
+    } else if (isPdf) {
+        try {
+            const images = await renderPdfToImages(fileToEmbed.url);
+            if (images.length > 0) {
+                images.forEach((imgData, i) => {
+                    pages.push(`
+                        <h1 class="ps-section-title">5. Drawings ${images.length > 1 ? `(${i + 1}/${images.length})` : ''}</h1>
+                        <div class="ps-drawing-full">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${fileToEmbed.name} - Page ${i + 1}</div>
+                            <img src="${imgData}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" />
+                        </div>
+                    `);
+                });
+            } else {
+                pages.push(`
+                    <h1 class="ps-section-title">5. Drawings</h1>
+                    <div style="padding: 40px; text-align: center; color: #f59e0b;">
+                        <div style="font-size: 18px;">Could not render PDF</div>
+                        <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
+                    </div>
+                `);
+            }
+        } catch (err) {
+            console.error('PDF render error:', err);
+            pages.push(`
+                <h1 class="ps-section-title">5. Drawings</h1>
+                <div style="padding: 40px; text-align: center; color: #f59e0b;">
+                    <div style="font-size: 18px;">Error loading PDF</div>
+                    <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
+                </div>
+            `);
+        }
+    } else {
+        pages.push(`
+            <h1 class="ps-section-title">5. Drawings</h1>
+            <div style="padding: 40px; text-align: center;">
+                <div style="font-size: 14px; color: #666;">File: ${fileToEmbed.name}</div>
+                <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Download file</a></div>
+            </div>
+        `);
+    }
+    
+    return pages;
+}
+
+// ========== PAGES: PHOTOS ==========
+async function generatePhotoPages() {
+    const pages = [];
+    
+    const photosAttachment = projectData.attachments.find(a => a.attachment_type === 'PHOTOS');
+    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    
+    if (!photosAttachment && photosFromFiles.length === 0) {
+        return pages; // No photos - skip section
+    }
+    
+    let photosToEmbed = [];
+    
+    if (photosAttachment) {
+        photosToEmbed.push({
+            url: photosAttachment.file_url,
+            name: photosAttachment.file_name || 'photo'
+        });
+    }
+    
+    for (const file of photosFromFiles) {
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        photosToEmbed.push({
+            url: urlData.publicUrl,
+            name: file.file_name
+        });
+    }
+    
+    // Create page with photos (max 4 per page in grid)
+    const photosPerPage = 4;
+    for (let i = 0; i < photosToEmbed.length; i += photosPerPage) {
+        const pagePhotos = photosToEmbed.slice(i, i + photosPerPage);
+        const pageNum = Math.floor(i / photosPerPage) + 1;
+        const totalPhotoPages = Math.ceil(photosToEmbed.length / photosPerPage);
+        
+        let html = `<h1 class="ps-section-title">6. Reference Photos ${totalPhotoPages > 1 ? `(${pageNum}/${totalPhotoPages})` : ''}</h1>`;
+        html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; height: calc(100% - 60px);">';
+        
+        for (const photo of pagePhotos) {
+            const isImage = photo.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            html += `<div style="text-align: center; border: 1px solid #ddd; padding: 10px; display: flex; flex-direction: column;">
+                <div style="font-size: 11px; color: #666; margin-bottom: 8px;">📷 ${photo.name}</div>
+                ${isImage 
+                    ? `<img src="${photo.url}" style="flex: 1; max-width: 100%; max-height: 200px; object-fit: contain;" crossorigin="anonymous" />`
+                    : `<a href="${photo.url}" target="_blank" style="color: #4a9eff;">View file</a>`
+                }
+            </div>`;
+        }
+        
+        html += '</div>';
+        pages.push(html);
+    }
+    
+    return pages;
+}
+
+// ========== PAGE: SPRAY PACK ==========
+function generateSprayPage() {
+    const hasSprayPhase = projectData.phases.some(p => 
+        p.phase_key && p.phase_key.toLowerCase().includes('spray')
+    );
+    
+    if (!hasSprayPhase) return null;
+    
+    const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
+    
+    return `
+        <h1 class="ps-section-title">7. Spray / Finish Pack</h1>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+                <h3 style="color: #333; margin-bottom: 15px;">Spray Instructions</h3>
+                ${sprayDescription.trim() 
+                    ? `<div style="padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; white-space: pre-wrap;">${sprayDescription}</div>`
+                    : '<div style="color: #666; font-style: italic;">No spray instructions provided.</div>'
+                }
+                
+                <div style="margin-top: 25px; padding: 15px; background: #fee2e2; border-left: 4px solid #ef4444;">
+                    <strong style="color: #b91c1c;">⚠️ Spraying Manager Notice</strong>
+                    <div style="font-size: 12px; margin-top: 8px; color: #7f1d1d;">
+                        Please review ALL documentation (Scope, Notes, BOM) as there may be important information for spraying in other sections.
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 style="color: #333; margin-bottom: 15px;">Colour Reference</h3>
+                ${sprayAttachment 
+                    ? `<div style="text-align: center; padding: 15px; border: 1px solid #ddd;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 10px;">📎 ${sprayAttachment.file_name}</div>
+                        <a href="${sprayAttachment.file_url}" target="_blank" style="color: #4a9eff;">View colour reference</a>
+                       </div>`
+                    : '<div style="color: #666; font-style: italic;">No colour reference attached.</div>'
+                }
+            </div>
+        </div>
+    `;
+}
+
+// ========== PAGE: PHASES / TIMELINE ==========
+function generatePhasesPage() {
+    const phases = projectData.phases;
+    const sectionNum = projectData.phases.some(p => p.phase_key?.toLowerCase().includes('spray')) ? 8 : 7;
+    
+    if (phases.length === 0) {
+        return `
+            <h1 class="ps-section-title">${sectionNum}. Phases / Timeline</h1>
+            <div style="color: #666; font-style: italic; padding: 20px;">No phases defined for this project.</div>
+        `;
+    }
+    
+    let rows = phases.map(p => `
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 12px;">${p.phase_name || p.phase_key || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">${p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">${p.end_date ? new Date(p.end_date).toLocaleDateString('en-GB') : '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px;">${p.assigned_to || '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">
+                <span style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${p.status === 'completed' ? '#dcfce7' : p.status === 'in_progress' ? '#fef3c7' : '#f3f4f6'}; color: ${p.status === 'completed' ? '#166534' : p.status === 'in_progress' ? '#92400e' : '#374151'};">
+                    ${p.status || 'pending'}
+                </span>
+            </td>
+        </tr>
+    `).join('');
+    
+    return `
+        <h1 class="ps-section-title">${sectionNum}. Phases / Timeline</h1>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+                <tr style="background: #4a9eff; color: white;">
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Phase</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Start</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">End</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Assigned To</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+    `;
+}
+
+// ========== PAGE: BLOCKERS ==========
+function generateBlockersPage() {
+    const blockers = projectData.blockers;
+    const sectionNum = projectData.phases.some(p => p.phase_key?.toLowerCase().includes('spray')) ? 9 : 8;
+    
+    if (!blockers || blockers.length === 0) {
+        return `
+            <h1 class="ps-section-title">${sectionNum}. Blockers</h1>
+            <div style="padding: 20px; background: #dcfce7; border-left: 4px solid #22c55e; color: #166534;">
+                ✓ No active blockers
+            </div>
+        `;
+    }
+    
+    let rows = blockers.map(b => `
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 12px;">${b.description || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px;">${b.blocker_type || '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">
+                <span style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${b.priority === 'high' ? '#fee2e2' : b.priority === 'medium' ? '#fef3c7' : '#f3f4f6'}; color: ${b.priority === 'high' ? '#b91c1c' : b.priority === 'medium' ? '#92400e' : '#374151'};">
+                    ${b.priority || 'normal'}
+                </span>
+            </td>
+            <td style="border: 1px solid #ddd; padding: 12px;">${b.resolution || '-'}</td>
+        </tr>
+    `).join('');
+    
+    return `
+        <h1 class="ps-section-title">${sectionNum}. Blockers</h1>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+                <tr style="background: #ef4444; color: white;">
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Description</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Type</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Priority</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Resolution</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+    `;
+}
+
+// ========== PAGE: QC & SIGN-OFF ==========
+function generateQCPage() {
+    const sectionNum = projectData.phases.some(p => p.phase_key?.toLowerCase().includes('spray')) ? 10 : 9;
+    
+    return `
+        <h1 class="ps-section-title">${sectionNum}. QC Checklist & Sign-off</h1>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+            <div>
+                <h3 style="color: #333; margin-bottom: 15px;">Quality Checks</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    ${['Dimensions verified', 'Glass spec correct', 'No damage', 'Finish quality OK', 'Hardware complete', 'Packaging ready'].map(item => `
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+                            <div style="width: 20px; height: 20px; border: 2px solid #333; flex-shrink: 0;"></div>
+                            <span>${item}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">Additional Notes</h3>
+                    <div style="border: 1px solid #ddd; min-height: 80px; padding: 10px;"></div>
+                </div>
+            </div>
+            
+            <div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="border: 2px solid #333; padding: 20px;">
+                        <h4 style="margin: 0 0 20px 0; color: #333;">Production Sign-off</h4>
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #666; margin-bottom: 5px;">Name:</div>
+                            <div style="border-bottom: 1px solid #333; height: 25px;"></div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #666; margin-bottom: 5px;">Date:</div>
+                            <div style="border-bottom: 1px solid #333; height: 25px;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #666; margin-bottom: 5px;">Signature:</div>
+                            <div style="border-bottom: 1px solid #333; height: 40px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="border: 2px solid #333; padding: 20px;">
+                        <h4 style="margin: 0 0 20px 0; color: #333;">QC Sign-off</h4>
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #666; margin-bottom: 5px;">Name:</div>
+                            <div style="border-bottom: 1px solid #333; height: 25px;"></div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #666; margin-bottom: 5px;">Date:</div>
+                            <div style="border-bottom: 1px solid #333; height: 25px;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #666; margin-bottom: 5px;">Signature:</div>
+                            <div style="border-bottom: 1px solid #333; height: 40px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function regeneratePreview() {
@@ -2172,33 +2795,57 @@ function extractImportantNotes(notesRaw) {
 
 // ========== PDF GENERATION ==========
 async function generateAndUploadPDF() {
-    const previewEl = document.getElementById('psPdfPreview');
+    const pages = document.querySelectorAll('.ps-page');
+    
+    if (pages.length === 0) {
+        throw new Error('No pages to export');
+    }
     
     try {
-        const canvas = await html2canvas(previewEl, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff'
-        });
-        
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        // A3 landscape: 420mm x 297mm
+        const pdf = new jsPDF('l', 'mm', 'a3');
+        const pdfWidth = 420;
+        const pdfHeight = 297;
         
-        let heightLeft = imgHeight;
-        let position = 0;
-        
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        
-        while (heightLeft > 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+        for (let i = 0; i < pages.length; i++) {
+            const page = pages[i];
+            
+            // Temporarily reset transform for capture
+            const originalTransform = page.style.transform;
+            const originalMargin = page.style.marginBottom;
+            page.style.transform = 'none';
+            page.style.marginBottom = '0';
+            
+            const canvas = await html2canvas(page, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                width: page.scrollWidth,
+                height: page.scrollHeight
+            });
+            
+            // Restore transform
+            page.style.transform = originalTransform;
+            page.style.marginBottom = originalMargin;
+            
+            // Add page (not for first page)
+            if (i > 0) {
+                pdf.addPage();
+            }
+            
+            // Calculate dimensions to fit A3
+            const imgWidth = pdfWidth;
+            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(
+                canvas.toDataURL('image/jpeg', 0.95), 
+                'JPEG', 
+                0, 
+                0, 
+                imgWidth, 
+                Math.min(imgHeight, pdfHeight)
+            );
         }
         
         // Upload to storage
@@ -2208,7 +2855,7 @@ async function generateAndUploadPDF() {
         
         const { error: uploadError } = await supabaseClient.storage
             .from('project-files')
-            .upload(filePath, pdfBlob, { contentType: 'application/pdf' });
+            .upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
         
         if (uploadError) throw uploadError;
         
@@ -2228,32 +2875,56 @@ async function downloadPDF() {
     showToast('Generating PDF...', 'info');
     
     try {
-        const previewEl = document.getElementById('psPdfPreview');
+        const pages = document.querySelectorAll('.ps-page');
         
-        const canvas = await html2canvas(previewEl, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff'
-        });
-        
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        if (pages.length === 0) {
+            throw new Error('No pages to export');
+        }
         
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        // A3 landscape: 420mm x 297mm
+        const pdf = new jsPDF('l', 'mm', 'a3');
+        const pdfWidth = 420;
+        const pdfHeight = 297;
         
-        let heightLeft = imgHeight;
-        let position = 0;
-        
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        
-        while (heightLeft > 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+        for (let i = 0; i < pages.length; i++) {
+            const page = pages[i];
+            
+            // Temporarily reset transform for capture
+            const originalTransform = page.style.transform;
+            const originalMargin = page.style.marginBottom;
+            page.style.transform = 'none';
+            page.style.marginBottom = '0';
+            
+            const canvas = await html2canvas(page, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                width: page.scrollWidth,
+                height: page.scrollHeight
+            });
+            
+            // Restore transform
+            page.style.transform = originalTransform;
+            page.style.marginBottom = originalMargin;
+            
+            // Add page (not for first page)
+            if (i > 0) {
+                pdf.addPage();
+            }
+            
+            // Calculate dimensions to fit A3
+            const imgWidth = pdfWidth;
+            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(
+                canvas.toDataURL('image/jpeg', 0.95), 
+                'JPEG', 
+                0, 
+                0, 
+                imgWidth, 
+                Math.min(imgHeight, pdfHeight)
+            );
         }
         
         const fileName = `PS_${projectData.project?.project_number || 'project'}_v${currentSheet?.version || 1}.pdf`;

@@ -351,18 +351,192 @@
             flex: 1;
             overflow: auto;
             padding: 20px;
-            background: #1a1a1a;
+            background: #2a2a2a;
         }
         
-        /* PDF Preview Container */
+        /* PDF Preview Container - holds all pages */
         .ps-pdf-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+        }
+        
+        /* Single A3 Landscape Page */
+        .ps-page {
             background: white;
             color: black;
-            max-width: 210mm;
-            margin: 0 auto;
-            padding: 20mm;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            width: 420mm;
             min-height: 297mm;
+            padding: 15mm;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            position: relative;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+            page-break-after: always;
+        }
+        
+        /* Scale down for screen display */
+        @media screen {
+            .ps-page {
+                transform: scale(0.35);
+                transform-origin: top center;
+                margin-bottom: -180mm; /* Compensate for scale */
+            }
+        }
+        
+        /* Print styles - full size */
+        @media print {
+            .ps-preview-content {
+                background: white;
+                padding: 0;
+            }
+            .ps-pdf-preview {
+                gap: 0;
+                padding: 0;
+            }
+            .ps-page {
+                transform: none;
+                margin-bottom: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+        }
+        
+        /* Page header with page number */
+        .ps-page-header {
+            position: absolute;
+            top: 8mm;
+            right: 15mm;
+            font-size: 9px;
+            color: #999;
+        }
+        
+        /* Cover page layout */
+        .ps-cover-top {
+            height: 65%;
+            display: flex;
+            padding: 20px;
+            border-bottom: 3px solid #333;
+        }
+        
+        .ps-cover-logo {
+            width: 150px;
+            height: 150px;
+            margin-right: 40px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        
+        .ps-cover-logo img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .ps-cover-info {
+            flex: 1;
+        }
+        
+        .ps-cover-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .ps-cover-project {
+            font-size: 28px;
+            color: #4a9eff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .ps-cover-name {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .ps-cover-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .ps-cover-detail {
+            padding: 8px 0;
+        }
+        
+        .ps-cover-detail strong {
+            color: #333;
+        }
+        
+        .ps-cover-bottom {
+            height: 35%;
+            padding: 20px;
+        }
+        
+        .ps-cover-bottom h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 8px;
+        }
+        
+        .ps-contents-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .ps-contents-item {
+            padding: 5px 0;
+        }
+        
+        /* Section page styles */
+        .ps-section-title {
+            font-size: 22px;
+            color: #333;
+            border-bottom: 3px solid #4a9eff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        /* Full page drawing */
+        .ps-drawing-full {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .ps-drawing-full img {
+            flex: 1;
+            object-fit: contain;
+            max-width: 100%;
+            max-height: calc(297mm - 50mm);
+        }
+        
+        /* Incomplete banner */
+        .ps-incomplete-banner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ef4444;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 14px;
         }
         
         /* ========== LOADING STATE ========== */
