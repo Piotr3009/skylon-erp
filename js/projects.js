@@ -1243,13 +1243,29 @@ async function exportProductionProjectNotesPDF(index) {
     const margin = 20;
     const contentWidth = pageWidth - (2 * margin);
     
-    // Logo placeholder (rectangle)
-    doc.setDrawColor(150);
-    doc.setLineWidth(1);
-    doc.rect(margin, margin, 30, 30);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text('LOGO', margin + 15, margin + 17, { align: 'center' });
+    // Get branding and add logo
+    const branding = await getPdfBranding();
+    if (branding.logoBase64) {
+        try {
+            doc.addImage(branding.logoBase64, 'PNG', margin, margin, 30, 30);
+        } catch (e) {
+            // Fallback - logo placeholder
+            doc.setDrawColor(150);
+            doc.setLineWidth(1);
+            doc.rect(margin, margin, 30, 30);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text('LOGO', margin + 15, margin + 17, { align: 'center' });
+        }
+    } else {
+        // No logo - show placeholder
+        doc.setDrawColor(150);
+        doc.setLineWidth(1);
+        doc.rect(margin, margin, 30, 30);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text('LOGO', margin + 15, margin + 17, { align: 'center' });
+    }
     
     // Header - Project Info
     doc.setFontSize(20);

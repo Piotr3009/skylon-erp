@@ -270,6 +270,11 @@ async function handleLogoUpload(event) {
         companySettings.logo_url = logoUrl;
         showLogoPreview(logoUrl);
         
+        // Wyczyść cache brandingu dla PDF
+        if (typeof clearBrandingCache === 'function') {
+            clearBrandingCache();
+        }
+        
         showToast('Logo uploaded successfully!', 'success');
         
     } catch (error) {
@@ -314,6 +319,11 @@ async function removeLogo() {
         const preview = document.getElementById('logoPreview');
         preview.innerHTML = '<span class="placeholder">No logo<br>uploaded</span>';
         document.getElementById('removeLogoBtn').style.display = 'none';
+        
+        // Wyczyść cache brandingu dla PDF
+        if (typeof clearBrandingCache === 'function') {
+            clearBrandingCache();
+        }
         
         showToast('Logo removed', 'success');
         

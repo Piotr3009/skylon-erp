@@ -3077,6 +3077,14 @@ async function generatePendingOrdersPDF() {
         }
         const doc = new jsPDF('landscape');
         
+        // Get branding and add logo
+        const branding = await getPdfBranding();
+        if (branding.logoBase64) {
+            try {
+                doc.addImage(branding.logoBase64, 'PNG', 250, 10, 25, 25);
+            } catch (e) { console.warn('Could not add logo:', e); }
+        }
+        
         // Header
         doc.setFontSize(20);
         doc.text('Pending Orders List', 20, 20);

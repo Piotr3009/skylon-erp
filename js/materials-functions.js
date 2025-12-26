@@ -1545,9 +1545,19 @@ async function exportMaterialsPDF() {
         const margin = 15;
         let y = margin;
         
+        // Get branding
+        const branding = await getPdfBranding();
+        
         // Header
         doc.setFillColor(39, 39, 42);
         doc.rect(0, 0, 210, 35, 'F');
+        
+        // Logo w prawym górnym rogu
+        if (branding.logoBase64) {
+            try {
+                doc.addImage(branding.logoBase64, 'PNG', 180, 5, 20, 20);
+            } catch (e) { console.warn('Could not add logo:', e); }
+        }
         
         doc.setTextColor(78, 201, 176);
         doc.setFontSize(20);
