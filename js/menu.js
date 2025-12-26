@@ -217,7 +217,7 @@ function loadUnifiedMenu() {
     // User dropdown styles
     const dropdownStyles = `
         <style id="userDropdownStyles">
-            .user-dropdown {
+            .user-dropdown-container {
                 position: relative;
                 margin-left: auto;
             }
@@ -233,6 +233,8 @@ function loadUnifiedMenu() {
                 cursor: pointer;
                 font-size: 13px;
                 transition: all 0.2s;
+                height: 36px;
+                box-sizing: border-box;
             }
             .user-dropdown-btn:hover {
                 background: #3a3a3a;
@@ -252,24 +254,8 @@ function loadUnifiedMenu() {
                 color: #888;
                 transition: transform 0.2s;
             }
-            .user-dropdown.open .dropdown-arrow {
+            .user-dropdown-container.open .dropdown-arrow {
                 transform: rotate(180deg);
-            }
-            .user-dropdown-menu {
-                display: none;
-                position: absolute;
-                top: calc(100% + 5px);
-                right: 0;
-                min-width: 180px;
-                background: #2a2a2a;
-                border: 1px solid #444;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                z-index: 10000;
-                overflow: hidden;
-            }
-            .user-dropdown.open .user-dropdown-menu {
-                display: block;
             }
             .dropdown-item {
                 display: flex;
@@ -326,9 +312,16 @@ function loadUnifiedMenu() {
     
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('userDropdown');
-        if (dropdown && !dropdown.contains(e.target)) {
-            dropdown.classList.remove('open');
+        const btn = document.getElementById('userDropdownBtn');
+        const menu = document.getElementById('userDropdownMenu');
+        const container = document.getElementById('userDropdownContainer');
+        
+        if (menu && menu.style.display === 'block') {
+            // Sprawdź czy klik był poza buttonem i menu
+            if (container && !container.contains(e.target) && !menu.contains(e.target)) {
+                menu.style.display = 'none';
+                if (container) container.classList.remove('open');
+            }
         }
     });
 }
@@ -353,34 +346,65 @@ function addUserDropdownToToolbar(profile) {
     
     const displayName = profile.full_name ? profile.full_name.split(' ')[0] : (profile.email || 'User');
     
-    const dropdownHTML = `
-        <div class="user-dropdown" id="userDropdown">
-            <button class="user-dropdown-btn" onclick="toggleUserDropdown(event)">
+    // Button w toolbar
+    const btnHTML = `
+        <div class="user-dropdown-container" id="userDropdownContainer" style="margin-left: auto; position: relative;">
+            <button class="user-dropdown-btn" id="userDropdownBtn" onclick="toggleUserDropdown(event)">
                 <span class="user-avatar">👤</span>
                 <span class="user-name">${displayName}</span>
                 <span class="dropdown-arrow">▼</span>
             </button>
-            <div class="user-dropdown-menu" id="userDropdownMenu">
-                <a href="settings.html" class="dropdown-item">
-                    <span>⚙️</span> My Account
-                </a>
-                <div class="dropdown-divider"></div>
-                <button class="dropdown-item dropdown-logout" onclick="globalLogout()">
-                    <span>🚪</span> Logout
-                </button>
-            </div>
         </div>
     `;
     
-    toolbar.insertAdjacentHTML('beforeend', dropdownHTML);
+    toolbar.insertAdjacentHTML('beforeend', btnHTML);
+    
+    // Menu renderowane na BODY (portal) - poza stacking context
+    const menuHTML = `
+        <div class="user-dropdown-menu" id="userDropdownMenu" style="
+            display: none;
+            position: fixed;
+            min-width: 180px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 999999;
+            overflow: hidden;
+        ">
+            <a href="settings.html" class="dropdown-item">
+                <span>⚙️</span> My Account
+            </a>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item dropdown-logout" onclick="globalLogout()">
+                <span>🚪</span> Logout
+            </button>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', menuHTML);
 }
 
 // Toggle user dropdown
 function toggleUserDropdown(event) {
     event.stopPropagation();
-    const dropdown = document.getElementById('userDropdown');
-    if (dropdown) {
-        dropdown.classList.toggle('open');
+    const btn = document.getElementById('userDropdownBtn');
+    const menu = document.getElementById('userDropdownMenu');
+    
+    if (!btn || !menu) return;
+    
+    const isOpen = menu.style.display === 'block';
+    
+    if (isOpen) {
+        menu.style.display = 'none';
+        btn.parentElement.classList.remove('open');
+    } else {
+        // Oblicz pozycję menu względem buttona
+        const rect = btn.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 5) + 'px';
+        menu.style.right = (window.innerWidth - rect.right) + 'px';
+        menu.style.display = 'block';
+        btn.parentElement.classList.add('open');
     }
 }
 
