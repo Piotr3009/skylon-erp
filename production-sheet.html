@@ -32,13 +32,15 @@
             border-right: 1px solid #3e3e42;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
+            height: 100%;
+            overflow: hidden;
         }
         
         .ps-sidebar-header {
-            padding: 20px;
+            padding: 15px;
             border-bottom: 1px solid #3e3e42;
             background: #252526;
+            flex-shrink: 0;
         }
         
         .ps-project-title {
@@ -237,18 +239,19 @@
         
         /* ========== FOOTER - ACTIONS ========== */
         .ps-sidebar-footer {
-            padding: 15px 20px;
+            padding: 12px 15px;
             border-top: 1px solid #3e3e42;
             background: #252526;
+            flex-shrink: 0;
         }
         
         .ps-create-btn {
             width: 100%;
-            padding: 14px;
-            font-size: 14px;
+            padding: 10px;
+            font-size: 13px;
             font-weight: 600;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -277,8 +280,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-top: 12px;
-            font-size: 12px;
+            margin-top: 8px;
+            font-size: 11px;
             color: #888;
         }
         
@@ -518,11 +521,7 @@
         <!-- Header -->
         <div class="header">
             <div class="app-title">📋 Production Sheet Builder</div>
-            <div class="navigation-links" style="display: flex; align-items: center; gap: 15px;">
-                <button onclick="saveAndClose()" style="padding: 8px 16px; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                    💾 Save & Close
-                </button>
-                <a href="javascript:history.back()" class="nav-link">✕ Cancel</a>
+            <div class="navigation-links">
             </div>
         </div>
         
@@ -574,6 +573,9 @@
                 <div class="ps-preview-header">
                     <div class="ps-preview-title">📄 Preview</div>
                     <div class="ps-preview-actions">
+                        <button class="ps-preview-btn" onclick="saveAndClose()" style="background: #22c55e;">
+                            💾 Save & Close
+                        </button>
                         <button class="ps-preview-btn" onclick="regeneratePreview()">
                             🔄 Refresh
                         </button>
