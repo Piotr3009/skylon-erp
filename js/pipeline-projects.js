@@ -141,6 +141,8 @@ function editPipelineProject(index) {
 async function savePipelineProject() {
     const name = document.getElementById('projectName').value.trim();
     const clientId = document.getElementById('projectClient').value;
+    const siteAddress = document.getElementById('projectSiteAddress')?.value?.trim() || '';
+    const projectContact = document.getElementById('projectContact')?.value?.trim() || '';
     let startDate = document.getElementById('projectStartDate').value;
     
     // If no date selected, use today
@@ -230,6 +232,8 @@ async function savePipelineProject() {
         name,
         client_id: clientId,
         estimated_value: estimatedValue,
+        site_address: siteAddress,
+        project_contact: projectContact,
         phases: selectedPhases
     };
     
@@ -255,6 +259,8 @@ async function savePipelineProject() {
                 type: projectData.type,
                 client_id: projectData.client_id,
                 estimated_value: projectData.estimated_value || 0,
+                site_address: projectData.site_address || '',
+                project_contact: projectData.project_contact || '',
                 status: 'active',
                 notes: null
             };
@@ -519,6 +525,8 @@ async function convertToProduction() {
         type: pipelineProject.type,
         name: pipelineProject.name,
         client_id: pipelineProject.client_id,
+        site_address: pipelineProject.site_address || '',
+        project_contact: pipelineProject.project_contact || '',
         deadline: deadline,
         phases: phases
     };
@@ -554,6 +562,8 @@ async function convertToProduction() {
                         type: productionProject.type,
                         name: productionProject.name,
                         client_id: productionProject.client_id,
+                        site_address: productionProject.site_address || '',
+                        project_contact: productionProject.project_contact || '',
                         deadline: productionProject.deadline,
                         status: 'active',
                         notes: pipelineProject.notes || null,

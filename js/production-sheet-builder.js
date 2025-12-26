@@ -1385,12 +1385,19 @@ function generateCoverPageNew(logoUrl) {
                 
                 <div class="ps-cover-details">
                     <div class="ps-cover-detail"><strong>Client:</strong> ${client?.company_name || 'N/A'}</div>
-                    <div class="ps-cover-detail"><strong>Contact:</strong> ${client?.contact_person || 'N/A'}</div>
+                    <div class="ps-cover-detail"><strong>Contact:</strong> ${project?.project_contact || client?.contact_person || 'N/A'}</div>
                     <div class="ps-cover-detail"><strong>Type:</strong> ${project?.type || 'N/A'}</div>
                     <div class="ps-cover-detail"><strong>Deadline:</strong> ${project?.deadline ? new Date(project.deadline).toLocaleDateString('en-GB') : 'N/A'}</div>
                     <div class="ps-cover-detail"><strong>Version:</strong> PS v${currentSheet?.version || 1}</div>
                     <div class="ps-cover-detail"><strong>Status:</strong> ${isIncomplete ? '<span style="color:#ef4444;">Incomplete</span>' : '<span style="color:#22c55e;">Complete</span>'}</div>
                 </div>
+                
+                ${project?.site_address ? `
+                <div style="margin-top: 15px; padding: 10px; background: #f0f9ff; border-left: 3px solid #0ea5e9; font-size: 12px;">
+                    <strong style="color: #0369a1;">📍 Site Address:</strong><br>
+                    <span style="white-space: pre-wrap;">${project.site_address}</span>
+                </div>
+                ` : ''}
                 
                 <div style="margin-top: 20px; font-size: 11px; color: #666;">
                     Generated: ${new Date().toLocaleString('en-GB')}<br>
