@@ -8,6 +8,7 @@ let currentProject = null;
 let currentSheet = null;
 let checklistItems = [];
 let checklistStatus = {};
+let scopeDescription = ''; // Production manager's description
 let projectData = {
     project: null,
     client: null,
@@ -43,7 +44,8 @@ const CHECKLIST_SECTIONS = [
         icon: '📝',
         items: [
             { key: 'SCOPE_TYPE', label: 'Project Type', source: 'AUTO', required: true },
-            { key: 'SCOPE_URGENT_NOTES', label: 'Important Notes', source: 'AUTO', required: false }
+            { key: 'SCOPE_DESCRIPTION', label: 'Production Description', source: 'MANUAL', required: false, isTextArea: true },
+            { key: 'SCOPE_URGENT_NOTES', label: 'Important Notes (from project)', source: 'AUTO', required: false, showContent: true }
         ]
     },
     {
@@ -86,8 +88,7 @@ const CHECKLIST_SECTIONS = [
         icon: '🎨',
         conditional: true, // tylko jeśli projekt ma fazę spray
         items: [
-            { key: 'SPRAY_COLORS', label: 'Colour Codes', source: 'UPLOAD', required: true, uploadType: 'SPRAY_COLORS', accept: '.pdf,.jpg,.jpeg,.png' },
-            { key: 'SPRAY_INSTRUCTIONS', label: 'Finish Instructions', source: 'MANUAL', required: false }
+            { key: 'SPRAY_COLORS', label: 'Colour Codes', source: 'UPLOAD', required: true, uploadType: 'SPRAY_COLORS', accept: '.pdf,.jpg,.jpeg,.png' }
         ]
     },
     {
@@ -218,11 +219,16 @@ async function loadAllData() {
             .eq('status', 'draft')
             .order('version', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
         
         if (existingSheet) {
             currentSheet = existingSheet;
             projectData.attachments = existingSheet.production_sheet_attachments || [];
+            
+            // Load scopeDescription from snapshot if exists
+            if (existingSheet.snapshot_json?.scopeDescription) {
+                scopeDescription = existingSheet.snapshot_json.scopeDescription;
+            }
         }
         
     } catch (err) {
@@ -235,6 +241,9 @@ async function loadAllData() {
 function buildChecklist() {
     const container = document.getElementById('psChecklist');
     container.innerHTML = '';
+    
+    // Czyścimy listę - zapobiega duplikatom
+    checklistItems = [];
     
     // Check if spray section should be visible
     const hasSprayPhase = projectData.phases.some(p => 
@@ -283,7 +292,49 @@ function createChecklistItem(item, sectionKey) {
     div.className = 'ps-item';
     div.id = `item-${item.key}`;
     
-    // Determine action button
+    // Special handling for textarea items
+    if (item.isTextArea) {
+        div.style.flexDirection = 'column';
+        div.style.alignItems = 'stretch';
+        div.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <div class="ps-item-icon" id="icon-${item.key}">✏️</div>
+                <div class="ps-item-content">
+                    <div class="ps-item-label">${item.label}</div>
+                    <div class="ps-item-meta" id="meta-${item.key}">MANUAL${!item.required ? ' • Optional' : ''}</div>
+                </div>
+            </div>
+            <textarea id="input-${item.key}" 
+                placeholder="Enter production description here..." 
+                style="width: 100%; min-height: 80px; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 12px; resize: vertical;"
+                onchange="handleScopeDescriptionChange(this.value)">${scopeDescription}</textarea>
+        `;
+        return div;
+    }
+    
+    // Special handling for showing content (Important Notes)
+    if (item.showContent) {
+        div.style.flexDirection = 'column';
+        div.style.alignItems = 'stretch';
+        div.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <div class="ps-item-icon" id="icon-${item.key}">⏳</div>
+                <div class="ps-item-content">
+                    <div class="ps-item-label">${item.label}</div>
+                    <div class="ps-item-meta" id="meta-${item.key}">${item.source}${!item.required ? ' • Optional' : ''}</div>
+                </div>
+            </div>
+            <div id="content-${item.key}" style="background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; padding: 10px; font-size: 11px; color: #888; max-height: 150px; overflow-y: auto;">
+                <em>Loading notes...</em>
+            </div>
+            <div style="font-size: 10px; color: #666; margin-top: 5px; font-style: italic;">
+                📌 Notes added during project preparation
+            </div>
+        `;
+        return div;
+    }
+    
+    // Determine action button (standard items)
     let actionBtn = '';
     if (item.source === 'UPLOAD') {
         actionBtn = `<button class="ps-item-action upload" onclick="openUploadModal('${item.key}', '${item.uploadType}', '${item.accept || ''}')">📁 Upload</button>`;
@@ -305,6 +356,17 @@ function createChecklistItem(item, sectionKey) {
     }
     
     return div;
+}
+
+// Handle scope description change
+function handleScopeDescriptionChange(value) {
+    scopeDescription = value;
+    // Update checklist status
+    checklistStatus['SCOPE_DESCRIPTION'] = {
+        done: value.trim().length > 0,
+        meta: value.trim().length > 0 ? `${value.trim().length} characters` : 'Optional'
+    };
+    updateProgress();
 }
 
 // ========== CHECKLIST VALIDATION ==========
@@ -353,13 +415,31 @@ async function checkItem(item) {
             result.done = !!projectData.project?.type;
             result.meta = projectData.project?.type || 'Not set';
             break;
+        
+        case 'SCOPE_DESCRIPTION':
+            result.done = scopeDescription.trim().length > 0;
+            result.meta = scopeDescription.trim().length > 0 ? `${scopeDescription.trim().length} characters` : 'Optional';
+            break;
             
         case 'SCOPE_URGENT_NOTES':
-            const hasUrgentNotes = projectData.project?.notes?.includes('IMPORTANT') || 
-                                   projectData.project?.notes?.includes('URGENT') ||
-                                   projectData.project?.notes?.includes('⚠️');
+            const notes = projectData.project?.notes || '';
+            const importantLines = notes.split('\n')
+                .filter(line => line.includes('IMPORTANT') || line.includes('URGENT') || line.includes('⚠️'));
+            
             result.done = true; // Always done, just informational
-            result.meta = hasUrgentNotes ? 'Has important notes' : 'No urgent notes';
+            result.meta = importantLines.length > 0 ? `${importantLines.length} important note(s)` : 'No urgent notes';
+            
+            // Update content display
+            const contentEl = document.getElementById('content-SCOPE_URGENT_NOTES');
+            if (contentEl) {
+                if (importantLines.length > 0) {
+                    contentEl.innerHTML = importantLines.map(line => 
+                        `<div style="margin-bottom: 8px; padding: 8px; background: #2d2d30; border-left: 3px solid #f59e0b; color: #e8e2d5;">${line}</div>`
+                    ).join('');
+                } else {
+                    contentEl.innerHTML = '<em style="color: #666;">No important notes flagged. Notes with "IMPORTANT", "URGENT" or ⚠️ will appear here.</em>';
+                }
+            }
             break;
             
         // BOM
@@ -408,11 +488,6 @@ async function checkItem(item) {
             const hasSprayColors = projectData.attachments.some(a => a.attachment_type === 'SPRAY_COLORS');
             result.done = hasSprayColors;
             result.meta = hasSprayColors ? 'Uploaded' : 'Required for spray projects';
-            break;
-            
-        case 'SPRAY_INSTRUCTIONS':
-            result.done = true; // Optional/manual
-            result.meta = 'Optional';
             break;
             
         // ROUTING
@@ -614,6 +689,21 @@ async function confirmUpload() {
             await createDraftSheet();
         }
         
+        // Single attachment types - usuń stare przed dodaniem nowego
+        const singleTypes = ['DRAWINGS_MAIN', 'SPRAY_COLORS', 'FINISH_SPECS'];
+        if (singleTypes.includes(currentUploadType)) {
+            // Znajdź i usuń stare załączniki tego typu
+            const oldAttachments = projectData.attachments.filter(a => a.attachment_type === currentUploadType);
+            for (const old of oldAttachments) {
+                await supabaseClient
+                    .from('production_sheet_attachments')
+                    .delete()
+                    .eq('id', old.id);
+            }
+            // Usuń z lokalnej tablicy
+            projectData.attachments = projectData.attachments.filter(a => a.attachment_type !== currentUploadType);
+        }
+        
         // Upload to Supabase Storage
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${currentUploadType}_${Date.now()}.${fileExt}`;
@@ -686,6 +776,53 @@ async function createDraftSheet() {
     
     currentSheet = newSheet;
     return newSheet;
+}
+
+// ========== SAVE & CLOSE ==========
+async function saveAndClose() {
+    showToast('Saving draft...', 'info');
+    
+    try {
+        // Ensure we have a sheet (create draft if not exists)
+        if (!currentSheet) {
+            await createDraftSheet();
+        }
+        
+        // Update checklist progress
+        const requiredItems = checklistItems.filter(i => i.required);
+        const doneCount = requiredItems.filter(i => checklistStatus[i.key]?.done).length;
+        const progress = Math.round((doneCount / requiredItems.length) * 100);
+        
+        // Build partial snapshot with editable fields
+        const partialSnapshot = {
+            scopeDescription: scopeDescription
+        };
+        
+        // Save current state to sheet
+        const { error } = await supabaseClient
+            .from('production_sheets')
+            .update({
+                checklist_total: requiredItems.length,
+                checklist_done: doneCount,
+                checklist_progress: progress,
+                snapshot_json: partialSnapshot,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentSheet.id);
+        
+        if (error) throw error;
+        
+        showToast('Draft saved!', 'success');
+        
+        // Navigate back after short delay
+        setTimeout(() => {
+            window.history.back();
+        }, 500);
+        
+    } catch (err) {
+        console.error('Error saving draft:', err);
+        showToast('Error saving: ' + err.message, 'error');
+    }
 }
 
 // ========== NAVIGATION ==========
@@ -826,8 +963,11 @@ function clearBomForm() {
 }
 
 // ========== PREVIEW GENERATION ==========
+let pdfSectionNumber = 0; // Global section counter for PDF
+
 async function generatePreview() {
     const container = document.getElementById('psPdfPreview');
+    pdfSectionNumber = 0; // Reset counter
     
     let html = `<div style="font-family: Arial, sans-serif; font-size: 12px; line-height: 1.5;">`;
     
@@ -910,18 +1050,27 @@ function generateTOC() {
         p.phase_key && p.phase_key.toLowerCase().includes('spray')
     );
     
+    // Budujemy TOC zgodnie z kolejnością sekcji
+    const sections = [
+        'Scope & Notes',
+        'Elements (BOM)',
+        'Cut List',
+        'Materials'
+    ];
+    
+    if (hasSprayPhase) {
+        sections.push('Spray / Finish Pack');
+    }
+    
+    sections.push('Phases / Timeline');
+    sections.push('Blockers');
+    sections.push('QC Checklist & Sign-off');
+    
     return `
         <div style="margin-bottom: 30px; page-break-after: always;">
             <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">Contents</h2>
             <div style="padding-left: 20px; line-height: 2;">
-                <div>1. Scope & Notes</div>
-                <div>2. Elements (BOM)</div>
-                <div>3. Cut List</div>
-                <div>4. Materials</div>
-                ${hasSprayPhase ? '<div>5. Spray / Finish Pack</div>' : ''}
-                <div>${hasSprayPhase ? '6' : '5'}. Phases / Timeline</div>
-                <div>${hasSprayPhase ? '7' : '6'}. Blockers</div>
-                <div>${hasSprayPhase ? '8' : '7'}. QC Checklist & Sign-off</div>
+                ${sections.map((s, i) => `<div>${i + 1}. ${s}</div>`).join('')}
             </div>
         </div>
     `;
@@ -930,6 +1079,7 @@ function generateTOC() {
 function generateScopeSection() {
     const project = projectData.project;
     const notes = project?.notes || '';
+    const sectionNum = ++pdfSectionNumber;
     
     // Extract important notes
     const importantNotes = notes.split('\n')
@@ -938,15 +1088,22 @@ function generateScopeSection() {
     
     return `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">1. Scope & Notes</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Scope & Notes</h2>
             
             <div style="margin-bottom: 15px;">
                 <strong>Project Type:</strong> ${project?.type || 'N/A'}
             </div>
             
+            ${scopeDescription.trim() ? `
+                <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-bottom: 15px;">
+                    <strong style="color: #1565c0;">📋 Production Description:</strong>
+                    <div style="white-space: pre-wrap; margin-top: 10px;">${scopeDescription}</div>
+                </div>
+            ` : ''}
+            
             ${importantNotes ? `
                 <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 15px;">
-                    <strong style="color: #856404;">⚠️ Important Notes:</strong>
+                    <strong style="color: #856404;">⚠️ Important Notes (from project preparation):</strong>
                     <div style="white-space: pre-wrap; margin-top: 10px;">${importantNotes}</div>
                 </div>
             ` : '<div style="color: #666;">No important notes flagged.</div>'}
@@ -956,10 +1113,11 @@ function generateScopeSection() {
 
 function generateBOMSection() {
     const elements = projectData.elements;
+    const sectionNum = ++pdfSectionNumber;
     
     let html = `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">2. Elements (BOM)</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Elements (BOM)</h2>
     `;
     
     if (elements.length === 0) {
@@ -1008,10 +1166,11 @@ function generateBOMSection() {
 
 function generateCutListSection() {
     const elements = projectData.elements;
+    const sectionNum = ++pdfSectionNumber;
     
     let html = `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">3. Cut List</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Cut List</h2>
     `;
     
     // Jeśli mamy elementy z wymiarami - generujemy cut list
@@ -1096,6 +1255,7 @@ function generateSprayPackSection() {
         return ''; // Nie pokazuj sekcji jeśli brak fazy spray
     }
     
+    const sectionNum = ++pdfSectionNumber;
     const sprayMaterials = projectData.materials.filter(m => m.used_in_stage === 'Spraying');
     const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
     
@@ -1106,7 +1266,7 @@ function generateSprayPackSection() {
     
     let html = `
         <div style="margin-bottom: 30px; page-break-inside: avoid;">
-            <h2 style="color: #333; border-bottom: 2px solid #8b5cf6; padding-bottom: 10px;">🎨 Spray / Finish Pack</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #8b5cf6; padding-bottom: 10px;">${sectionNum}. 🎨 Spray / Finish Pack</h2>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <!-- Colour Codes -->
@@ -1150,10 +1310,13 @@ function generateSprayPackSection() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${sprayMaterials.map(m => `
+                        ${sprayMaterials.map(m => {
+                            const itemName = m.stock_items?.name || m.item_name || 'Unknown';
+                            const unit = m.unit || m.stock_items?.unit || '';
+                            return `
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px;">${m.item_name}</td>
-                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.quantity_needed} ${m.unit || ''}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${itemName}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.quantity_needed} ${unit}</td>
                                 <td style="border: 1px solid #ddd; padding: 8px; text-align: center; background: #ffffcc;">
                                     <div style="border-bottom: 1px solid #999; width: 40px; height: 16px; margin: 0 auto;"></div>
                                 </td>
@@ -1161,7 +1324,7 @@ function generateSprayPackSection() {
                                     <div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div>
                                 </td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             ` : ''}
@@ -1173,6 +1336,7 @@ function generateSprayPackSection() {
 
 function generateMaterialsSection() {
     const materials = projectData.materials;
+    const sectionNum = ++pdfSectionNumber;
     
     const byStage = {
         'Production': materials.filter(m => m.used_in_stage === 'Production'),
@@ -1182,7 +1346,7 @@ function generateMaterialsSection() {
     
     let html = `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">3. Materials</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Materials</h2>
     `;
     
     Object.entries(byStage).forEach(([stage, mats]) => {
@@ -1204,10 +1368,14 @@ function generateMaterialsSection() {
         `;
         
         mats.forEach(m => {
+            // Helper: nazwa materiału z różnych źródeł
+            const itemName = m.stock_items?.name || m.item_name || 'Unknown';
+            const unit = m.unit || m.stock_items?.unit || '';
+            
             html += `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${m.item_name}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.quantity_needed} ${m.unit || ''}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${itemName}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.quantity_needed} ${unit}</td>
                     <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.quantity_reserved || 0}</td>
                     <td style="border: 1px solid #ddd; padding: 6px; text-align: center; background: #ffffcc;">
                         <div style="border-bottom: 1px solid #999; width: 40px; height: 16px; margin: 0 auto;"></div>
@@ -1232,10 +1400,11 @@ function generateMaterialsSection() {
 
 function generateRoutingSection() {
     const phases = projectData.phases;
+    const sectionNum = ++pdfSectionNumber;
     
     let html = `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">4. Phases / Timeline</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Phases / Timeline</h2>
     `;
     
     if (phases.length === 0) {
@@ -1285,10 +1454,11 @@ function generateRoutingSection() {
 
 function generateBlockersSection() {
     const blockers = projectData.blockers;
+    const sectionNum = ++pdfSectionNumber;
     
     let html = `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">5. Blockers</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Blockers</h2>
     `;
     
     if (blockers.length === 0) {
@@ -1318,9 +1488,11 @@ function generateBlockersSection() {
 }
 
 function generateQCSection() {
+    const sectionNum = ++pdfSectionNumber;
+    
     return `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">6. QC Checklist & Sign-off</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. QC Checklist & Sign-off</h2>
             
             <div style="margin-bottom: 20px;">
                 <h3 style="color: #666; font-size: 14px; margin-bottom: 10px;">Quality Checks</h3>

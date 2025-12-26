@@ -518,8 +518,11 @@
         <!-- Header -->
         <div class="header">
             <div class="app-title">📋 Production Sheet Builder</div>
-            <div class="navigation-links">
-                <a href="javascript:history.back()" class="nav-link">← Back to Project</a>
+            <div class="navigation-links" style="display: flex; align-items: center; gap: 15px;">
+                <button onclick="saveAndClose()" style="padding: 8px 16px; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                    💾 Save & Close
+                </button>
+                <a href="javascript:history.back()" class="nav-link">✕ Cancel</a>
             </div>
         </div>
         
