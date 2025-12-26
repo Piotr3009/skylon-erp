@@ -342,7 +342,7 @@ function addUserDropdownToToolbar(profile) {
     if (oldLogout) oldLogout.remove();
     
     // Sprawdź czy dropdown już istnieje
-    if (document.getElementById('userDropdown')) return;
+    if (document.getElementById('userDropdownContainer')) return;
     
     const displayName = profile.full_name ? profile.full_name.split(' ')[0] : (profile.email || 'User');
     
@@ -364,6 +364,9 @@ function addUserDropdownToToolbar(profile) {
         <div class="user-dropdown-menu" id="userDropdownMenu" style="
             display: none;
             position: fixed;
+            top: 0;
+            left: auto;
+            right: 0;
             min-width: 180px;
             background: #2a2a2a;
             border: 1px solid #444;
@@ -401,8 +404,11 @@ function toggleUserDropdown(event) {
     } else {
         // Oblicz pozycję menu względem buttona
         const rect = btn.getBoundingClientRect();
+        const rightOffset = window.innerWidth - rect.right;
+        
         menu.style.top = (rect.bottom + 5) + 'px';
-        menu.style.right = (window.innerWidth - rect.right) + 'px';
+        menu.style.right = rightOffset + 'px';
+        menu.style.left = 'auto';
         menu.style.display = 'block';
         btn.parentElement.classList.add('open');
     }
