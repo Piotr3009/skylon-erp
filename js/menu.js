@@ -265,7 +265,7 @@ function loadUnifiedMenu() {
                 border: 1px solid #444;
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                z-index: 1000;
+                z-index: 10000;
                 overflow: hidden;
             }
             .user-dropdown.open .user-dropdown-menu {
