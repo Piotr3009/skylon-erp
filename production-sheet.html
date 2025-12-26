@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Production Sheet Generator - Joinery Core - Operational System</title>
-    <link rel="stylesheet" href="css/styles.css?v=10">
+    <title>Production Sheet Builder - Joinery Core</title>
+    <link rel="stylesheet" href="css/styles.css?v=11">
     
     <!-- Supabase -->
     <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
@@ -18,82 +18,498 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
-        .ps-container {
+        /* ========== LAYOUT ========== */
+        .ps-layout {
             display: grid;
-            grid-template-columns: 350px 1fr;
+            grid-template-columns: 400px 1fr;
             height: calc(100vh - 60px);
-            gap: 20px;
-            padding: 20px;
+            gap: 0;
         }
         
+        /* ========== LEFT SIDEBAR - CHECKLIST ========== */
         .ps-sidebar {
-            background: #2d2d30;
-            padding: 20px;
-            border-radius: 8px;
-            overflow-y: auto;
-        }
-        
-        .ps-preview {
             background: #1e1e1e;
-            border-radius: 8px;
-            padding: 20px;
-            overflow-y: auto;
+            border-right: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         
-        .ps-option {
+        .ps-sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #3e3e42;
+            background: #252526;
+        }
+        
+        .ps-project-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        
+        .ps-project-subtitle {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        /* Progress Bar */
+        .ps-progress-container {
+            margin-top: 15px;
+        }
+        
+        .ps-progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .ps-progress-bar {
+            height: 8px;
+            background: #3e3e42;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .ps-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a9eff, #22c55e);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .ps-progress-fill.incomplete {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        
+        /* Checklist */
+        .ps-checklist {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        .ps-section {
+            margin-bottom: 20px;
+        }
+        
+        .ps-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: #252526;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .ps-section-header:hover {
+            background: #2d2d30;
+        }
+        
+        .ps-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e8e2d5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ps-section-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .ps-section-badge.done {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
+        .ps-section-badge.missing {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        
+        .ps-section-badge.blocked {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .ps-section-items {
+            padding-left: 10px;
+        }
+        
+        /* Checklist Item */
+        .ps-item {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #252526;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 10px 12px;
+            background: #2d2d30;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            transition: all 0.2s;
         }
         
-        .ps-option:hover {
-            background: #3e3e42;
+        .ps-item:hover {
+            background: #333;
         }
         
-        .ps-option input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
+        .ps-item-icon {
+            font-size: 16px;
+            width: 24px;
+            text-align: center;
         }
         
-        .ps-button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
+        .ps-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .ps-item-label {
+            font-size: 13px;
+            color: #e8e2d5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .ps-item-meta {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .ps-item-action {
+            padding: 4px 10px;
+            font-size: 11px;
+            background: #4a9eff;
+            color: white;
             border: none;
             border-radius: 4px;
-            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
         }
         
-        .ps-button.primary {
-            background: #4a90e2;
+        .ps-item-action:hover {
+            background: #3b8ae8;
+        }
+        
+        .ps-item-action.upload {
+            background: #8b5cf6;
+        }
+        
+        .ps-item-action.upload:hover {
+            background: #7c3aed;
+        }
+        
+        .ps-item-action.go {
+            background: #3e3e42;
+        }
+        
+        .ps-item-action.go:hover {
+            background: #4a4a4f;
+        }
+        
+        /* Status colors */
+        .ps-item.done {
+            border-left: 3px solid #22c55e;
+        }
+        
+        .ps-item.missing {
+            border-left: 3px solid #f59e0b;
+        }
+        
+        .ps-item.blocked {
+            border-left: 3px solid #ef4444;
+        }
+        
+        .ps-item.optional {
+            opacity: 0.7;
+        }
+        
+        /* ========== FOOTER - ACTIONS ========== */
+        .ps-sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #3e3e42;
+            background: #252526;
+        }
+        
+        .ps-create-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .ps-create-btn.ready {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white;
         }
         
-        .ps-button.success {
-            background: #4caf50;
-            color: white;
-        }
-        
-        .ps-button:hover {
-            opacity: 0.9;
+        .ps-create-btn.ready:hover {
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
         }
         
-        .preview-content {
+        .ps-create-btn.not-ready {
+            background: #3e3e42;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        .ps-force-create {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .ps-force-create input {
+            cursor: pointer;
+        }
+        
+        .ps-force-create label {
+            cursor: pointer;
+        }
+        
+        /* ========== RIGHT PANEL - PREVIEW ========== */
+        .ps-preview-panel {
+            background: #252526;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .ps-preview-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .ps-preview-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e8e2d5;
+        }
+        
+        .ps-preview-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .ps-preview-btn {
+            padding: 8px 14px;
+            font-size: 12px;
+            background: #3e3e42;
+            color: #e8e2d5;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .ps-preview-btn:hover {
+            background: #4a4a4f;
+        }
+        
+        .ps-preview-btn.primary {
+            background: #4a9eff;
+            color: white;
+        }
+        
+        .ps-preview-btn.primary:hover {
+            background: #3b8ae8;
+        }
+        
+        .ps-preview-content {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            background: #1a1a1a;
+        }
+        
+        /* PDF Preview Container */
+        .ps-pdf-preview {
             background: white;
             color: black;
-            padding: 40px;
             max-width: 210mm;
             margin: 0 auto;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            padding: 20mm;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            min-height: 297mm;
+        }
+        
+        /* ========== LOADING STATE ========== */
+        .ps-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #888;
+        }
+        
+        .ps-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #3e3e42;
+            border-top-color: #4a9eff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ========== MODAL - UPLOAD ========== */
+        .ps-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .ps-modal-overlay.active {
+            display: flex;
+        }
+        
+        .ps-modal {
+            background: #2d2d30;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        .ps-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        
+        .ps-upload-zone {
+            border: 2px dashed #4a4a4f;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ps-upload-zone:hover {
+            border-color: #4a9eff;
+            background: rgba(74, 158, 255, 0.05);
+        }
+        
+        .ps-upload-zone.dragover {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+        
+        .ps-upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .ps-upload-text {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .ps-upload-text strong {
+            color: #4a9eff;
+        }
+        
+        .ps-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .ps-modal-btn {
+            padding: 10px 20px;
+            font-size: 13px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ps-modal-btn.cancel {
+            background: #3e3e42;
+            color: #e8e2d5;
+        }
+        
+        .ps-modal-btn.confirm {
+            background: #4a9eff;
+            color: white;
+        }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 900px) {
+            .ps-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .ps-preview-panel {
+                display: none;
+            }
+        }
+        
+        /* ========== PRINT STYLES ========== */
+        @media print {
+            .ps-sidebar, .ps-preview-header {
+                display: none !important;
+            }
+            
+            .ps-layout {
+                display: block;
+            }
+            
+            .ps-preview-content {
+                padding: 0;
+                background: white;
+            }
+            
+            .ps-pdf-preview {
+                box-shadow: none;
+                padding: 10mm;
+            }
         }
     </style>
 </head>
@@ -101,58 +517,118 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="app-title">📋 Production Sheet Generator</div>
+            <div class="app-title">📋 Production Sheet Builder</div>
             <div class="navigation-links">
-                <a href="javascript:history.back()" style="color: #4a9eff;">← Back to Project</a>
+                <a href="javascript:history.back()" class="nav-link">← Back to Project</a>
             </div>
         </div>
         
-        <!-- Main Content -->
-        <div class="ps-container">
-            <!-- Left Sidebar -->
+        <!-- Main Layout -->
+        <div class="ps-layout">
+            <!-- Left Sidebar - Checklist -->
             <div class="ps-sidebar">
-                <h3 style="margin-top: 0;">Options</h3>
-                
-                <div class="ps-option" onclick="toggleOption('includeGantt')">
-                    <input type="checkbox" id="includeGantt" checked>
-                    <label>Include Gantt Timeline</label>
+                <!-- Header with project info -->
+                <div class="ps-sidebar-header">
+                    <div class="ps-project-title" id="psProjectTitle">Loading...</div>
+                    <div class="ps-project-subtitle" id="psProjectSubtitle"></div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="ps-progress-container">
+                        <div class="ps-progress-label">
+                            <span>Completion</span>
+                            <span id="psProgressPercent">0%</span>
+                        </div>
+                        <div class="ps-progress-bar">
+                            <div class="ps-progress-fill" id="psProgressFill" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="ps-option" onclick="toggleOption('includePhotos')">
-                    <input type="checkbox" id="includePhotos" checked>
-                    <label>Include Material Photos</label>
+                <!-- Checklist -->
+                <div class="ps-checklist" id="psChecklist">
+                    <div class="ps-loading">
+                        <div class="ps-loading-spinner"></div>
+                        <div>Loading checklist...</div>
+                    </div>
                 </div>
                 
-                <div class="ps-option" onclick="toggleOption('allNotes')">
-                    <input type="checkbox" id="allNotes">
-                    <label>All Notes (default: Important Only)</label>
+                <!-- Footer Actions -->
+                <div class="ps-sidebar-footer">
+                    <button class="ps-create-btn not-ready" id="psCreateBtn" onclick="createProductionSheet()" disabled>
+                        <span>📄</span>
+                        <span id="psCreateBtnText">Complete checklist first</span>
+                    </button>
+                    
+                    <div class="ps-force-create">
+                        <input type="checkbox" id="psForceCreate" onchange="updateCreateButton()">
+                        <label for="psForceCreate">Force create (mark as incomplete)</label>
+                    </div>
                 </div>
-                
-                <div class="ps-option" onclick="toggleOption('includeDeadlines')">
-                    <input type="checkbox" id="includeDeadlines" checked>
-                    <label>Show Phase Deadlines</label>
-                </div>
-                
-                <hr style="border-color: #444; margin: 20px 0;">
-                
-                <button class="ps-button primary" onclick="regeneratePreview()">🔄 Regenerate Preview</button>
-                <button class="ps-button success" onclick="downloadPDF()">📥 Download PDF</button>
-                <button class="ps-button" onclick="window.print()" style="background: #666; color: white;">🖨️ Print</button>
             </div>
             
-            <!-- Right Preview -->
-            <div class="ps-preview">
-                <div id="previewContent" class="preview-content">
-                    <div style="text-align: center; padding: 60px; color: #999;">
-                        <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
-                        <div>Loading production sheet...</div>
+            <!-- Right Panel - Preview -->
+            <div class="ps-preview-panel">
+                <div class="ps-preview-header">
+                    <div class="ps-preview-title">📄 Preview</div>
+                    <div class="ps-preview-actions">
+                        <button class="ps-preview-btn" onclick="regeneratePreview()">
+                            🔄 Refresh
+                        </button>
+                        <button class="ps-preview-btn" onclick="window.print()">
+                            🖨️ Print
+                        </button>
+                        <button class="ps-preview-btn primary" onclick="downloadPDF()">
+                            📥 Download PDF
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="ps-preview-content">
+                    <div id="psPdfPreview" class="ps-pdf-preview">
+                        <div class="ps-loading">
+                            <div class="ps-loading-spinner"></div>
+                            <div>Generating preview...</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- Upload Modal -->
+    <div class="ps-modal-overlay" id="psUploadModal">
+        <div class="ps-modal">
+            <div class="ps-modal-title" id="psUploadTitle">Upload File</div>
+            
+            <div class="ps-upload-zone" id="psUploadZone" onclick="document.getElementById('psFileInput').click()">
+                <div class="ps-upload-icon">📁</div>
+                <div class="ps-upload-text">
+                    <strong>Click to upload</strong> or drag and drop<br>
+                    <span id="psUploadHint">PDF, JPG, PNG (max 10MB)</span>
+                </div>
+            </div>
+            
+            <input type="file" id="psFileInput" style="display: none" onchange="handleFileSelect(event)">
+            
+            <div id="psUploadPreview" style="margin-top: 15px; display: none;">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #252526; border-radius: 6px;">
+                    <span style="font-size: 24px;">📎</span>
+                    <div style="flex: 1;">
+                        <div id="psFileName" style="color: #e8e2d5; font-size: 13px;"></div>
+                        <div id="psFileSize" style="color: #888; font-size: 11px;"></div>
+                    </div>
+                    <button onclick="clearFileSelection()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 18px;">✕</button>
+                </div>
+            </div>
+            
+            <div class="ps-modal-actions">
+                <button class="ps-modal-btn cancel" onclick="closeUploadModal()">Cancel</button>
+                <button class="ps-modal-btn confirm" id="psUploadConfirm" onclick="confirmUpload()" disabled>Upload</button>
+            </div>
+        </div>
+    </div>
+    
     <script src="js/menu.js"></script>
-    <script src="js/production-sheet.js"></script>
+    <script src="js/production-sheet-builder.js"></script>
 </body>
 </html>
