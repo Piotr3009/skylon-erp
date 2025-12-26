@@ -1014,14 +1014,14 @@ async function confirmUpload() {
         const filePath = `production-sheets/${currentSheet.id}/${fileName}`;
         
         const { data: uploadData, error: uploadError } = await supabaseClient.storage
-            .from('project-files')
+            .from('project-documents')
             .upload(filePath, selectedFile);
         
         if (uploadError) throw uploadError;
         
         // Get public URL
         const { data: urlData } = supabaseClient.storage
-            .from('project-files')
+            .from('project-documents')
             .getPublicUrl(filePath);
         
         // Save attachment record
@@ -2860,13 +2860,13 @@ async function generateAndUploadPDF() {
         const filePath = `production-sheets/${currentSheet.id}/${fileName}`;
         
         const { error: uploadError } = await supabaseClient.storage
-            .from('project-files')
+            .from('project-documents')
             .upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
         
         if (uploadError) throw uploadError;
         
         const { data: urlData } = supabaseClient.storage
-            .from('project-files')
+            .from('project-documents')
             .getPublicUrl(filePath);
         
         return urlData.publicUrl;
