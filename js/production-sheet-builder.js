@@ -1295,6 +1295,9 @@ async function generatePreview() {
     // MATERIALS
     html += generateMaterialsSection();
     
+    // DRAWINGS
+    html += generateDrawingsSection();
+    
     // SPRAY PACK
     html += generateSprayPackSection();
     
@@ -1361,7 +1364,8 @@ function generateTOC() {
         'Scope & Notes',
         'Elements (BOM)',
         'Cut List',
-        'Materials'
+        'Materials',
+        'Drawings'
     ];
     
     if (hasSprayPhase) {
@@ -1722,6 +1726,46 @@ function generateMaterialsSection() {
     
     if (materials.length === 0) {
         html += `<div style="color: #666; font-style: italic;">No materials assigned.</div>`;
+    }
+    
+    html += `</div>`;
+    return html;
+}
+
+function generateDrawingsSection() {
+    const sectionNum = ++pdfSectionNumber;
+    
+    // Find drawings attachment
+    const drawingsAttachment = projectData.attachments.find(a => a.attachment_type === 'DRAWINGS_MAIN');
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    
+    let html = `
+        <div style="margin-bottom: 30px;">
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Drawings</h2>
+    `;
+    
+    if (drawingsAttachment) {
+        html += `
+            <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 15px;">
+                <strong style="color: #2e7d32;">📐 Linked Drawing:</strong>
+                <div style="margin-top: 8px;">
+                    <a href="${drawingsAttachment.file_url}" target="_blank" style="color: #1976d2; text-decoration: underline;">
+                        ${drawingsAttachment.file_name || 'View Drawing'}
+                    </a>
+                </div>
+            </div>
+        `;
+    } else if (drawingsFromFiles.length > 0) {
+        html += `
+            <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-bottom: 15px;">
+                <strong style="color: #1565c0;">📐 Project Drawings (${drawingsFromFiles.length} file${drawingsFromFiles.length > 1 ? 's' : ''}):</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    ${drawingsFromFiles.map(f => `<li>${f.file_name}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    } else {
+        html += `<div style="color: #ef4444; font-style: italic;">⚠️ No drawings attached - required!</div>`;
     }
     
     html += `</div>`;
