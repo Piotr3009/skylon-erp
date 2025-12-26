@@ -617,6 +617,26 @@
         </div>
     </div>
 
+    <!-- Edit Note Modal -->
+    <div class="ps-modal-overlay" id="psEditNoteModal">
+        <div class="ps-modal" style="max-width: 600px;">
+            <div class="ps-modal-title">✏️ Edit Note for Production Sheet</div>
+            <p style="color: #888; font-size: 12px; margin-bottom: 10px;">
+                Edit this note for the Production Sheet only. The original note in the project will remain unchanged.
+            </p>
+            <div style="font-size: 11px; color: #f59e0b; margin-bottom: 8px;" id="editNoteAuthor"></div>
+            <textarea id="editNoteText" 
+                placeholder="Edit note text..."
+                style="width: 100%; min-height: 150px; padding: 12px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 13px; resize: vertical; line-height: 1.5;"></textarea>
+            <input type="hidden" id="editNoteIndex">
+            <div class="ps-modal-actions">
+                <button class="ps-modal-btn" onclick="resetEditedNote()" style="background: #4a3f00; color: #f59e0b;">↩️ Reset to Original</button>
+                <button class="ps-modal-btn cancel" onclick="closeEditNoteModal()">Cancel</button>
+                <button class="ps-modal-btn confirm" onclick="saveEditedNote()">✓ Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Production Description Modal -->
     <div class="ps-modal-overlay" id="psDescriptionModal">
         <div class="ps-modal" style="max-width: 600px;">

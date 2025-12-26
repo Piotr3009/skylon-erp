@@ -24,6 +24,8 @@ let checklistItems = [];
 let checklistStatus = {};
 let scopeDescription = ''; // Production manager's description
 let sprayDescription = ''; // Spray instructions
+let editedNotes = {}; // Edited copies of important notes (key = note index)
+let originalImportantNotes = []; // Cache of original important notes for edit modal
 let projectData = {
     project: null,
     client: null,
@@ -250,6 +252,10 @@ async function loadAllData() {
             if (existingSheet.snapshot_json?.sprayDescription) {
                 sprayDescription = existingSheet.snapshot_json.sprayDescription;
             }
+            // Load editedNotes from snapshot if exists
+            if (existingSheet.snapshot_json?.editedNotes) {
+                editedNotes = existingSheet.snapshot_json.editedNotes;
+            }
         }
         
     } catch (err) {
@@ -422,6 +428,57 @@ function openDescriptionModal() {
     document.getElementById('psDescriptionModal').classList.add('active');
 }
 
+// ========== EDIT NOTE MODAL ==========
+let currentEditNoteIndex = null;
+let currentEditNoteOriginal = '';
+
+function openEditNoteModal(idx) {
+    const note = originalImportantNotes[idx];
+    if (!note) {
+        showToast('Note not found', 'error');
+        return;
+    }
+    
+    currentEditNoteIndex = idx;
+    currentEditNoteOriginal = note.text || '';
+    
+    document.getElementById('editNoteIndex').value = idx;
+    document.getElementById('editNoteAuthor').textContent = `Original by: ${note.author || 'Unknown'}`;
+    document.getElementById('editNoteText').value = editedNotes[idx] !== undefined ? editedNotes[idx] : currentEditNoteOriginal;
+    document.getElementById('psEditNoteModal').classList.add('active');
+}
+
+function closeEditNoteModal() {
+    document.getElementById('psEditNoteModal').classList.remove('active');
+    currentEditNoteIndex = null;
+    currentEditNoteOriginal = '';
+}
+
+function saveEditedNote() {
+    const idx = parseInt(document.getElementById('editNoteIndex').value);
+    const newText = document.getElementById('editNoteText').value.trim();
+    
+    if (newText === currentEditNoteOriginal) {
+        // Same as original - remove edit
+        delete editedNotes[idx];
+    } else {
+        editedNotes[idx] = newText;
+    }
+    
+    closeEditNoteModal();
+    checkAllItems();
+    generatePreview();
+    showToast('Note updated for PS', 'success');
+}
+
+function resetEditedNote() {
+    const idx = parseInt(document.getElementById('editNoteIndex').value);
+    delete editedNotes[idx];
+    document.getElementById('editNoteText').value = currentEditNoteOriginal;
+    showToast('Reset to original', 'info');
+}
+
+// ========== PRODUCTION DESCRIPTION MODAL ==========
 function closeDescriptionModal() {
     document.getElementById('psDescriptionModal').classList.remove('active');
 }
@@ -661,6 +718,9 @@ async function checkItem(item) {
             const allNotes = parseProjectNotesPS(notesRaw);
             const importantNotes = allNotes.filter(n => n.important === true);
             
+            // Cache for edit modal
+            originalImportantNotes = importantNotes;
+            
             result.done = true; // Always done, just informational
             result.meta = importantNotes.length > 0 ? `${importantNotes.length} important note(s)` : 'No urgent notes';
             
@@ -668,12 +728,17 @@ async function checkItem(item) {
             const contentEl = document.getElementById('content-SCOPE_URGENT_NOTES');
             if (contentEl) {
                 if (importantNotes.length > 0) {
-                    contentEl.innerHTML = importantNotes.map(note => 
-                        `<div style="margin-bottom: 8px; padding: 10px; background: #2d2d30; border-left: 3px solid #f59e0b; color: #e8e2d5;">
-                            <div style="font-size: 11px; color: #f59e0b; margin-bottom: 4px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''}</div>
-                            <div style="white-space: pre-wrap;">${note.text || ''}</div>
-                        </div>`
-                    ).join('');
+                    contentEl.innerHTML = importantNotes.map((note, idx) => {
+                        const isEdited = editedNotes[idx] !== undefined;
+                        const displayText = isEdited ? editedNotes[idx] : (note.text || '');
+                        return `<div style="margin-bottom: 8px; padding: 10px; background: #2d2d30; border-left: 3px solid ${isEdited ? '#22c55e' : '#f59e0b'}; color: #e8e2d5;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 11px; color: ${isEdited ? '#22c55e' : '#f59e0b'};">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '(edited for PS)' : ''}</span>
+                                <button onclick="openEditNoteModal(${idx})" style="background: #3e3e42; border: none; color: #888; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">✏️ Edit</button>
+                            </div>
+                            <div style="white-space: pre-wrap;">${displayText}</div>
+                        </div>`;
+                    }).join('');
                 } else {
                     contentEl.innerHTML = '<em style="color: #666;">No important notes flagged. Notes with "IMPORTANT", "URGENT" or ⚠️ will appear here.</em>';
                 }
@@ -1036,7 +1101,8 @@ async function saveAndClose() {
         // Build partial snapshot with editable fields
         const partialSnapshot = {
             scopeDescription: scopeDescription,
-            sprayDescription: sprayDescription
+            sprayDescription: sprayDescription,
+            editedNotes: editedNotes
         };
         
         // Save current state to sheet
@@ -1327,12 +1393,14 @@ function generateScopeSection() {
     const importantNotes = allNotes.filter(n => n.important === true);
     
     const importantNotesHtml = importantNotes.length > 0 
-        ? importantNotes.map(note => 
-            `<div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e0c36a;">
-                <div style="font-size: 11px; color: #856404; margin-bottom: 4px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''}</div>
-                <div style="white-space: pre-wrap;">${note.text || ''}</div>
-            </div>`
-        ).join('')
+        ? importantNotes.map((note, idx) => {
+            const isEdited = editedNotes[idx] !== undefined;
+            const displayText = isEdited ? editedNotes[idx] : (note.text || '');
+            return `<div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e0c36a;">
+                <div style="font-size: 11px; color: #856404; margin-bottom: 4px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '<span style="color: #22c55e;">(edited for PS)</span>' : ''}</div>
+                <div style="white-space: pre-wrap;">${displayText}</div>
+            </div>`;
+        }).join('')
         : '';
     
     return `
@@ -1870,6 +1938,11 @@ function buildSnapshot(isForceCreated) {
                 email: projectData.client.email
             } : null
         },
+        // PM descriptions
+        scopeDescription: scopeDescription,
+        sprayDescription: sprayDescription,
+        editedNotes: editedNotes,
+        // Original notes
         notes: {
             all: projectData.project?.notes || '',
             important: extractImportantNotes(projectData.project?.notes)
