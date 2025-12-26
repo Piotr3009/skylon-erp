@@ -67,29 +67,46 @@ async function addPipelineProject() {
     // Load clients dropdown
     await loadClientsDropdown();
     
-    // POBIERZ NUMERACJĘ Z BAZY DANYCH
+    // POBIERZ NUMERACJĘ Z BAZY DANYCH (sprawdza pipeline_projects I archived_projects)
     if (typeof supabaseClient !== 'undefined') {
         try {
-            const { data: lastProject, error } = await supabaseClient
+            // Sprawdź ostatni numer w pipeline_projects
+            const { data: lastPipeline } = await supabaseClient
                 .from('pipeline_projects')
                 .select('project_number')
                 .order('project_number', { ascending: false })
                 .limit(1);
             
+            // Sprawdź ostatni numer w archived_projects (source = pipeline)
+            const { data: lastArchived } = await supabaseClient
+                .from('archived_projects')
+                .select('project_number')
+                .like('project_number', 'PL%')
+                .order('project_number', { ascending: false })
+                .limit(1);
+            
             let nextNumber = 1;
             
-            if (lastProject && lastProject.length > 0) {
-                const projectNum = lastProject[0].project_number;
-                
-                // Format: "PL001/2025" - wyciągnij cyfry między "PL" a "/"
-                const match = projectNum.match(/PL(\d{3})\//);
+            // Wyciągnij numer z pipeline_projects
+            let pipelineNum = 0;
+            if (lastPipeline && lastPipeline.length > 0) {
+                const match = lastPipeline[0].project_number.match(/PL(\d{3})\//);
                 if (match && match[1]) {
-                    const lastNum = parseInt(match[1]);
-                    if (!isNaN(lastNum)) {
-                        nextNumber = lastNum + 1;
-                    }
+                    pipelineNum = parseInt(match[1]);
                 }
             }
+            
+            // Wyciągnij numer z archived_projects
+            let archivedNum = 0;
+            if (lastArchived && lastArchived.length > 0) {
+                const match = lastArchived[0].project_number.match(/PL(\d{3})\//);
+                if (match && match[1]) {
+                    archivedNum = parseInt(match[1]);
+                }
+            }
+            
+            // Weź większy numer + 1
+            nextNumber = Math.max(pipelineNum, archivedNum) + 1;
             
             const currentYear = new Date().getFullYear();
             const generatedNumber = `PL${String(nextNumber).padStart(3, '0')}/${currentYear}`;
@@ -493,19 +510,43 @@ async function convertToProduction() {
     
     if (typeof supabaseClient !== 'undefined') {
         try {
+            // Sprawdź ostatni numer w projects
             const { data: lastProject } = await supabaseClient
                 .from('projects')
                 .select('project_number')
                 .order('project_number', { ascending: false })
                 .limit(1);
             
+            // Sprawdź ostatni numer w archived_projects (production - bez PL prefix)
+            const { data: lastArchived } = await supabaseClient
+                .from('archived_projects')
+                .select('project_number')
+                .not('project_number', 'like', 'PL%')
+                .order('project_number', { ascending: false })
+                .limit(1);
+            
             let nextNumber = 1;
+            
+            // Wyciągnij numer z projects
+            let projectsNum = 0;
             if (lastProject && lastProject.length > 0) {
                 const match = lastProject[0].project_number.match(/(\d{3})\//);
                 if (match) {
-                    nextNumber = parseInt(match[1]) + 1;
+                    projectsNum = parseInt(match[1]);
                 }
             }
+            
+            // Wyciągnij numer z archived_projects
+            let archivedNum = 0;
+            if (lastArchived && lastArchived.length > 0) {
+                const match = lastArchived[0].project_number.match(/(\d{3})\//);
+                if (match) {
+                    archivedNum = parseInt(match[1]);
+                }
+            }
+            
+            // Weź większy numer + 1
+            nextNumber = Math.max(projectsNum, archivedNum) + 1;
             
             const year = new Date().getFullYear();
             productionProjectNumber = `${String(nextNumber).padStart(3, '0')}/${year}`;
