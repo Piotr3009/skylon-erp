@@ -441,24 +441,19 @@ function openSelectFilesModal(key, folder) {
     currentSelectKey = key;
     currentSelectFolder = folder;
     
-    // Find project index in global projects array
-    const projectIndex = typeof projects !== 'undefined' 
-        ? projects.findIndex(p => p.id === currentProject.id)
-        : -1;
-    
-    if (projectIndex === -1) {
-        showToast('Project not found in list', 'error');
-        return;
-    }
-    
     // Set callback for file selection
     window.psFileSelectCallback = (file) => {
         selectProjectFile(file.file_path, file.public_url, file.file_name);
     };
     window.psFileSelectFolder = folder;
     
-    // Open existing Project Files modal
-    openProjectFilesModal(projectIndex, 'production');
+    // Open Project Files modal directly with project data
+    openProjectFilesModalDirect(
+        currentProject.id,
+        currentProject.projectNumber,
+        currentProject.name,
+        'production'
+    );
 }
 
 function closeSelectDrawingsModal() {
