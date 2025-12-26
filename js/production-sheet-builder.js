@@ -3,6 +3,20 @@
 // Joinery Core by Skylon Development LTD
 // ============================================
 
+// ========== HELPER FUNCTIONS ==========
+// Parse project notes from JSON string
+function parseProjectNotesPS(notesString) {
+    if (!notesString || notesString.trim() === '') {
+        return [];
+    }
+    try {
+        const parsed = JSON.parse(notesString);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
 // ========== GLOBAL STATE ==========
 let currentProject = null;
 let currentSheet = null;
@@ -740,19 +754,22 @@ async function checkItem(item) {
             break;
             
         case 'SCOPE_URGENT_NOTES':
-            const notes = projectData.project?.notes || '';
-            const importantLines = notes.split('\n')
-                .filter(line => line.includes('IMPORTANT') || line.includes('URGENT') || line.includes('⚠️'));
+            const notesRaw = projectData.project?.notes || '';
+            const allNotes = parseProjectNotesPS(notesRaw);
+            const importantNotes = allNotes.filter(n => n.important === true);
             
             result.done = true; // Always done, just informational
-            result.meta = importantLines.length > 0 ? `${importantLines.length} important note(s)` : 'No urgent notes';
+            result.meta = importantNotes.length > 0 ? `${importantNotes.length} important note(s)` : 'No urgent notes';
             
             // Update content display
             const contentEl = document.getElementById('content-SCOPE_URGENT_NOTES');
             if (contentEl) {
-                if (importantLines.length > 0) {
-                    contentEl.innerHTML = importantLines.map(line => 
-                        `<div style="margin-bottom: 8px; padding: 8px; background: #2d2d30; border-left: 3px solid #f59e0b; color: #e8e2d5;">${line}</div>`
+                if (importantNotes.length > 0) {
+                    contentEl.innerHTML = importantNotes.map(note => 
+                        `<div style="margin-bottom: 8px; padding: 10px; background: #2d2d30; border-left: 3px solid #f59e0b; color: #e8e2d5;">
+                            <div style="font-size: 11px; color: #f59e0b; margin-bottom: 4px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''}</div>
+                            <div style="white-space: pre-wrap;">${note.text || ''}</div>
+                        </div>`
                     ).join('');
                 } else {
                     contentEl.innerHTML = '<em style="color: #666;">No important notes flagged. Notes with "IMPORTANT", "URGENT" or ⚠️ will appear here.</em>';
@@ -1399,13 +1416,21 @@ function generateTOC() {
 
 function generateScopeSection() {
     const project = projectData.project;
-    const notes = project?.notes || '';
+    const notesRaw = project?.notes || '';
     const sectionNum = ++pdfSectionNumber;
     
-    // Extract important notes
-    const importantNotes = notes.split('\n')
-        .filter(line => line.includes('IMPORTANT') || line.includes('URGENT') || line.includes('⚠️'))
-        .join('\n');
+    // Extract important notes (parse JSON)
+    const allNotes = parseProjectNotesPS(notesRaw);
+    const importantNotes = allNotes.filter(n => n.important === true);
+    
+    const importantNotesHtml = importantNotes.length > 0 
+        ? importantNotes.map(note => 
+            `<div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e0c36a;">
+                <div style="font-size: 11px; color: #856404; margin-bottom: 4px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''}</div>
+                <div style="white-space: pre-wrap;">${note.text || ''}</div>
+            </div>`
+        ).join('')
+        : '';
     
     return `
         <div style="margin-bottom: 30px;">
@@ -1422,10 +1447,10 @@ function generateScopeSection() {
                 </div>
             ` : ''}
             
-            ${importantNotes ? `
+            ${importantNotesHtml ? `
                 <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 15px;">
                     <strong style="color: #856404;">⚠️ Important Notes (from project preparation):</strong>
-                    <div style="white-space: pre-wrap; margin-top: 10px;">${importantNotes}</div>
+                    <div style="margin-top: 10px;">${importantNotesHtml}</div>
                 </div>
             ` : '<div style="color: #666;">No important notes flagged.</div>'}
         </div>
@@ -1968,10 +1993,10 @@ function getMissingItems() {
         }));
 }
 
-function extractImportantNotes(notes) {
-    if (!notes) return [];
-    return notes.split('\n')
-        .filter(line => line.includes('IMPORTANT') || line.includes('URGENT') || line.includes('⚠️'));
+function extractImportantNotes(notesRaw) {
+    if (!notesRaw) return [];
+    const allNotes = parseProjectNotesPS(notesRaw);
+    return allNotes.filter(n => n.important === true);
 }
 
 // ========== PDF GENERATION ==========
