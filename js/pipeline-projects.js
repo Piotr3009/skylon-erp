@@ -56,6 +56,14 @@ async function addPipelineProject() {
     document.getElementById('projectName').value = '';
     document.getElementById('projectStartDate').value = formatDate(new Date());
     
+    // Clear site_address and project_contact
+    if (document.getElementById('projectSiteAddress')) {
+        document.getElementById('projectSiteAddress').value = '';
+    }
+    if (document.getElementById('projectContact')) {
+        document.getElementById('projectContact').value = '';
+    }
+    
     // Load clients dropdown
     await loadClientsDropdown();
     
@@ -120,6 +128,14 @@ function editPipelineProject(index) {
     document.getElementById('projectStartDate').value = project.phases[0]?.start || formatDate(new Date());
     document.getElementById('projectNumber').value = project.projectNumber || '';
     document.getElementById('pipelineEstimatedValue').value = project.estimated_value || '';
+    
+    // Fill site_address and project_contact
+    if (document.getElementById('projectSiteAddress')) {
+        document.getElementById('projectSiteAddress').value = project.site_address || '';
+    }
+    if (document.getElementById('projectContact')) {
+        document.getElementById('projectContact').value = project.project_contact || '';
+    }
     
     // Load clients and select current one
     loadClientsDropdown().then(() => {

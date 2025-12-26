@@ -340,6 +340,8 @@ async function loadPipelineFromSupabase() {
                     name: dbProject.name,
                     client_id: dbProject.client_id,
                     estimated_value: dbProject.estimated_value || 0,
+                    site_address: dbProject.site_address || '',
+                    project_contact: dbProject.project_contact || '',
                     notes: dbProject.notes || null,
                     pdf_url: dbProject.pdf_url || null,
                     google_drive_url: dbProject.google_drive_url || null,
