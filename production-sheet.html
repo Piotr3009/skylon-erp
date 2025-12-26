@@ -595,6 +595,88 @@
         </div>
     </div>
     
+    <!-- BOM Editor Modal -->
+    <div class="ps-modal-overlay" id="psBomModal">
+        <div class="ps-modal" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="ps-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>📋 Elements List (BOM)</span>
+                <button onclick="closeBomModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <!-- Elements Table -->
+            <div style="flex: 1; overflow-y: auto; margin: 15px 0;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;" id="bomTable">
+                    <thead>
+                        <tr style="background: #252526;">
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">ID</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Name</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42;">Qty</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42;">W x H (mm)</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Finish</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Glass</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bomTableBody">
+                        <!-- Elements will be rendered here -->
+                    </tbody>
+                </table>
+                
+                <div id="bomEmpty" style="text-align: center; padding: 40px; color: #666; display: none;">
+                    No elements added yet. Click "Add Element" to start.
+                </div>
+            </div>
+            
+            <!-- Add Element Form -->
+            <div style="background: #252526; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 12px;">➕ Add New Element</div>
+                <div style="display: grid; grid-template-columns: 80px 1fr 60px 80px 80px 1fr 1fr; gap: 10px; align-items: end;">
+                    <div>
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">ID</label>
+                        <input type="text" id="bomNewId" placeholder="W-001" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Name *</label>
+                        <input type="text" id="bomNewName" placeholder="Window Living Room" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Qty</label>
+                        <input type="number" id="bomNewQty" value="1" min="1" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Width</label>
+                        <input type="number" id="bomNewWidth" placeholder="1200" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Height</label>
+                        <input type="number" id="bomNewHeight" placeholder="1500" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Finish/Colour</label>
+                        <input type="text" id="bomNewFinish" placeholder="RAL 9005" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Glass Spec</label>
+                        <input type="text" id="bomNewGlass" placeholder="4/16/4 DG" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                </div>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Notes (optional)</label>
+                        <input type="text" id="bomNewNotes" placeholder="Handle on left side, trickle vent required" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                    </div>
+                    <button onclick="addBomElement()" style="padding: 8px 20px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; align-self: end;">
+                        + Add
+                    </button>
+                </div>
+            </div>
+            
+            <div class="ps-modal-actions">
+                <button class="ps-modal-btn cancel" onclick="closeBomModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Upload Modal -->
     <div class="ps-modal-overlay" id="psUploadModal">
         <div class="ps-modal">

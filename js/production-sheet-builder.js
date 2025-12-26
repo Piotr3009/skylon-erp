@@ -690,21 +690,139 @@ async function createDraftSheet() {
 
 // ========== NAVIGATION ==========
 function goToSection(section) {
-    // This would navigate to the relevant section in the project
-    // For now, show a toast
     switch (section) {
         case 'elements':
-            showToast('Opening Elements/BOM editor...', 'info');
-            // TODO: Open BOM modal or navigate
+            openBomModal();
             break;
         case 'materials':
-            showToast('Opening Materials...', 'info');
-            // Could open materials modal
+            showToast('Go to main project view to edit materials', 'info');
             break;
         case 'phases':
             showToast('Go to main project view to edit phases', 'info');
             break;
     }
+}
+
+// ========== BOM EDITOR ==========
+function openBomModal() {
+    document.getElementById('psBomModal').classList.add('active');
+    renderBomTable();
+}
+
+function closeBomModal() {
+    document.getElementById('psBomModal').classList.remove('active');
+    // Re-check checklist after closing
+    checkAllItems();
+    updateProgress();
+    generatePreview();
+}
+
+function renderBomTable() {
+    const tbody = document.getElementById('bomTableBody');
+    const emptyMsg = document.getElementById('bomEmpty');
+    
+    if (projectData.elements.length === 0) {
+        tbody.innerHTML = '';
+        emptyMsg.style.display = 'block';
+        return;
+    }
+    
+    emptyMsg.style.display = 'none';
+    
+    tbody.innerHTML = projectData.elements.map((el, index) => `
+        <tr style="border-bottom: 1px solid #3e3e42;">
+            <td style="padding: 10px; color: #4a9eff; font-weight: 600;">${el.element_id || '-'}</td>
+            <td style="padding: 10px;">
+                <div style="color: #e8e2d5;">${el.name}</div>
+                ${el.notes ? `<div style="font-size: 10px; color: #888; margin-top: 2px;">${el.notes}</div>` : ''}
+            </td>
+            <td style="padding: 10px; text-align: center;">${el.qty}</td>
+            <td style="padding: 10px; text-align: center;">
+                ${el.width && el.height ? `${el.width} x ${el.height}` : '-'}
+            </td>
+            <td style="padding: 10px;">${el.finish_name || '-'}</td>
+            <td style="padding: 10px;">${el.glass_spec || '-'}</td>
+            <td style="padding: 10px; text-align: center;">
+                <button onclick="deleteBomElement('${el.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                    Delete
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function addBomElement() {
+    const name = document.getElementById('bomNewName').value.trim();
+    
+    if (!name) {
+        showToast('Name is required', 'warning');
+        return;
+    }
+    
+    const newElement = {
+        project_id: projectId,
+        element_id: document.getElementById('bomNewId').value.trim() || null,
+        name: name,
+        qty: parseInt(document.getElementById('bomNewQty').value) || 1,
+        width: parseInt(document.getElementById('bomNewWidth').value) || null,
+        height: parseInt(document.getElementById('bomNewHeight').value) || null,
+        finish_name: document.getElementById('bomNewFinish').value.trim() || null,
+        glass_spec: document.getElementById('bomNewGlass').value.trim() || null,
+        has_glazing: !!document.getElementById('bomNewGlass').value.trim(),
+        notes: document.getElementById('bomNewNotes').value.trim() || null,
+        sort_order: projectData.elements.length
+    };
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('project_elements')
+            .insert(newElement)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        projectData.elements.push(data);
+        renderBomTable();
+        clearBomForm();
+        showToast('Element added!', 'success');
+        
+    } catch (err) {
+        console.error('Error adding element:', err);
+        showToast('Error: ' + err.message, 'error');
+    }
+}
+
+async function deleteBomElement(elementId) {
+    if (!confirm('Delete this element?')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('project_elements')
+            .delete()
+            .eq('id', elementId);
+        
+        if (error) throw error;
+        
+        projectData.elements = projectData.elements.filter(e => e.id !== elementId);
+        renderBomTable();
+        showToast('Element deleted', 'success');
+        
+    } catch (err) {
+        console.error('Error deleting element:', err);
+        showToast('Error: ' + err.message, 'error');
+    }
+}
+
+function clearBomForm() {
+    document.getElementById('bomNewId').value = '';
+    document.getElementById('bomNewName').value = '';
+    document.getElementById('bomNewQty').value = '1';
+    document.getElementById('bomNewWidth').value = '';
+    document.getElementById('bomNewHeight').value = '';
+    document.getElementById('bomNewFinish').value = '';
+    document.getElementById('bomNewGlass').value = '';
+    document.getElementById('bomNewNotes').value = '';
 }
 
 // ========== PREVIEW GENERATION ==========
@@ -725,8 +843,14 @@ async function generatePreview() {
     // BOM
     html += generateBOMSection();
     
+    // CUT LIST
+    html += generateCutListSection();
+    
     // MATERIALS
     html += generateMaterialsSection();
+    
+    // SPRAY PACK
+    html += generateSprayPackSection();
     
     // ROUTING
     html += generateRoutingSection();
@@ -782,16 +906,22 @@ function generateCoverPage() {
 }
 
 function generateTOC() {
+    const hasSprayPhase = projectData.phases.some(p => 
+        p.phase_key && p.phase_key.toLowerCase().includes('spray')
+    );
+    
     return `
         <div style="margin-bottom: 30px; page-break-after: always;">
             <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">Contents</h2>
             <div style="padding-left: 20px; line-height: 2;">
                 <div>1. Scope & Notes</div>
                 <div>2. Elements (BOM)</div>
-                <div>3. Materials</div>
-                <div>4. Phases / Timeline</div>
-                <div>5. Blockers</div>
-                <div>6. QC Checklist & Sign-off</div>
+                <div>3. Cut List</div>
+                <div>4. Materials</div>
+                ${hasSprayPhase ? '<div>5. Spray / Finish Pack</div>' : ''}
+                <div>${hasSprayPhase ? '6' : '5'}. Phases / Timeline</div>
+                <div>${hasSprayPhase ? '7' : '6'}. Blockers</div>
+                <div>${hasSprayPhase ? '8' : '7'}. QC Checklist & Sign-off</div>
             </div>
         </div>
     `;
@@ -873,6 +1003,171 @@ function generateBOMSection() {
     }
     
     html += `</div>`;
+    return html;
+}
+
+function generateCutListSection() {
+    const elements = projectData.elements;
+    
+    let html = `
+        <div style="margin-bottom: 30px;">
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">3. Cut List</h2>
+    `;
+    
+    // Jeśli mamy elementy z wymiarami - generujemy cut list
+    const elementsWithDims = elements.filter(el => el.width && el.height);
+    
+    if (elementsWithDims.length > 0) {
+        html += `
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <thead>
+                    <tr style="background: #f5f5f5;">
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Element</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Qty</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Width (mm)</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Height (mm)</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Thickness</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Cut ✓</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        elementsWithDims.forEach(el => {
+            html += `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.element_id || ''} ${el.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${el.width}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${el.height}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                        <div style="width: 16px; height: 16px; border: 2px solid #333; margin: 0 auto;"></div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `</tbody></table>`;
+    } else {
+        // Placeholder - puste linie do ręcznego dopisania
+        html += `
+            <div style="color: #666; font-style: italic; margin-bottom: 15px;">
+                Cut list not available. Add dimensions to elements or fill in manually below:
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <thead>
+                    <tr style="background: #f5f5f5;">
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Element</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Qty</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Width</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Height</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">✓</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${[1,2,3,4,5].map(() => `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 12px; background: #ffffcc;"></td>
+                            <td style="border: 1px solid #ddd; padding: 12px; background: #ffffcc;"></td>
+                            <td style="border: 1px solid #ddd; padding: 12px; background: #ffffcc;"></td>
+                            <td style="border: 1px solid #ddd; padding: 12px; background: #ffffcc;"></td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                <div style="width: 16px; height: 16px; border: 2px solid #333; margin: 0 auto;"></div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+    
+    html += `</div>`;
+    return html;
+}
+
+function generateSprayPackSection() {
+    // Sprawdź czy projekt ma fazę spray
+    const hasSprayPhase = projectData.phases.some(p => 
+        p.phase_key && p.phase_key.toLowerCase().includes('spray')
+    );
+    
+    if (!hasSprayPhase) {
+        return ''; // Nie pokazuj sekcji jeśli brak fazy spray
+    }
+    
+    const sprayMaterials = projectData.materials.filter(m => m.used_in_stage === 'Spraying');
+    const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
+    
+    // Zbierz kolory z elementów
+    const colours = [...new Set(projectData.elements
+        .filter(el => el.finish_name)
+        .map(el => el.finish_name))];
+    
+    let html = `
+        <div style="margin-bottom: 30px; page-break-inside: avoid;">
+            <h2 style="color: #333; border-bottom: 2px solid #8b5cf6; padding-bottom: 10px;">🎨 Spray / Finish Pack</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <!-- Colour Codes -->
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">Colour Codes</h3>
+                    ${colours.length > 0 ? `
+                        <ul style="margin: 0; padding-left: 20px;">
+                            ${colours.map(c => `<li style="margin-bottom: 5px;"><strong>${c}</strong></li>`).join('')}
+                        </ul>
+                    ` : `<div style="color: #666; font-style: italic;">No colours specified in elements</div>`}
+                </div>
+                
+                <!-- Finish Instructions -->
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">Finish Instructions</h3>
+                    <div style="background: #ffffcc; padding: 10px; border-radius: 4px; min-height: 60px;">
+                        <div style="color: #666; font-size: 10px;">Notes / instructions:</div>
+                        <div style="border-bottom: 1px solid #ccc; margin-top: 15px;"></div>
+                        <div style="border-bottom: 1px solid #ccc; margin-top: 15px;"></div>
+                        <div style="border-bottom: 1px solid #ccc; margin-top: 15px;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            ${sprayAttachment ? `
+                <div style="background: #e8f5e9; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                    <strong>📎 Colour Reference:</strong> ${sprayAttachment.file_name}
+                    <span style="color: #666; font-size: 11px;">(see attached)</span>
+                </div>
+            ` : ''}
+            
+            ${sprayMaterials.length > 0 ? `
+                <h3 style="font-size: 14px; color: #333; margin-bottom: 10px;">Spray Materials</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Material</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Needed</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Used</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">✓</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sprayMaterials.map(m => `
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${m.item_name}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.quantity_needed} ${m.unit || ''}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; background: #ffffcc;">
+                                    <div style="border-bottom: 1px solid #999; width: 40px; height: 16px; margin: 0 auto;"></div>
+                                </td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                    <div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : ''}
+        </div>
+    `;
+    
     return html;
 }
 
