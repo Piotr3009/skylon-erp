@@ -129,6 +129,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     await loadAllData();
     buildChecklist();
+    updateDescriptionUI(); // Update description button if text exists
     await checkAllItems();
     updateProgress();
     generatePreview();
@@ -292,22 +293,15 @@ function createChecklistItem(item, sectionKey) {
     div.className = 'ps-item';
     div.id = `item-${item.key}`;
     
-    // Special handling for textarea items
+    // Special handling for textarea items (opens modal)
     if (item.isTextArea) {
-        div.style.flexDirection = 'column';
-        div.style.alignItems = 'stretch';
         div.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                <div class="ps-item-icon" id="icon-${item.key}">✏️</div>
-                <div class="ps-item-content">
-                    <div class="ps-item-label">${item.label}</div>
-                    <div class="ps-item-meta" id="meta-${item.key}">MANUAL${!item.required ? ' • Optional' : ''}</div>
-                </div>
+            <div class="ps-item-icon" id="icon-${item.key}">✏️</div>
+            <div class="ps-item-content">
+                <div class="ps-item-label">${item.label}</div>
+                <div class="ps-item-meta" id="meta-${item.key}">Click to add${!item.required ? ' • Optional' : ''}</div>
             </div>
-            <textarea id="input-${item.key}" 
-                placeholder="Enter production description here..." 
-                style="width: 100%; min-height: 80px; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 12px; resize: vertical;"
-                onchange="handleScopeDescriptionChange(this.value)">${scopeDescription}</textarea>
+            <button class="ps-item-action go" id="btn-${item.key}" onclick="openDescriptionModal()">+ Add</button>
         `;
         return div;
     }
@@ -358,10 +352,49 @@ function createChecklistItem(item, sectionKey) {
     return div;
 }
 
-// Handle scope description change
+// ========== DESCRIPTION MODAL ==========
+function openDescriptionModal() {
+    document.getElementById('descriptionModalText').value = scopeDescription;
+    document.getElementById('psDescriptionModal').classList.add('active');
+}
+
+function closeDescriptionModal() {
+    document.getElementById('psDescriptionModal').classList.remove('active');
+}
+
+function saveDescription() {
+    scopeDescription = document.getElementById('descriptionModalText').value;
+    closeDescriptionModal();
+    
+    // Update UI
+    updateDescriptionUI();
+    checkAllItems();
+    updateProgress();
+    generatePreview();
+    
+    showToast('Description saved!', 'success');
+}
+
+function updateDescriptionUI() {
+    const metaEl = document.getElementById('meta-SCOPE_DESCRIPTION');
+    const btnEl = document.getElementById('btn-SCOPE_DESCRIPTION');
+    const iconEl = document.getElementById('icon-SCOPE_DESCRIPTION');
+    
+    if (scopeDescription.trim()) {
+        metaEl.textContent = `${scopeDescription.trim().length} characters`;
+        btnEl.textContent = '✎ Edit';
+        btnEl.classList.remove('upload');
+        iconEl.textContent = '✅';
+    } else {
+        metaEl.textContent = 'Click to add • Optional';
+        btnEl.textContent = '+ Add';
+        iconEl.textContent = '✏️';
+    }
+}
+
+// Handle scope description change (legacy - keeping for compatibility)
 function handleScopeDescriptionChange(value) {
     scopeDescription = value;
-    // Update checklist status
     checklistStatus['SCOPE_DESCRIPTION'] = {
         done: value.trim().length > 0,
         meta: value.trim().length > 0 ? `${value.trim().length} characters` : 'Optional'

@@ -598,6 +598,23 @@
         </div>
     </div>
     
+    <!-- Production Description Modal -->
+    <div class="ps-modal-overlay" id="psDescriptionModal">
+        <div class="ps-modal" style="max-width: 600px;">
+            <div class="ps-modal-title">📋 Production Description</div>
+            <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
+                Describe production requirements, special instructions, or important details for this job.
+            </p>
+            <textarea id="descriptionModalText" 
+                placeholder="Enter production description here...&#10;&#10;Example:&#10;- Dual colour, External Blue&#10;- See Spray section for primer details&#10;- Install between staircase and flats&#10;- Not external doors"
+                style="width: 100%; min-height: 200px; padding: 12px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 13px; resize: vertical; line-height: 1.5;"></textarea>
+            <div class="ps-modal-actions">
+                <button class="ps-modal-btn cancel" onclick="closeDescriptionModal()">Cancel</button>
+                <button class="ps-modal-btn confirm" onclick="saveDescription()">✓ Save Description</button>
+            </div>
+        </div>
+    </div>
+
     <!-- BOM Editor Modal -->
     <div class="ps-modal-overlay" id="psBomModal">
         <div class="ps-modal" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
