@@ -1363,10 +1363,18 @@ function generateCoverPageNew(logoUrl) {
     sections.push('Blockers');
     sections.push('QC Checklist & Sign-off');
     
+    // Pre-construction checklist items
+    const preConstructionItems = [
+        'Materials ordered',
+        'Drawings & sizes checked by Joiner and Production Manager',
+        'Drawings accepted by Client',
+        'Materials delivered'
+    ];
+    
     return `
         ${isIncomplete ? '<div class="ps-incomplete-banner">⚠️ INCOMPLETE - Some required items are missing</div>' : ''}
         
-        <div class="ps-cover-top">
+        <div style="height: 45%; display: flex; padding: 15px; border-bottom: 3px solid #333;">
             <div class="ps-cover-logo">
                 ${logoUrl ? `<img src="${logoUrl}" alt="Company Logo" crossorigin="anonymous" />` : '<div style="width:150px;height:150px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;border:2px dashed #ccc;">No Logo</div>'}
             </div>
@@ -1384,17 +1392,43 @@ function generateCoverPageNew(logoUrl) {
                     <div class="ps-cover-detail"><strong>Status:</strong> ${isIncomplete ? '<span style="color:#ef4444;">Incomplete</span>' : '<span style="color:#22c55e;">Complete</span>'}</div>
                 </div>
                 
-                <div style="margin-top: 40px; font-size: 11px; color: #666;">
+                <div style="margin-top: 20px; font-size: 11px; color: #666;">
                     Generated: ${new Date().toLocaleString('en-GB')}<br>
                     Joinery Core by Skylon Development LTD
                 </div>
             </div>
         </div>
         
-        <div class="ps-cover-bottom">
-            <h2>Contents</h2>
-            <div class="ps-contents-grid">
-                ${sections.map((s, i) => `<div class="ps-contents-item">${i + 1}. ${s}</div>`).join('')}
+        <div style="height: 55%; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; padding: 15px;">
+            <div>
+                <h2 style="font-size: 16px; color: #333; margin-bottom: 12px; border-bottom: 2px solid #4a9eff; padding-bottom: 6px;">Contents</h2>
+                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                    ${sections.map((s, i) => `<div>${i + 1}. ${s}</div>`).join('')}
+                </div>
+            </div>
+            
+            <div>
+                <h2 style="font-size: 16px; color: #333; margin-bottom: 12px; border-bottom: 2px solid #f59e0b; padding-bottom: 6px;">Pre-Construction Checklist</h2>
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 30px;">✓</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${preConstructionItems.map(item => `
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                    <div style="width: 18px; height: 18px; border: 2px solid #333; margin: 0 auto;"></div>
+                                </td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${item}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; min-width: 150px;"></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
         </div>
     `;
