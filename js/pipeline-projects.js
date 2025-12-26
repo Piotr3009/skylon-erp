@@ -70,47 +70,49 @@ async function addPipelineProject() {
     // POBIERZ NUMERACJĘ Z BAZY DANYCH (sprawdza pipeline_projects I archived_projects)
     if (typeof supabaseClient !== 'undefined') {
         try {
-            // Sprawdź ostatni numer w pipeline_projects
-            const { data: lastPipeline } = await supabaseClient
+            // Pobierz WSZYSTKIE numery z pipeline_projects
+            const { data: allPipeline } = await supabaseClient
                 .from('pipeline_projects')
-                .select('project_number')
-                .order('project_number', { ascending: false })
-                .limit(1);
+                .select('project_number');
             
-            // Sprawdź ostatni numer w archived_projects (source = pipeline)
-            const { data: lastArchived } = await supabaseClient
+            // Pobierz WSZYSTKIE numery z archived_projects
+            const { data: allArchived } = await supabaseClient
                 .from('archived_projects')
-                .select('project_number')
-                .like('project_number', 'PL%')
-                .order('project_number', { ascending: false })
-                .limit(1);
+                .select('project_number');
             
-            let nextNumber = 1;
+            let maxNumber = 0;
             
-            // Wyciągnij numer z pipeline_projects
-            let pipelineNum = 0;
-            if (lastPipeline && lastPipeline.length > 0) {
-                const match = lastPipeline[0].project_number.match(/PL(\d{3})\//);
-                if (match && match[1]) {
-                    pipelineNum = parseInt(match[1]);
-                }
+            // Znajdź max numer z pipeline_projects (tylko PL...)
+            if (allPipeline) {
+                allPipeline.forEach(p => {
+                    if (!p.project_number) return;
+                    const match = p.project_number.match(/PL(\d{3})\//);
+                    if (match) {
+                        const num = parseInt(match[1]);
+                        if (num > maxNumber) maxNumber = num;
+                    }
+                });
             }
             
-            // Wyciągnij numer z archived_projects
-            let archivedNum = 0;
-            if (lastArchived && lastArchived.length > 0) {
-                const match = lastArchived[0].project_number.match(/PL(\d{3})\//);
-                if (match && match[1]) {
-                    archivedNum = parseInt(match[1]);
-                }
+            // Znajdź max numer z archived_projects (tylko PL...)
+            if (allArchived) {
+                allArchived.forEach(p => {
+                    if (!p.project_number) return;
+                    if (!p.project_number.startsWith('PL')) return;
+                    const match = p.project_number.match(/PL(\d{3})\//);
+                    if (match) {
+                        const num = parseInt(match[1]);
+                        if (num > maxNumber) maxNumber = num;
+                    }
+                });
             }
             
-            // Weź większy numer + 1
-            nextNumber = Math.max(pipelineNum, archivedNum) + 1;
-            
+            const nextNumber = maxNumber + 1;
             const currentYear = new Date().getFullYear();
             const generatedNumber = `PL${String(nextNumber).padStart(3, '0')}/${currentYear}`;
             document.getElementById('projectNumber').value = generatedNumber;
+            
+            console.log('Pipeline number:', { maxNumber, nextNumber, generatedNumber });
             
         } catch (err) {
             console.error('Błąd pobierania numeracji:', err);
@@ -511,45 +513,46 @@ async function convertToProduction() {
     if (typeof supabaseClient !== 'undefined') {
         try {
             // Sprawdź ostatni numer w projects
-            const { data: lastProject } = await supabaseClient
+            const { data: allProjects } = await supabaseClient
                 .from('projects')
-                .select('project_number')
-                .order('project_number', { ascending: false })
-                .limit(1);
+                .select('project_number');
             
-            // Sprawdź ostatni numer w archived_projects (production - bez PL prefix)
-            const { data: lastArchived } = await supabaseClient
+            // Sprawdź numery w archived_projects (production - bez PL prefix)
+            const { data: allArchived } = await supabaseClient
                 .from('archived_projects')
-                .select('project_number')
-                .not('project_number', 'like', 'PL%')
-                .order('project_number', { ascending: false })
-                .limit(1);
+                .select('project_number');
             
-            let nextNumber = 1;
+            let maxNumber = 0;
             
-            // Wyciągnij numer z projects
-            let projectsNum = 0;
-            if (lastProject && lastProject.length > 0) {
-                const match = lastProject[0].project_number.match(/(\d{3})\//);
-                if (match) {
-                    projectsNum = parseInt(match[1]);
-                }
+            // Znajdź max numer z projects
+            if (allProjects) {
+                allProjects.forEach(p => {
+                    const match = p.project_number?.match(/^(\d{3})\//);
+                    if (match) {
+                        const num = parseInt(match[1]);
+                        if (num > maxNumber) maxNumber = num;
+                    }
+                });
             }
             
-            // Wyciągnij numer z archived_projects
-            let archivedNum = 0;
-            if (lastArchived && lastArchived.length > 0) {
-                const match = lastArchived[0].project_number.match(/(\d{3})\//);
-                if (match) {
-                    archivedNum = parseInt(match[1]);
-                }
+            // Znajdź max numer z archived_projects (bez PL)
+            if (allArchived) {
+                allArchived.forEach(p => {
+                    // Pomiń numery zaczynające się od PL
+                    if (p.project_number?.startsWith('PL')) return;
+                    const match = p.project_number?.match(/^(\d{3})\//);
+                    if (match) {
+                        const num = parseInt(match[1]);
+                        if (num > maxNumber) maxNumber = num;
+                    }
+                });
             }
             
-            // Weź większy numer + 1
-            nextNumber = Math.max(projectsNum, archivedNum) + 1;
-            
+            const nextNumber = maxNumber + 1;
             const year = new Date().getFullYear();
             productionProjectNumber = `${String(nextNumber).padStart(3, '0')}/${year}`;
+            
+            console.log('Production number generation:', { maxNumber, nextNumber, productionProjectNumber });
             
         } catch (err) {
             console.error('Error getting next number:', err);
