@@ -554,7 +554,6 @@ async function selectProjectFile(filePath, fileUrl, fileName) {
                 attachment_type: attachmentType,
                 file_name: fileName,
                 file_url: fileUrl,
-                file_path: filePath,
                 file_size: 0,
                 file_type: 'linked'
             })
