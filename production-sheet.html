@@ -617,39 +617,6 @@
         </div>
     </div>
 
-    <!-- Select Drawings Modal -->
-    <div class="ps-modal-overlay" id="psSelectDrawingsModal">
-        <div class="ps-modal" style="max-width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
-            <div class="ps-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>📐 Select Drawings</span>
-                <button onclick="closeSelectDrawingsModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
-            </div>
-            <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
-                Select drawings from project files or upload new one.
-            </p>
-            
-            <!-- Existing files list -->
-            <div id="drawingsFilesList" style="flex: 1; overflow-y: auto; margin-bottom: 15px; min-height: 200px;">
-                <div style="text-align: center; padding: 40px; color: #666;">Loading files...</div>
-            </div>
-            
-            <!-- Upload new option -->
-            <div style="border-top: 1px solid #3e3e42; padding-top: 15px; margin-top: auto;">
-                <div style="color: #888; font-size: 11px; margin-bottom: 8px;">Or upload new file:</div>
-                <div style="display: flex; gap: 10px;">
-                    <input type="file" id="newDrawingFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display: none;" onchange="handleNewDrawingUpload(event)">
-                    <button onclick="document.getElementById('newDrawingFileInput').click()" style="padding: 10px 20px; background: #3e3e42; color: #e8e2d5; border: none; border-radius: 6px; cursor: pointer;">
-                        📁 Upload New File
-                    </button>
-                </div>
-            </div>
-            
-            <div class="ps-modal-actions">
-                <button class="ps-modal-btn cancel" onclick="closeSelectDrawingsModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Production Description Modal -->
     <div class="ps-modal-overlay" id="psDescriptionModal">
         <div class="ps-modal" style="max-width: 600px;">

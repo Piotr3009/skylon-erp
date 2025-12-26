@@ -1,5 +1,9 @@
 // ========== PROJECT FILES MANAGEMENT SYSTEM ==========
 
+// Global callback for Production Sheet file selection
+window.psFileSelectCallback = null;
+window.psFileSelectFolder = null; // Optional: auto-open specific folder
+
 let currentProjectFiles = {
     index: null,
     stage: null, // 'pipeline' | 'production' | 'archive'
@@ -98,13 +102,23 @@ async function openProjectFilesModal(projectIndex, stage) {
     `;
     
     document.body.appendChild(modal);
-    showFolderList();
+    
+    // If PS select mode with specific folder - open that folder directly
+    if (window.psFileSelectFolder) {
+        openFolder(window.psFileSelectFolder);
+    } else {
+        showFolderList();
+    }
 }
 
 function closeProjectFilesModal() {
     const modal = document.getElementById('projectFilesModal');
     if (modal) modal.remove();
     currentProjectFiles = { index: null, stage: null, projectNumber: null, projectId: null, currentFolder: null };
+    
+    // Clear PS select callback
+    window.psFileSelectCallback = null;
+    window.psFileSelectFolder = null;
 }
 
 // ========== SHOW FOLDER LIST ==========
@@ -1088,6 +1102,32 @@ async function uploadSingleFile(file, folderName) {
 
 // ========== FILE PREVIEW ==========
 async function previewFile(filePath, fileType, fileName) {
+    // Check if this is a file selection for Production Sheet
+    if (window.psFileSelectCallback) {
+        try {
+            const { data: urlData } = supabaseClient.storage
+                .from('project-documents')
+                .getPublicUrl(filePath);
+            
+            window.psFileSelectCallback({
+                file_path: filePath,
+                file_name: fileName,
+                file_type: fileType,
+                public_url: urlData.publicUrl
+            });
+            
+            // Clear callback and close modal
+            window.psFileSelectCallback = null;
+            window.psFileSelectFolder = null;
+            closeProjectFilesModal();
+            return;
+        } catch (err) {
+            console.error('Error selecting file:', err);
+            showToast('Error selecting file', 'error');
+            return;
+        }
+    }
+    
     try {
         // Get public URL
         const { data: urlData } = supabaseClient.storage

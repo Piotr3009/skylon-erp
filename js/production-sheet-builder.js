@@ -441,60 +441,35 @@ function openSelectFilesModal(key, folder) {
     currentSelectKey = key;
     currentSelectFolder = folder;
     
-    document.getElementById('psSelectDrawingsModal').classList.add('active');
-    loadProjectFiles(folder);
+    // Find project index in global projects array
+    const projectIndex = typeof projects !== 'undefined' 
+        ? projects.findIndex(p => p.id === currentProject.id)
+        : -1;
+    
+    if (projectIndex === -1) {
+        showToast('Project not found in list', 'error');
+        return;
+    }
+    
+    // Set callback for file selection
+    window.psFileSelectCallback = (file) => {
+        selectProjectFile(file.file_path, file.public_url, file.file_name);
+    };
+    window.psFileSelectFolder = folder;
+    
+    // Open existing Project Files modal
+    openProjectFilesModal(projectIndex, 'production');
 }
 
 function closeSelectDrawingsModal() {
-    document.getElementById('psSelectDrawingsModal').classList.remove('active');
+    // Legacy - now handled by closeProjectFilesModal
+    window.psFileSelectCallback = null;
+    window.psFileSelectFolder = null;
     currentSelectKey = null;
     currentSelectFolder = null;
 }
 
-async function loadProjectFiles(folder) {
-    const container = document.getElementById('drawingsFilesList');
-    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading files...</div>';
-    
-    // Filter files by folder
-    const folderFiles = projectData.files.filter(f => f.folder_name === folder);
-    
-    // Also check already selected attachments
-    const selectedFile = projectData.attachments.find(a => 
-        a.attachment_type === (folder === 'drawings' ? 'DRAWINGS_MAIN' : 'PHOTOS')
-    );
-    
-    if (folderFiles.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
-                <div>No files in "${folder}" folder.</div>
-                <div style="font-size: 11px; margin-top: 5px;">Upload a new file below.</div>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = folderFiles.map(file => {
-        const isSelected = selectedFile?.file_url === file.file_url || 
-                          selectedFile?.file_name === file.file_name;
-        const fileExt = file.file_name?.split('.').pop()?.toUpperCase() || 'FILE';
-        
-        return `
-            <div class="file-select-item" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: ${isSelected ? '#1a3a1a' : '#252526'}; border: 1px solid ${isSelected ? '#22c55e' : '#3e3e42'}; border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="selectProjectFile('${file.id}', '${file.file_url}', '${file.file_name?.replace(/'/g, "\\'")}')">
-                <div style="width: 40px; height: 40px; background: #3e3e42; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #888;">
-                    ${fileExt}
-                </div>
-                <div style="flex: 1;">
-                    <div style="color: #e8e2d5; font-size: 13px;">${file.file_name || 'Unnamed file'}</div>
-                    <div style="color: #666; font-size: 11px;">${file.description || folder}</div>
-                </div>
-                ${isSelected ? '<div style="color: #22c55e; font-size: 18px;">✓</div>' : '<div style="color: #4a9eff; font-size: 12px;">Select</div>'}
-            </div>
-        `;
-    }).join('');
-}
-
-async function selectProjectFile(fileId, fileUrl, fileName) {
+async function selectProjectFile(filePath, fileUrl, fileName) {
     showToast('Linking file...', 'info');
     
     try {
@@ -503,17 +478,21 @@ async function selectProjectFile(fileId, fileUrl, fileName) {
             await createDraftSheet();
         }
         
-        const attachmentType = currentSelectFolder === 'drawings' ? 'DRAWINGS_MAIN' : 'PHOTOS';
+        const attachmentType = currentSelectFolder === 'drawings' ? 'DRAWINGS_MAIN' : 
+                              currentSelectFolder === 'photos' ? 'PHOTOS' :
+                              currentSelectFolder === 'spray' ? 'SPRAY_COLORS' : 'DRAWINGS_MAIN';
         
-        // Remove old attachment of this type
-        const oldAttachments = projectData.attachments.filter(a => a.attachment_type === attachmentType);
-        for (const old of oldAttachments) {
-            await supabaseClient
-                .from('production_sheet_attachments')
-                .delete()
-                .eq('id', old.id);
+        // Remove old attachment of this type (for single types)
+        if (['DRAWINGS_MAIN', 'SPRAY_COLORS'].includes(attachmentType)) {
+            const oldAttachments = projectData.attachments.filter(a => a.attachment_type === attachmentType);
+            for (const old of oldAttachments) {
+                await supabaseClient
+                    .from('production_sheet_attachments')
+                    .delete()
+                    .eq('id', old.id);
+            }
+            projectData.attachments = projectData.attachments.filter(a => a.attachment_type !== attachmentType);
         }
-        projectData.attachments = projectData.attachments.filter(a => a.attachment_type !== attachmentType);
         
         // Create new attachment record (linking to existing file)
         const { data: attachment, error } = await supabaseClient
@@ -523,6 +502,7 @@ async function selectProjectFile(fileId, fileUrl, fileName) {
                 attachment_type: attachmentType,
                 file_name: fileName,
                 file_url: fileUrl,
+                file_path: filePath,
                 file_size: 0,
                 file_type: 'linked'
             })
@@ -534,7 +514,6 @@ async function selectProjectFile(fileId, fileUrl, fileName) {
         projectData.attachments.push(attachment);
         
         showToast('File linked!', 'success');
-        closeSelectDrawingsModal();
         
         // Update UI
         await checkAllItems();
@@ -547,78 +526,7 @@ async function selectProjectFile(fileId, fileUrl, fileName) {
     }
 }
 
-async function handleNewDrawingUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    showToast('Uploading file...', 'info');
-    
-    try {
-        // Ensure we have a sheet
-        if (!currentSheet) {
-            await createDraftSheet();
-        }
-        
-        const attachmentType = currentSelectFolder === 'drawings' ? 'DRAWINGS_MAIN' : 'PHOTOS';
-        
-        // Remove old attachment
-        const oldAttachments = projectData.attachments.filter(a => a.attachment_type === attachmentType);
-        for (const old of oldAttachments) {
-            await supabaseClient
-                .from('production_sheet_attachments')
-                .delete()
-                .eq('id', old.id);
-        }
-        projectData.attachments = projectData.attachments.filter(a => a.attachment_type !== attachmentType);
-        
-        // Upload to Supabase Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${attachmentType}_${Date.now()}.${fileExt}`;
-        const filePath = `production-sheets/${currentSheet.id}/${fileName}`;
-        
-        const { error: uploadError } = await supabaseClient.storage
-            .from('project-files')
-            .upload(filePath, file);
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: urlData } = supabaseClient.storage
-            .from('project-files')
-            .getPublicUrl(filePath);
-        
-        // Save attachment record
-        const { data: attachment, error } = await supabaseClient
-            .from('production_sheet_attachments')
-            .insert({
-                sheet_id: currentSheet.id,
-                attachment_type: attachmentType,
-                file_name: file.name,
-                file_url: urlData.publicUrl,
-                file_size: file.size,
-                file_type: file.type
-            })
-            .select()
-            .single();
-        
-        if (error) throw error;
-        
-        projectData.attachments.push(attachment);
-        
-        showToast('File uploaded!', 'success');
-        closeSelectDrawingsModal();
-        
-        await checkAllItems();
-        updateProgress();
-        generatePreview();
-        
-    } catch (err) {
-        console.error('Upload error:', err);
-        showToast('Error: ' + err.message, 'error');
-    }
-    
-    // Reset input
-    event.target.value = '';
-}
+// File upload is now handled by project-files.js
 
 function saveDescription() {
     scopeDescription = document.getElementById('descriptionModalText').value;
