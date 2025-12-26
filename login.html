@@ -145,18 +145,24 @@
             position: relative;
         }
         
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255,255,255,0.1);
+        }
+        
         .tab-btn.active {
-            color: #007acc;
+            color: #ffffff;
+            background: #007acc;
+            border-radius: 5px;
+        }
+        
+        .tab-btn.active:hover {
+            color: #ffffff;
+            background: #007acc;
         }
         
         .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #007acc;
+            display: none;
         }
         
         .tab-content {
