@@ -1714,7 +1714,7 @@ async function generatePhotoPages() {
         });
     }
     
-    // Create page with photos (max 4 per page in grid)
+    // Create page with photos (max 4 per page in grid 2x2)
     const photosPerPage = 4;
     for (let i = 0; i < photosToEmbed.length; i += photosPerPage) {
         const pagePhotos = photosToEmbed.slice(i, i + photosPerPage);
@@ -1722,17 +1722,23 @@ async function generatePhotoPages() {
         const totalPhotoPages = Math.ceil(photosToEmbed.length / photosPerPage);
         
         let html = `<h1 class="ps-section-title">6. Reference Photos ${totalPhotoPages > 1 ? `(${pageNum}/${totalPhotoPages})` : ''}</h1>`;
-        html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; height: calc(100% - 60px);">';
+        html += `<div style="display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 15px; height: calc(297mm - 80mm);">`;
         
         for (const photo of pagePhotos) {
             const isImage = photo.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i);
-            html += `<div style="text-align: center; border: 1px solid #ddd; padding: 10px; display: flex; flex-direction: column;">
-                <div style="font-size: 11px; color: #666; margin-bottom: 8px;">📷 ${photo.name}</div>
+            html += `<div style="text-align: center; border: 1px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="font-size: 10px; color: #666; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📷 ${photo.name}</div>
                 ${isImage 
-                    ? `<img src="${photo.url}" style="flex: 1; max-width: 100%; max-height: 200px; object-fit: contain;" crossorigin="anonymous" />`
+                    ? `<img src="${photo.url}" style="flex: 1; width: 100%; height: 100%; object-fit: contain;" crossorigin="anonymous" />`
                     : `<a href="${photo.url}" target="_blank" style="color: #4a9eff;">View file</a>`
                 }
             </div>`;
+        }
+        
+        // Fill empty cells if less than 4 photos
+        const emptySlots = photosPerPage - pagePhotos.length;
+        for (let j = 0; j < emptySlots; j++) {
+            html += `<div style="border: 1px dashed #ddd;"></div>`;
         }
         
         html += '</div>';
