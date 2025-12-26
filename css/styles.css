@@ -415,6 +415,8 @@ body.pipeline-theme .project-column-divider {
     gap: 9px;
     align-items: center;
     transition: all 0.3s;
+    position: relative;
+    z-index: 100;
     flex-wrap: wrap;
 }
 
@@ -1255,6 +1257,7 @@ body.pipeline-theme .grid-line {
     margin-top: 5px;
     min-width: 150px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 1000;
 }
 
 .export-dropdown:hover .export-menu {
