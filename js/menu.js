@@ -211,8 +211,121 @@ function loadUnifiedMenu() {
             <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
             <a href="suppliers.html" class="nav-link nav-link-suppliers">🚚 Suppliers</a>
             <a href="equipment.html" class="nav-link nav-link-equipment">🔧 Machines</a>
+            
+            <!-- User Dropdown -->
+            <div class="user-dropdown" id="userDropdown">
+                <button class="user-dropdown-btn" onclick="toggleUserDropdown(event)">
+                    <span class="user-avatar">👤</span>
+                    <span class="user-name" id="userDropdownName">User</span>
+                    <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="user-dropdown-menu" id="userDropdownMenu">
+                    <a href="settings.html" class="dropdown-item">
+                        <span>⚙️</span> My Account
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item dropdown-logout" onclick="globalLogout()">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
+            </div>
         </div>
     `;
+    
+    // User dropdown styles
+    const dropdownStyles = `
+        <style id="userDropdownStyles">
+            .user-dropdown {
+                position: relative;
+                margin-left: auto;
+            }
+            .user-dropdown-btn {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 12px;
+                background: #333;
+                border: 1px solid #444;
+                border-radius: 6px;
+                color: #e8e2d5;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+            }
+            .user-dropdown-btn:hover {
+                background: #3a3a3a;
+                border-color: #555;
+            }
+            .user-avatar {
+                font-size: 16px;
+            }
+            .user-name {
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .dropdown-arrow {
+                font-size: 10px;
+                color: #888;
+                transition: transform 0.2s;
+            }
+            .user-dropdown.open .dropdown-arrow {
+                transform: rotate(180deg);
+            }
+            .user-dropdown-menu {
+                display: none;
+                position: absolute;
+                top: calc(100% + 5px);
+                right: 0;
+                min-width: 180px;
+                background: #2a2a2a;
+                border: 1px solid #444;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 1000;
+                overflow: hidden;
+            }
+            .user-dropdown.open .user-dropdown-menu {
+                display: block;
+            }
+            .dropdown-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 15px;
+                color: #e8e2d5;
+                text-decoration: none;
+                font-size: 13px;
+                transition: background 0.2s;
+                cursor: pointer;
+                border: none;
+                background: none;
+                width: 100%;
+                text-align: left;
+            }
+            .dropdown-item:hover {
+                background: #333;
+            }
+            .dropdown-item span {
+                font-size: 14px;
+            }
+            .dropdown-divider {
+                height: 1px;
+                background: #444;
+                margin: 5px 0;
+            }
+            .dropdown-logout:hover {
+                background: rgba(239, 68, 68, 0.2);
+                color: #ef4444;
+            }
+        </style>
+    `;
+    
+    // Inject styles if not already present
+    if (!document.getElementById('userDropdownStyles')) {
+        document.head.insertAdjacentHTML('beforeend', dropdownStyles);
+    }
     
     // Find the menu container and inject
     const menuContainer = document.querySelector('.header');
@@ -228,6 +341,47 @@ function loadUnifiedMenu() {
     
     // Also try immediately in case permissions already loaded
     setTimeout(applyMenuPermissions, 100);
+    
+    // Update user name when permissions loaded
+    window.addEventListener('permissionsLoaded', updateUserDropdownName);
+    setTimeout(updateUserDropdownName, 500);
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+        }
+    });
+}
+
+// Toggle user dropdown
+function toggleUserDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('open');
+    }
+}
+
+// Update user name in dropdown
+function updateUserDropdownName() {
+    const nameEl = document.getElementById('userDropdownName');
+    if (nameEl && window.currentUserProfile) {
+        const name = window.currentUserProfile.full_name || window.currentUserProfile.email || 'User';
+        // Pokaż tylko imię jeśli jest pełne imię i nazwisko
+        const displayName = name.split(' ')[0];
+        nameEl.textContent = displayName;
+    }
+}
+
+// Global logout function
+function globalLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        supabaseClient.auth.signOut().then(() => {
+            window.location.href = 'login.html';
+        });
+    }
 }
 
 function applyMenuPermissions() {

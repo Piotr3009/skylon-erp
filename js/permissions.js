@@ -31,6 +31,7 @@
         // Admin + Manager + Worker
         'stock.html': ['admin', 'manager', 'worker'], // Stock (manager/worker read-only)
         'office.html': ['admin', 'manager', 'worker'], // Office
+        'settings.html': ['admin', 'manager', 'worker'], // Settings (company tab admin only)
         
         // Public
         'login.html': ['admin', 'manager', 'worker', 'viewer'],
