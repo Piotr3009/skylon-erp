@@ -523,18 +523,8 @@ async function convertToProduction() {
         phases: phases
     };
     
-        key: p.key,
-        start: p.start,
-        workDays: p.workDays
-    })));
-    
     // Auto-adjust phases to deadline - WŁĄCZONE!
     autoAdjustPhasesToDeadline(productionProject, today, deadlineDate);
-    
-        key: p.key,
-        start: p.start,
-        workDays: p.workDays
-    })));
     
     // Add to production projects (cross-page save)
     let productionProjects = JSON.parse(localStorage.getItem('joineryProjects') || '[]');
@@ -544,14 +534,6 @@ async function convertToProduction() {
     // Save to production DB with client_id and phases
     if (typeof supabaseClient !== 'undefined') {
         try {
-                project_number: productionProject.projectNumber,
-                type: productionProject.type,
-                name: productionProject.name,
-                client_id: productionProject.client_id,
-                deadline: productionProject.deadline,
-                phases_count: productionProject.phases.length
-            });
-            
             // SPRAWDŹ CZY PROJEKT JUŻ ISTNIEJE
             const { data: existingProject } = await supabaseClient
                 .from('projects')
