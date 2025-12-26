@@ -24,17 +24,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         window.currentUser = profile;
         
-        // Dodaj przycisk logout TYLKO jeśli go nie ma
-        const toolbar = document.querySelector('.toolbar');
-        if (toolbar && !document.getElementById('logoutBtn') && profile) {
-            const logoutBtn = document.createElement('button');
-            logoutBtn.id = 'logoutBtn'; // Dodaj ID żeby sprawdzić czy istnieje
-            logoutBtn.className = 'toolbar-btn';
-            logoutBtn.innerHTML = '🚪 Logout (' + (profile.full_name || profile.email) + ')';
-            logoutBtn.onclick = logout;
-            logoutBtn.style.marginLeft = 'auto';
-            toolbar.appendChild(logoutBtn);
-        }
+        // Dodaj user dropdown do toolbara
+        addUserDropdownToToolbar(profile);
     }
     
     // TERAZ ładuj dane i renderuj TYLKO RAZ

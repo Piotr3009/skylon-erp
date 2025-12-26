@@ -127,17 +127,8 @@ async function checkAuth() {
         
         window.currentUser = profile;
         
-        // Add logout button
-        const toolbar = document.querySelector('.toolbar');
-        if (toolbar && !document.getElementById('logoutBtn') && profile) {
-            const logoutBtn = document.createElement('button');
-            logoutBtn.id = 'logoutBtn';
-            logoutBtn.className = 'toolbar-btn';
-            logoutBtn.innerHTML = '🚪 Logout (' + (profile.full_name || profile.email) + ')';
-            logoutBtn.onclick = logout;
-            logoutBtn.style.marginLeft = 'auto';
-            toolbar.appendChild(logoutBtn);
-        }
+        // Dodaj user dropdown do toolbara
+        addUserDropdownToToolbar(profile);
     }
 }
 

@@ -34,23 +34,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             // NIE UKRYWAJ Add Pipeline Project!
         }
         
-        // Dodaj logout TYLKO jeśli go nie ma
-        const toolbar = document.querySelector('.toolbar');
-        if (toolbar && !document.getElementById('logoutBtn') && profile) {
-            const logoutBtn = document.createElement('button');
-            logoutBtn.id = 'logoutBtn'; // Dodaj ID
-            logoutBtn.className = 'toolbar-btn';
-            logoutBtn.innerHTML = '🚪 Logout (' + (profile.full_name || profile.email) + ')';
-            logoutBtn.onclick = () => {
-                if (confirm('Logout?')) {
-                    supabaseClient.auth.signOut().then(() => {
-                        window.location.href = 'login.html';
-                    });
-                }
-            };
-            logoutBtn.style.marginLeft = 'auto';
-            toolbar.appendChild(logoutBtn);
-        }
+        // Dodaj user dropdown do toolbara
+        addUserDropdownToToolbar(profile);
     }
     
     // Załaduj dane i renderuj RAZ

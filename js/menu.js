@@ -211,24 +211,6 @@ function loadUnifiedMenu() {
             <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
             <a href="suppliers.html" class="nav-link nav-link-suppliers">🚚 Suppliers</a>
             <a href="equipment.html" class="nav-link nav-link-equipment">🔧 Machines</a>
-            
-            <!-- User Dropdown -->
-            <div class="user-dropdown" id="userDropdown">
-                <button class="user-dropdown-btn" onclick="toggleUserDropdown(event)">
-                    <span class="user-avatar">👤</span>
-                    <span class="user-name" id="userDropdownName">User</span>
-                    <span class="dropdown-arrow">▼</span>
-                </button>
-                <div class="user-dropdown-menu" id="userDropdownMenu">
-                    <a href="settings.html" class="dropdown-item">
-                        <span>⚙️</span> My Account
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <button class="dropdown-item dropdown-logout" onclick="globalLogout()">
-                        <span>🚪</span> Logout
-                    </button>
-                </div>
-            </div>
         </div>
     `;
     
@@ -243,7 +225,7 @@ function loadUnifiedMenu() {
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                padding: 6px 12px;
+                padding: 8px 14px;
                 background: #333;
                 border: 1px solid #444;
                 border-radius: 6px;
@@ -342,10 +324,6 @@ function loadUnifiedMenu() {
     // Also try immediately in case permissions already loaded
     setTimeout(applyMenuPermissions, 100);
     
-    // Update user name when permissions loaded
-    window.addEventListener('permissionsLoaded', updateUserDropdownName);
-    setTimeout(updateUserDropdownName, 500);
-    
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
         const dropdown = document.getElementById('userDropdown');
@@ -355,23 +333,54 @@ function loadUnifiedMenu() {
     });
 }
 
+/**
+ * Dodaje user dropdown do toolbara (zamiast starego przycisku Logout)
+ * Wywołaj tę funkcję po załadowaniu profilu usera
+ * @param {object} profile - profil usera z user_profiles
+ */
+function addUserDropdownToToolbar(profile) {
+    if (!profile) return;
+    
+    const toolbar = document.querySelector('.toolbar');
+    if (!toolbar) return;
+    
+    // Usuń stary przycisk logout jeśli istnieje
+    const oldLogout = document.getElementById('logoutBtn');
+    if (oldLogout) oldLogout.remove();
+    
+    // Sprawdź czy dropdown już istnieje
+    if (document.getElementById('userDropdown')) return;
+    
+    const displayName = profile.full_name ? profile.full_name.split(' ')[0] : (profile.email || 'User');
+    
+    const dropdownHTML = `
+        <div class="user-dropdown" id="userDropdown">
+            <button class="user-dropdown-btn" onclick="toggleUserDropdown(event)">
+                <span class="user-avatar">👤</span>
+                <span class="user-name">${displayName}</span>
+                <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="user-dropdown-menu" id="userDropdownMenu">
+                <a href="settings.html" class="dropdown-item">
+                    <span>⚙️</span> My Account
+                </a>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item dropdown-logout" onclick="globalLogout()">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </div>
+    `;
+    
+    toolbar.insertAdjacentHTML('beforeend', dropdownHTML);
+}
+
 // Toggle user dropdown
 function toggleUserDropdown(event) {
     event.stopPropagation();
     const dropdown = document.getElementById('userDropdown');
     if (dropdown) {
         dropdown.classList.toggle('open');
-    }
-}
-
-// Update user name in dropdown
-function updateUserDropdownName() {
-    const nameEl = document.getElementById('userDropdownName');
-    if (nameEl && window.currentUserProfile) {
-        const name = window.currentUserProfile.full_name || window.currentUserProfile.email || 'User';
-        // Pokaż tylko imię jeśli jest pełne imię i nazwisko
-        const displayName = name.split(' ')[0];
-        nameEl.textContent = displayName;
     }
 }
 
@@ -397,6 +406,10 @@ function applyMenuPermissions() {
         }
     });
     
+    // Automatycznie dodaj user dropdown do toolbara
+    if (window.currentUserProfile) {
+        addUserDropdownToToolbar(window.currentUserProfile);
+    }
 }
 
 // Load menu when DOM is ready
