@@ -35,8 +35,18 @@ async function openProjectFilesModal(projectIndex, stage) {
         return;
     }
     
+    openProjectFilesModalWithData(projectId, projectNumber, project.name, stage);
+}
+
+// Direct version for Production Sheet (no array lookup needed)
+async function openProjectFilesModalDirect(projectId, projectNumber, projectName, stage) {
+    openProjectFilesModalWithData(projectId, projectNumber, projectName, stage);
+}
+
+// Shared modal creation
+async function openProjectFilesModalWithData(projectId, projectNumber, projectName, stage) {
     currentProjectFiles = {
-        index: projectIndex,
+        index: null,
         stage: stage,
         projectNumber: projectNumber,
         projectId: projectId,
@@ -54,7 +64,7 @@ async function openProjectFilesModal(projectIndex, stage) {
                 <div>
                     <div style="font-size: 18px; font-weight: 600; color: #fff;">📁 Project Files</div>
                     <div style="font-size: 14px; color: #999; margin-top: 4px;">
-                        ${projectNumber} - ${project.name}
+                        ${projectNumber} - ${projectName}
                     </div>
                 </div>
                 <button onclick="closeProjectFilesModal()" style="
