@@ -541,7 +541,7 @@
             
             try {
                 const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                    redirectTo: window.location.origin + '/reset-password.html'
+                    redirectTo: 'https://piotr3009.github.io/skylon-erp/reset-password.html'
                 });
                 
                 if (error) throw error;
