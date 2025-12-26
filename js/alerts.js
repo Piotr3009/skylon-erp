@@ -435,6 +435,7 @@ async function snoozeAlert(alertId) {
     modal.className = 'modal active';
     modal.id = 'snoozeModal';
     modal.style.display = 'flex';
+    modal.style.zIndex = '10001'; // Wyżej niż alert-container (9999)
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 400px; background: #1a1a1a; border: 1px solid #404040;">

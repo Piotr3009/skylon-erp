@@ -412,9 +412,48 @@ function applyMenuPermissions() {
     }
 }
 
+// Add copyright footer to page
+function addCopyrightFooter() {
+    // Nie dodawaj na login page
+    if (window.location.pathname.includes('login.html')) return;
+    
+    // Sprawdź czy footer już istnieje
+    if (document.getElementById('copyrightFooter')) return;
+    
+    const footer = document.createElement('div');
+    footer.id = 'copyrightFooter';
+    footer.style.cssText = `
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 20px;
+        background: #1a1a1a;
+        border-top: 1px solid #333;
+        font-size: 11px;
+        color: #666;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 50;
+    `;
+    
+    const year = new Date().getFullYear();
+    footer.innerHTML = `
+        <span>© ${year} Skylon Development. All rights reserved.</span>
+        <span style="color: #555;">Joinery Core v1.0</span>
+    `;
+    
+    document.body.appendChild(footer);
+}
+
 // Load menu when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadUnifiedMenu);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadUnifiedMenu();
+        addCopyrightFooter();
+    });
 } else {
     loadUnifiedMenu();
+    addCopyrightFooter();
 }

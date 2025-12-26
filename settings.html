@@ -275,7 +275,7 @@
     </style>
 </head>
 <body style="overflow: auto; height: auto;">
-    <div class="container">
+    <div class="container" style="overflow: auto; height: auto; min-height: 100vh;">
         <!-- Header -->
         <div class="header">
             <div class="app-title">Joinery Core - Settings</div>
@@ -305,6 +305,9 @@
                 </button>
                 <button class="settings-tab" onclick="switchSettingsTab('billing')">
                     💳 Billing
+                </button>
+                <button class="settings-tab" onclick="switchSettingsTab('about')">
+                    ℹ️ About
                 </button>
             </div>
             
@@ -439,6 +442,48 @@
                     <h3>Coming Soon</h3>
                     <p>Billing & subscription management will be available in the SaaS version.</p>
                     <p style="margin-top: 15px; color: #555;">Planned features: Subscription plans, payment history, invoices</p>
+                </div>
+            </div>
+            
+            <!-- About Panel -->
+            <div class="settings-panel" id="aboutPanel">
+                <div class="settings-section">
+                    <div style="text-align: center; padding: 20px 0;">
+                        <img src="favicon.svg" alt="Joinery Core" style="width: 80px; height: 80px; margin-bottom: 15px;">
+                        <h2 style="color: #4CAF50; margin-bottom: 5px;">Joinery Core</h2>
+                        <p style="color: #888; font-size: 14px;">Enterprise Management System</p>
+                        <p style="color: #666; font-size: 13px; margin-top: 5px;">Version 1.0</p>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>About</h3>
+                    <p style="color: #aaa; line-height: 1.6;">
+                        Joinery Core is a comprehensive business management system designed specifically 
+                        for joinery and construction companies. It handles the complete project lifecycle 
+                        from initial client contact through production completion.
+                    </p>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Legal</h3>
+                    <div style="background: #1e1e1e; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <p style="color: #e8e2d5; font-size: 13px; margin-bottom: 10px;">
+                            <strong>© 2024-2025 Skylon Development</strong>
+                        </p>
+                        <p style="color: #888; font-size: 12px; line-height: 1.5;">
+                            All rights reserved. This software and its content are protected by copyright law. 
+                            Unauthorized reproduction, distribution, or modification is strictly prohibited.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Contact</h3>
+                    <p style="color: #aaa; font-size: 13px;">
+                        For support or inquiries, please contact:<br>
+                        <a href="mailto:support@skylondevelopment.com" style="color: #4CAF50;">support@skylondevelopment.com</a>
+                    </p>
                 </div>
             </div>
         </div>
