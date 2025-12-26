@@ -1298,6 +1298,9 @@ async function generatePreview() {
     // DRAWINGS
     html += generateDrawingsSection();
     
+    // PHOTOS
+    html += generatePhotosSection();
+    
     // SPRAY PACK
     html += generateSprayPackSection();
     
@@ -1359,6 +1362,9 @@ function generateTOC() {
         p.phase_key && p.phase_key.toLowerCase().includes('spray')
     );
     
+    const hasPhotos = projectData.attachments.some(a => a.attachment_type === 'PHOTOS') ||
+                     projectData.files.some(f => f.folder_name === 'photos');
+    
     // Budujemy TOC zgodnie z kolejnością sekcji
     const sections = [
         'Scope & Notes',
@@ -1367,6 +1373,10 @@ function generateTOC() {
         'Materials',
         'Drawings'
     ];
+    
+    if (hasPhotos) {
+        sections.push('Reference Photos');
+    }
     
     if (hasSprayPhase) {
         sections.push('Spray / Finish Pack');
@@ -1766,6 +1776,51 @@ function generateDrawingsSection() {
         `;
     } else {
         html += `<div style="color: #ef4444; font-style: italic;">⚠️ No drawings attached - required!</div>`;
+    }
+    
+    html += `</div>`;
+    return html;
+}
+
+function generatePhotosSection() {
+    const sectionNum = ++pdfSectionNumber;
+    
+    // Find photos attachment
+    const photosAttachment = projectData.attachments.find(a => a.attachment_type === 'PHOTOS');
+    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    
+    // Photos are optional - if none, don't show section
+    if (!photosAttachment && photosFromFiles.length === 0) {
+        return ''; // No photos section if nothing uploaded
+    }
+    
+    let html = `
+        <div style="margin-bottom: 30px;">
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Reference Photos</h2>
+    `;
+    
+    if (photosAttachment) {
+        html += `
+            <div style="background: #fce4ec; border-left: 4px solid #e91e63; padding: 15px; margin-bottom: 15px;">
+                <strong style="color: #c2185b;">📷 Linked Photo:</strong>
+                <div style="margin-top: 8px;">
+                    <a href="${photosAttachment.file_url}" target="_blank" style="color: #1976d2; text-decoration: underline;">
+                        ${photosAttachment.file_name || 'View Photo'}
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (photosFromFiles.length > 0) {
+        html += `
+            <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 15px;">
+                <strong style="color: #e65100;">📷 Project Photos (${photosFromFiles.length} file${photosFromFiles.length > 1 ? 's' : ''}):</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    ${photosFromFiles.map(f => `<li>${f.file_name}</li>`).join('')}
+                </ul>
+            </div>
+        `;
     }
     
     html += `</div>`;
