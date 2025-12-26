@@ -1,7 +1,7 @@
 // JC Toast Notification System
 // Usage: showToast('Message', 'success') or showToast('Error!', 'error')
 
-function showToast(message, type = 'info', duration = 5000) {
+function showToast(message, type = 'info', duration = 4000) {
     // Create container if not exists
     let container = document.getElementById('jc-toast-container');
     if (!container) {
@@ -9,18 +9,20 @@ function showToast(message, type = 'info', duration = 5000) {
         container.id = 'jc-toast-container';
         container.style.cssText = `
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 10000;
             display: flex;
             flex-direction: column;
+            align-items: center;
             gap: 10px;
         `;
         document.body.appendChild(container);
     }
 
     // JC Logo SVG (small version)
-    const jcLogo = `<svg width="24" height="24" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    const jcLogo = `<svg width="28" height="28" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <linearGradient id="toastBg${Date.now()}" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style="stop-color:#2a2a2a"/>
@@ -51,34 +53,34 @@ function showToast(message, type = 'info', duration = 5000) {
     toast.style.cssText = `
         background: #27272a;
         border: 1px solid #3f3f46;
-        border-left: 3px solid ${color.border};
+        border-left: 4px solid ${color.border};
         color: #e4e4e7;
-        padding: 12px 14px;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        padding: 14px 18px;
+        border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
         display: flex;
         align-items: center;
-        gap: 12px;
-        min-width: 260px;
-        max-width: 360px;
+        gap: 14px;
+        min-width: 320px;
+        max-width: 450px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 13px;
+        font-size: 14px;
         animation: jcToastIn 0.3s ease;
     `;
     
     toast.innerHTML = `
         <div style="flex-shrink: 0;">${jcLogo}</div>
-        <div style="flex: 1; line-height: 1.4;">${message}</div>
+        <div style="flex: 1; line-height: 1.5;">${message}</div>
         <div style="
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             background: ${color.border};
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: bold;
             flex-shrink: 0;
         ">${color.icon}</div>
@@ -99,12 +101,12 @@ if (!document.getElementById('jc-toast-styles')) {
     style.id = 'jc-toast-styles';
     style.textContent = `
         @keyframes jcToastIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         @keyframes jcToastOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(-20px); opacity: 0; }
         }
     `;
     document.head.appendChild(style);
