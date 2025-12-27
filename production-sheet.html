@@ -833,9 +833,9 @@
         </div>
     </div>
 
-    <!-- BOM Editor Modal -->
+    <!-- BOM Modal - NEW with dynamic forms per element type -->
     <div class="ps-modal-overlay" id="psBomModal">
-        <div class="ps-modal" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="ps-modal" style="max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="ps-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <span>📋 Elements List (BOM)</span>
                 <button onclick="closeBomModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
@@ -847,12 +847,12 @@
                     <thead>
                         <tr style="background: #252526;">
                             <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">ID</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Type</th>
                             <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Name</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42;">Qty</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42;">W x H (mm)</th>
-                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Finish</th>
-                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Glass</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42;">Actions</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42;">Size (mm)</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Colour</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3e3e42;">Details</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3e3e42; width: 120px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="bomTableBody">
@@ -861,51 +861,65 @@
                 </table>
                 
                 <div id="bomEmpty" style="text-align: center; padding: 40px; color: #666; display: none;">
-                    No elements added yet. Click "Add Element" to start.
+                    No elements added yet. Select element type and click "Add Element" to start.
                 </div>
             </div>
             
-            <!-- Add Element Form -->
+            <!-- Add/Edit Element Form -->
             <div style="background: #252526; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 12px;">➕ Add New Element</div>
-                <div style="display: grid; grid-template-columns: 80px 1fr 60px 80px 80px 1fr 1fr; gap: 10px; align-items: end;">
-                    <div>
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">ID</label>
-                        <input type="text" id="bomNewId" placeholder="W-001" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Name *</label>
-                        <input type="text" id="bomNewName" placeholder="Window Living Room" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Qty</label>
-                        <input type="number" id="bomNewQty" value="1" min="1" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Width</label>
-                        <input type="number" id="bomNewWidth" placeholder="1200" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Height</label>
-                        <input type="number" id="bomNewHeight" placeholder="1500" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Finish/Colour</label>
-                        <input type="text" id="bomNewFinish" placeholder="RAL 9005" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Glass Spec</label>
-                        <input type="text" id="bomNewGlass" placeholder="4/16/4 DG" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: #e8e2d5;" id="bomFormTitle">➕ Add New Element</div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label style="font-size: 11px; color: #888;">Element Type:</label>
+                        <select id="bomElementType" onchange="onElementTypeChange()" style="padding: 8px 12px; background: #1e1e1e; border: 1px solid #4a9eff; border-radius: 4px; color: #4a9eff; font-weight: 600; min-width: 180px;">
+                            <option value="">-- Select Type --</option>
+                            <option value="sash">🪟 Sash Windows</option>
+                            <option value="casement">🪟 Casement Windows</option>
+                            <option value="internalDoors">🚪 Internal Doors</option>
+                            <option value="externalDoors">🚪 External Doors</option>
+                            <option value="kitchen">🍳 Kitchen</option>
+                            <option value="wardrobe">🗄️ Wardrobe</option>
+                            <option value="partition">🧱 Partition</option>
+                            <option value="externalSpray">🎨 External Spray</option>
+                            <option value="other">📦 Other</option>
+                        </select>
                     </div>
                 </div>
-                <div style="margin-top: 10px; display: flex; gap: 10px;">
-                    <div style="flex: 1;">
-                        <label style="font-size: 10px; color: #888; display: block; margin-bottom: 4px;">Notes (optional)</label>
-                        <input type="text" id="bomNewNotes" placeholder="Handle on left side, trickle vent required" style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;">
+                
+                <!-- Dynamic Form Container -->
+                <div id="bomFormContainer" style="display: none;">
+                    <!-- Row 1: Basic Info -->
+                    <div id="bomFormRow1" style="display: grid; grid-template-columns: 100px 1fr; gap: 10px; margin-bottom: 10px;"></div>
+                    
+                    <!-- Row 2: Dimensions -->
+                    <div id="bomFormRow2" style="display: grid; gap: 10px; margin-bottom: 10px;"></div>
+                    
+                    <!-- Row 3: Type-specific fields -->
+                    <div id="bomFormRow3" style="display: grid; gap: 10px; margin-bottom: 10px;"></div>
+                    
+                    <!-- Row 4: More type-specific fields -->
+                    <div id="bomFormRow4" style="display: grid; gap: 10px; margin-bottom: 10px;"></div>
+                    
+                    <!-- Row 5: Colour -->
+                    <div id="bomFormRow5" style="display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin-bottom: 10px;"></div>
+                    
+                    <!-- Row 6: Description -->
+                    <div id="bomFormRow6" style="margin-bottom: 10px;"></div>
+                    
+                    <!-- Buttons -->
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                        <button onclick="cancelBomEdit()" id="bomCancelBtn" style="padding: 8px 20px; background: #3e3e42; color: #888; border: none; border-radius: 4px; cursor: pointer; display: none;">
+                            Cancel
+                        </button>
+                        <button onclick="saveBomElement()" id="bomSaveBtn" style="padding: 8px 20px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                            + Add Element
+                        </button>
                     </div>
-                    <button onclick="addBomElement()" style="padding: 8px 20px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; align-self: end;">
-                        + Add
-                    </button>
+                </div>
+                
+                <!-- Placeholder when no type selected -->
+                <div id="bomFormPlaceholder" style="text-align: center; padding: 30px; color: #666;">
+                    Select element type above to show the form
                 </div>
             </div>
             
@@ -950,6 +964,7 @@
     
     <script src="js/menu.js"></script>
     <script src="js/project-files.js"></script>
+    <script src="js/bom-editor.js"></script>
     <script src="js/production-sheet-builder.js"></script>
 </body>
 </html>
