@@ -498,11 +498,17 @@ function openPhotosSelectModal() {
     
     // Build grid of photos with checkboxes
     let photosHtml = photosFromFiles.map((file, idx) => {
+        // Generate public URL from file_path
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        const photoUrl = urlData.publicUrl;
+        
         const isSelected = selectedPhotos.some(p => p.id === file.id);
         return `
             <div class="ps-photo-item ${isSelected ? 'selected' : ''}" onclick="togglePhotoSelection(${idx})">
                 <input type="checkbox" id="photo-check-${idx}" ${isSelected ? 'checked' : ''} style="position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; cursor: pointer;">
-                <img src="${file.public_url}" alt="${file.file_name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;">
+                <img src="${photoUrl}" alt="${file.file_name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;">
                 <div style="font-size: 10px; color: #888; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.file_name}</div>
             </div>
         `;
@@ -517,13 +523,18 @@ function togglePhotoSelection(idx) {
     const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
     const file = photosFromFiles[idx];
     
+    // Generate public URL
+    const { data: urlData } = supabaseClient.storage
+        .from('project-documents')
+        .getPublicUrl(file.file_path);
+    
     const existingIdx = selectedPhotos.findIndex(p => p.id === file.id);
     if (existingIdx >= 0) {
         selectedPhotos.splice(existingIdx, 1);
     } else {
         selectedPhotos.push({
             id: file.id,
-            url: file.public_url,
+            url: urlData.publicUrl,
             name: file.file_name
         });
     }
@@ -555,11 +566,16 @@ function confirmPhotosSelection() {
 
 function selectAllPhotos() {
     const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
-    selectedPhotos = photosFromFiles.map(file => ({
-        id: file.id,
-        url: file.public_url,
-        name: file.file_name
-    }));
+    selectedPhotos = photosFromFiles.map(file => {
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        return {
+            id: file.id,
+            url: urlData.publicUrl,
+            name: file.file_name
+        };
+    });
     openPhotosSelectModal(); // Refresh UI
 }
 
