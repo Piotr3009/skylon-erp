@@ -201,8 +201,7 @@ async function loadAllData() {
             .from('project_materials')
             .select(`
                 *,
-                stock_items(name, item_number, size, thickness, image_url, current_quantity, reserved_quantity, unit),
-                stock_categories(name)
+                stock_items(name, item_number, size, thickness, image_url, current_quantity, reserved_quantity, unit)
             `)
             .eq('project_id', projectId)
             .order('used_in_stage')
