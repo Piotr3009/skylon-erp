@@ -111,14 +111,6 @@ const CHECKLIST_SECTIONS = [
         ]
     },
     {
-        key: 'BLOCKERS',
-        title: 'Blockers',
-        icon: '⚠️',
-        items: [
-            { key: 'BLOCKERS_NONE_CRITICAL', label: 'No critical blockers', source: 'AUTO', required: true }
-        ]
-    },
-    {
         key: 'PHOTOS',
         title: 'Photos',
         icon: '📷',
@@ -847,16 +839,6 @@ async function checkItem(item) {
             result.meta = `${phasesAssigned.length}/${projectData.phases.length} assigned`;
             break;
             
-        // BLOCKERS
-        case 'BLOCKERS_NONE_CRITICAL':
-            const criticalBlockers = projectData.blockers.filter(b => b.severity === 'critical');
-            result.done = criticalBlockers.length === 0;
-            result.blocked = criticalBlockers.length > 0;
-            result.meta = criticalBlockers.length > 0 
-                ? `${criticalBlockers.length} critical blocker(s)!`
-                : 'No critical blockers';
-            break;
-            
         // QC
         case 'QC_TEMPLATE':
             result.done = true; // Always included
@@ -1227,9 +1209,6 @@ async function generatePreview() {
     // PAGE: Phases / Timeline
     pages.push(generatePhasesPage());
     
-    // PAGE: Blockers
-    pages.push(generateBlockersPage());
-    
     // PAGE: Reference Photos (if any)
     const photoPages = await generatePhotoPages();
     pages.push(...photoPages);
@@ -1263,7 +1242,6 @@ function generateCoverPageNew(logoUrl) {
         'Materials',
         'Spraying',
         'Phases / Timeline',
-        'Blockers',
         'Reference Photos',
         'QC Checklist & Sign-off'
     ];
@@ -2145,51 +2123,6 @@ function generatePhasesPage() {
     `;
 }
 
-// ========== PAGE: BLOCKERS ==========
-function generateBlockersPage() {
-    const blockers = projectData.blockers;
-    
-    if (!blockers || blockers.length === 0) {
-        return `
-            <h1 class="ps-section-title">7. Blockers</h1>
-            <div style="padding: 20px; background: #dcfce7; border-left: 4px solid #22c55e; color: #166534;">
-                ✓ No active blockers
-            </div>
-        `;
-    }
-    
-    let rows = blockers.map(b => `
-        <tr>
-            <td style="border: 1px solid #ddd; padding: 12px;">${b.description || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 12px;">${b.blocker_type || '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">
-                <span style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${b.priority === 'high' ? '#fee2e2' : b.priority === 'medium' ? '#fef3c7' : '#f3f4f6'}; color: ${b.priority === 'high' ? '#b91c1c' : b.priority === 'medium' ? '#92400e' : '#374151'};">
-                    ${b.priority || 'normal'}
-                </span>
-            </td>
-            <td style="border: 1px solid #ddd; padding: 12px;">${b.resolution || '-'}</td>
-        </tr>
-    `).join('');
-    
-    return `
-        <h1 class="ps-section-title">7. Blockers</h1>
-        
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead>
-                <tr style="background: #ef4444; color: white;">
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Description</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Type</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Priority</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Resolution</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rows}
-            </tbody>
-        </table>
-    `;
-}
-
 // ========== PAGE: QC & SIGN-OFF ==========
 function generateQCPage() {
     return `
@@ -2317,7 +2250,6 @@ function generateTOC() {
     }
     
     sections.push('Phases / Timeline');
-    sections.push('Blockers');
     sections.push('QC Checklist & Sign-off');
     
     return `
@@ -2906,41 +2838,6 @@ function generateRoutingSection() {
         });
         
         html += `</tbody></table>`;
-    }
-    
-    html += `</div>`;
-    return html;
-}
-
-function generateBlockersSection() {
-    const blockers = projectData.blockers;
-    const sectionNum = ++pdfSectionNumber;
-    
-    let html = `
-        <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Blockers</h2>
-    `;
-    
-    if (blockers.length === 0) {
-        html += `<div style="color: #22c55e;">✅ No active blockers</div>`;
-    } else {
-        blockers.forEach(b => {
-            const severityColor = b.severity === 'critical' ? '#ef4444' : 
-                                 b.severity === 'high' ? '#f59e0b' : '#666';
-            
-            html += `
-                <div style="background: #fff5f5; border-left: 4px solid ${severityColor}; padding: 12px; margin-bottom: 10px;">
-                    <div style="font-weight: bold; color: ${severityColor}; text-transform: uppercase; font-size: 10px; margin-bottom: 5px;">
-                        ${b.severity || 'normal'}
-                    </div>
-                    <div style="margin-bottom: 5px;">${b.reason}</div>
-                    <div style="font-size: 10px; color: #666;">
-                        Owner: ${b.team_members?.name || b.owner_name || 'Unassigned'} 
-                        ${b.eta ? `• ETA: ${new Date(b.eta).toLocaleDateString('en-GB')}` : ''}
-                    </div>
-                </div>
-            `;
-        });
     }
     
     html += `</div>`;
