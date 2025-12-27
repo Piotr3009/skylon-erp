@@ -201,11 +201,12 @@ async function loadAllData() {
             .from('project_materials')
             .select(`
                 *,
-                stock_items(name, item_number, size, thickness, image_url),
+                stock_items(name, item_number, size, thickness, image_url, current_quantity, reserved_quantity, unit),
                 stock_categories(name)
             `)
             .eq('project_id', projectId)
-            .order('used_in_stage');
+            .order('used_in_stage')
+            .order('created_at');
         projectData.materials = materials || [];
         
         // 5. Load elements (BOM)
@@ -1742,39 +1743,84 @@ function generateMaterialsPage() {
         return html;
     }
     
-    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">';
-    
+    // Process each stage
     Object.entries(byStage).forEach(([stage, mats]) => {
-        html += `<div>
-            <h3 style="color: #333; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid ${stage === 'Production' ? '#4a9eff' : stage === 'Spraying' ? '#f59e0b' : '#22c55e'};">${stage}</h3>`;
+        if (mats.length === 0) return;
         
-        if (mats.length > 0) {
-            html += '<table style="width: 100%; border-collapse: collapse; font-size: 11px;">';
-            html += `<thead><tr style="background: #f5f5f5;">
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Qty</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">✓</th>
-            </tr></thead><tbody>`;
+        const stageColor = stage === 'Production' ? '#4a9eff' : stage === 'Spraying' ? '#f59e0b' : '#22c55e';
+        
+        html += `
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #333; font-size: 14px; margin-bottom: 10px; padding: 8px 12px; background: linear-gradient(90deg, ${stageColor}22, transparent); border-left: 4px solid ${stageColor};">
+                    ${stage.toUpperCase()} STAGE
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 60px;">Photo</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Material</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 80px;">Reserved</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 80px;">Stock Left</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 150px;">Notes</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 40px;">✓</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+        
+        mats.forEach(m => {
+            // Photo - only for stock items, not bespoke
+            const imageUrl = !m.is_bespoke && m.stock_items?.image_url ? m.stock_items.image_url : null;
+            const photoPlaceholder = m.is_bespoke ? 'Bespoke' : '-';
+            const photoHtml = imageUrl 
+                ? `<img src="${imageUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'">`
+                : `<div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">${photoPlaceholder}</div>`;
             
-            mats.forEach(m => {
-                const itemName = m.stock_items?.name || m.item_name || 'Unknown';
-                const unit = m.unit || m.stock_items?.unit || '';
-                html += `<tr>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${itemName}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.quantity_needed} ${unit}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+            // Material description
+            let materialDesc = m.item_name || m.stock_items?.name || 'Unknown';
+            const size = m.stock_items?.size || '';
+            const thickness = m.stock_items?.thickness || '';
+            const sizeInfo = [size, thickness].filter(x => x).join(' / ');
+            if (sizeInfo) {
+                materialDesc += `<br><span style="color: #666; font-size: 11px;">${sizeInfo}</span>`;
+            }
+            if (m.item_notes) {
+                materialDesc += `<br><span style="color: #888; font-size: 10px; font-style: italic;">${m.item_notes}</span>`;
+            }
+            
+            // Reserved - quantity_reserved for stock, quantity_needed for bespoke
+            const reserved = m.is_bespoke ? (m.quantity_needed || 0) : (m.quantity_reserved || 0);
+            const unit = m.unit || m.stock_items?.unit || 'pcs';
+            const reservedStr = `${reserved.toFixed(2)} ${unit}`;
+            
+            // Stock Left - available quantity (current - reserved from whole stock)
+            let stockLeftHtml = '-';
+            if (!m.is_bespoke && m.stock_items) {
+                const stockLeft = (m.stock_items.current_quantity || 0) - (m.stock_items.reserved_quantity || 0);
+                stockLeftHtml = `${stockLeft.toFixed(2)} ${unit}`;
+                if (stockLeft < 0) {
+                    stockLeftHtml += `<br><span style="color: #ef4444; font-size: 10px; font-weight: bold;">✗ NEGATIVE</span>`;
+                }
+            }
+            
+            html += `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${photoHtml}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${materialDesc}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${reservedStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${stockLeftHtml}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                        <div style="width: 18px; height: 18px; border: 2px solid #333; margin: 0 auto;"></div>
+                    </td>
                 </tr>`;
-            });
-            
-            html += '</tbody></table>';
-        } else {
-            html += '<div style="color: #999; font-size: 11px; padding: 10px;">No materials</div>';
-        }
+        });
         
-        html += '</div>';
+        html += `
+                    </tbody>
+                </table>
+            </div>`;
     });
-    
-    html += '</div>';
     
     return html;
 }
