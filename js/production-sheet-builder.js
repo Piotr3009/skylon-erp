@@ -27,6 +27,7 @@ let sprayDescription = ''; // Spray instructions
 let editedNotes = {}; // Edited copies of important notes (key = note index)
 let originalImportantNotes = []; // Cache of original important notes for edit modal
 let selectedPhotos = []; // Selected photos for PS (multi-select)
+let selectedDrawings = []; // Selected drawings for PS (multi-select)
 let projectData = {
     project: null,
     client: null,
@@ -395,6 +396,8 @@ function createChecklistItem(item, sectionKey) {
         // Special handling for photos - use multi-select modal
         if (item.fileFolder === 'photos') {
             actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openPhotosSelectModal()">📷 Select</button>`;
+        } else if (item.fileFolder === 'drawings') {
+            actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openDrawingsSelectModal()">📐 Select</button>`;
         } else {
             actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openSelectFilesModal('${item.key}', '${item.fileFolder}')">📁 Select</button>`;
         }
@@ -586,6 +589,116 @@ function deselectAllPhotos() {
 
 function closePhotosModal() {
     document.getElementById('psPhotosModal').classList.remove('active');
+}
+
+// ========== DRAWINGS MULTI-SELECT MODAL ==========
+function openDrawingsSelectModal() {
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    
+    if (drawingsFromFiles.length === 0) {
+        showToast('No drawings available in project. Upload drawings first.', 'info');
+        return;
+    }
+    
+    // Build grid of drawings with checkboxes
+    let drawingsHtml = drawingsFromFiles.map((file, idx) => {
+        // Generate public URL from file_path
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        const fileUrl = urlData.publicUrl;
+        
+        const isSelected = selectedDrawings.some(d => d.id === file.id);
+        const isPdf = file.file_name.toLowerCase().endsWith('.pdf');
+        
+        return `
+            <div class="ps-photo-item ${isSelected ? 'selected' : ''}" onclick="toggleDrawingSelection(${idx})">
+                <input type="checkbox" id="drawing-check-${idx}" ${isSelected ? 'checked' : ''} style="position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; cursor: pointer;">
+                <div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; background: #1e1e1e; border-radius: 4px;">
+                    ${isPdf 
+                        ? `<span style="font-size: 40px;">📄</span>`
+                        : `<img src="${fileUrl}" alt="${file.file_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`
+                    }
+                </div>
+                <div style="font-size: 10px; color: #888; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.file_name}</div>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('psDrawingsGrid').innerHTML = drawingsHtml;
+    updateDrawingsSelectionCount();
+    document.getElementById('psDrawingsModal').classList.add('active');
+}
+
+function toggleDrawingSelection(idx) {
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    const file = drawingsFromFiles[idx];
+    
+    // Generate public URL
+    const { data: urlData } = supabaseClient.storage
+        .from('project-documents')
+        .getPublicUrl(file.file_path);
+    
+    const existingIdx = selectedDrawings.findIndex(d => d.id === file.id);
+    if (existingIdx >= 0) {
+        selectedDrawings.splice(existingIdx, 1);
+    } else {
+        selectedDrawings.push({
+            id: file.id,
+            url: urlData.publicUrl,
+            name: file.file_name,
+            path: file.file_path
+        });
+    }
+    
+    // Update UI
+    const item = document.querySelectorAll('#psDrawingsGrid .ps-photo-item')[idx];
+    const checkbox = document.getElementById(`drawing-check-${idx}`);
+    if (item && checkbox) {
+        item.classList.toggle('selected');
+        checkbox.checked = !checkbox.checked;
+    }
+    updateDrawingsSelectionCount();
+}
+
+function updateDrawingsSelectionCount() {
+    const countEl = document.getElementById('psDrawingsSelectedCount');
+    if (countEl) {
+        countEl.textContent = `${selectedDrawings.length} selected`;
+    }
+}
+
+function confirmDrawingsSelection() {
+    closeDrawingsModal();
+    checkAllItems();
+    updateProgress();
+    generatePreview();
+    showToast(`${selectedDrawings.length} drawings selected for PS`, 'success');
+}
+
+function selectAllDrawings() {
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    selectedDrawings = drawingsFromFiles.map(file => {
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        return {
+            id: file.id,
+            url: urlData.publicUrl,
+            name: file.file_name,
+            path: file.file_path
+        };
+    });
+    openDrawingsSelectModal(); // Refresh UI
+}
+
+function deselectAllDrawings() {
+    selectedDrawings = [];
+    openDrawingsSelectModal(); // Refresh UI
+}
+
+function closeDrawingsModal() {
+    document.getElementById('psDrawingsModal').classList.remove('active');
 }
 
 // ========== SELECT FILES MODAL ==========
@@ -886,10 +999,11 @@ async function checkItem(item) {
             
         // DRAWINGS
         case 'ATT_DRAWINGS_MAIN':
-            const hasDrawings = projectData.attachments.some(a => a.attachment_type === 'DRAWINGS_MAIN') ||
-                               projectData.files.some(f => f.folder_name === 'drawings');
-            result.done = hasDrawings;
-            result.meta = hasDrawings ? 'Uploaded' : 'Required';
+            const availableDrawings = projectData.files.filter(f => f.folder_name === 'drawings').length;
+            result.done = selectedDrawings.length > 0;
+            result.meta = selectedDrawings.length > 0 
+                ? `${selectedDrawings.length} selected (${availableDrawings} available)` 
+                : availableDrawings > 0 ? `${availableDrawings} available • Required` : 'Required';
             break;
             
         // PHOTOS
@@ -1880,91 +1994,85 @@ function generateMaterialsPage() {
 async function generateDrawingPages() {
     const pages = [];
     
-    const drawingsAttachment = projectData.attachments.find(a => a.attachment_type === 'DRAWINGS_MAIN');
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
-    
-    let fileToEmbed = null;
-    if (drawingsAttachment) {
-        fileToEmbed = {
-            url: drawingsAttachment.file_url,
-            name: drawingsAttachment.file_name || 'drawing'
-        };
-    } else if (drawingsFromFiles.length > 0) {
-        const firstFile = drawingsFromFiles[0];
-        const { data: urlData } = supabaseClient.storage
-            .from('project-documents')
-            .getPublicUrl(firstFile.file_path);
-        fileToEmbed = {
-            url: urlData.publicUrl,
-            name: firstFile.file_name
-        };
-    }
-    
-    if (!fileToEmbed) {
-        // No drawings - show warning page
+    // Use only selected drawings
+    if (selectedDrawings.length === 0) {
+        // No drawings selected - show warning page
         pages.push(`
             <h1 class="ps-section-title">4. Drawings</h1>
             <div style="padding: 40px; text-align: center; color: #ef4444;">
                 <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
-                <div style="font-size: 18px;">No drawings attached</div>
-                <div style="font-size: 14px; color: #666; margin-top: 10px;">This is a required item. Please add drawings before finalizing.</div>
+                <div style="font-size: 18px;">No drawings selected</div>
+                <div style="font-size: 14px; color: #666; margin-top: 10px;">This is a required item. Please select drawings before finalizing.</div>
             </div>
         `);
         return pages;
     }
     
-    const fileName = fileToEmbed.name.toLowerCase();
-    const isPdf = fileName.endsWith('.pdf');
-    const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+    let drawingPageNum = 0;
+    const totalDrawings = selectedDrawings.length;
     
-    if (isImage) {
-        pages.push(`
-            <h1 class="ps-section-title">4. Drawings</h1>
-            <div class="ps-drawing-full">
-                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${fileToEmbed.name}</div>
-                <img src="${fileToEmbed.url}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" crossorigin="anonymous" />
-            </div>
-        `);
-    } else if (isPdf) {
-        try {
-            const images = await renderPdfToImages(fileToEmbed.url);
-            if (images.length > 0) {
-                images.forEach((imgData, i) => {
+    for (const drawing of selectedDrawings) {
+        const fileName = drawing.name.toLowerCase();
+        const isPdf = fileName.endsWith('.pdf');
+        const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+        
+        if (isImage) {
+            drawingPageNum++;
+            pages.push(`
+                <h1 class="ps-section-title">4. Drawings ${totalDrawings > 1 ? `(${drawingPageNum}/${totalDrawings})` : ''}</h1>
+                <div class="ps-drawing-full">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${drawing.name}</div>
+                    <img src="${drawing.url}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" crossorigin="anonymous" />
+                </div>
+            `);
+        } else if (isPdf) {
+            try {
+                const images = await renderPdfToImages(drawing.url);
+                if (images.length > 0) {
+                    images.forEach((imgData, i) => {
+                        drawingPageNum++;
+                        const pageLabel = images.length > 1 
+                            ? `${drawing.name} - Page ${i + 1}` 
+                            : drawing.name;
+                        pages.push(`
+                            <h1 class="ps-section-title">4. Drawings</h1>
+                            <div class="ps-drawing-full">
+                                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${pageLabel}</div>
+                                <img src="${imgData}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" />
+                            </div>
+                        `);
+                    });
+                } else {
+                    drawingPageNum++;
                     pages.push(`
-                        <h1 class="ps-section-title">4. Drawings ${images.length > 1 ? `(${i + 1}/${images.length})` : ''}</h1>
-                        <div class="ps-drawing-full">
-                            <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${fileToEmbed.name} - Page ${i + 1}</div>
-                            <img src="${imgData}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" />
+                        <h1 class="ps-section-title">4. Drawings</h1>
+                        <div style="padding: 40px; text-align: center; color: #f59e0b;">
+                            <div style="font-size: 18px;">Could not render PDF: ${drawing.name}</div>
+                            <div style="margin-top: 15px;"><a href="${drawing.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
                         </div>
                     `);
-                });
-            } else {
+                }
+            } catch (err) {
+                console.error('PDF render error:', err);
+                drawingPageNum++;
                 pages.push(`
                     <h1 class="ps-section-title">4. Drawings</h1>
                     <div style="padding: 40px; text-align: center; color: #f59e0b;">
-                        <div style="font-size: 18px;">Could not render PDF</div>
-                        <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
+                        <div style="font-size: 18px;">Error loading PDF: ${drawing.name}</div>
+                        <div style="margin-top: 15px;"><a href="${drawing.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
                     </div>
                 `);
             }
-        } catch (err) {
-            console.error('PDF render error:', err);
+        } else {
+            drawingPageNum++;
             pages.push(`
                 <h1 class="ps-section-title">4. Drawings</h1>
-                <div style="padding: 40px; text-align: center; color: #f59e0b;">
-                    <div style="font-size: 18px;">Error loading PDF</div>
-                    <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
+                <div style="padding: 40px; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">File: ${drawing.name}</div>
+                    <div style="margin-top: 15px;"><a href="${drawing.url}" target="_blank" style="color: #4a9eff;">Download file</a></div>
                 </div>
             `);
         }
-    } else {
-        pages.push(`
-            <h1 class="ps-section-title">4. Drawings</h1>
-            <div style="padding: 40px; text-align: center;">
-                <div style="font-size: 14px; color: #666;">File: ${fileToEmbed.name}</div>
-                <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Download file</a></div>
-            </div>
-        `);
     }
     
     return pages;
