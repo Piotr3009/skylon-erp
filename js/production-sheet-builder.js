@@ -1179,29 +1179,25 @@ async function generatePreview() {
     // PAGE 3: BOM
     pages.push(generateBOMPage());
     
-    // PAGE 4: Cut List
-    pages.push(generateCutListPage());
-    
-    // PAGE 5: Materials
+    // PAGE 4: Materials
     pages.push(generateMaterialsPage());
     
-    // PAGE 6+: Drawings (may be multiple pages)
+    // PAGE 5+: Drawings (may be multiple pages)
     const drawingPages = await generateDrawingPages();
     pages.push(...drawingPages);
     
-    // PAGE: Photos (if any)
-    const photoPages = await generatePhotoPages();
-    pages.push(...photoPages);
-    
-    // PAGE: Spray Pack (if applicable)
-    const sprayPage = generateSprayPage();
-    if (sprayPage) pages.push(sprayPage);
+    // PAGE: Spraying
+    pages.push(generateSprayingPage());
     
     // PAGE: Phases / Timeline
     pages.push(generatePhasesPage());
     
     // PAGE: Blockers
     pages.push(generateBlockersPage());
+    
+    // PAGE: Reference Photos (if any)
+    const photoPages = await generatePhotoPages();
+    pages.push(...photoPages);
     
     // PAGE: QC & Sign-off
     pages.push(generateQCPage());
@@ -1224,25 +1220,18 @@ function generateCoverPageNew(logoUrl) {
     const client = projectData.client;
     const isIncomplete = !checklistItems.filter(i => i.required).every(i => checklistStatus[i.key]?.done);
     
-    // Build contents list
-    const hasSprayPhase = projectData.phases.some(p => 
-        p.phase_key && p.phase_key.toLowerCase().includes('spray')
-    );
-    const hasPhotos = projectData.attachments.some(a => a.attachment_type === 'PHOTOS') ||
-                     projectData.files.some(f => f.folder_name === 'photos');
-    
+    // Build contents list - nowa kolejność
     const sections = [
         'Scope & Notes',
         'Elements (BOM)',
-        'Cut List',
         'Materials',
-        'Drawings'
+        'Drawings',
+        'Spraying',
+        'Phases / Timeline',
+        'Blockers',
+        'Reference Photos',
+        'QC Checklist & Sign-off'
     ];
-    if (hasPhotos) sections.push('Reference Photos');
-    if (hasSprayPhase) sections.push('Spray / Finish Pack');
-    sections.push('Phases / Timeline');
-    sections.push('Blockers');
-    sections.push('QC Checklist & Sign-off');
     
     // Pre-construction checklist items
     const preConstructionItems = [
@@ -1287,10 +1276,10 @@ function generateCoverPageNew(logoUrl) {
             </div>
         </div>
         
-        <div style="height: 55%; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; padding: 15px;">
+        <div style="height: 55%; display: grid; grid-template-columns: 180px 1fr; gap: 30px; padding: 15px;">
             <div>
                 <h2 style="font-size: 16px; color: #333; margin-bottom: 12px; border-bottom: 2px solid #4a9eff; padding-bottom: 6px;">Contents</h2>
-                <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px;">
                     ${sections.map((s, i) => `<div>${i + 1}. ${s}</div>`).join('')}
                 </div>
             </div>
@@ -1652,50 +1641,11 @@ function getTypeLabel(type) {
     return labels[type] || type || 'Other';
 }
 
-// ========== PAGE 4: CUT LIST ==========
-function generateCutListPage() {
-    const elements = projectData.elements;
-    
-    // Generate blank cut list rows
-    const rowCount = Math.max(elements.length * 3, 10);
-    let rows = '';
-    for (let i = 0; i < rowCount; i++) {
-        rows += `
-            <tr>
-                <td style="border: 1px solid #ddd; padding: 8px; height: 25px;"></td>
-                <td style="border: 1px solid #ddd; padding: 8px;"></td>
-                <td style="border: 1px solid #ddd; padding: 8px;"></td>
-                <td style="border: 1px solid #ddd; padding: 8px;"></td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;"><div style="width: 18px; height: 18px; border: 2px solid #333; margin: 0 auto;"></div></td>
-            </tr>
-        `;
-    }
-    
-    return `
-        <h1 class="ps-section-title">3. Cut List</h1>
-        
-        <p style="color: #666; margin-bottom: 15px; font-size: 12px;">
-            Fill in timber dimensions. Reference BOM for element specifications.
-        </p>
-        
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead>
-                <tr style="background: #f5f5f5;">
-                    <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 25%;">Element</th>
-                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Qty</th>
-                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Length</th>
-                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Width</th>
-                    <th style="border: 1px solid #ddd; padding: 10px; text-align: center; width: 60px;">✓</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rows}
-            </tbody>
-        </table>
-    `;
-}
+// ========== CUT LIST - REMOVED ==========
+// Cut List functionality moved to Production Support Documents
+// Function generateCutListPage() removed
 
-// ========== PAGE 5: MATERIALS ==========
+// ========== PAGE 3: MATERIALS ==========
 function generateMaterialsPage() {
     const materials = projectData.materials;
     
@@ -1705,7 +1655,7 @@ function generateMaterialsPage() {
         'Installation': materials.filter(m => m.used_in_stage === 'Installation')
     };
     
-    let html = `<h1 class="ps-section-title">4. Materials</h1>`;
+    let html = `<h1 class="ps-section-title">3. Materials</h1>`;
     
     if (materials.length === 0) {
         html += '<div style="color: #666; font-style: italic; padding: 20px;">No materials assigned to this project.</div>';
@@ -1776,7 +1726,7 @@ async function generateDrawingPages() {
     if (!fileToEmbed) {
         // No drawings - show warning page
         pages.push(`
-            <h1 class="ps-section-title">5. Drawings</h1>
+            <h1 class="ps-section-title">4. Drawings</h1>
             <div style="padding: 40px; text-align: center; color: #ef4444;">
                 <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
                 <div style="font-size: 18px;">No drawings attached</div>
@@ -1792,7 +1742,7 @@ async function generateDrawingPages() {
     
     if (isImage) {
         pages.push(`
-            <h1 class="ps-section-title">5. Drawings</h1>
+            <h1 class="ps-section-title">4. Drawings</h1>
             <div class="ps-drawing-full">
                 <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${fileToEmbed.name}</div>
                 <img src="${fileToEmbed.url}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" crossorigin="anonymous" />
@@ -1804,7 +1754,7 @@ async function generateDrawingPages() {
             if (images.length > 0) {
                 images.forEach((imgData, i) => {
                     pages.push(`
-                        <h1 class="ps-section-title">5. Drawings ${images.length > 1 ? `(${i + 1}/${images.length})` : ''}</h1>
+                        <h1 class="ps-section-title">4. Drawings ${images.length > 1 ? `(${i + 1}/${images.length})` : ''}</h1>
                         <div class="ps-drawing-full">
                             <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${fileToEmbed.name} - Page ${i + 1}</div>
                             <img src="${imgData}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" />
@@ -1813,7 +1763,7 @@ async function generateDrawingPages() {
                 });
             } else {
                 pages.push(`
-                    <h1 class="ps-section-title">5. Drawings</h1>
+                    <h1 class="ps-section-title">4. Drawings</h1>
                     <div style="padding: 40px; text-align: center; color: #f59e0b;">
                         <div style="font-size: 18px;">Could not render PDF</div>
                         <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
@@ -1823,7 +1773,7 @@ async function generateDrawingPages() {
         } catch (err) {
             console.error('PDF render error:', err);
             pages.push(`
-                <h1 class="ps-section-title">5. Drawings</h1>
+                <h1 class="ps-section-title">4. Drawings</h1>
                 <div style="padding: 40px; text-align: center; color: #f59e0b;">
                     <div style="font-size: 18px;">Error loading PDF</div>
                     <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
@@ -1832,7 +1782,7 @@ async function generateDrawingPages() {
         }
     } else {
         pages.push(`
-            <h1 class="ps-section-title">5. Drawings</h1>
+            <h1 class="ps-section-title">4. Drawings</h1>
             <div style="padding: 40px; text-align: center;">
                 <div style="font-size: 14px; color: #666;">File: ${fileToEmbed.name}</div>
                 <div style="margin-top: 15px;"><a href="${fileToEmbed.url}" target="_blank" style="color: #4a9eff;">Download file</a></div>
@@ -1880,7 +1830,7 @@ async function generatePhotoPages() {
         const pageNum = Math.floor(i / photosPerPage) + 1;
         const totalPhotoPages = Math.ceil(photosToEmbed.length / photosPerPage);
         
-        let html = `<h1 class="ps-section-title">6. Reference Photos ${totalPhotoPages > 1 ? `(${pageNum}/${totalPhotoPages})` : ''}</h1>`;
+        let html = `<h1 class="ps-section-title">8. Reference Photos ${totalPhotoPages > 1 ? `(${pageNum}/${totalPhotoPages})` : ''}</h1>`;
         html += `<div style="display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 15px; height: calc(297mm - 80mm);">`;
         
         for (const photo of pagePhotos) {
@@ -1908,43 +1858,113 @@ async function generatePhotoPages() {
 }
 
 // ========== PAGE: SPRAY PACK ==========
-function generateSprayPage() {
-    const hasSprayPhase = projectData.phases.some(p => 
-        p.phase_key && p.phase_key.toLowerCase().includes('spray')
-    );
-    
-    if (!hasSprayPhase) return null;
-    
+function generateSprayingPage() {
+    const elements = projectData.elements || [];
     const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
     
+    // Get unique colours from BOM elements
+    const colourMap = {};
+    elements.forEach(el => {
+        if (el.colour) {
+            const key = el.colour;
+            if (!colourMap[key]) {
+                colourMap[key] = {
+                    colour: el.colour,
+                    colourType: el.colour_type || 'Single',
+                    items: []
+                };
+            }
+            colourMap[key].items.push({
+                id: el.element_id,
+                name: el.name,
+                type: el.element_type
+            });
+        }
+    });
+    
+    const colours = Object.values(colourMap);
+    
+    // Spray checklist items
+    const sprayChecklist = [
+        'All items sanded and prepared',
+        'Primer applied',
+        'First coat applied',
+        'Second coat applied',
+        'Final inspection completed',
+        'Items ready for assembly'
+    ];
+    
     return `
-        <h1 class="ps-section-title">7. Spray / Finish Pack</h1>
+        <h1 class="ps-section-title">5. Spraying</h1>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
             <div>
-                <h3 style="color: #333; margin-bottom: 15px;">Spray Instructions</h3>
-                ${sprayDescription.trim() 
-                    ? `<div style="padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; white-space: pre-wrap;">${sprayDescription}</div>`
-                    : '<div style="color: #666; font-style: italic;">No spray instructions provided.</div>'
-                }
+                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Colour Schedule</h3>
+                ${colours.length > 0 ? `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead>
+                            <tr style="background: #4a9eff; color: white;">
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Colour</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Type</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Items</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${colours.map(c => `
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600;">${c.colour}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${c.colourType}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${c.items.map(i => `${i.id}: ${i.name}`).join(', ')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No colours specified in BOM.</div>'}
                 
-                <div style="margin-top: 25px; padding: 15px; background: #fee2e2; border-left: 4px solid #ef4444;">
-                    <strong style="color: #b91c1c;">⚠️ Spraying Manager Notice</strong>
-                    <div style="font-size: 12px; margin-top: 8px; color: #7f1d1d;">
-                        Please review ALL documentation (Scope, Notes, BOM) as there may be important information for spraying in other sections.
+                ${sprayAttachment ? `
+                    <div style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f0f9ff;">
+                        <strong style="color: #0369a1;">📎 Colour Reference:</strong>
+                        <div style="font-size: 11px; color: #666; margin-top: 5px;">${sprayAttachment.file_name}</div>
+                    </div>
+                ` : ''}
+                
+                <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b;">
+                    <strong style="color: #92400e;">⚠️ Spray Manager Notice</strong>
+                    <div style="font-size: 11px; margin-top: 8px; color: #78350f;">
+                        Review BOM section for complete specifications. Check Notes section for special instructions.
                     </div>
                 </div>
             </div>
             
             <div>
-                <h3 style="color: #333; margin-bottom: 15px;">Colour Reference</h3>
-                ${sprayAttachment 
-                    ? `<div style="text-align: center; padding: 15px; border: 1px solid #ddd;">
-                        <div style="font-size: 11px; color: #666; margin-bottom: 10px;">📎 ${sprayAttachment.file_name}</div>
-                        <a href="${sprayAttachment.file_url}" target="_blank" style="color: #4a9eff;">View colour reference</a>
-                       </div>`
-                    : '<div style="color: #666; font-style: italic;">No colour reference attached.</div>'
-                }
+                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Spray Checklist</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 30px;">✓</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Task</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 80px;">Date</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 80px;">By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sprayChecklist.map(item => `
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                                    <div style="width: 16px; height: 16px; border: 2px solid #333; margin: 0 auto;"></div>
+                                </td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${item}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px;">
+                    <h4 style="font-size: 12px; margin-bottom: 10px;">Notes:</h4>
+                    <div style="border: 1px solid #ddd; min-height: 100px; padding: 10px;"></div>
+                </div>
             </div>
         </div>
     `;
@@ -1953,11 +1973,10 @@ function generateSprayPage() {
 // ========== PAGE: PHASES / TIMELINE ==========
 function generatePhasesPage() {
     const phases = projectData.phases;
-    const sectionNum = projectData.phases.some(p => p.phase_key?.toLowerCase().includes('spray')) ? 8 : 7;
     
     if (phases.length === 0) {
         return `
-            <h1 class="ps-section-title">${sectionNum}. Phases / Timeline</h1>
+            <h1 class="ps-section-title">6. Phases / Timeline</h1>
             <div style="color: #666; font-style: italic; padding: 20px;">No phases defined for this project.</div>
         `;
     }
@@ -1977,7 +1996,7 @@ function generatePhasesPage() {
     `).join('');
     
     return `
-        <h1 class="ps-section-title">${sectionNum}. Phases / Timeline</h1>
+        <h1 class="ps-section-title">6. Phases / Timeline</h1>
         
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <thead>
@@ -1999,11 +2018,10 @@ function generatePhasesPage() {
 // ========== PAGE: BLOCKERS ==========
 function generateBlockersPage() {
     const blockers = projectData.blockers;
-    const sectionNum = projectData.phases.some(p => p.phase_key?.toLowerCase().includes('spray')) ? 9 : 8;
     
     if (!blockers || blockers.length === 0) {
         return `
-            <h1 class="ps-section-title">${sectionNum}. Blockers</h1>
+            <h1 class="ps-section-title">7. Blockers</h1>
             <div style="padding: 20px; background: #dcfce7; border-left: 4px solid #22c55e; color: #166534;">
                 ✓ No active blockers
             </div>
@@ -2024,7 +2042,7 @@ function generateBlockersPage() {
     `).join('');
     
     return `
-        <h1 class="ps-section-title">${sectionNum}. Blockers</h1>
+        <h1 class="ps-section-title">7. Blockers</h1>
         
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <thead>
@@ -2044,10 +2062,8 @@ function generateBlockersPage() {
 
 // ========== PAGE: QC & SIGN-OFF ==========
 function generateQCPage() {
-    const sectionNum = projectData.phases.some(p => p.phase_key?.toLowerCase().includes('spray')) ? 10 : 9;
-    
     return `
-        <h1 class="ps-section-title">${sectionNum}. QC Checklist & Sign-off</h1>
+        <h1 class="ps-section-title">9. QC Checklist & Sign-off</h1>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
             <div>
