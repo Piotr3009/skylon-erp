@@ -492,7 +492,7 @@ function closeDescriptionModal() {
 
 // ========== PHOTOS MULTI-SELECT ==========
 function openPhotosSelectModal() {
-    console.log('openPhotosSelectModal called');
+    
     openFilesModalForSelection(
         currentProject.id,
         currentProject.projectNumber,
@@ -512,7 +512,7 @@ function openPhotosSelectModal() {
 
 // ========== DRAWINGS MULTI-SELECT ==========
 function openDrawingsSelectModal() {
-    console.log('openDrawingsSelectModal called');
+    
     openFilesModalForSelection(
         currentProject.id,
         currentProject.projectNumber,

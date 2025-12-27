@@ -162,7 +162,15 @@ function closeProjectFilesModal() {
 }
 
 // ========== MULTI-SELECT FUNCTIONS ==========
-function toggleFileSelection(file) {
+let currentDisplayedFiles = []; // Store files for toggle by index
+
+function toggleFileSelection(fileIndex) {
+    const file = currentDisplayedFiles[fileIndex];
+    if (!file) {
+        console.error('File not found at index', fileIndex);
+        return;
+    }
+    
     const idx = window.psMultiSelectedFiles.findIndex(f => f.id === file.id);
     if (idx >= 0) {
         window.psMultiSelectedFiles.splice(idx, 1);
@@ -206,13 +214,13 @@ function confirmMultiSelection() {
 
 // Open files modal in multi-select mode
 function openFilesModalForSelection(projectId, projectNumber, projectName, stage, target, currentSelection, confirmCallback) {
-    console.log('openFilesModalForSelection called, target:', target);
+    
     // Set multi-select mode
     window.psMultiSelectMode = true;
     window.psMultiSelectTarget = target;
     window.psMultiSelectedFiles = currentSelection || [];
     window.psMultiSelectConfirmCallback = confirmCallback;
-    console.log('psMultiSelectMode set to:', window.psMultiSelectMode);
+    
     
     // Open modal
     openProjectFilesModalWithData(projectId, projectNumber, projectName, stage);
@@ -686,20 +694,24 @@ function renderFilesInView(files, viewMode) {
 
 // LIST VIEW - Compact with small icons
 function renderFilesListView(files) {
-    console.log('renderFilesListView - psMultiSelectMode:', window.psMultiSelectMode);
+    
+    
+    // Store files for toggle by index
+    currentDisplayedFiles = files;
+    
     let html = '<div style="display: flex; flex-direction: column; gap: 4px;">';
-    files.forEach(file => {
+    files.forEach((file, index) => {
         const isMultiSelect = window.psMultiSelectMode;
         const isSelected = isMultiSelect && window.psMultiSelectedFiles.some(f => f.id === file.id);
         const checkboxHtml = isMultiSelect ? `
             <input type="checkbox" 
                 ${isSelected ? 'checked' : ''} 
-                onclick="event.stopPropagation(); toggleFileSelection(${JSON.stringify(file).replace(/"/g, '&quot;')})"
+                onclick="event.stopPropagation(); toggleFileSelection(${index})"
                 style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; accent-color: #4a9eff;">
         ` : '';
         
         const clickAction = isMultiSelect 
-            ? `toggleFileSelection(${JSON.stringify(file).replace(/"/g, '&quot;')})`
+            ? `toggleFileSelection(${index})`
             : `previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')`;
         
         html += `
