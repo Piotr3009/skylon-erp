@@ -208,6 +208,7 @@ async function loadAllData() {
             .order('used_in_stage')
             .order('created_at');
         projectData.materials = materials || [];
+        console.log('[PS Debug] materials loaded:', materials?.length || 0, 'items');
         
         // 5. Load elements (BOM)
         const { data: elements, error: elementsError } = await supabaseClient
@@ -1729,6 +1730,7 @@ function getTypeLabel(type) {
 // ========== PAGE 3: MATERIALS ==========
 function generateMaterialsPage() {
     const materials = projectData.materials;
+    console.log('[PS Debug] generateMaterialsPage - materials:', materials?.length || 0);
     
     const byStage = {
         'Production': materials.filter(m => m.used_in_stage === 'Production'),
