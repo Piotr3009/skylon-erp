@@ -457,7 +457,7 @@ function closeEditNoteModal() {
     currentEditNoteOriginal = '';
 }
 
-function saveEditedNote() {
+async function saveEditedNote() {
     const idx = parseInt(document.getElementById('editNoteIndex').value);
     const newText = document.getElementById('editNoteText').value.trim();
     
@@ -471,13 +471,21 @@ function saveEditedNote() {
     closeEditNoteModal();
     checkAllItems();
     generatePreview();
+    
+    // Auto-save to database
+    await autoSaveSnapshot();
+    
     showToast('Note updated for PS', 'success');
 }
 
-function resetEditedNote() {
+async function resetEditedNote() {
     const idx = parseInt(document.getElementById('editNoteIndex').value);
     delete editedNotes[idx];
     document.getElementById('editNoteText').value = currentEditNoteOriginal;
+    
+    // Auto-save to database
+    await autoSaveSnapshot();
+    
     showToast('Reset to original', 'info');
 }
 
@@ -582,7 +590,7 @@ async function selectProjectFile(filePath, fileUrl, fileName) {
 
 // File upload is now handled by project-files.js
 
-function saveDescription() {
+async function saveDescription() {
     scopeDescription = document.getElementById('descriptionModalText').value;
     console.log('[PS Debug] saveDescription - scopeDescription set to:', scopeDescription);
     closeDescriptionModal();
@@ -593,7 +601,44 @@ function saveDescription() {
     updateProgress();
     generatePreview();
     
+    // Auto-save to database
+    await autoSaveSnapshot();
+    
     showToast('Description saved!', 'success');
+}
+
+// Auto-save function for immediate persistence
+async function autoSaveSnapshot() {
+    try {
+        // Ensure we have a sheet (create draft if not exists)
+        if (!currentSheet) {
+            await createDraftSheet();
+        }
+        
+        const partialSnapshot = {
+            scopeDescription: scopeDescription,
+            sprayDescription: sprayDescription,
+            editedNotes: editedNotes
+        };
+        
+        console.log('[PS Debug] Auto-saving snapshot:', partialSnapshot);
+        
+        const { error } = await supabaseClient
+            .from('production_sheets')
+            .update({
+                snapshot_json: partialSnapshot,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentSheet.id);
+        
+        if (error) {
+            console.error('[PS Debug] Auto-save error:', error);
+        } else {
+            console.log('[PS Debug] Auto-save successful');
+        }
+    } catch (err) {
+        console.error('[PS Debug] Auto-save failed:', err);
+    }
 }
 
 // ========== SPRAY MODAL ==========
@@ -606,7 +651,7 @@ function closeSprayModal() {
     document.getElementById('psSprayModal').classList.remove('active');
 }
 
-function saveSprayDescription() {
+async function saveSprayDescription() {
     sprayDescription = document.getElementById('sprayModalText').value;
     closeSprayModal();
     
@@ -615,6 +660,9 @@ function saveSprayDescription() {
     checkAllItems();
     updateProgress();
     generatePreview();
+    
+    // Auto-save to database
+    await autoSaveSnapshot();
     
     showToast('Spray instructions saved!', 'success');
 }
@@ -1346,10 +1394,10 @@ function generateScopePage() {
         <h1 class="ps-section-title">1. Scope & Notes</h1>
         
         <div style="display: flex; flex-direction: column; gap: 25px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
                 <div>
                     <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Project Type</h3>
-                    <div style="font-size: 18px; padding: 15px; background: #f5f5f5; border-radius: 8px; font-weight: 500;">
+                    <div style="font-size: 16px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
                         ${project?.type || 'N/A'}
                     </div>
                 </div>
@@ -1358,7 +1406,7 @@ function generateScopePage() {
                     ${scopeDescription.trim() ? `
                         <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
                         <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3;">
-                            <div style="white-space: pre-wrap; font-size: 14px;">${scopeDescription}</div>
+                            <div style="white-space: pre-wrap; font-size: 14px; word-wrap: break-word; overflow-wrap: break-word;">${scopeDescription}</div>
                         </div>
                     ` : ''}
                 </div>
