@@ -206,11 +206,13 @@ function confirmMultiSelection() {
 
 // Open files modal in multi-select mode
 function openFilesModalForSelection(projectId, projectNumber, projectName, stage, target, currentSelection, confirmCallback) {
+    console.log('openFilesModalForSelection called, target:', target);
     // Set multi-select mode
     window.psMultiSelectMode = true;
     window.psMultiSelectTarget = target;
     window.psMultiSelectedFiles = currentSelection || [];
     window.psMultiSelectConfirmCallback = confirmCallback;
+    console.log('psMultiSelectMode set to:', window.psMultiSelectMode);
     
     // Open modal
     openProjectFilesModalWithData(projectId, projectNumber, projectName, stage);
@@ -684,6 +686,7 @@ function renderFilesInView(files, viewMode) {
 
 // LIST VIEW - Compact with small icons
 function renderFilesListView(files) {
+    console.log('renderFilesListView - psMultiSelectMode:', window.psMultiSelectMode);
     let html = '<div style="display: flex; flex-direction: column; gap: 4px;">';
     files.forEach(file => {
         const isMultiSelect = window.psMultiSelectMode;
@@ -1216,6 +1219,12 @@ async function uploadSingleFile(file, folderName) {
 
 // ========== FILE PREVIEW ==========
 async function previewFile(filePath, fileType, fileName) {
+    // If in multi-select mode, don't preview - this shouldn't happen but just in case
+    if (window.psMultiSelectMode) {
+        console.log('previewFile called but in multi-select mode - ignoring');
+        return;
+    }
+    
     // Check if this is a file selection for Production Sheet
     if (window.psFileSelectCallback) {
         try {
