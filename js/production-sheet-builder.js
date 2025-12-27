@@ -86,7 +86,7 @@ const CHECKLIST_SECTIONS = [
         title: 'Materials',
         icon: '🪵',
         items: [
-            { key: 'MAT_LIST', label: 'Materials List', source: 'AUTO', required: true, showMaterialsPdf: true }
+            { key: 'MAT_LIST', label: 'Materials List', source: 'AUTO', required: true }
         ]
     },
     {
@@ -365,19 +365,6 @@ function createChecklistItem(item, sectionKey) {
         return div;
     }
     
-    // Special handling for Materials PDF
-    if (item.showMaterialsPdf) {
-        div.innerHTML = `
-            <div class="ps-item-icon" id="icon-${item.key}">⏳</div>
-            <div class="ps-item-content">
-                <div class="ps-item-label">${item.label}</div>
-                <div class="ps-item-meta" id="meta-${item.key}">Loading...</div>
-            </div>
-            <button class="ps-item-action go" onclick="openMaterialsPdf()">📄 View PDF</button>
-        `;
-        return div;
-    }
-    
     // Special handling for Spray Instructions (opens modal)
     if (item.isSprayText) {
         div.innerHTML = `
@@ -500,13 +487,6 @@ async function resetEditedNote() {
 // ========== PRODUCTION DESCRIPTION MODAL ==========
 function closeDescriptionModal() {
     document.getElementById('psDescriptionModal').classList.remove('active');
-}
-
-// ========== MATERIALS PDF ==========
-function openMaterialsPdf() {
-    // Open materials PDF in new tab - uses the existing MAT button functionality
-    const url = `generate-materials-pdf.html?project_id=${projectId}&stage=${projectStage}`;
-    window.open(url, '_blank');
 }
 
 // ========== SELECT FILES MODAL ==========
