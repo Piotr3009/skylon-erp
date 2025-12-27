@@ -660,6 +660,26 @@
             color: white;
         }
         
+        /* ========== PHOTOS MULTI-SELECT ========== */
+        .ps-photo-item {
+            position: relative;
+            padding: 8px;
+            background: #2d2d30;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .ps-photo-item:hover {
+            background: #3e3e42;
+        }
+        
+        .ps-photo-item.selected {
+            border-color: #4a9eff;
+            background: rgba(74, 158, 255, 0.1);
+        }
+        
         /* ========== RESPONSIVE ========== */
         @media (max-width: 900px) {
             .ps-layout {
@@ -833,6 +853,31 @@
             <div class="ps-modal-actions">
                 <button class="ps-modal-btn cancel" onclick="closeDescriptionModal()">Cancel</button>
                 <button class="ps-modal-btn confirm" onclick="saveDescription()">✓ Save Description</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photos Multi-Select Modal -->
+    <div class="ps-modal-overlay" id="psPhotosModal">
+        <div class="ps-modal" style="max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div class="ps-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>📷 Select Photos for Production Sheet</span>
+                <button onclick="closePhotosModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
+                Click on photos to select/deselect. Only selected photos will be included in the Production Sheet.
+            </p>
+            <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+                <button onclick="selectAllPhotos()" style="background: #3e3e42; border: none; color: #e8e2d5; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Select All</button>
+                <button onclick="deselectAllPhotos()" style="background: #3e3e42; border: none; color: #e8e2d5; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Deselect All</button>
+                <span id="psPhotosSelectedCount" style="color: #4a9eff; font-size: 12px; margin-left: auto; align-self: center;">0 selected</span>
+            </div>
+            <div id="psPhotosGrid" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; background: #1e1e1e; border-radius: 6px;">
+                <!-- Photos will be loaded here -->
+            </div>
+            <div class="ps-modal-actions" style="margin-top: 15px;">
+                <button class="ps-modal-btn cancel" onclick="closePhotosModal()">Cancel</button>
+                <button class="ps-modal-btn confirm" onclick="confirmPhotosSelection()">✓ Confirm Selection</button>
             </div>
         </div>
     </div>

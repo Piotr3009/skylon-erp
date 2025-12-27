@@ -26,6 +26,7 @@ let scopeDescription = ''; // Production manager's description
 let sprayDescription = ''; // Spray instructions
 let editedNotes = {}; // Edited copies of important notes (key = note index)
 let originalImportantNotes = []; // Cache of original important notes for edit modal
+let selectedPhotos = []; // Selected photos for PS (multi-select)
 let projectData = {
     project: null,
     client: null,
@@ -391,7 +392,12 @@ function createChecklistItem(item, sectionKey) {
     if (item.source === 'UPLOAD') {
         actionBtn = `<button class="ps-item-action upload" onclick="openUploadModal('${item.key}', '${item.uploadType}', '${item.accept || ''}')">📁 Upload</button>`;
     } else if (item.source === 'SELECT_FILE') {
-        actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openSelectFilesModal('${item.key}', '${item.fileFolder}')">📁 Select</button>`;
+        // Special handling for photos - use multi-select modal
+        if (item.fileFolder === 'photos') {
+            actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openPhotosSelectModal()">📷 Select</button>`;
+        } else {
+            actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openSelectFilesModal('${item.key}', '${item.fileFolder}')">📁 Select</button>`;
+        }
     } else if (item.goTo) {
         actionBtn = `<button class="ps-item-action go" onclick="goToSection('${item.goTo}')">→ Go</button>`;
     }
@@ -479,6 +485,91 @@ async function resetEditedNote() {
 // ========== PRODUCTION DESCRIPTION MODAL ==========
 function closeDescriptionModal() {
     document.getElementById('psDescriptionModal').classList.remove('active');
+}
+
+// ========== PHOTOS MULTI-SELECT MODAL ==========
+function openPhotosSelectModal() {
+    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    
+    if (photosFromFiles.length === 0) {
+        showToast('No photos available in project. Upload photos first.', 'info');
+        return;
+    }
+    
+    // Build grid of photos with checkboxes
+    let photosHtml = photosFromFiles.map((file, idx) => {
+        const isSelected = selectedPhotos.some(p => p.id === file.id);
+        return `
+            <div class="ps-photo-item ${isSelected ? 'selected' : ''}" onclick="togglePhotoSelection(${idx})">
+                <input type="checkbox" id="photo-check-${idx}" ${isSelected ? 'checked' : ''} style="position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; cursor: pointer;">
+                <img src="${file.public_url}" alt="${file.file_name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;">
+                <div style="font-size: 10px; color: #888; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.file_name}</div>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('psPhotosGrid').innerHTML = photosHtml;
+    updatePhotosSelectionCount();
+    document.getElementById('psPhotosModal').classList.add('active');
+}
+
+function togglePhotoSelection(idx) {
+    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    const file = photosFromFiles[idx];
+    
+    const existingIdx = selectedPhotos.findIndex(p => p.id === file.id);
+    if (existingIdx >= 0) {
+        selectedPhotos.splice(existingIdx, 1);
+    } else {
+        selectedPhotos.push({
+            id: file.id,
+            url: file.public_url,
+            name: file.file_name
+        });
+    }
+    
+    // Update UI
+    const item = document.querySelectorAll('.ps-photo-item')[idx];
+    const checkbox = document.getElementById(`photo-check-${idx}`);
+    if (item && checkbox) {
+        item.classList.toggle('selected');
+        checkbox.checked = !checkbox.checked;
+    }
+    updatePhotosSelectionCount();
+}
+
+function updatePhotosSelectionCount() {
+    const countEl = document.getElementById('psPhotosSelectedCount');
+    if (countEl) {
+        countEl.textContent = `${selectedPhotos.length} selected`;
+    }
+}
+
+function confirmPhotosSelection() {
+    closePhotosModal();
+    checkAllItems();
+    updateProgress();
+    generatePreview();
+    showToast(`${selectedPhotos.length} photos selected for PS`, 'success');
+}
+
+function selectAllPhotos() {
+    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    selectedPhotos = photosFromFiles.map(file => ({
+        id: file.id,
+        url: file.public_url,
+        name: file.file_name
+    }));
+    openPhotosSelectModal(); // Refresh UI
+}
+
+function deselectAllPhotos() {
+    selectedPhotos = [];
+    openPhotosSelectModal(); // Refresh UI
+}
+
+function closePhotosModal() {
+    document.getElementById('psPhotosModal').classList.remove('active');
 }
 
 // ========== SELECT FILES MODAL ==========
@@ -787,10 +878,11 @@ async function checkItem(item) {
             
         // PHOTOS
         case 'ATT_PHOTOS':
-            const hasPhotos = projectData.attachments.some(a => a.attachment_type === 'PHOTOS') ||
-                             projectData.files.some(f => f.folder_name === 'photos');
-            result.done = hasPhotos;
-            result.meta = hasPhotos ? 'Uploaded' : 'Optional';
+            const availablePhotos = projectData.files.filter(f => f.folder_name === 'photos').length;
+            result.done = selectedPhotos.length > 0;
+            result.meta = selectedPhotos.length > 0 
+                ? `${selectedPhotos.length} selected (${availablePhotos} available)` 
+                : `${availablePhotos} available • Optional`;
             break;
             
         // MATERIALS
@@ -1866,38 +1958,17 @@ async function generateDrawingPages() {
 async function generatePhotoPages() {
     const pages = [];
     
-    const photosAttachment = projectData.attachments.find(a => a.attachment_type === 'PHOTOS');
-    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
-    
-    if (!photosAttachment && photosFromFiles.length === 0) {
-        return pages; // No photos - skip section
-    }
-    
-    let photosToEmbed = [];
-    
-    if (photosAttachment) {
-        photosToEmbed.push({
-            url: photosAttachment.file_url,
-            name: photosAttachment.file_name || 'photo'
-        });
-    }
-    
-    for (const file of photosFromFiles) {
-        const { data: urlData } = supabaseClient.storage
-            .from('project-documents')
-            .getPublicUrl(file.file_path);
-        photosToEmbed.push({
-            url: urlData.publicUrl,
-            name: file.file_name
-        });
+    // Use only selected photos
+    if (selectedPhotos.length === 0) {
+        return pages; // No photos selected - skip section
     }
     
     // Create page with photos (max 4 per page in grid 2x2)
     const photosPerPage = 4;
-    for (let i = 0; i < photosToEmbed.length; i += photosPerPage) {
-        const pagePhotos = photosToEmbed.slice(i, i + photosPerPage);
+    for (let i = 0; i < selectedPhotos.length; i += photosPerPage) {
+        const pagePhotos = selectedPhotos.slice(i, i + photosPerPage);
         const pageNum = Math.floor(i / photosPerPage) + 1;
-        const totalPhotoPages = Math.ceil(photosToEmbed.length / photosPerPage);
+        const totalPhotoPages = Math.ceil(selectedPhotos.length / photosPerPage);
         
         let html = `<h1 class="ps-section-title">8. Reference Photos ${totalPhotoPages > 1 ? `(${pageNum}/${totalPhotoPages})` : ''}</h1>`;
         html += `<div style="display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 15px; height: calc(297mm - 80mm);">`;
