@@ -47,11 +47,15 @@ const BOM_FIELDS = {
             { row: 3, id: 'door_type', label: 'Door Type', type: 'select', options: ['Single', 'Double', 'Sliding', 'Pocket'] },
             { row: 3, id: 'door_handing', label: 'Door Handing', type: 'select', options: ['Left', 'Right'] },
             { row: 3, id: 'fire_rating', label: 'Fire Rating', type: 'select', options: ['NFR', 'FD30', 'FD60'] },
-            { row: 3, id: 'intumescent_strip', label: 'Intumescent Strip', type: 'select', options: ['Yes', 'No'], conditionalOn: 'fire_rating', showWhen: ['FD30', 'FD60'] },
+            { row: 3, id: 'intumescent_set', label: 'Intumescent Set', type: 'select', options: ['Yes', 'No'], conditionalOn: 'fire_rating', showWhen: ['FD30', 'FD60'] },
+            { row: 4, id: 'self_closer', label: 'Self Closer', type: 'select', options: ['Integrated', 'External', 'No Selfcloser'], conditionalOn: 'fire_rating', showWhen: ['FD30', 'FD60'] },
             { row: 4, id: 'glazed', label: 'Glazed', type: 'select', options: ['Yes', 'No'] },
             { row: 4, id: 'glass_type', label: 'Glass Type', type: 'select', options: ['Clear', 'Frosted', 'Obscure', 'Pyroguard 30', 'Pyroguard 60'], conditionalOn: 'glazed', showWhen: ['Yes'] },
-            { row: 4, id: 'locks', label: 'Locks', type: 'select', options: ['Latch', 'Bathroom', 'Eurocylinder'] },
             { row: 4, id: 'ironmongery_hinges', label: 'Ironmongery/Hinges', type: 'select', options: ['Chrome', 'Satin', 'Brass', 'Antique Brass', 'Other'] },
+            { row: 5, id: 'locks_qty', label: 'Number of Locks', type: 'select', options: ['1', '2', '3'] },
+            { row: 5, id: 'lock_1', label: 'Lock 1', type: 'select', options: ['Latch', 'Bathroom', 'Eurocylinder', 'Nightlatch', 'Deadlock', 'Magnetic Lock', 'Electric Lock'] },
+            { row: 5, id: 'lock_2', label: 'Lock 2', type: 'select', options: ['Latch', 'Bathroom', 'Eurocylinder', 'Nightlatch', 'Deadlock', 'Magnetic Lock', 'Electric Lock'], conditionalOn: 'locks_qty', showWhen: ['2', '3'] },
+            { row: 5, id: 'lock_3', label: 'Lock 3', type: 'select', options: ['Latch', 'Bathroom', 'Eurocylinder', 'Nightlatch', 'Deadlock', 'Magnetic Lock', 'Electric Lock'], conditionalOn: 'locks_qty', showWhen: ['3'] },
         ]
     },
     externalDoors: {
@@ -226,20 +230,22 @@ function renderBomForm(type) {
     `;
     
     // Group fields by row
-    const rows = { 2: [], 3: [], 4: [] };
+    const rows = { 2: [], 3: [], 4: [], 5: [] };
     config.fields.forEach(field => {
         if (rows[field.row]) {
             rows[field.row].push(field);
         }
     });
     
-    // Render each row
-    [2, 3, 4].forEach(rowNum => {
+    // Render each row (2, 3, 4, 5)
+    [2, 3, 4, 5].forEach(rowNum => {
         const rowEl = document.getElementById(`bomFormRow${rowNum}`);
         const fields = rows[rowNum];
         
         if (fields.length === 0) {
-            rowEl.style.display = 'none';
+            if (rowNum !== 5) {
+                rowEl.style.display = 'none';
+            }
             return;
         }
         
@@ -271,31 +277,58 @@ function renderBomForm(type) {
         }).join('');
     });
     
-    // Row 5: Colour (always present except for externalSpray without colour)
+    // Row 5: If no locks fields, use for Colour
     const row5 = document.getElementById('bomFormRow5');
-    row5.innerHTML = `
-        <div>
-            <label style="${labelStyle}">Colour Type</label>
-            <select id="bomField_colour_type" style="${selectStyle}">
-                <option value="">-- Select --</option>
-                <option value="Single">Single</option>
-                <option value="Dual">Dual</option>
-            </select>
-        </div>
-        <div>
-            <label style="${labelStyle}">Colour</label>
-            <input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}">
-        </div>
-    `;
+    if (rows[5].length === 0) {
+        row5.style.display = 'grid';
+        row5.style.gridTemplateColumns = '150px 1fr';
+        row5.innerHTML = `
+            <div>
+                <label style="${labelStyle}">Colour Type</label>
+                <select id="bomField_colour_type" style="${selectStyle}">
+                    <option value="">-- Select --</option>
+                    <option value="Single">Single</option>
+                    <option value="Dual">Dual</option>
+                </select>
+            </div>
+            <div>
+                <label style="${labelStyle}">Colour</label>
+                <input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}">
+            </div>
+        `;
+    }
     
-    // Row 6: Description (always present)
+    // Row 6: Colour + Description (if row 5 used for locks) or just Description
     const row6 = document.getElementById('bomFormRow6');
-    row6.innerHTML = `
-        <div>
-            <label style="${labelStyle}">Description (optional)</label>
-            <input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}">
-        </div>
-    `;
+    if (rows[5].length > 0) {
+        row6.innerHTML = `
+            <div style="display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin-bottom: 10px;">
+                <div>
+                    <label style="${labelStyle}">Colour Type</label>
+                    <select id="bomField_colour_type" style="${selectStyle}">
+                        <option value="">-- Select --</option>
+                        <option value="Single">Single</option>
+                        <option value="Dual">Dual</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="${labelStyle}">Colour</label>
+                    <input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}">
+                </div>
+            </div>
+            <div>
+                <label style="${labelStyle}">Description (optional)</label>
+                <input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}">
+            </div>
+        `;
+    } else {
+        row6.innerHTML = `
+            <div>
+                <label style="${labelStyle}">Description (optional)</label>
+                <input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}">
+            </div>
+        `;
+    }
     
     // Apply last used values if available
     applyLastValues(type);
@@ -623,6 +656,10 @@ function getElementDetails(el) {
             if (el.door_type) parts.push(el.door_type);
             if (el.fire_rating && el.fire_rating !== 'NFR') parts.push(el.fire_rating);
             if (el.door_handing) parts.push(el.door_handing);
+            if (el.lock_1) parts.push(el.lock_1);
+            if (el.lock_2) parts.push(el.lock_2);
+            if (el.lock_3) parts.push(el.lock_3);
+            if (el.self_closer && el.self_closer !== 'No Selfcloser') parts.push('Closer: ' + el.self_closer);
             break;
         case 'externalDoors':
             if (el.external_door_type) parts.push(el.external_door_type);
