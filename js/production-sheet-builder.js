@@ -197,7 +197,7 @@ async function loadAllData() {
         projectData.phases = phases || [];
         
         // 4. Load materials
-        const { data: materials } = await supabaseClient
+        const { data: materials, error: materialsError } = await supabaseClient
             .from('project_materials')
             .select(`
                 *,
@@ -207,6 +207,10 @@ async function loadAllData() {
             .eq('project_id', projectId)
             .order('used_in_stage')
             .order('created_at');
+        
+        if (materialsError) {
+            console.error('[PS Debug] materials ERROR:', materialsError);
+        }
         projectData.materials = materials || [];
         console.log('[PS Debug] materials loaded:', materials?.length || 0, 'items');
         
