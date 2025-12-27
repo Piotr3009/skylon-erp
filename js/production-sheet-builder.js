@@ -235,7 +235,7 @@ async function loadAllData() {
         // 8. Check for existing production sheet (draft)
         const { data: existingSheet, error: sheetError } = await supabaseClient
             .from('production_sheets')
-            .select('*, production_sheet_attachments(*)')
+            .select('*')
             .eq('project_id', projectId)
             .eq('status', 'draft')
             .order('version', { ascending: false })
@@ -247,7 +247,14 @@ async function loadAllData() {
         
         if (existingSheet) {
             currentSheet = existingSheet;
-            projectData.attachments = existingSheet.production_sheet_attachments || [];
+            
+            // Load attachments separately
+            const { data: attachments } = await supabaseClient
+                .from('production_sheet_attachments')
+                .select('*')
+                .eq('sheet_id', existingSheet.id);
+            
+            projectData.attachments = attachments || [];
             
             console.log('[PS Debug] existingSheet.snapshot_json:', existingSheet.snapshot_json);
             
