@@ -1391,179 +1391,213 @@ function generateBOMPage() {
     const typeColumns = {
         sash: {
             label: 'Sash Windows',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Box', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.sash_box || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.opening_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.bars || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.trickle_vent || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Box', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.sash_box || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.opening_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.bars || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.trickle_vent || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         },
         casement: {
             label: 'Casement Windows',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.opening_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.bars || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.trickle_vent || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.opening_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.bars || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.trickle_vent || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         },
         internalDoors: {
             label: 'Internal Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Fire', 'Intum', 'Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Colour'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Fire', 'Intum', 'Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Colour', 'Notes'],
             render: (el, idx) => {
                 const locks = [el.lock_1, el.lock_2, el.lock_3].filter(Boolean).join(', ') || '-';
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.fire_rating || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.intumescent_set || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.self_closer || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.glazed || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 9px;">${locks}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery_hinges || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.fire_rating || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.intumescent_set || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.self_closer || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.glazed || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${locks}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery_hinges || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
         externalDoors: {
             label: 'External Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.external_door_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.threshold || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.glazed || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.locks || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery_hinges || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.external_door_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.threshold || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.glazed || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.locks || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery_hinges || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         },
         kitchen: {
             label: 'Kitchen Units',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Unit', 'Style', 'Front', 'Carcass', 'Handle', 'Soft Cl.', 'Worktop', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.depth || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.unit_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.front_style || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.front_material || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; font-size: 9px;">${el.carcass_material || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.handle_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.soft_close || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; font-size: 9px;">${el.worktop || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Unit', 'Style', 'Front', 'Carcass', 'Handle', 'Soft', 'Worktop', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.unit_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_style || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.carcass_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.handle_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.soft_close || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.worktop || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         },
         wardrobe: {
             label: 'Wardrobes',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Shape', 'Door', 'Style', 'Front', 'Carcass', 'Handle', 'Layout', 'Mirror', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.depth || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.wardrobe_shape || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.door_style || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.front_style || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.front_material || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; font-size: 9px;">${el.carcass_material || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.handle_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; font-size: 9px;">${el.internal_layout || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.mirror || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Shape', 'Door', 'Style', 'Front', 'Carcass', 'Handle', 'Layout', 'Mirror', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.wardrobe_shape || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_style || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_style || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.carcass_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.handle_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.internal_layout || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.mirror || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         },
         partition: {
             label: 'Partitions',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Panel', 'Frame', 'Glass', 'Thick.', 'Door', 'Hand', 'Lock', 'Acoustic', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.panel_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.frame_material || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.door_included || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.door_lock || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.acoustic_rating || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Panel', 'Frame', 'Glass', 'Thick.', 'Door', 'Hand', 'Lock', 'Acoustic', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.panel_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.frame_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.door_included || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_lock || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.acoustic_rating || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         },
         externalSpray: {
             label: 'External Spray',
-            cols: ['#', 'ID', 'Name', 'Qty', 'Item Type', 'Substrate', 'Paint System', 'Sheen', 'Coats', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty || 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.item_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.substrate || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.paint_system || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.sheen_level || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.num_coats || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'Qty', 'Item', 'Substrate', 'Paint', 'Sheen', 'Coats', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.qty || 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.item_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.substrate || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.paint_system || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.sheen_level || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.num_coats || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         },
         other: {
             label: 'Other Items',
-            cols: ['#', 'ID', 'Name', 'Qty', 'W', 'H', 'D', 'Material', 'Custom 1', 'Custom 2', 'Custom 3', 'Colour'],
-            render: (el, idx) => `
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.name || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty || 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.depth || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.material || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_1 || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_2 || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_3 || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${el.colour || '-'}</td>
-            `
+            cols: ['#', 'ID', 'Name', 'Qty', 'W', 'H', 'D', 'Material', 'Custom 1', 'Custom 2', 'Custom 3', 'Colour', 'Notes'],
+            render: (el, idx) => {
+                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
+                return `
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.qty || 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.custom_field_1 || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.custom_field_2 || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.custom_field_3 || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                `;
+            }
         }
     };
     
