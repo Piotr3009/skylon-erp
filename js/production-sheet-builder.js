@@ -67,7 +67,7 @@ const CHECKLIST_SECTIONS = [
     },
     {
         key: 'BOM',
-        title: 'Elements (BOM)',
+        title: 'Elements List',
         icon: '🪟',
         items: [
             { key: 'BOM_HAS_ELEMENTS', label: 'At least 1 element defined', source: 'AUTO', required: true, goTo: 'elements' }
@@ -79,14 +79,6 @@ const CHECKLIST_SECTIONS = [
         icon: '📐',
         items: [
             { key: 'ATT_DRAWINGS_MAIN', label: 'Main Drawings (PDF)', source: 'SELECT_FILE', required: true, fileFolder: 'drawings' }
-        ]
-    },
-    {
-        key: 'PHOTOS',
-        title: 'Photos',
-        icon: '📷',
-        items: [
-            { key: 'ATT_PHOTOS', label: 'Reference Photos', source: 'SELECT_FILE', required: false, fileFolder: 'photos' }
         ]
     },
     {
@@ -124,6 +116,14 @@ const CHECKLIST_SECTIONS = [
         icon: '⚠️',
         items: [
             { key: 'BLOCKERS_NONE_CRITICAL', label: 'No critical blockers', source: 'AUTO', required: true }
+        ]
+    },
+    {
+        key: 'PHOTOS',
+        title: 'Photos',
+        icon: '📷',
+        items: [
+            { key: 'ATT_PHOTOS', label: 'Reference Photos', source: 'SELECT_FILE', required: false, fileFolder: 'photos' }
         ]
     },
     {
@@ -1231,15 +1231,15 @@ async function generatePreview() {
     // PAGE 2: Scope & Notes
     pages.push(generateScopePage());
     
-    // PAGE 3: BOM
+    // PAGE 3: Elements List
     pages.push(generateBOMPage());
     
-    // PAGE 4: Materials
-    pages.push(generateMaterialsPage());
-    
-    // PAGE 5+: Drawings (may be multiple pages)
+    // PAGE 4+: Drawings (may be multiple pages)
     const drawingPages = await generateDrawingPages();
     pages.push(...drawingPages);
+    
+    // PAGE: Materials
+    pages.push(generateMaterialsPage());
     
     // PAGE: Spraying
     pages.push(generateSprayingPage());
@@ -1278,9 +1278,9 @@ function generateCoverPageNew(logoUrl) {
     // Build contents list - nowa kolejność
     const sections = [
         'Scope & Notes',
-        'Elements (BOM)',
-        'Materials',
+        'Elements List',
         'Drawings',
+        'Materials',
         'Spraying',
         'Phases / Timeline',
         'Blockers',
@@ -1426,7 +1426,7 @@ function generateBOMPage() {
     
     if (elements.length === 0) {
         return `
-            <h1 class="ps-section-title">2. Elements (BOM)</h1>
+            <h1 class="ps-section-title">2. Elements List</h1>
             <div style="padding: 40px; text-align: center; color: #666;">
                 No elements defined. Add elements in the checklist.
             </div>
@@ -1656,7 +1656,7 @@ function generateBOMPage() {
     };
     
     // Generate tables for each type
-    let content = '<h1 class="ps-section-title">2. Elements (BOM)</h1>';
+    let content = '<h1 class="ps-section-title">2. Elements List</h1>';
     
     Object.keys(grouped).forEach(type => {
         const items = grouped[type];
@@ -2282,7 +2282,7 @@ function generateTOC() {
     // Budujemy TOC zgodnie z kolejnością sekcji
     const sections = [
         'Scope & Notes',
-        'Elements (BOM)',
+        'Elements List',
         'Cut List',
         'Materials',
         'Drawings'
@@ -2361,7 +2361,7 @@ function generateBOMSection() {
     
     let html = `
         <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Elements (BOM)</h2>
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px;">${sectionNum}. Elements List</h2>
     `;
     
     if (elements.length === 0) {
