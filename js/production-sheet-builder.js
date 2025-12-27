@@ -2072,37 +2072,76 @@ function generatePhasesPage() {
         `;
     }
     
-    let rows = phases.map(p => `
+    // PLANNED section - data from system
+    let plannedRows = phases.map(p => `
         <tr>
-            <td style="border: 1px solid #ddd; padding: 12px;">${p.phase_name || p.phase_key || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">${p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">${p.end_date ? new Date(p.end_date).toLocaleDateString('en-GB') : '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 12px;">${p.assigned_to || '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">
-                <span style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${p.status === 'completed' ? '#dcfce7' : p.status === 'in_progress' ? '#fef3c7' : '#f3f4f6'}; color: ${p.status === 'completed' ? '#166534' : p.status === 'in_progress' ? '#92400e' : '#374151'};">
-                    ${p.status || 'pending'}
-                </span>
-            </td>
+            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500;">${p.phase_name || p.phase_key || 'N/A'}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '-'}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${p.end_date ? new Date(p.end_date).toLocaleDateString('en-GB') : '-'}</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">${p.team_members?.name || p.assigned_to || '-'}</td>
+        </tr>
+    `).join('');
+    
+    // ACTUAL section - empty rows for manual entry
+    let actualRows = phases.map(p => `
+        <tr>
+            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500; background: #f9f9f9;">${p.phase_name || p.phase_key || 'N/A'}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px;"></td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px;"></td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 50px;"></td>
+            <td style="border: 1px solid #ccc; padding: 8px; min-width: 100px;"></td>
+            <td style="border: 1px solid #ccc; padding: 8px; min-width: 80px;"></td>
         </tr>
     `).join('');
     
     return `
         <h1 class="ps-section-title">6. Phases / Timeline</h1>
         
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead>
-                <tr style="background: #4a9eff; color: white;">
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Phase</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Start</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">End</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Assigned To</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rows}
-            </tbody>
-        </table>
+        <div style="display: flex; flex-direction: column; height: calc(100% - 40px); gap: 20px;">
+            
+            <!-- PLANNED - from system -->
+            <div style="flex: 1;">
+                <h3 style="color: #333; margin-bottom: 10px; font-size: 14px; border-bottom: 2px solid #4a9eff; padding-bottom: 5px;">
+                    📋 PLANNED (from system)
+                </h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead>
+                        <tr style="background: #4a9eff; color: white;">
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Phase</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Start Date</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">End Date</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Assigned To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${plannedRows}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- ACTUAL - for manual entry -->
+            <div style="flex: 1;">
+                <h3 style="color: #333; margin-bottom: 10px; font-size: 14px; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">
+                    ✏️ ACTUAL (to be filled by Production Manager / Joiner)
+                </h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead>
+                        <tr style="background: #f59e0b; color: white;">
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Phase</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Actual Start</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Actual End</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Days</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Who Worked</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Sign</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${actualRows}
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
     `;
 }
 
