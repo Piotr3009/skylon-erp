@@ -145,6 +145,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     
     await loadAllData();
+    console.log('[PS Debug] After loadAllData - scopeDescription:', scopeDescription);
+    console.log('[PS Debug] snapshot_json:', currentSheet?.snapshot_json);
     buildChecklist();
     updateDescriptionUI(); // Update description button if text exists
     updateSprayUI(); // Update spray button if text exists
@@ -424,6 +426,7 @@ function createChecklistItem(item, sectionKey) {
 
 // ========== DESCRIPTION MODAL ==========
 function openDescriptionModal() {
+    console.log('[PS Debug] openDescriptionModal - loading scopeDescription:', scopeDescription);
     document.getElementById('descriptionModalText').value = scopeDescription;
     document.getElementById('psDescriptionModal').classList.add('active');
 }
@@ -581,6 +584,7 @@ async function selectProjectFile(filePath, fileUrl, fileName) {
 
 function saveDescription() {
     scopeDescription = document.getElementById('descriptionModalText').value;
+    console.log('[PS Debug] saveDescription - scopeDescription set to:', scopeDescription);
     closeDescriptionModal();
     
     // Update UI
@@ -1104,6 +1108,8 @@ async function saveAndClose() {
             editedNotes: editedNotes
         };
         
+        console.log('[PS Debug] Saving snapshot:', partialSnapshot);
+        
         // Save current state to sheet
         const { error } = await supabaseClient
             .from('production_sheets')
@@ -1118,6 +1124,7 @@ async function saveAndClose() {
         
         if (error) throw error;
         
+        console.log('[PS Debug] Saved successfully!');
         showToast('Draft saved!', 'success');
         
         // Navigate back after short delay
