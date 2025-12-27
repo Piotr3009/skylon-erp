@@ -1329,32 +1329,36 @@ function generateScopePage() {
             const isEdited = editedNotes[idx] !== undefined;
             const displayText = isEdited ? editedNotes[idx] : (note.text || '');
             return `<div style="margin-bottom: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107;">
-                <div style="font-size: 11px; color: #856404; margin-bottom: 8px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '<span style="color: #22c55e;">(edited for PS)</span>' : ''}</div>
-                <div style="white-space: pre-wrap; font-size: 13px;">${displayText}</div>
+                <div style="font-size: 12px; color: #856404; margin-bottom: 8px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '<span style="color: #22c55e;">(edited for PS)</span>' : ''}</div>
+                <div style="white-space: pre-wrap; font-size: 14px;">${displayText}</div>
             </div>`;
         }).join('')
-        : '<div style="color: #666; font-style: italic;">No important notes flagged.</div>';
+        : '<div style="color: #666; font-style: italic; font-size: 14px;">No important notes flagged.</div>';
     
     return `
         <h1 class="ps-section-title">1. Scope & Notes</h1>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-            <div>
-                <h3 style="color: #333; margin-bottom: 15px;">Project Type</h3>
-                <div style="font-size: 16px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
-                    ${project?.type || 'N/A'}
+        <div style="display: flex; flex-direction: column; gap: 25px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>
+                    <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Project Type</h3>
+                    <div style="font-size: 18px; padding: 15px; background: #f5f5f5; border-radius: 8px; font-weight: 500;">
+                        ${project?.type || 'N/A'}
+                    </div>
                 </div>
                 
-                ${scopeDescription.trim() ? `
-                    <h3 style="color: #333; margin: 25px 0 15px 0;">Production Description</h3>
-                    <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3;">
-                        <div style="white-space: pre-wrap; font-size: 13px;">${scopeDescription}</div>
-                    </div>
-                ` : ''}
+                <div>
+                    ${scopeDescription.trim() ? `
+                        <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
+                        <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3;">
+                            <div style="white-space: pre-wrap; font-size: 14px;">${scopeDescription}</div>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
             
-            <div>
-                <h3 style="color: #333; margin-bottom: 15px;">Important Notes</h3>
+            <div style="border-top: 2px solid #ddd; padding-top: 20px;">
+                <h3 style="color: #333; margin-bottom: 15px; font-size: 16px;">Important Notes</h3>
                 ${importantNotesHtml}
             </div>
         </div>
