@@ -1395,20 +1395,20 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.sash_box || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.opening_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.bars || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.trickle_vent || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.sash_box || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.opening_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.bars || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.trickle_vent || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1418,19 +1418,19 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.opening_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.bars || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.trickle_vent || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.opening_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.bars || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.trickle_vent || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1441,22 +1441,22 @@ function generateBOMPage() {
                 const locks = [el.lock_1, el.lock_2, el.lock_3].filter(Boolean).join(', ') || '-';
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_handing || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.fire_rating || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.intumescent_set || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.self_closer || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.glazed || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${locks}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery_hinges || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.fire_rating || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.intumescent_set || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.self_closer || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.glazed || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${locks}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery_hinges || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1466,21 +1466,21 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.external_door_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_handing || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.threshold || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.glazed || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.locks || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery_hinges || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.external_door_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.threshold || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.glazed || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.locks || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery_hinges || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1490,21 +1490,21 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.unit_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_style || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_material || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.carcass_material || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.handle_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.soft_close || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.worktop || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.depth || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.unit_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.front_style || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.front_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${el.carcass_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.handle_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.soft_close || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${el.worktop || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1514,22 +1514,22 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.wardrobe_shape || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_style || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_style || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.front_material || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.carcass_material || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.handle_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${el.internal_layout || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.mirror || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.depth || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.wardrobe_shape || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_style || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.front_style || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.front_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${el.carcass_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.handle_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${el.internal_layout || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.mirror || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1539,21 +1539,21 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.panel_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.frame_material || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.door_included || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_handing || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.door_lock || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.acoustic_rating || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.panel_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.frame_material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.door_included || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_lock || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.acoustic_rating || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1563,17 +1563,17 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.qty || 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.item_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.substrate || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.paint_system || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.sheen_level || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.num_coats || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty || 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.item_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.substrate || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.paint_system || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.sheen_level || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.num_coats || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         },
@@ -1583,19 +1583,19 @@ function generateBOMPage() {
             render: (el, idx) => {
                 const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${el.element_id || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.qty || 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.material || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.custom_field_1 || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.custom_field_2 || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${el.custom_field_3 || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty || 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.depth || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.material || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_1 || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_2 || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_3 || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
                 `;
             }
         }
@@ -1616,7 +1616,7 @@ function generateBOMPage() {
                 <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                     <thead>
                         <tr style="background: #4a9eff; color: white;">
-                            ${config.cols.map(col => `<th style="border: 1px solid #ddd; padding: 6px; text-align: center;">${col}</th>`).join('')}
+                            ${config.cols.map(col => `<th style="border: 1px solid #ddd; padding: 8px; text-align: center;">${col}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
@@ -1721,18 +1721,18 @@ function generateMaterialsPage() {
         if (mats.length > 0) {
             html += '<table style="width: 100%; border-collapse: collapse; font-size: 11px;">';
             html += `<thead><tr style="background: #f5f5f5;">
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Qty</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">✓</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Qty</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">✓</th>
             </tr></thead><tbody>`;
             
             mats.forEach(m => {
                 const itemName = m.stock_items?.name || m.item_name || 'Unknown';
                 const unit = m.unit || m.stock_items?.unit || '';
                 html += `<tr>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${itemName}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.quantity_needed} ${unit}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${itemName}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.quantity_needed} ${unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
                 </tr>`;
             });
             
@@ -2489,11 +2489,11 @@ function generateMaterialsSection() {
             <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                 <thead>
                     <tr style="background: #f5f5f5;">
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Needed</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Reserved</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Used</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">✓</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Needed</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Reserved</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Used</th>
+                        <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">✓</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2506,13 +2506,13 @@ function generateMaterialsSection() {
             
             html += `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 6px;">${itemName}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.quantity_needed} ${unit}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${m.quantity_reserved || 0}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center; background: #ffffcc;">
+                    <td style="border: 1px solid #ddd; padding: 8px;">${itemName}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.quantity_needed} ${unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.quantity_reserved || 0}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center; background: #ffffcc;">
                         <div style="border-bottom: 1px solid #999; width: 40px; height: 16px; margin: 0 auto;"></div>
                     </td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
                         <div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div>
                     </td>
                 </tr>
