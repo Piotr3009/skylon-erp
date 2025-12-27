@@ -857,56 +857,6 @@
         </div>
     </div>
 
-    <!-- Photos Multi-Select Modal -->
-    <div class="ps-modal-overlay" id="psPhotosModal">
-        <div class="ps-modal" style="max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
-            <div class="ps-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>📷 Select Photos for Production Sheet</span>
-                <button onclick="closePhotosModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
-            </div>
-            <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
-                Click on photos to select/deselect. Only selected photos will be included in the Production Sheet.
-            </p>
-            <div style="margin-bottom: 10px; display: flex; gap: 10px;">
-                <button onclick="selectAllPhotos()" style="background: #3e3e42; border: none; color: #e8e2d5; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Select All</button>
-                <button onclick="deselectAllPhotos()" style="background: #3e3e42; border: none; color: #e8e2d5; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Deselect All</button>
-                <span id="psPhotosSelectedCount" style="color: #4a9eff; font-size: 12px; margin-left: auto; align-self: center;">0 selected</span>
-            </div>
-            <div id="psPhotosGrid" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; background: #1e1e1e; border-radius: 6px;">
-                <!-- Photos will be loaded here -->
-            </div>
-            <div class="ps-modal-actions" style="margin-top: 15px;">
-                <button class="ps-modal-btn cancel" onclick="closePhotosModal()">Cancel</button>
-                <button class="ps-modal-btn confirm" onclick="confirmPhotosSelection()">✓ Confirm Selection</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Drawings Multi-Select Modal -->
-    <div class="ps-modal-overlay" id="psDrawingsModal">
-        <div class="ps-modal" style="max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
-            <div class="ps-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>📐 Select Drawings for Production Sheet</span>
-                <button onclick="closeDrawingsModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
-            </div>
-            <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
-                Click on drawings to select/deselect. Each selected PDF will be rendered as separate pages in the Production Sheet.
-            </p>
-            <div style="margin-bottom: 10px; display: flex; gap: 10px;">
-                <button onclick="selectAllDrawings()" style="background: #3e3e42; border: none; color: #e8e2d5; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Select All</button>
-                <button onclick="deselectAllDrawings()" style="background: #3e3e42; border: none; color: #e8e2d5; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Deselect All</button>
-                <span id="psDrawingsSelectedCount" style="color: #4a9eff; font-size: 12px; margin-left: auto; align-self: center;">0 selected</span>
-            </div>
-            <div id="psDrawingsGrid" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; background: #1e1e1e; border-radius: 6px;">
-                <!-- Drawings will be loaded here -->
-            </div>
-            <div class="ps-modal-actions" style="margin-top: 15px;">
-                <button class="ps-modal-btn cancel" onclick="closeDrawingsModal()">Cancel</button>
-                <button class="ps-modal-btn confirm" onclick="confirmDrawingsSelection()">✓ Confirm Selection</button>
-            </div>
-        </div>
-    </div>
-
     <!-- BOM Modal - NEW with dynamic forms per element type -->
     <div class="ps-modal-overlay" id="psBomModal">
         <div class="ps-modal" style="max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column;">

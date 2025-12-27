@@ -490,218 +490,42 @@ function closeDescriptionModal() {
     document.getElementById('psDescriptionModal').classList.remove('active');
 }
 
-// ========== PHOTOS MULTI-SELECT MODAL ==========
+// ========== PHOTOS MULTI-SELECT ==========
 function openPhotosSelectModal() {
-    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
-    
-    if (photosFromFiles.length === 0) {
-        showToast('No photos available in project. Upload photos first.', 'info');
-        return;
-    }
-    
-    // Build grid of photos with checkboxes
-    let photosHtml = photosFromFiles.map((file, idx) => {
-        // Generate public URL from file_path
-        const { data: urlData } = supabaseClient.storage
-            .from('project-documents')
-            .getPublicUrl(file.file_path);
-        const photoUrl = urlData.publicUrl;
-        
-        const isSelected = selectedPhotos.some(p => p.id === file.id);
-        return `
-            <div class="ps-photo-item ${isSelected ? 'selected' : ''}" onclick="togglePhotoSelection(${idx})">
-                <input type="checkbox" id="photo-check-${idx}" ${isSelected ? 'checked' : ''} style="position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; cursor: pointer;">
-                <img src="${photoUrl}" alt="${file.file_name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;">
-                <div style="font-size: 10px; color: #888; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.file_name}</div>
-            </div>
-        `;
-    }).join('');
-    
-    document.getElementById('psPhotosGrid').innerHTML = photosHtml;
-    updatePhotosSelectionCount();
-    document.getElementById('psPhotosModal').classList.add('active');
+    openFilesModalForSelection(
+        currentProject.id,
+        currentProject.projectNumber,
+        currentProject.name,
+        'production',
+        'photos',
+        selectedPhotos,
+        (files) => {
+            selectedPhotos = files;
+            checkAllItems();
+            updateProgress();
+            generatePreview();
+            showToast(`${selectedPhotos.length} photos selected for PS`, 'success');
+        }
+    );
 }
 
-function togglePhotoSelection(idx) {
-    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
-    const file = photosFromFiles[idx];
-    
-    // Generate public URL
-    const { data: urlData } = supabaseClient.storage
-        .from('project-documents')
-        .getPublicUrl(file.file_path);
-    
-    const existingIdx = selectedPhotos.findIndex(p => p.id === file.id);
-    if (existingIdx >= 0) {
-        selectedPhotos.splice(existingIdx, 1);
-    } else {
-        selectedPhotos.push({
-            id: file.id,
-            url: urlData.publicUrl,
-            name: file.file_name
-        });
-    }
-    
-    // Update UI
-    const item = document.querySelectorAll('.ps-photo-item')[idx];
-    const checkbox = document.getElementById(`photo-check-${idx}`);
-    if (item && checkbox) {
-        item.classList.toggle('selected');
-        checkbox.checked = !checkbox.checked;
-    }
-    updatePhotosSelectionCount();
-}
-
-function updatePhotosSelectionCount() {
-    const countEl = document.getElementById('psPhotosSelectedCount');
-    if (countEl) {
-        countEl.textContent = `${selectedPhotos.length} selected`;
-    }
-}
-
-function confirmPhotosSelection() {
-    closePhotosModal();
-    checkAllItems();
-    updateProgress();
-    generatePreview();
-    showToast(`${selectedPhotos.length} photos selected for PS`, 'success');
-}
-
-function selectAllPhotos() {
-    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
-    selectedPhotos = photosFromFiles.map(file => {
-        const { data: urlData } = supabaseClient.storage
-            .from('project-documents')
-            .getPublicUrl(file.file_path);
-        return {
-            id: file.id,
-            url: urlData.publicUrl,
-            name: file.file_name
-        };
-    });
-    openPhotosSelectModal(); // Refresh UI
-}
-
-function deselectAllPhotos() {
-    selectedPhotos = [];
-    openPhotosSelectModal(); // Refresh UI
-}
-
-function closePhotosModal() {
-    document.getElementById('psPhotosModal').classList.remove('active');
-}
-
-// ========== DRAWINGS MULTI-SELECT MODAL ==========
+// ========== DRAWINGS MULTI-SELECT ==========
 function openDrawingsSelectModal() {
-    console.log('All files:', projectData.files);
-    console.log('File folder names:', projectData.files.map(f => f.folder_name));
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
-    console.log('Drawings found:', drawingsFromFiles);
-    
-    if (drawingsFromFiles.length === 0) {
-        showToast('No drawings available in project. Upload drawings first.', 'info');
-        return;
-    }
-    
-    // Build grid of drawings with checkboxes
-    let drawingsHtml = drawingsFromFiles.map((file, idx) => {
-        // Generate public URL from file_path
-        const { data: urlData } = supabaseClient.storage
-            .from('project-documents')
-            .getPublicUrl(file.file_path);
-        const fileUrl = urlData.publicUrl;
-        
-        const isSelected = selectedDrawings.some(d => d.id === file.id);
-        const isPdf = file.file_name.toLowerCase().endsWith('.pdf');
-        
-        return `
-            <div class="ps-photo-item ${isSelected ? 'selected' : ''}" onclick="toggleDrawingSelection(${idx})">
-                <input type="checkbox" id="drawing-check-${idx}" ${isSelected ? 'checked' : ''} style="position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; cursor: pointer;">
-                <div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; background: #1e1e1e; border-radius: 4px;">
-                    ${isPdf 
-                        ? `<span style="font-size: 40px;">📄</span>`
-                        : `<img src="${fileUrl}" alt="${file.file_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`
-                    }
-                </div>
-                <div style="font-size: 10px; color: #888; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.file_name}</div>
-            </div>
-        `;
-    }).join('');
-    
-    document.getElementById('psDrawingsGrid').innerHTML = drawingsHtml;
-    updateDrawingsSelectionCount();
-    document.getElementById('psDrawingsModal').classList.add('active');
-}
-
-function toggleDrawingSelection(idx) {
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
-    const file = drawingsFromFiles[idx];
-    
-    // Generate public URL
-    const { data: urlData } = supabaseClient.storage
-        .from('project-documents')
-        .getPublicUrl(file.file_path);
-    
-    const existingIdx = selectedDrawings.findIndex(d => d.id === file.id);
-    if (existingIdx >= 0) {
-        selectedDrawings.splice(existingIdx, 1);
-    } else {
-        selectedDrawings.push({
-            id: file.id,
-            url: urlData.publicUrl,
-            name: file.file_name,
-            path: file.file_path
-        });
-    }
-    
-    // Update UI
-    const item = document.querySelectorAll('#psDrawingsGrid .ps-photo-item')[idx];
-    const checkbox = document.getElementById(`drawing-check-${idx}`);
-    if (item && checkbox) {
-        item.classList.toggle('selected');
-        checkbox.checked = !checkbox.checked;
-    }
-    updateDrawingsSelectionCount();
-}
-
-function updateDrawingsSelectionCount() {
-    const countEl = document.getElementById('psDrawingsSelectedCount');
-    if (countEl) {
-        countEl.textContent = `${selectedDrawings.length} selected`;
-    }
-}
-
-function confirmDrawingsSelection() {
-    closeDrawingsModal();
-    checkAllItems();
-    updateProgress();
-    generatePreview();
-    showToast(`${selectedDrawings.length} drawings selected for PS`, 'success');
-}
-
-function selectAllDrawings() {
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
-    selectedDrawings = drawingsFromFiles.map(file => {
-        const { data: urlData } = supabaseClient.storage
-            .from('project-documents')
-            .getPublicUrl(file.file_path);
-        return {
-            id: file.id,
-            url: urlData.publicUrl,
-            name: file.file_name,
-            path: file.file_path
-        };
-    });
-    openDrawingsSelectModal(); // Refresh UI
-}
-
-function deselectAllDrawings() {
-    selectedDrawings = [];
-    openDrawingsSelectModal(); // Refresh UI
-}
-
-function closeDrawingsModal() {
-    document.getElementById('psDrawingsModal').classList.remove('active');
+    openFilesModalForSelection(
+        currentProject.id,
+        currentProject.projectNumber,
+        currentProject.name,
+        'production',
+        'drawings',
+        selectedDrawings,
+        (files) => {
+            selectedDrawings = files;
+            checkAllItems();
+            updateProgress();
+            generatePreview();
+            showToast(`${selectedDrawings.length} drawings selected for PS`, 'success');
+        }
+    );
 }
 
 // ========== SELECT FILES MODAL ==========
@@ -1002,7 +826,7 @@ async function checkItem(item) {
             
         // DRAWINGS
         case 'ATT_DRAWINGS_MAIN':
-            const availableDrawings = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings').length;
+            const availableDrawings = projectData.files.filter(f => f.folder_name?.toLowerCase().startsWith('drawings')).length;
             result.done = selectedDrawings.length > 0;
             result.meta = selectedDrawings.length > 0 
                 ? `${selectedDrawings.length} selected (${availableDrawings} available)` 
@@ -1011,7 +835,7 @@ async function checkItem(item) {
             
         // PHOTOS
         case 'ATT_PHOTOS':
-            const availablePhotos = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos').length;
+            const availablePhotos = projectData.files.filter(f => f.folder_name?.toLowerCase().startsWith('photos')).length;
             result.done = selectedPhotos.length > 0;
             result.meta = selectedPhotos.length > 0 
                 ? `${selectedPhotos.length} selected (${availablePhotos} available)` 
@@ -1036,7 +860,7 @@ async function checkItem(item) {
             
         case 'SPRAY_COLORS':
             const hasSprayColors = projectData.attachments.some(a => a.attachment_type === 'SPRAY_COLORS') ||
-                                   projectData.files.some(f => f.folder_name === 'spray');
+                                   projectData.files.some(f => f.folder_name?.toLowerCase().startsWith('spray'));
             result.done = hasSprayColors;
             result.meta = hasSprayColors ? 'Selected' : 'Optional';
             break;
@@ -2428,7 +2252,7 @@ function generateTOC() {
     );
     
     const hasPhotos = projectData.attachments.some(a => a.attachment_type === 'PHOTOS') ||
-                     projectData.files.some(f => f.folder_name?.toLowerCase() === 'photos');
+                     projectData.files.some(f => f.folder_name?.toLowerCase().startsWith('photos'));
     
     // Budujemy TOC zgodnie z kolejnością sekcji
     const sections = [
@@ -2811,7 +2635,7 @@ async function generateDrawingsSection() {
     
     // Find drawings attachment
     const drawingsAttachment = projectData.attachments.find(a => a.attachment_type === 'DRAWINGS_MAIN');
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase().startsWith('drawings'));
     
     let html = `
         <div style="margin-bottom: 30px; page-break-before: always;">
@@ -2934,7 +2758,7 @@ async function generatePhotosSection() {
     
     // Find photos attachment
     const photosAttachment = projectData.attachments.find(a => a.attachment_type === 'PHOTOS');
-    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
+    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase().startsWith('photos'));
     
     // Photos are optional - if none, don't show section
     if (!photosAttachment && photosFromFiles.length === 0) {

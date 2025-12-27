@@ -4,6 +4,12 @@
 window.psFileSelectCallback = null;
 window.psFileSelectFolder = null; // Optional: auto-open specific folder
 
+// Multi-select mode for Production Sheet
+window.psMultiSelectMode = false;
+window.psMultiSelectTarget = null; // 'drawings', 'photos', 'attachments'
+window.psMultiSelectedFiles = []; // Array of selected files
+window.psMultiSelectConfirmCallback = null; // Callback when confirmed
+
 let currentProjectFiles = {
     index: null,
     stage: null, // 'pipeline' | 'production' | 'archive'
@@ -93,20 +99,38 @@ async function openProjectFilesModalWithData(projectId, projectNumber, projectNa
                     <!-- Folders or Files will be rendered here -->
                 </div>
             </div>
-            <div style="padding: 16px 20px; background: #252525; border-top: 1px solid #404040; display: flex; justify-content: flex-end;">
-                <button class="modal-btn" onclick="closeProjectFilesModal()" style="
-                    background: #333;
-                    border: 1px solid #555;
-                    color: #e0e0e0;
-                    padding: 10px 24px;
-                    border-radius: 6px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                " onmouseover="this.style.background='#404040'; this.style.borderColor='#666'" onmouseout="this.style.background='#333'; this.style.borderColor='#555'">
-                    Close
-                </button>
+            <div id="filesModalFooter" style="padding: 16px 20px; background: #252525; border-top: 1px solid #404040; display: flex; justify-content: space-between; align-items: center;">
+                <div id="filesSelectionInfo" style="color: #888; font-size: 14px;"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="modal-btn" onclick="closeProjectFilesModal()" style="
+                        background: #333;
+                        border: 1px solid #555;
+                        color: #e0e0e0;
+                        padding: 10px 24px;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#404040'; this.style.borderColor='#666'" onmouseout="this.style.background='#333'; this.style.borderColor='#555'">
+                        ${window.psMultiSelectMode ? 'Cancel' : 'Close'}
+                    </button>
+                    ${window.psMultiSelectMode ? `
+                    <button id="confirmSelectionBtn" class="modal-btn" onclick="confirmMultiSelection()" style="
+                        background: #4a9eff;
+                        border: 1px solid #4a9eff;
+                        color: #fff;
+                        padding: 10px 24px;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#3a8eef'" onmouseout="this.style.background='#4a9eff'">
+                        ✓ Confirm Selection
+                    </button>
+                    ` : ''}
+                </div>
             </div>
         </div>
     `;
@@ -129,6 +153,72 @@ function closeProjectFilesModal() {
     // Clear PS select callback
     window.psFileSelectCallback = null;
     window.psFileSelectFolder = null;
+    
+    // Clear multi-select mode
+    window.psMultiSelectMode = false;
+    window.psMultiSelectTarget = null;
+    window.psMultiSelectedFiles = [];
+    window.psMultiSelectConfirmCallback = null;
+}
+
+// ========== MULTI-SELECT FUNCTIONS ==========
+function toggleFileSelection(file) {
+    const idx = window.psMultiSelectedFiles.findIndex(f => f.id === file.id);
+    if (idx >= 0) {
+        window.psMultiSelectedFiles.splice(idx, 1);
+    } else {
+        // Generate public URL
+        const { data: urlData } = supabaseClient.storage
+            .from('project-documents')
+            .getPublicUrl(file.file_path);
+        
+        window.psMultiSelectedFiles.push({
+            id: file.id,
+            url: urlData.publicUrl,
+            name: file.file_name,
+            path: file.file_path,
+            type: file.file_type
+        });
+    }
+    updateSelectionInfo();
+    // Reload current folder to update checkboxes
+    if (currentProjectFiles.currentFolder) {
+        loadFolderFiles(currentProjectFiles.currentFolder);
+    }
+}
+
+function updateSelectionInfo() {
+    const infoEl = document.getElementById('filesSelectionInfo');
+    if (infoEl && window.psMultiSelectMode) {
+        const count = window.psMultiSelectedFiles.length;
+        infoEl.innerHTML = count > 0 
+            ? `<span style="color: #4a9eff; font-weight: 500;">${count} file${count > 1 ? 's' : ''} selected</span>`
+            : '<span style="color: #888;">No files selected</span>';
+    }
+}
+
+function confirmMultiSelection() {
+    if (window.psMultiSelectConfirmCallback) {
+        window.psMultiSelectConfirmCallback(window.psMultiSelectedFiles);
+    }
+    closeProjectFilesModal();
+}
+
+// Open files modal in multi-select mode
+function openFilesModalForSelection(projectId, projectNumber, projectName, stage, target, currentSelection, confirmCallback) {
+    // Set multi-select mode
+    window.psMultiSelectMode = true;
+    window.psMultiSelectTarget = target;
+    window.psMultiSelectedFiles = currentSelection || [];
+    window.psMultiSelectConfirmCallback = confirmCallback;
+    
+    // Open modal
+    openProjectFilesModalWithData(projectId, projectNumber, projectName, stage);
+    
+    // Update selection info after modal opens
+    setTimeout(() => {
+        updateSelectionInfo();
+    }, 100);
 }
 
 // ========== SHOW FOLDER LIST ==========
@@ -596,18 +686,32 @@ function renderFilesInView(files, viewMode) {
 function renderFilesListView(files) {
     let html = '<div style="display: flex; flex-direction: column; gap: 4px;">';
     files.forEach(file => {
+        const isMultiSelect = window.psMultiSelectMode;
+        const isSelected = isMultiSelect && window.psMultiSelectedFiles.some(f => f.id === file.id);
+        const checkboxHtml = isMultiSelect ? `
+            <input type="checkbox" 
+                ${isSelected ? 'checked' : ''} 
+                onclick="event.stopPropagation(); toggleFileSelection(${JSON.stringify(file).replace(/"/g, '&quot;')})"
+                style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; accent-color: #4a9eff;">
+        ` : '';
+        
+        const clickAction = isMultiSelect 
+            ? `toggleFileSelection(${JSON.stringify(file).replace(/"/g, '&quot;')})`
+            : `previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')`;
+        
         html += `
             <div class="file-row" style="
                 display: flex;
                 align-items: center;
                 gap: 10px;
                 padding: 8px 12px;
-                border: 1px solid #404040;
+                border: 1px solid ${isSelected ? '#4a9eff' : '#404040'};
                 border-radius: 6px;
-                background: #252525;
+                background: ${isSelected ? 'rgba(74, 158, 255, 0.1)' : '#252525'};
                 transition: all 0.2s;
                 cursor: pointer;
-            " onclick="previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')" onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='#252525'; this.style.borderColor='#404040'">
+            " onclick="${clickAction}" onmouseover="this.style.background='${isSelected ? 'rgba(74, 158, 255, 0.15)' : '#2a2a2a'}'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='${isSelected ? 'rgba(74, 158, 255, 0.1)' : '#252525'}'; this.style.borderColor='${isSelected ? '#4a9eff' : '#404040'}'">
+                ${checkboxHtml}
                 <div style="font-size: 20px; flex-shrink: 0;">
                     ${getFileIcon(file.file_type, file.file_name)}
                 </div>
@@ -619,7 +723,7 @@ function renderFilesListView(files) {
                         ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
                     </div>
                 </div>
-                <button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
+                ${!isMultiSelect ? `<button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
                     background: transparent;
                     border: 1px solid #ff4444;
                     color: #ff4444;
@@ -633,7 +737,7 @@ function renderFilesListView(files) {
                     justify-content: center;
                     transition: all 0.2s;
                     flex-shrink: 0;
-                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>
+                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>` : ''}
             </div>
         `;
     });
