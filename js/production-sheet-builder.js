@@ -1280,32 +1280,34 @@ function generateCoverPageNew(logoUrl) {
             </div>
         </div>
         
-        <div style="height: 55%; display: grid; grid-template-columns: 180px 1fr; gap: 30px; padding: 15px;">
-            <div>
+        <div style="height: 55%; display: grid; grid-template-columns: 180px 1fr; gap: 0; padding: 15px;">
+            <div style="padding-right: 25px;">
                 <h2 style="font-size: 16px; color: #333; margin-bottom: 12px; border-bottom: 2px solid #4a9eff; padding-bottom: 6px;">Contents</h2>
-                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
                     ${sections.map((s, i) => `<div>${i + 1}. ${s}</div>`).join('')}
                 </div>
             </div>
             
-            <div>
+            <div style="border-left: 2px solid #ddd; padding-left: 25px;">
                 <h2 style="font-size: 16px; color: #333; margin-bottom: 12px; border-bottom: 2px solid #f59e0b; padding-bottom: 6px;">Pre-Construction Checklist</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                     <thead>
                         <tr style="background: #f5f5f5;">
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 30px;">✓</th>
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Notes</th>
+                            <th style="border: 1px solid #ddd; padding: 10px; text-align: center; width: 35px;">✓</th>
+                            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Item</th>
+                            <th style="border: 1px solid #ddd; padding: 10px; text-align: center; width: 120px;">Checked by</th>
+                            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 200px;">Notes</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${preConstructionItems.map(item => `
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
-                                    <div style="width: 18px; height: 18px; border: 2px solid #333; margin: 0 auto;"></div>
+                                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">
+                                    <div style="width: 20px; height: 20px; border: 2px solid #333; margin: 0 auto;"></div>
                                 </td>
-                                <td style="border: 1px solid #ddd; padding: 8px;">${item}</td>
-                                <td style="border: 1px solid #ddd; padding: 8px; min-width: 150px;"></td>
+                                <td style="border: 1px solid #ddd; padding: 10px;">${item}</td>
+                                <td style="border: 1px solid #ddd; padding: 10px;"></td>
+                                <td style="border: 1px solid #ddd; padding: 10px;"></td>
                             </tr>
                         `).join('')}
                     </tbody>
