@@ -1235,10 +1235,14 @@ function generateCoverPageNew(logoUrl) {
     
     // Pre-construction checklist items
     const preConstructionItems = [
-        'Materials ordered',
-        'Drawings & sizes checked by Joiner and Production Manager',
-        'Drawings accepted by Client',
-        'Materials delivered'
+        'Drawings & Design accepted by Client',
+        'Drawings & sizes checked by Joiner',
+        'Bespoke tools ordered by Joiner (if needed)',
+        'Timeline agreed with Client',
+        'Spray colour & sheen confirmed',
+        'All materials checked & ordered',
+        'Production timeline agreed with Team',
+        'Deposit received'
     ];
     
     return `
