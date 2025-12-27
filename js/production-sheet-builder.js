@@ -1409,10 +1409,10 @@ function generateScopePage() {
         <h1 class="ps-section-title">1. Scope & Notes</h1>
         
         <div style="display: flex; flex-direction: column; gap: 25px; overflow: hidden;">
-            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 160px 1fr; gap: 30px; overflow: hidden;">
                 <div>
-                    <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Project Type</h3>
-                    <div style="font-size: 16px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                    <h3 style="color: #333; margin-bottom: 12px; font-size: 12px;">Project Type</h3>
+                    <div style="font-size: 12px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
                         ${project?.type || 'N/A'}
                     </div>
                 </div>
@@ -1421,7 +1421,7 @@ function generateScopePage() {
                     ${scopeDescription.trim() ? `
                         <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
                         <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; overflow: hidden;">
-                            <div style="white-space: pre-wrap; font-size: 14px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-all;">${scopeDescription}</div>
+                            <div style="white-space: pre-wrap; font-size: 16px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-all;">${scopeDescription}</div>
                         </div>
                     ` : ''}
                 </div>
