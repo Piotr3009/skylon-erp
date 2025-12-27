@@ -682,6 +682,11 @@ function changeViewMode(mode) {
 
 // ========== RENDER FILES IN DIFFERENT VIEWS ==========
 function renderFilesInView(files, viewMode) {
+    // Force list view in multi-select mode
+    if (window.psMultiSelectMode) {
+        return renderFilesListView(files);
+    }
+    
     if (viewMode === 'list') {
         return renderFilesListView(files);
     } else if (viewMode === 'medium') {
@@ -694,28 +699,23 @@ function renderFilesInView(files, viewMode) {
 
 // LIST VIEW - Compact with small icons
 function renderFilesListView(files) {
-    
-    
     // Store files for toggle by index
     currentDisplayedFiles = files;
     
-    let html = '<div style="display: flex; flex-direction: column; gap: 4px;">';
+    let html = '<div id="filesListContainer" style="display: flex; flex-direction: column; gap: 4px;">';
     files.forEach((file, index) => {
         const isMultiSelect = window.psMultiSelectMode;
         const isSelected = isMultiSelect && window.psMultiSelectedFiles.some(f => f.id === file.id);
         const checkboxHtml = isMultiSelect ? `
             <input type="checkbox" 
                 ${isSelected ? 'checked' : ''} 
-                onclick="event.stopPropagation(); toggleFileSelection(${index})"
+                data-file-index="${index}"
+                class="file-checkbox"
                 style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; accent-color: #4a9eff;">
         ` : '';
         
-        const clickAction = isMultiSelect 
-            ? `toggleFileSelection(${index})`
-            : `previewFile('${file.file_path}', '${file.file_type}', '${file.file_name}')`;
-        
         html += `
-            <div class="file-row" style="
+            <div class="file-row" data-file-index="${index}" data-multi-select="${isMultiSelect}" style="
                 display: flex;
                 align-items: center;
                 gap: 10px;
@@ -725,7 +725,7 @@ function renderFilesListView(files) {
                 background: ${isSelected ? 'rgba(74, 158, 255, 0.1)' : '#252525'};
                 transition: all 0.2s;
                 cursor: pointer;
-            " onclick="${clickAction}" onmouseover="this.style.background='${isSelected ? 'rgba(74, 158, 255, 0.15)' : '#2a2a2a'}'; this.style.borderColor='#4a9eff'" onmouseout="this.style.background='${isSelected ? 'rgba(74, 158, 255, 0.1)' : '#252525'}'; this.style.borderColor='${isSelected ? '#4a9eff' : '#404040'}'">
+            ">
                 ${checkboxHtml}
                 <div style="font-size: 20px; flex-shrink: 0;">
                     ${getFileIcon(file.file_type, file.file_name)}
@@ -738,7 +738,7 @@ function renderFilesListView(files) {
                         ${formatFileSize(file.file_size)} • ${formatDate(file.uploaded_at)}
                     </div>
                 </div>
-                ${!isMultiSelect ? `<button onclick="event.stopPropagation(); deleteFile('${file.id}', '${file.file_path}')" style="
+                ${!isMultiSelect ? `<button class="delete-file-btn" data-file-id="${file.id}" data-file-path="${file.file_path}" style="
                     background: transparent;
                     border: 1px solid #ff4444;
                     color: #ff4444;
@@ -752,12 +752,57 @@ function renderFilesListView(files) {
                     justify-content: center;
                     transition: all 0.2s;
                     flex-shrink: 0;
-                " onmouseover="this.style.background='#ff4444'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#ff4444'">🗑</button>` : ''}
+                ">🗑</button>` : ''}
             </div>
         `;
     });
     html += '</div>';
+    
+    // Add event listener after rendering
+    setTimeout(() => {
+        const container = document.getElementById('filesListContainer');
+        if (container) {
+            container.addEventListener('click', handleFileRowClick);
+        }
+    }, 0);
+    
     return html;
+}
+
+// Event handler for file row clicks
+function handleFileRowClick(e) {
+    // Handle delete button
+    if (e.target.classList.contains('delete-file-btn')) {
+        e.stopPropagation();
+        const fileId = e.target.dataset.fileId;
+        const filePath = e.target.dataset.filePath;
+        deleteFile(fileId, filePath);
+        return;
+    }
+    
+    // Handle checkbox
+    if (e.target.classList.contains('file-checkbox')) {
+        e.stopPropagation();
+        const index = parseInt(e.target.dataset.fileIndex);
+        toggleFileSelection(index);
+        return;
+    }
+    
+    // Handle row click
+    const row = e.target.closest('.file-row');
+    if (row) {
+        const index = parseInt(row.dataset.fileIndex);
+        const isMultiSelect = row.dataset.multiSelect === 'true';
+        
+        if (isMultiSelect) {
+            toggleFileSelection(index);
+        } else {
+            const file = currentDisplayedFiles[index];
+            if (file) {
+                previewFile(file.file_path, file.file_type, file.file_name);
+            }
+        }
+    }
 }
 
 // MEDIUM VIEW - Grid with large icons (no image previews)
@@ -1231,9 +1276,8 @@ async function uploadSingleFile(file, folderName) {
 
 // ========== FILE PREVIEW ==========
 async function previewFile(filePath, fileType, fileName) {
-    // If in multi-select mode, don't preview - this shouldn't happen but just in case
+    // If in multi-select mode, don't preview - should be handled by event delegation
     if (window.psMultiSelectMode) {
-        console.log('previewFile called but in multi-select mode - ignoring');
         return;
     }
     
