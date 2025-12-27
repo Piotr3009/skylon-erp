@@ -1413,7 +1413,8 @@ function generateScopePage() {
             </div>
             
             <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
-                <h3 style="color: #333; margin-bottom: 15px; font-size: 16px;">Important Notes</h3>
+                <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes</h3>
+                <div style="font-size: 11px; color: #888; margin-bottom: 15px; font-style: italic;">📌 Notes added during project preparation</div>
                 ${importantNotesHtml}
             </div>
         </div>
