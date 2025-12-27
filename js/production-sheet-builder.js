@@ -145,8 +145,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     
     await loadAllData();
-    console.log('[PS Debug] After loadAllData - scopeDescription:', scopeDescription);
-    console.log('[PS Debug] snapshot_json:', currentSheet?.snapshot_json);
     buildChecklist();
     updateDescriptionUI(); // Update description button if text exists
     updateSprayUI(); // Update spray button if text exists
@@ -208,10 +206,9 @@ async function loadAllData() {
             .order('created_at');
         
         if (materialsError) {
-            console.error('[PS Debug] materials ERROR:', materialsError);
+            console.error('Materials load error:', materialsError);
         }
         projectData.materials = materials || [];
-        console.log('[PS Debug] materials loaded:', materials?.length || 0, 'items');
         
         // 5. Load elements (BOM)
         const { data: elements, error: elementsError } = await supabaseClient
@@ -220,7 +217,6 @@ async function loadAllData() {
             .eq('project_id', projectId)
             .order('sort_order');
         projectData.elements = elements || [];
-        console.log('[PS Debug] elements loaded:', elements?.length || 0, 'items', elementsError ? 'ERROR:' + elementsError.message : '');
         
         // 6. Load blockers
         const { data: blockers } = await supabaseClient
@@ -248,9 +244,6 @@ async function loadAllData() {
             .limit(1)
             .maybeSingle();
         
-        console.log('[PS Debug] existingSheet query result:', existingSheet);
-        console.log('[PS Debug] sheetError:', sheetError);
-        
         if (existingSheet) {
             currentSheet = existingSheet;
             
@@ -261,8 +254,6 @@ async function loadAllData() {
                 .eq('sheet_id', existingSheet.id);
             
             projectData.attachments = attachments || [];
-            
-            console.log('[PS Debug] existingSheet.snapshot_json:', existingSheet.snapshot_json);
             
             // Load scopeDescription from snapshot if exists
             if (existingSheet.snapshot_json?.scopeDescription) {
@@ -276,8 +267,6 @@ async function loadAllData() {
             if (existingSheet.snapshot_json?.editedNotes) {
                 editedNotes = existingSheet.snapshot_json.editedNotes;
             }
-        } else {
-            console.log('[PS Debug] No existing sheet found - will create new on save');
         }
         
     } catch (err) {
@@ -446,7 +435,6 @@ function createChecklistItem(item, sectionKey) {
 
 // ========== DESCRIPTION MODAL ==========
 function openDescriptionModal() {
-    console.log('[PS Debug] openDescriptionModal - loading scopeDescription:', scopeDescription);
     document.getElementById('descriptionModalText').value = scopeDescription;
     document.getElementById('psDescriptionModal').classList.add('active');
 }
@@ -612,7 +600,6 @@ async function selectProjectFile(filePath, fileUrl, fileName) {
 
 async function saveDescription() {
     scopeDescription = document.getElementById('descriptionModalText').value;
-    console.log('[PS Debug] saveDescription - scopeDescription set to:', scopeDescription);
     closeDescriptionModal();
     
     // Update UI
@@ -641,8 +628,6 @@ async function autoSaveSnapshot() {
             editedNotes: editedNotes
         };
         
-        console.log('[PS Debug] Auto-saving snapshot:', partialSnapshot);
-        
         const { error } = await supabaseClient
             .from('production_sheets')
             .update({
@@ -652,12 +637,10 @@ async function autoSaveSnapshot() {
             .eq('id', currentSheet.id);
         
         if (error) {
-            console.error('[PS Debug] Auto-save error:', error);
-        } else {
-            console.log('[PS Debug] Auto-save successful');
+            console.error('Auto-save error:', error);
         }
     } catch (err) {
-        console.error('[PS Debug] Auto-save failed:', err);
+        console.error('Auto-save failed:', err);
     }
 }
 
@@ -1176,8 +1159,6 @@ async function saveAndClose() {
             editedNotes: editedNotes
         };
         
-        console.log('[PS Debug] Saving snapshot:', partialSnapshot);
-        
         // Save current state to sheet
         const { error } = await supabaseClient
             .from('production_sheets')
@@ -1192,7 +1173,6 @@ async function saveAndClose() {
         
         if (error) throw error;
         
-        console.log('[PS Debug] Saved successfully!');
         showToast('Draft saved!', 'success');
         
         // Navigate back after short delay
@@ -1733,7 +1713,6 @@ function getTypeLabel(type) {
 // ========== PAGE 3: MATERIALS ==========
 function generateMaterialsPage() {
     const materials = projectData.materials;
-    console.log('[PS Debug] generateMaterialsPage - materials:', materials?.length || 0);
     
     const byStage = {
         'Production': materials.filter(m => m.used_in_stage === 'Production'),
