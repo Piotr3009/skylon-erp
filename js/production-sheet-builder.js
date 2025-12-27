@@ -492,7 +492,7 @@ function closeDescriptionModal() {
 
 // ========== PHOTOS MULTI-SELECT MODAL ==========
 function openPhotosSelectModal() {
-    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
     
     if (photosFromFiles.length === 0) {
         showToast('No photos available in project. Upload photos first.', 'info');
@@ -523,7 +523,7 @@ function openPhotosSelectModal() {
 }
 
 function togglePhotoSelection(idx) {
-    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
     const file = photosFromFiles[idx];
     
     // Generate public URL
@@ -568,7 +568,7 @@ function confirmPhotosSelection() {
 }
 
 function selectAllPhotos() {
-    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
     selectedPhotos = photosFromFiles.map(file => {
         const { data: urlData } = supabaseClient.storage
             .from('project-documents')
@@ -593,7 +593,10 @@ function closePhotosModal() {
 
 // ========== DRAWINGS MULTI-SELECT MODAL ==========
 function openDrawingsSelectModal() {
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    console.log('All files:', projectData.files);
+    console.log('File folder names:', projectData.files.map(f => f.folder_name));
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
+    console.log('Drawings found:', drawingsFromFiles);
     
     if (drawingsFromFiles.length === 0) {
         showToast('No drawings available in project. Upload drawings first.', 'info');
@@ -631,7 +634,7 @@ function openDrawingsSelectModal() {
 }
 
 function toggleDrawingSelection(idx) {
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
     const file = drawingsFromFiles[idx];
     
     // Generate public URL
@@ -677,7 +680,7 @@ function confirmDrawingsSelection() {
 }
 
 function selectAllDrawings() {
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
     selectedDrawings = drawingsFromFiles.map(file => {
         const { data: urlData } = supabaseClient.storage
             .from('project-documents')
@@ -999,7 +1002,7 @@ async function checkItem(item) {
             
         // DRAWINGS
         case 'ATT_DRAWINGS_MAIN':
-            const availableDrawings = projectData.files.filter(f => f.folder_name === 'drawings').length;
+            const availableDrawings = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings').length;
             result.done = selectedDrawings.length > 0;
             result.meta = selectedDrawings.length > 0 
                 ? `${selectedDrawings.length} selected (${availableDrawings} available)` 
@@ -1008,7 +1011,7 @@ async function checkItem(item) {
             
         // PHOTOS
         case 'ATT_PHOTOS':
-            const availablePhotos = projectData.files.filter(f => f.folder_name === 'photos').length;
+            const availablePhotos = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos').length;
             result.done = selectedPhotos.length > 0;
             result.meta = selectedPhotos.length > 0 
                 ? `${selectedPhotos.length} selected (${availablePhotos} available)` 
@@ -2425,7 +2428,7 @@ function generateTOC() {
     );
     
     const hasPhotos = projectData.attachments.some(a => a.attachment_type === 'PHOTOS') ||
-                     projectData.files.some(f => f.folder_name === 'photos');
+                     projectData.files.some(f => f.folder_name?.toLowerCase() === 'photos');
     
     // Budujemy TOC zgodnie z kolejnością sekcji
     const sections = [
@@ -2808,7 +2811,7 @@ async function generateDrawingsSection() {
     
     // Find drawings attachment
     const drawingsAttachment = projectData.attachments.find(a => a.attachment_type === 'DRAWINGS_MAIN');
-    const drawingsFromFiles = projectData.files.filter(f => f.folder_name === 'drawings');
+    const drawingsFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'drawings');
     
     let html = `
         <div style="margin-bottom: 30px; page-break-before: always;">
@@ -2931,7 +2934,7 @@ async function generatePhotosSection() {
     
     // Find photos attachment
     const photosAttachment = projectData.attachments.find(a => a.attachment_type === 'PHOTOS');
-    const photosFromFiles = projectData.files.filter(f => f.folder_name === 'photos');
+    const photosFromFiles = projectData.files.filter(f => f.folder_name?.toLowerCase() === 'photos');
     
     // Photos are optional - if none, don't show section
     if (!photosAttachment && photosFromFiles.length === 0) {
