@@ -404,9 +404,11 @@ function renderSprayItemsTable() {
                 <th style="padding: 6px; border: 1px solid #3e3e42;">Notes</th>
                 <th style="padding: 6px; border: 1px solid #3e3e42; width: 50px;"></th>
             </tr></thead>
-            <tbody>${currentSprayItems.map((item, idx) => `
+            <tbody>${currentSprayItems.map((item, idx) => {
+                const elementCode = document.getElementById('bomFieldId')?.value || 'X';
+                return `
                 <tr>
-                    <td style="padding: 4px; border: 1px solid #3e3e42; color: #4a9eff;">${idx + 1}</td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42; color: #4a9eff;">${elementCode}-${idx + 1}</td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.name)}" onchange="updateSprayItem(${idx}, 'name', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="e.g. Drawer Front"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.width || ''}" onchange="updateSprayItem(${idx}, 'width', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.height || ''}" onchange="updateSprayItem(${idx}, 'height', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
@@ -415,7 +417,7 @@ function renderSprayItemsTable() {
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.notes)}" onchange="updateSprayItem(${idx}, 'notes', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="both sides"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42; text-align: center;"><button onclick="removeSprayItem(${idx})" style="background: #ef4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button></td>
                 </tr>
-            `).join('')}</tbody>
+            `}).join('')}</tbody>
         </table>
     `;
 }
