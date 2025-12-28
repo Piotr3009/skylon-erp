@@ -798,10 +798,10 @@
                         <button class="ps-preview-btn" onclick="regeneratePreview()">
                             🔄 Refresh
                         </button>
-                        <button class="ps-preview-btn" onclick="window.print()">
+                        <button class="ps-preview-btn" id="btnPrint" onclick="window.print()" disabled style="opacity: 0.5; cursor: not-allowed;">
                             🖨️ Print
                         </button>
-                        <button class="ps-preview-btn primary" onclick="downloadPDF()">
+                        <button class="ps-preview-btn primary" id="btnDownloadPDF" onclick="downloadPDF()" disabled style="opacity: 0.5; cursor: not-allowed;">
                             📥 Download PDF
                         </button>
                     </div>

@@ -154,7 +154,45 @@ window.addEventListener('DOMContentLoaded', async () => {
     await checkAllItems();
     updateProgress();
     generatePreview();
+    
+    // Check if final PS exists and enable buttons
+    await checkFinalPSExists();
 });
+
+async function checkFinalPSExists() {
+    try {
+        const { data: finalSheet } = await supabaseClient
+            .from('production_sheets')
+            .select('id, pdf_url, version')
+            .eq('project_id', projectId)
+            .eq('status', 'final')
+            .order('version', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        if (finalSheet?.pdf_url) {
+            // Store for download
+            if (!currentSheet) currentSheet = {};
+            currentSheet.pdf_url = finalSheet.pdf_url;
+            
+            // Enable buttons
+            const btnPrint = document.getElementById('btnPrint');
+            const btnDownload = document.getElementById('btnDownloadPDF');
+            if (btnPrint) {
+                btnPrint.disabled = false;
+                btnPrint.style.opacity = '1';
+                btnPrint.style.cursor = 'pointer';
+            }
+            if (btnDownload) {
+                btnDownload.disabled = false;
+                btnDownload.style.opacity = '1';
+                btnDownload.style.cursor = 'pointer';
+            }
+        }
+    } catch (err) {
+        console.log('No final PS found:', err);
+    }
+}
 
 // ========== DATA LOADING ==========
 async function loadAllData() {
@@ -3533,6 +3571,23 @@ async function createProductionSheet() {
         
         if (error) throw error;
         
+        // Enable Print and Download buttons
+        const btnPrint = document.getElementById('btnPrint');
+        const btnDownload = document.getElementById('btnDownloadPDF');
+        if (btnPrint) {
+            btnPrint.disabled = false;
+            btnPrint.style.opacity = '1';
+            btnPrint.style.cursor = 'pointer';
+        }
+        if (btnDownload) {
+            btnDownload.disabled = false;
+            btnDownload.style.opacity = '1';
+            btnDownload.style.cursor = 'pointer';
+        }
+        
+        // Store PDF URL for download
+        currentSheet.pdf_url = pdfUrl;
+        
         showToast('Production Sheet created successfully!', 'success');
         
         // Offer to download
@@ -3688,70 +3743,14 @@ async function generateAndUploadPDF() {
 }
 
 async function downloadPDF() {
-    showToast('Generating PDF...', 'info');
-    
-    try {
-        const pages = document.querySelectorAll('.ps-page');
-        
-        if (pages.length === 0) {
-            throw new Error('No pages to export');
-        }
-        
-        const { jsPDF } = window.jspdf;
-        // A3 landscape: 420mm x 297mm
-        const pdf = new jsPDF('l', 'mm', 'a3');
-        const pdfWidth = 420;
-        const pdfHeight = 297;
-        
-        for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-            
-            // Temporarily reset transform for capture
-            const originalTransform = page.style.transform;
-            const originalMargin = page.style.marginBottom;
-            page.style.transform = 'none';
-            page.style.marginBottom = '0';
-            
-            const canvas = await html2canvas(page, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                width: page.scrollWidth,
-                height: page.scrollHeight
-            });
-            
-            // Restore transform
-            page.style.transform = originalTransform;
-            page.style.marginBottom = originalMargin;
-            
-            // Add page (not for first page)
-            if (i > 0) {
-                pdf.addPage();
-            }
-            
-            // Calculate dimensions to fit A3
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-            
-            pdf.addImage(
-                canvas.toDataURL('image/jpeg', 0.95), 
-                'JPEG', 
-                0, 
-                0, 
-                imgWidth, 
-                Math.min(imgHeight, pdfHeight)
-            );
-        }
-        
-        const fileName = `PS_${projectData.project?.project_number || 'project'}_v${currentSheet?.version || 1}.pdf`;
-        pdf.save(fileName);
-        
-        showToast('PDF downloaded!', 'success');
-        
-    } catch (err) {
-        console.error('PDF error:', err);
-        showToast('Error generating PDF: ' + err.message, 'error');
+    // Use final PDF from Supabase if available
+    if (currentSheet?.pdf_url) {
+        window.open(currentSheet.pdf_url, '_blank');
+        showToast('Opening PDF...', 'success');
+        return;
     }
+    
+    showToast('No PDF available. Create Production Sheet first.', 'warning');
 }
 
 // ========== UTILITIES ==========
