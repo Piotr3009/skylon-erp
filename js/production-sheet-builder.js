@@ -495,7 +495,7 @@ function openPhotosSelectModal() {
     
     openFilesModalForSelection(
         currentProject.id,
-        currentProject.projectNumber,
+        currentProject.project_number,
         currentProject.name,
         'production',
         'photos',
@@ -515,7 +515,7 @@ function openDrawingsSelectModal() {
     
     openFilesModalForSelection(
         currentProject.id,
-        currentProject.projectNumber,
+        currentProject.project_number,
         currentProject.name,
         'production',
         'drawings',
