@@ -868,7 +868,16 @@
             <div style="display: flex; gap: 5px; padding: 8px; background: #252526; border-radius: 6px 6px 0 0; border: 1px solid #3e3e42; border-bottom: none;">
                 <button type="button" onclick="formatText('bold')" title="Bold" style="padding: 6px 12px; background: #3e3e42; border: none; border-radius: 4px; color: #e8e2d5; cursor: pointer; font-weight: bold;">B</button>
                 <button type="button" onclick="formatText('underline')" title="Underline" style="padding: 6px 12px; background: #3e3e42; border: none; border-radius: 4px; color: #e8e2d5; cursor: pointer; text-decoration: underline;">U</button>
+                <button type="button" onclick="applyHighlight()" title="Highlight" style="padding: 6px 12px; background: #3e3e42; border: none; border-radius: 4px; color: #fde047; cursor: pointer;">🖍️</button>
                 <div style="width: 1px; background: #555; margin: 0 5px;"></div>
+                <select onchange="applyFontSize(this.value); this.value='';" style="padding: 6px 8px; background: #3e3e42; border: none; border-radius: 4px; color: #e8e2d5; cursor: pointer;">
+                    <option value="">Size</option>
+                    <option value="1">Small</option>
+                    <option value="3">Normal</option>
+                    <option value="4">Medium</option>
+                    <option value="5">Large</option>
+                    <option value="6">X-Large</option>
+                </select>
                 <select onchange="applyColor(this.value); this.value='';" style="padding: 6px 8px; background: #3e3e42; border: none; border-radius: 4px; color: #e8e2d5; cursor: pointer;">
                     <option value="">🎨 Color</option>
                     <option value="#ef4444">🔴 Red</option>

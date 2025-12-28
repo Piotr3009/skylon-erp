@@ -613,6 +613,18 @@ function applyColor(color) {
     }
 }
 
+function applyHighlight() {
+    document.execCommand('hiliteColor', false, '#fde047');
+    document.getElementById('descriptionEditor').focus();
+}
+
+function applyFontSize(size) {
+    if (size) {
+        document.execCommand('fontSize', false, size);
+        document.getElementById('descriptionEditor').focus();
+    }
+}
+
 // ========== EDIT NOTE MODAL ==========
 let currentEditNoteIndex = null;
 let currentEditNoteOriginal = '';
