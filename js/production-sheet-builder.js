@@ -236,6 +236,15 @@ async function loadAllData() {
             .order('sort_order');
         projectData.elements = elements || [];
         
+        // 5b. Load spray items
+        const { data: sprayItems, error: sprayItemsError } = await supabaseClient
+            .from('project_spray_items')
+            .select('*')
+            .eq('project_id', projectId)
+            .order('sort_order');
+        if (sprayItemsError) console.error('Spray items load error:', sprayItemsError);
+        projectData.sprayItems = sprayItems || [];
+        
         // 6. Load blockers
         const { data: blockers } = await supabaseClient
             .from('project_blockers')
@@ -1396,6 +1405,9 @@ async function generatePreview() {
     const photoPages = await generatePhotoPages();
     pages.push(...photoPages);
     
+    // PAGE: Dispatch Check List
+    pages.push(generateDispatchCheckListPage());
+    
     // PAGE: QC & Sign-off
     pages.push(generateQCPage());
     
@@ -2084,30 +2096,21 @@ async function generatePhotoPages() {
 
 // ========== PAGE: SPRAY PACK ==========
 function generateSprayingPage() {
-    const elements = projectData.elements || [];
+    const sprayItems = projectData.sprayItems || [];
     const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
     
-    // Get unique colours from BOM elements
-    const colourMap = {};
-    elements.forEach(el => {
-        if (el.colour) {
-            const key = el.colour;
-            if (!colourMap[key]) {
-                colourMap[key] = {
-                    colour: el.colour,
-                    colourType: el.colour_type || 'Single',
-                    items: []
-                };
-            }
-            colourMap[key].items.push({
-                id: el.element_id,
-                name: el.name,
-                type: el.element_type
-            });
+    // Group by colour
+    const colourGroups = {};
+    sprayItems.forEach(item => {
+        const colour = item.colour || 'No Colour Specified';
+        if (!colourGroups[colour]) {
+            colourGroups[colour] = [];
         }
+        colourGroups[colour].push(item);
     });
     
-    const colours = Object.values(colourMap);
+    const colours = Object.keys(colourGroups);
+    const totalItems = sprayItems.length;
     
     // Spray checklist items
     const sprayChecklist = [
@@ -2122,29 +2125,51 @@ function generateSprayingPage() {
     return `
         <h1 class="ps-section-title">5. Spraying</h1>
         
+        <!-- Sheen Level Input -->
+        <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border: 1px solid #3b82f6; border-radius: 6px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <strong style="color: #1e40af;">Project Sheen Level:</strong>
+                <div style="border: 1px solid #333; padding: 8px 15px; min-width: 150px; background: white;">
+                    _______%
+                </div>
+                <span style="color: #666; font-size: 11px;">(e.g. 10%, 20%, Matt, Satin)</span>
+            </div>
+        </div>
+        
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
             <div>
-                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Colour Schedule</h3>
-                ${colours.length > 0 ? `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                        <thead>
-                            <tr style="background: #4a9eff; color: white;">
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Colour</th>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Type</th>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Items</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${colours.map(c => `
-                                <tr>
-                                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: 600;">${c.colour}</td>
-                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${c.colourType}</td>
-                                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${c.items.map(i => `${i.id}: ${i.name}`).join(', ')}</td>
+                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Spray Items List (${totalItems} items)</h3>
+                ${colours.length > 0 ? colours.map(colour => `
+                    <div style="margin-bottom: 15px;">
+                        <div style="background: #e99f62; color: white; padding: 8px 12px; font-weight: 600; font-size: 12px; border-radius: 4px 4px 0 0;">
+                            ${colour} (${colourGroups[colour].length} items)
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr style="background: #f5f5f5;">
+                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
+                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Size (mm)</th>
+                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Notes</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                ` : '<div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No colours specified in BOM.</div>'}
+                            </thead>
+                            <tbody>
+                                ${colourGroups[colour].map(item => `
+                                    <tr>
+                                        <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">
+                                            <div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div>
+                                        </td>
+                                        <td style="border: 1px solid #ddd; padding: 6px;">${item.name || item.item_type || '-'}</td>
+                                        <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px;">
+                                            ${item.width || '-'} x ${item.height || '-'}${item.depth ? ` x ${item.depth}` : ''}
+                                        </td>
+                                        <td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; color: #666;">${item.notes || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `).join('') : '<div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No spray items defined. Add spray items in Element List.</div>'}
                 
                 ${sprayAttachment ? `
                     <div style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f0f9ff;">
@@ -2552,10 +2577,100 @@ function generatePhasesPage() {
     `;
 }
 
+// ========== PAGE: DISPATCH CHECK LIST ==========
+function generateDispatchCheckListPage() {
+    const sprayItems = projectData.sprayItems || [];
+    const materials = projectData.materials || [];
+    const elements = projectData.elements || [];
+    const installMaterials = materials.filter(m => m.used_in_stage === 'Installation' || !m.used_in_stage);
+    
+    return `
+        <h1 class="ps-section-title">8. Dispatch Check List</h1>
+        <div style="margin-bottom: 15px; padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b;">
+            <strong>📦 Pre-Dispatch Checklist</strong> - Tick off each item before loading for delivery.
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+                <h3 style="color: #333; margin-bottom: 10px; font-size: 13px; border-bottom: 2px solid #e99f62; padding-bottom: 5px;">🎨 Sprayed Items (${sprayItems.length})</h3>
+                ${sprayItems.length > 0 ? `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead><tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Size</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Colour</th>
+                        </tr></thead>
+                        <tbody>${sprayItems.map(item => `
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                                <td style="border: 1px solid #ddd; padding: 5px;">${item.name || item.item_type || '-'}</td>
+                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 10px;">${item.width || '-'} x ${item.height || '-'}</td>
+                                <td style="border: 1px solid #ddd; padding: 5px; font-size: 10px;">${item.colour || '-'}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                ` : '<div style="color: #666; font-style: italic; padding: 10px; background: #f5f5f5; font-size: 11px;">No spray items</div>'}
+                
+                <h3 style="color: #333; margin: 20px 0 10px 0; font-size: 13px; border-bottom: 2px solid #3b82f6; padding-bottom: 5px;">📦 Elements / Units (${elements.length})</h3>
+                ${elements.length > 0 ? `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead><tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">ID</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Name</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Qty</th>
+                        </tr></thead>
+                        <tbody>${elements.map(el => `
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                                <td style="border: 1px solid #ddd; padding: 5px; color: #4a9eff; font-weight: 600;">${el.element_id || '-'}</td>
+                                <td style="border: 1px solid #ddd; padding: 5px;">${el.name || '-'}</td>
+                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${el.qty || 1}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                ` : '<div style="color: #666; font-style: italic; padding: 10px; background: #f5f5f5; font-size: 11px;">No elements</div>'}
+            </div>
+            <div>
+                <h3 style="color: #333; margin-bottom: 10px; font-size: 13px; border-bottom: 2px solid #22c55e; padding-bottom: 5px;">🔩 Materials & Hardware (${installMaterials.length})</h3>
+                ${installMaterials.length > 0 ? `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead><tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Qty</th>
+                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Notes</th>
+                        </tr></thead>
+                        <tbody>${installMaterials.map(mat => `
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                                <td style="border: 1px solid #ddd; padding: 5px;">${mat.stock_items?.name || mat.item_name || '-'}</td>
+                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${mat.quantity_needed || '-'} ${mat.unit || ''}</td>
+                                <td style="border: 1px solid #ddd; padding: 5px; font-size: 10px; color: #666;">${mat.item_notes || '-'}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                ` : '<div style="color: #666; font-style: italic; padding: 10px; background: #f5f5f5; font-size: 11px;">No materials</div>'}
+                
+                <div style="margin-top: 30px; padding: 15px; border: 2px solid #333; background: #fafafa;">
+                    <h4 style="margin: 0 0 15px 0; font-size: 12px;">Dispatch Sign-off</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Packed by:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Date:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Checked by:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Vehicle Reg:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+                    </div>
+                    <div style="margin-top: 15px;"><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Notes / Missing Items:</div><div style="border: 1px solid #333; min-height: 50px;"></div></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 // ========== PAGE: QC & SIGN-OFF ==========
 function generateQCPage() {
     return `
-        <h1 class="ps-section-title">9. QC Checklist & Sign-off</h1>
+        <h1 class="ps-section-title">10. QC Checklist & Sign-off</h1>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
             <div>

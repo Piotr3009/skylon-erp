@@ -899,13 +899,18 @@
                             <option value="">-- Select Type --</option>
                             <option value="sash">🪟 Sash Windows</option>
                             <option value="casement">🪟 Casement Windows</option>
+                            <option value="windowAdditional" style="color: #22c55e;">  ↳ + Window Additional</option>
                             <option value="internalDoors">🚪 Internal Doors</option>
                             <option value="externalDoors">🚪 External Doors</option>
+                            <option value="doorAdditional" style="color: #22c55e;">  ↳ + Door Additional</option>
                             <option value="kitchen">🍳 Kitchen</option>
+                            <option value="kitchenAdditional" style="color: #22c55e;">  ↳ + Kitchen Additional</option>
                             <option value="wardrobe">🗄️ Wardrobe</option>
+                            <option value="wardrobeAdditional" style="color: #22c55e;">  ↳ + Wardrobe Additional</option>
                             <option value="partition">🧱 Partition</option>
                             <option value="externalSpray">🎨 External Spray</option>
                             <option value="other">📦 Other</option>
+                            <option value="additionalProject" style="color: #22c55e;">➕ Additional Project Items</option>
                         </select>
                     </div>
                 </div>
@@ -929,6 +934,18 @@
                     
                     <!-- Row 6: Description -->
                     <div id="bomFormRow6" style="margin-bottom: 10px;"></div>
+                    
+                    <!-- Spray Items Section -->
+                    <div id="bomSpraySection" style="display: none; margin-top: 20px; border-top: 2px solid #4a9eff; padding-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4 style="color: #4a9eff; margin: 0; font-size: 13px;">🎨 Spray Items for this Element</h4>
+                            <div>
+                                <button type="button" onclick="addSprayItem()" style="padding: 4px 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">+ Add Item</button>
+                                <button type="button" onclick="addMultipleSprayItems()" style="padding: 4px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">+ Add Multiple</button>
+                            </div>
+                        </div>
+                        <div id="sprayItemsContainer"></div>
+                    </div>
                     
                     <!-- Buttons -->
                     <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">

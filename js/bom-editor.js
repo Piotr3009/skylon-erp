@@ -1,24 +1,20 @@
-// ========== BOM EDITOR - NEW VERSION ==========
+// ========== BOM EDITOR - WITH SPRAY ITEMS & ADDITIONAL ELEMENTS ==========
 
-// Store last used values for each element type (for copying to next element)
 let lastElementValues = {};
 let editingElementId = null;
+let currentSprayItems = [];
 
-// Field definitions per element type
 const BOM_FIELDS = {
     sash: {
         label: 'Sash Windows',
         prefix: 'W',
         fields: [
-            // Row 2: Dimensions
             { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '800' },
             { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '1200' },
-            // Row 3: Type-specific
             { row: 3, id: 'sash_box', label: 'Sash Box', type: 'select', options: ['Standard', 'Slim'] },
             { row: 3, id: 'opening_type', label: 'Opening Type', type: 'select', options: ['Both Sash', 'Bottom Only', 'Fix'] },
             { row: 3, id: 'bars', label: 'Bars', type: 'select', options: ['Yes', 'No'] },
             { row: 3, id: 'trickle_vent', label: 'Trickle Vent', type: 'select', options: ['Yes', 'No'] },
-            // Row 4: Glass & Ironmongery
             { row: 4, id: 'glass_type', label: 'Glass Type', type: 'select', options: ['Clear', 'Frosted', 'Obscure'] },
             { row: 4, id: 'glass_thickness', label: 'Glass Thickness', type: 'text', placeholder: '16 / 24 / 28 / Other' },
             { row: 4, id: 'ironmongery', label: 'Ironmongery', type: 'select', options: ['Chrome', 'Satin', 'Brass', 'Antique Brass', 'Other'] },
@@ -90,6 +86,19 @@ const BOM_FIELDS = {
             { row: 4, id: 'worktop', label: 'Worktop', type: 'text', placeholder: 'e.g. Quartz 30mm' },
         ]
     },
+    kitchenAdditional: {
+        label: '+ Kitchen Additional',
+        prefix: 'KA',
+        isAdditional: true,
+        hasQty: true,
+        fields: [
+            { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '2400' },
+            { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '600' },
+            { row: 2, id: 'depth', label: 'Depth (mm)', type: 'number', placeholder: '18' },
+            { row: 3, id: 'item_type', label: 'Item Type', type: 'select', options: ['Side Panel', 'End Panel', 'Plinth', 'Cornice', 'Pelmet', 'Filler', 'Decor Panel', 'Other'] },
+            { row: 3, id: 'material', label: 'Material', type: 'text', placeholder: 'e.g. MDF 18mm' },
+        ]
+    },
     wardrobe: {
         label: 'Wardrobe',
         prefix: 'WR',
@@ -108,6 +117,19 @@ const BOM_FIELDS = {
             { row: 4, id: 'soft_close', label: 'Soft Close', type: 'select', options: ['Yes', 'No'] },
         ]
     },
+    wardrobeAdditional: {
+        label: '+ Wardrobe Additional',
+        prefix: 'WA',
+        isAdditional: true,
+        hasQty: true,
+        fields: [
+            { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '2400' },
+            { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '600' },
+            { row: 2, id: 'depth', label: 'Depth (mm)', type: 'number', placeholder: '18' },
+            { row: 3, id: 'item_type', label: 'Item Type', type: 'select', options: ['Side Panel', 'Top Panel', 'Plinth', 'Cornice', 'Filler', 'Internal Shelf', 'Drawer Front', 'Other'] },
+            { row: 3, id: 'material', label: 'Material', type: 'text', placeholder: 'e.g. MDF 18mm' },
+        ]
+    },
     partition: {
         label: 'Partition',
         prefix: 'P',
@@ -122,6 +144,32 @@ const BOM_FIELDS = {
             { row: 4, id: 'door_handing', label: 'Door Handing', type: 'select', options: ['Left', 'Right'], conditionalOn: 'door_included', showWhen: ['Yes'] },
             { row: 4, id: 'door_lock', label: 'Door Lock', type: 'select', options: ['Latch', 'Bathroom', 'Eurocylinder'], conditionalOn: 'door_included', showWhen: ['Yes'] },
             { row: 4, id: 'acoustic_rating', label: 'Acoustic Rating', type: 'text', placeholder: 'e.g. 42dB' },
+        ]
+    },
+    doorAdditional: {
+        label: '+ Door Additional',
+        prefix: 'DA',
+        isAdditional: true,
+        hasQty: true,
+        fields: [
+            { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '70' },
+            { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '2100' },
+            { row: 2, id: 'depth', label: 'Depth (mm)', type: 'number', placeholder: '18' },
+            { row: 3, id: 'item_type', label: 'Item Type', type: 'select', options: ['Architrave', 'Door Lining', 'Threshold', 'Casing', 'Fanlight Frame', 'Sidelight Frame', 'Other'] },
+            { row: 3, id: 'material', label: 'Material', type: 'text', placeholder: 'e.g. Softwood, MDF' },
+        ]
+    },
+    windowAdditional: {
+        label: '+ Window Additional',
+        prefix: 'XA',
+        isAdditional: true,
+        hasQty: true,
+        fields: [
+            { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '1200' },
+            { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '300' },
+            { row: 2, id: 'depth', label: 'Depth (mm)', type: 'number', placeholder: '25' },
+            { row: 3, id: 'item_type', label: 'Item Type', type: 'select', options: ['Internal Sill', 'External Sill', 'Casing', 'Architrave', 'Trim', 'Other'] },
+            { row: 3, id: 'material', label: 'Material', type: 'text', placeholder: 'e.g. Oak, MDF' },
         ]
     },
     externalSpray: {
@@ -149,30 +197,37 @@ const BOM_FIELDS = {
             { row: 4, id: 'custom_field_2', label: 'Custom Field 2', type: 'text', placeholder: '' },
             { row: 4, id: 'custom_field_3', label: 'Custom Field 3', type: 'text', placeholder: '' },
         ]
+    },
+    additionalProject: {
+        label: '+ Additional Project Items',
+        prefix: 'ADD',
+        isAdditional: true,
+        hasQty: true,
+        fields: [
+            { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '' },
+            { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '' },
+            { row: 2, id: 'depth', label: 'Depth (mm)', type: 'number', placeholder: '' },
+            { row: 3, id: 'item_type', label: 'Item Type', type: 'text', placeholder: 'e.g. Shelf, Bracket, Trim' },
+            { row: 3, id: 'material', label: 'Material', type: 'text', placeholder: 'e.g. MDF, Oak' },
+        ]
     }
 };
 
-// Style for form inputs
 const inputStyle = 'width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;';
 const selectStyle = 'width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5;';
 const labelStyle = 'font-size: 10px; color: #888; display: block; margin-bottom: 4px;';
 
-// Open BOM Modal
 function openBomModal() {
     document.getElementById('psBomModal').classList.add('active');
     renderBomTable();
-    
-    // Auto-select element type based on project type
     const projectType = projectData.project?.type;
     const typeSelect = document.getElementById('bomElementType');
-    
     if (projectType && BOM_FIELDS[projectType]) {
         typeSelect.value = projectType;
         onElementTypeChange();
     }
 }
 
-// Close BOM Modal
 function closeBomModal() {
     document.getElementById('psBomModal').classList.remove('active');
     cancelBomEdit();
@@ -181,35 +236,32 @@ function closeBomModal() {
     generatePreview();
 }
 
-// Handle element type change
 function onElementTypeChange() {
     const type = document.getElementById('bomElementType').value;
     const container = document.getElementById('bomFormContainer');
     const placeholder = document.getElementById('bomFormPlaceholder');
-    
     if (!type) {
         container.style.display = 'none';
         placeholder.style.display = 'block';
         return;
     }
-    
     container.style.display = 'block';
     placeholder.style.display = 'none';
-    
     renderBomForm(type);
 }
 
-// Render form based on element type
 function renderBomForm(type) {
     const config = BOM_FIELDS[type];
     if (!config) return;
     
-    // Clear all rows
     for (let i = 1; i <= 6; i++) {
         document.getElementById(`bomFormRow${i}`).innerHTML = '';
     }
     
-    // Row 1: Always ID and Name
+    const spraySection = document.getElementById('bomSpraySection');
+    if (spraySection) spraySection.style.display = 'none';
+    currentSprayItems = [];
+    
     const row1 = document.getElementById('bomFormRow1');
     row1.style.gridTemplateColumns = config.hasQty ? '100px 1fr 80px' : '100px 1fr';
     row1.innerHTML = `
@@ -221,180 +273,159 @@ function renderBomForm(type) {
             <label style="${labelStyle}">Name *</label>
             <input type="text" id="bomFieldName" placeholder="e.g. Living Room" style="${inputStyle}">
         </div>
-        ${config.hasQty ? `
-        <div>
-            <label style="${labelStyle}">Qty</label>
-            <input type="number" id="bomFieldQty" value="1" min="1" style="${inputStyle}">
-        </div>
-        ` : ''}
+        ${config.hasQty ? `<div><label style="${labelStyle}">Qty</label><input type="number" id="bomFieldQty" value="1" min="1" style="${inputStyle}"></div>` : ''}
     `;
     
-    // Group fields by row
     const rows = { 2: [], 3: [], 4: [], 5: [] };
-    config.fields.forEach(field => {
-        if (rows[field.row]) {
-            rows[field.row].push(field);
-        }
-    });
+    config.fields.forEach(field => { if (rows[field.row]) rows[field.row].push(field); });
     
-    // Render each row (2, 3, 4, 5)
     [2, 3, 4, 5].forEach(rowNum => {
         const rowEl = document.getElementById(`bomFormRow${rowNum}`);
         const fields = rows[rowNum];
-        
-        if (fields.length === 0) {
-            if (rowNum !== 5) {
-                rowEl.style.display = 'none';
-            }
-            return;
-        }
-        
+        if (fields.length === 0) { if (rowNum !== 5) rowEl.style.display = 'none'; return; }
         rowEl.style.display = 'grid';
         rowEl.style.gridTemplateColumns = `repeat(${Math.min(fields.length, 4)}, 1fr)`;
-        
         rowEl.innerHTML = fields.map(field => {
-            const conditionalAttr = field.conditionalOn ? 
-                `data-conditional-on="${field.conditionalOn}" data-show-when="${field.showWhen.join(',')}"` : '';
-            
+            const conditionalAttr = field.conditionalOn ? `data-conditional-on="${field.conditionalOn}" data-show-when="${field.showWhen.join(',')}"` : '';
             if (field.type === 'select') {
-                return `
-                    <div class="bom-field-wrapper" ${conditionalAttr}>
-                        <label style="${labelStyle}">${field.label}</label>
-                        <select id="bomField_${field.id}" style="${selectStyle}" onchange="onBomFieldChange('${field.id}')">
-                            <option value="">-- Select --</option>
-                            ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-                        </select>
-                    </div>
-                `;
+                return `<div class="bom-field-wrapper" ${conditionalAttr}><label style="${labelStyle}">${field.label}</label><select id="bomField_${field.id}" style="${selectStyle}" onchange="onBomFieldChange('${field.id}')"><option value="">-- Select --</option>${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}</select></div>`;
             } else {
-                return `
-                    <div class="bom-field-wrapper" ${conditionalAttr}>
-                        <label style="${labelStyle}">${field.label}</label>
-                        <input type="${field.type}" id="bomField_${field.id}" placeholder="${field.placeholder || ''}" style="${inputStyle}">
-                    </div>
-                `;
+                return `<div class="bom-field-wrapper" ${conditionalAttr}><label style="${labelStyle}">${field.label}</label><input type="${field.type}" id="bomField_${field.id}" placeholder="${field.placeholder || ''}" style="${inputStyle}"></div>`;
             }
         }).join('');
     });
     
-    // Row 5: If no locks fields, use for Colour
     const row5 = document.getElementById('bomFormRow5');
     if (rows[5].length === 0) {
         row5.style.display = 'grid';
         row5.style.gridTemplateColumns = '150px 1fr';
         row5.innerHTML = `
-            <div>
-                <label style="${labelStyle}">Colour Type</label>
-                <select id="bomField_colour_type" style="${selectStyle}">
-                    <option value="">-- Select --</option>
-                    <option value="Single">Single</option>
-                    <option value="Dual">Dual</option>
-                </select>
-            </div>
-            <div>
-                <label style="${labelStyle}">Colour</label>
-                <input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}">
-            </div>
+            <div><label style="${labelStyle}">Colour Type</label><select id="bomField_colour_type" style="${selectStyle}"><option value="">-- Select --</option><option value="Single">Single</option><option value="Dual">Dual</option></select></div>
+            <div><label style="${labelStyle}">Colour</label><input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}"></div>
         `;
     }
     
-    // Row 6: Colour + Description (if row 5 used for locks) or just Description
     const row6 = document.getElementById('bomFormRow6');
     if (rows[5].length > 0) {
         row6.innerHTML = `
             <div style="display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin-bottom: 10px;">
-                <div>
-                    <label style="${labelStyle}">Colour Type</label>
-                    <select id="bomField_colour_type" style="${selectStyle}">
-                        <option value="">-- Select --</option>
-                        <option value="Single">Single</option>
-                        <option value="Dual">Dual</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="${labelStyle}">Colour</label>
-                    <input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}">
-                </div>
+                <div><label style="${labelStyle}">Colour Type</label><select id="bomField_colour_type" style="${selectStyle}"><option value="">-- Select --</option><option value="Single">Single</option><option value="Dual">Dual</option></select></div>
+                <div><label style="${labelStyle}">Colour</label><input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}"></div>
             </div>
-            <div>
-                <label style="${labelStyle}">Description (optional)</label>
-                <input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}">
-            </div>
+            <div><label style="${labelStyle}">Description (optional)</label><input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}"></div>
         `;
     } else {
-        row6.innerHTML = `
-            <div>
-                <label style="${labelStyle}">Description (optional)</label>
-                <input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}">
-            </div>
-        `;
+        row6.innerHTML = `<div><label style="${labelStyle}">Description (optional)</label><input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}"></div>`;
     }
     
-    // Apply last used values if available
-    applyLastValues(type);
+    if (!config.isAdditional && spraySection) {
+        spraySection.style.display = 'block';
+        renderSprayItemsTable();
+    }
     
-    // Update conditional fields visibility
+    applyLastValues(type);
     updateConditionalFields();
 }
 
-// Handle field change (for conditional fields)
-function onBomFieldChange(fieldId) {
-    updateConditionalFields();
-}
+function onBomFieldChange(fieldId) { updateConditionalFields(); }
 
-// Update visibility of conditional fields
 function updateConditionalFields() {
     const wrappers = document.querySelectorAll('.bom-field-wrapper[data-conditional-on]');
-    
     wrappers.forEach(wrapper => {
         const conditionalOn = wrapper.dataset.conditionalOn;
         const showWhen = wrapper.dataset.showWhen.split(',');
         const conditionalField = document.getElementById(`bomField_${conditionalOn}`);
-        
         if (conditionalField) {
-            const currentValue = conditionalField.value;
-            wrapper.style.display = showWhen.includes(currentValue) ? 'block' : 'none';
+            wrapper.style.display = showWhen.includes(conditionalField.value) ? 'block' : 'none';
         }
     });
 }
 
-// Apply last used values to form
 function applyLastValues(type) {
     const lastValues = lastElementValues[type];
     if (!lastValues) return;
-    
-    // Apply values except for ID and Name
     Object.keys(lastValues).forEach(key => {
         if (key === 'element_id' || key === 'name') return;
-        
         const field = document.getElementById(`bomField_${key}`);
-        if (field && lastValues[key]) {
-            field.value = lastValues[key];
-        }
+        if (field && lastValues[key]) field.value = lastValues[key];
     });
-    
-    // Also apply width, height, depth
     ['width', 'height', 'depth'].forEach(dim => {
         const field = document.getElementById(`bomField_${dim}`);
-        if (field && lastValues[dim]) {
-            field.value = lastValues[dim];
-        }
+        if (field && lastValues[dim]) field.value = lastValues[dim];
     });
-    
     updateConditionalFields();
 }
 
-// Save last used values
-function saveLastValues(type, data) {
-    lastElementValues[type] = { ...data };
+function saveLastValues(type, data) { lastElementValues[type] = { ...data }; }
+
+// ========== SPRAY ITEMS ==========
+function renderSprayItemsTable() {
+    const container = document.getElementById('sprayItemsContainer');
+    if (!container) return;
+    if (currentSprayItems.length === 0) {
+        container.innerHTML = `<div style="color: #666; font-size: 11px; padding: 10px; text-align: center;">No spray items. Click "+ Add Spray Item" to add.</div>`;
+        return;
+    }
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead><tr style="background: #2a2a3a;">
+                <th style="padding: 6px; border: 1px solid #3e3e42;">#</th>
+                <th style="padding: 6px; border: 1px solid #3e3e42;">Name/Type</th>
+                <th style="padding: 6px; border: 1px solid #3e3e42;">W</th>
+                <th style="padding: 6px; border: 1px solid #3e3e42;">H</th>
+                <th style="padding: 6px; border: 1px solid #3e3e42;">D</th>
+                <th style="padding: 6px; border: 1px solid #3e3e42;">Colour</th>
+                <th style="padding: 6px; border: 1px solid #3e3e42;">Notes</th>
+                <th style="padding: 6px; border: 1px solid #3e3e42; width: 50px;"></th>
+            </tr></thead>
+            <tbody>${currentSprayItems.map((item, idx) => `
+                <tr>
+                    <td style="padding: 4px; border: 1px solid #3e3e42; color: #4a9eff;">${idx + 1}</td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${item.name || ''}" onchange="updateSprayItem(${idx}, 'name', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="e.g. Drawer Front"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.width || ''}" onchange="updateSprayItem(${idx}, 'width', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.height || ''}" onchange="updateSprayItem(${idx}, 'height', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.depth || ''}" onchange="updateSprayItem(${idx}, 'depth', this.value)" style="width: 50px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${item.colour || ''}" onchange="updateSprayItem(${idx}, 'colour', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="RAL 9016"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${item.notes || ''}" onchange="updateSprayItem(${idx}, 'notes', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="both sides"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42; text-align: center;"><button onclick="removeSprayItem(${idx})" style="background: #ef4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button></td>
+                </tr>
+            `).join('')}</tbody>
+        </table>
+    `;
 }
 
-// Collect form data
+function addSprayItem() {
+    const defaultColour = document.getElementById('bomField_colour')?.value || '';
+    currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: defaultColour, notes: '' });
+    renderSprayItemsTable();
+}
+
+function updateSprayItem(index, field, value) {
+    if (currentSprayItems[index]) {
+        currentSprayItems[index][field] = (field === 'width' || field === 'height' || field === 'depth') ? (value ? parseInt(value) : null) : value;
+    }
+}
+
+function removeSprayItem(index) {
+    currentSprayItems.splice(index, 1);
+    renderSprayItemsTable();
+}
+
+function addMultipleSprayItems() {
+    const qty = parseInt(prompt('How many spray items to add?', '4'));
+    if (qty && qty > 0 && qty <= 20) {
+        const defaultColour = document.getElementById('bomField_colour')?.value || '';
+        for (let i = 0; i < qty; i++) {
+            currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: defaultColour, notes: '' });
+        }
+        renderSprayItemsTable();
+    }
+}
+
 function collectFormData() {
     const type = document.getElementById('bomElementType').value;
     const config = BOM_FIELDS[type];
     if (!config) return null;
-    
     const data = {
         project_id: projectId,
         element_type: type,
@@ -406,294 +437,227 @@ function collectFormData() {
         description: document.getElementById('bomField_description')?.value.trim() || null,
         sort_order: editingElementId ? undefined : projectData.elements.length
     };
-    
-    // Collect type-specific fields
     config.fields.forEach(field => {
         const fieldEl = document.getElementById(`bomField_${field.id}`);
-        if (fieldEl) {
-            if (field.type === 'number') {
-                data[field.id] = parseInt(fieldEl.value) || null;
-            } else {
-                data[field.id] = fieldEl.value.trim() || null;
-            }
-        }
+        if (fieldEl) data[field.id] = field.type === 'number' ? (parseInt(fieldEl.value) || null) : (fieldEl.value.trim() || null);
     });
-    
     return data;
 }
 
-// Save element (Add or Update)
 async function saveBomElement() {
     const type = document.getElementById('bomElementType').value;
-    if (!type) {
-        showToast('Please select element type', 'warning');
-        return;
-    }
-    
+    if (!type) { showToast('Please select element type', 'warning'); return; }
     const data = collectFormData();
-    if (!data.name) {
-        showToast('Name is required', 'warning');
-        return;
-    }
-    
-    // Remove undefined fields
-    Object.keys(data).forEach(key => {
-        if (data[key] === undefined) delete data[key];
-    });
+    if (!data.name) { showToast('Name is required', 'warning'); return; }
+    Object.keys(data).forEach(key => { if (data[key] === undefined) delete data[key]; });
     
     try {
+        let elementId = editingElementId;
         if (editingElementId) {
-            // Update existing
-            const { error } = await supabaseClient
-                .from('project_elements')
-                .update(data)
-                .eq('id', editingElementId);
-            
+            const { error } = await supabaseClient.from('project_elements').update(data).eq('id', editingElementId);
             if (error) throw error;
-            
-            // Update in local array
             const index = projectData.elements.findIndex(e => e.id === editingElementId);
-            if (index !== -1) {
-                projectData.elements[index] = { ...projectData.elements[index], ...data };
-            }
-            
+            if (index !== -1) projectData.elements[index] = { ...projectData.elements[index], ...data };
             showToast('Element updated!', 'success');
-            cancelBomEdit();
         } else {
-            // Insert new
-            const { data: newData, error } = await supabaseClient
-                .from('project_elements')
-                .insert(data)
-                .select()
-                .single();
-            
+            const { data: newData, error } = await supabaseClient.from('project_elements').insert(data).select().single();
             if (error) throw error;
-            
+            elementId = newData.id;
             projectData.elements.push(newData);
             showToast('Element added!', 'success');
-            
-            // Save values for next element
             saveLastValues(type, data);
-            
-            // Clear form for next entry (keep last values)
-            clearBomFormPartial();
         }
         
-        renderBomTable();
+        if (currentSprayItems.length > 0 && elementId) await saveSprayItems(elementId, data.element_id);
         
+        const config = BOM_FIELDS[type];
+        if (config?.isAdditional && elementId) await saveAdditionalAsSprayItem(elementId, data);
+        
+        if (!editingElementId) {
+            clearBomFormPartial();
+            currentSprayItems = [];
+            renderSprayItemsTable();
+        } else {
+            cancelBomEdit();
+        }
+        renderBomTable();
     } catch (err) {
         console.error('Error saving element:', err);
         showToast('Error: ' + err.message, 'error');
     }
 }
 
-// Clear form but keep last values for quick entry
+async function saveSprayItems(elementId, elementCode) {
+    if (!elementId || currentSprayItems.length === 0) return;
+    try {
+        await supabaseClient.from('project_spray_items').delete().eq('element_id', elementId);
+        const sprayItemsData = currentSprayItems.map((item, idx) => ({
+            project_id: projectId,
+            element_id: elementId,
+            item_type: item.name || 'Item',
+            name: `${elementCode || 'EL'} - ${item.name || 'Item ' + (idx + 1)}`,
+            width: item.width,
+            height: item.height,
+            depth: item.depth,
+            colour: item.colour,
+            notes: item.notes,
+            sort_order: idx
+        }));
+        const { error } = await supabaseClient.from('project_spray_items').insert(sprayItemsData);
+        if (error) throw error;
+    } catch (err) {
+        console.error('Error saving spray items:', err);
+        showToast('Warning: Spray items may not have saved', 'warning');
+    }
+}
+
+async function saveAdditionalAsSprayItem(elementId, elementData) {
+    try {
+        const sprayItemData = {
+            project_id: projectId,
+            element_id: elementId,
+            item_type: elementData.item_type || elementData.name,
+            name: `${elementData.element_id || 'ADD'} - ${elementData.name}`,
+            width: elementData.width,
+            height: elementData.height,
+            depth: elementData.depth,
+            colour: elementData.colour,
+            notes: elementData.description,
+            sort_order: 0
+        };
+        const { error } = await supabaseClient.from('project_spray_items').insert(sprayItemData);
+        if (error) throw error;
+    } catch (err) {
+        console.error('Error saving additional as spray item:', err);
+    }
+}
+
+async function loadSprayItems(elementId) {
+    if (!elementId) return;
+    try {
+        const { data, error } = await supabaseClient.from('project_spray_items').select('*').eq('element_id', elementId).order('sort_order');
+        if (error) throw error;
+        currentSprayItems = (data || []).map(item => ({ id: item.id, name: item.item_type || '', width: item.width, height: item.height, depth: item.depth, colour: item.colour, notes: item.notes }));
+        renderSprayItemsTable();
+    } catch (err) {
+        console.error('Error loading spray items:', err);
+    }
+}
+
 function clearBomFormPartial() {
     document.getElementById('bomFieldId').value = '';
     document.getElementById('bomFieldName').value = '';
     document.getElementById('bomFieldId').focus();
 }
 
-// Edit element
-function editBomElement(elementId) {
+async function editBomElement(elementId) {
     const element = projectData.elements.find(e => e.id === elementId);
     if (!element) return;
-    
     editingElementId = elementId;
-    
-    // Set element type
     const typeSelect = document.getElementById('bomElementType');
     typeSelect.value = element.element_type || 'other';
     onElementTypeChange();
-    
-    // Fill form with element data
+    await loadSprayItems(elementId);
     setTimeout(() => {
-        // Basic fields
         const idField = document.getElementById('bomFieldId');
         const nameField = document.getElementById('bomFieldName');
         const qtyField = document.getElementById('bomFieldQty');
-        
         if (idField) idField.value = element.element_id || '';
         if (nameField) nameField.value = element.name || '';
         if (qtyField) qtyField.value = element.qty || 1;
-        
-        // Type-specific fields
         const config = BOM_FIELDS[element.element_type];
         if (config) {
             config.fields.forEach(field => {
                 const fieldEl = document.getElementById(`bomField_${field.id}`);
-                if (fieldEl && element[field.id] !== undefined) {
-                    fieldEl.value = element[field.id] || '';
-                }
+                if (fieldEl && element[field.id] !== undefined) fieldEl.value = element[field.id] || '';
             });
         }
-        
-        // Colour fields
         const colourType = document.getElementById('bomField_colour_type');
         const colour = document.getElementById('bomField_colour');
         const description = document.getElementById('bomField_description');
-        
         if (colourType) colourType.value = element.colour_type || '';
         if (colour) colour.value = element.colour || '';
         if (description) description.value = element.description || '';
-        
         updateConditionalFields();
-        
-        // Update UI
         document.getElementById('bomFormTitle').textContent = '✏️ Edit Element';
         document.getElementById('bomSaveBtn').textContent = 'Update Element';
         document.getElementById('bomCancelBtn').style.display = 'inline-block';
-        
     }, 50);
 }
 
-// Cancel edit
 function cancelBomEdit() {
     editingElementId = null;
+    currentSprayItems = [];
     document.getElementById('bomFormTitle').textContent = '➕ Add New Element';
     document.getElementById('bomSaveBtn').textContent = '+ Add Element';
     document.getElementById('bomCancelBtn').style.display = 'none';
-    
-    // Reset form
     const type = document.getElementById('bomElementType').value;
-    if (type) {
-        renderBomForm(type);
-    }
+    if (type) renderBomForm(type);
 }
 
-// Delete element
 async function deleteBomElement(elementId) {
     if (!confirm('Delete this element?')) return;
-    
     try {
-        const { error } = await supabaseClient
-            .from('project_elements')
-            .delete()
-            .eq('id', elementId);
-        
+        const { error } = await supabaseClient.from('project_elements').delete().eq('id', elementId);
         if (error) throw error;
-        
         projectData.elements = projectData.elements.filter(e => e.id !== elementId);
         renderBomTable();
         showToast('Element deleted', 'success');
-        
     } catch (err) {
         console.error('Error deleting element:', err);
         showToast('Error: ' + err.message, 'error');
     }
 }
 
-// Render BOM table
 function renderBomTable() {
     const tbody = document.getElementById('bomTableBody');
     const emptyMsg = document.getElementById('bomEmpty');
-    
-    if (projectData.elements.length === 0) {
-        tbody.innerHTML = '';
-        emptyMsg.style.display = 'block';
-        return;
-    }
-    
+    if (projectData.elements.length === 0) { tbody.innerHTML = ''; emptyMsg.style.display = 'block'; return; }
     emptyMsg.style.display = 'none';
-    
-    tbody.innerHTML = projectData.elements.map((el, index) => {
+    tbody.innerHTML = projectData.elements.map((el) => {
         const config = BOM_FIELDS[el.element_type] || BOM_FIELDS.other;
         const typeLabel = config?.label || el.element_type || 'Other';
-        
-        // Build size string
+        const isAdditional = config?.isAdditional;
         let sizeStr = '-';
-        if (el.width && el.height) {
-            sizeStr = `${el.width} x ${el.height}`;
-            if (el.depth) sizeStr += ` x ${el.depth}`;
-        }
-        
-        // Build details string based on type
+        if (el.width && el.height) { sizeStr = `${el.width} x ${el.height}`; if (el.depth) sizeStr += ` x ${el.depth}`; }
         let details = getElementDetails(el);
-        
         return `
-            <tr style="border-bottom: 1px solid #3e3e42;">
-                <td style="padding: 10px; color: #4a9eff; font-weight: 600;">${el.element_id || '-'}</td>
-                <td style="padding: 10px;">
-                    <span style="background: #3e3e42; padding: 2px 8px; border-radius: 4px; font-size: 10px;">${typeLabel}</span>
-                </td>
-                <td style="padding: 10px;">
-                    <div style="color: #e8e2d5;">${el.name}</div>
-                    ${el.description ? `<div style="font-size: 10px; color: #888; margin-top: 2px;">${el.description}</div>` : ''}
-                </td>
+            <tr style="border-bottom: 1px solid #3e3e42; ${isAdditional ? 'background: #1a2a1a;' : ''}">
+                <td style="padding: 10px; color: ${isAdditional ? '#22c55e' : '#4a9eff'}; font-weight: 600;">${el.element_id || '-'}</td>
+                <td style="padding: 10px;"><span style="background: ${isAdditional ? '#22c55e' : '#3e3e42'}; color: ${isAdditional ? '#000' : '#fff'}; padding: 2px 8px; border-radius: 4px; font-size: 10px;">${typeLabel}</span></td>
+                <td style="padding: 10px;"><div style="color: #e8e2d5;">${el.name}</div>${el.description ? `<div style="font-size: 10px; color: #888; margin-top: 2px;">${el.description}</div>` : ''}</td>
                 <td style="padding: 10px; text-align: center;">${sizeStr}</td>
                 <td style="padding: 10px;">${el.colour || '-'}</td>
                 <td style="padding: 10px; font-size: 11px; color: #888;">${details}</td>
                 <td style="padding: 10px; text-align: center;">
-                    <button onclick="editBomElement('${el.id}')" style="background: #4a9eff; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">
-                        Edit
-                    </button>
-                    <button onclick="deleteBomElement('${el.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
-                        Delete
-                    </button>
+                    <button onclick="editBomElement('${el.id}')" style="background: #4a9eff; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">Edit</button>
+                    <button onclick="deleteBomElement('${el.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">Delete</button>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
-// Get element details string based on type
 function getElementDetails(el) {
     const parts = [];
-    
     switch (el.element_type) {
-        case 'sash':
-            if (el.sash_box) parts.push(el.sash_box);
-            if (el.opening_type) parts.push(el.opening_type);
-            if (el.bars === 'Yes') parts.push('Bars');
-            if (el.glass_type) parts.push(el.glass_type);
-            break;
-        case 'casement':
-            if (el.opening_type) parts.push(el.opening_type);
-            if (el.bars === 'Yes') parts.push('Bars');
-            if (el.glass_type) parts.push(el.glass_type);
-            break;
-        case 'internalDoors':
-            if (el.door_type) parts.push(el.door_type);
-            if (el.fire_rating && el.fire_rating !== 'NFR') parts.push(el.fire_rating);
-            if (el.door_handing) parts.push(el.door_handing);
-            if (el.lock_1) parts.push(el.lock_1);
-            if (el.lock_2) parts.push(el.lock_2);
-            if (el.lock_3) parts.push(el.lock_3);
-            if (el.self_closer && el.self_closer !== 'No Selfcloser') parts.push('Closer: ' + el.self_closer);
-            break;
-        case 'externalDoors':
-            if (el.external_door_type) parts.push(el.external_door_type);
-            if (el.threshold) parts.push(el.threshold);
-            break;
-        case 'kitchen':
-            if (el.unit_type) parts.push(el.unit_type);
-            if (el.front_style) parts.push(el.front_style);
-            if (el.handle_type) parts.push(el.handle_type);
-            break;
-        case 'wardrobe':
-            if (el.wardrobe_shape) parts.push(el.wardrobe_shape);
-            if (el.door_style) parts.push(el.door_style);
-            break;
-        case 'partition':
-            if (el.panel_type) parts.push(el.panel_type);
-            if (el.door_included === 'Yes') parts.push('With Door');
-            break;
-        case 'externalSpray':
-            if (el.qty > 1) parts.push(`Qty: ${el.qty}`);
-            if (el.item_type) parts.push(el.item_type);
-            if (el.sheen_level) parts.push(el.sheen_level);
-            break;
-        default:
-            if (el.material) parts.push(el.material);
-            if (el.qty > 1) parts.push(`Qty: ${el.qty}`);
+        case 'sash': if (el.sash_box) parts.push(el.sash_box); if (el.opening_type) parts.push(el.opening_type); if (el.bars === 'Yes') parts.push('Bars'); if (el.glass_type) parts.push(el.glass_type); break;
+        case 'casement': if (el.opening_type) parts.push(el.opening_type); if (el.bars === 'Yes') parts.push('Bars'); if (el.glass_type) parts.push(el.glass_type); break;
+        case 'internalDoors': if (el.door_type) parts.push(el.door_type); if (el.fire_rating && el.fire_rating !== 'NFR') parts.push(el.fire_rating); if (el.door_handing) parts.push(el.door_handing); if (el.lock_1) parts.push(el.lock_1); if (el.lock_2) parts.push(el.lock_2); if (el.lock_3) parts.push(el.lock_3); if (el.self_closer && el.self_closer !== 'No Selfcloser') parts.push('Closer: ' + el.self_closer); break;
+        case 'externalDoors': if (el.external_door_type) parts.push(el.external_door_type); if (el.threshold) parts.push(el.threshold); break;
+        case 'kitchen': if (el.unit_type) parts.push(el.unit_type); if (el.front_style) parts.push(el.front_style); if (el.handle_type) parts.push(el.handle_type); break;
+        case 'kitchenAdditional': case 'wardrobeAdditional': case 'doorAdditional': case 'windowAdditional': case 'additionalProject': if (el.item_type) parts.push(el.item_type); if (el.material) parts.push(el.material); if (el.qty > 1) parts.push(`Qty: ${el.qty}`); break;
+        case 'wardrobe': if (el.wardrobe_shape) parts.push(el.wardrobe_shape); if (el.door_style) parts.push(el.door_style); break;
+        case 'partition': if (el.panel_type) parts.push(el.panel_type); if (el.door_included === 'Yes') parts.push('With Door'); break;
+        case 'externalSpray': if (el.qty > 1) parts.push(`Qty: ${el.qty}`); if (el.item_type) parts.push(el.item_type); if (el.sheen_level) parts.push(el.sheen_level); break;
+        default: if (el.material) parts.push(el.material); if (el.qty > 1) parts.push(`Qty: ${el.qty}`);
     }
-    
     return parts.join(' • ') || '-';
 }
 
-// Clear entire BOM form
 function clearBomForm() {
     document.getElementById('bomElementType').value = '';
     onElementTypeChange();
     editingElementId = null;
+    currentSprayItems = [];
 }
