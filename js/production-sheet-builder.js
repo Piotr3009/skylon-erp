@@ -206,11 +206,12 @@ async function loadAllData() {
         
         projectData.phases = safePhases.map(p => ({
             ...p,
+            phase_label: p.phase_name || p.phase_key || 'N/A',
             assigned_name: memberMap[p.assigned_to] || ''
         }));
         
-        console.log('[PS] phases loaded:', projectData.phases);
-        console.log('[PHASE SAMPLE]', projectData.phases?.[0]);
+        
+        
         
         // 4. Load materials
         const { data: materials, error: materialsError } = await supabaseClient
@@ -301,9 +302,10 @@ function buildChecklist() {
     // Czyścimy listę - zapobiega duplikatom
     checklistItems = [];
     
-    // Check if spray section should be visible
+    // Check if spray section should be visible (check both phase_key and phase_name)
     const hasSprayPhase = projectData.phases.some(p => 
-        p.phase_key && p.phase_key.toLowerCase().includes('spray')
+        (p.phase_key && p.phase_key.toLowerCase().includes('spray')) ||
+        (p.phase_name && p.phase_name.toLowerCase().includes('spray'))
     );
     
     CHECKLIST_SECTIONS.forEach(section => {
@@ -904,13 +906,18 @@ async function checkItem(item) {
             
         case 'ROUTING_DEADLINES':
             const phasesWithDeadlines = projectData.phases.filter(p => p.end_date);
-            result.done = phasesWithDeadlines.length === projectData.phases.length && projectData.phases.length > 0;
+            const lastPhase = projectData.phases[projectData.phases.length - 1];
+            // OK jeśli ostatnia faza ma deadline LUB minimum 50% faz ma deadline
+            result.done = projectData.phases.length > 0 && 
+                (lastPhase?.end_date || phasesWithDeadlines.length >= projectData.phases.length * 0.5);
             result.meta = `${phasesWithDeadlines.length}/${projectData.phases.length} set`;
             break;
             
         case 'ROUTING_ASSIGNED':
             const phasesAssigned = projectData.phases.filter(p => p.assigned_to);
-            result.done = phasesAssigned.length > 0;
+            // OK jeśli minimum 50% faz jest przypisanych
+            result.done = projectData.phases.length > 0 && 
+                phasesAssigned.length >= projectData.phases.length * 0.5;
             result.meta = `${phasesAssigned.length}/${projectData.phases.length} assigned`;
             break;
             
@@ -2088,14 +2095,31 @@ function generateSprayingPage() {
 }
 
 // ========== PAGE: PHASES / TIMELINE ==========
-// ========== PAGE: PHASES / TIMELINE ==========
+function formatDateSafe(dateStr) {
+    if (!dateStr) return '-';
+    // Bezpieczne formatowanie bez timezone shift
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+    }
+    return dateStr;
+}
+
+function calcDays(start, end) {
+    if (!start || !end) return '-';
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : '-';
+}
+
 function getAssignedName(p) {
     return (p?.assigned_name || '').trim() || '-';
 }
 
 function generatePhasesPage() {
     const phases = Array.isArray(projectData.phases) ? projectData.phases : [];
-    console.log('generatePhasesPage - phases:', phases);
+    
     
     if (phases.length === 0) {
         return `
@@ -2106,16 +2130,17 @@ function generatePhasesPage() {
     
     const plannedRows = phases.map(p => `
         <tr>
-            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500;">${p.phase_name || p.phase_key || 'N/A'}</td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '-'}</td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${p.end_date ? new Date(p.end_date).toLocaleDateString('en-GB') : '-'}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500;">${p.phase_label}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${formatDateSafe(p.start_date)}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${formatDateSafe(p.end_date)}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${calcDays(p.start_date, p.end_date)}</td>
             <td style="border: 1px solid #ccc; padding: 8px;">${getAssignedName(p)}</td>
         </tr>
     `).join('');
     
     const actualRows = phases.map(p => `
         <tr>
-            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500; background: #f9f9f9;">${p.phase_name || p.phase_key || 'N/A'}</td>
+            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500; background: #f9f9f9;">${p.phase_label}</td>
             <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px;"></td>
             <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px;"></td>
             <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 50px;"></td>
@@ -2138,6 +2163,7 @@ function generatePhasesPage() {
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Phase</th>
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Start Date</th>
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">End Date</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Days</th>
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Assigned To</th>
                         </tr>
                     </thead>
@@ -2270,7 +2296,8 @@ function generateCoverPage() {
 
 function generateTOC() {
     const hasSprayPhase = projectData.phases.some(p => 
-        p.phase_key && p.phase_key.toLowerCase().includes('spray')
+        (p.phase_key && p.phase_key.toLowerCase().includes('spray')) ||
+        (p.phase_name && p.phase_name.toLowerCase().includes('spray'))
     );
     
     const hasPhotos = projectData.attachments.some(a => a.attachment_type === 'PHOTOS') ||
@@ -2486,9 +2513,10 @@ function generateCutListSection() {
 }
 
 function generateSprayPackSection() {
-    // Sprawdź czy projekt ma fazę spray
+    // Sprawdź czy projekt ma fazę spray (check both phase_key and phase_name)
     const hasSprayPhase = projectData.phases.some(p => 
-        p.phase_key && p.phase_key.toLowerCase().includes('spray')
+        (p.phase_key && p.phase_key.toLowerCase().includes('spray')) ||
+        (p.phase_name && p.phase_name.toLowerCase().includes('spray'))
     );
     
     if (!hasSprayPhase) {
@@ -2862,18 +2890,18 @@ function generateRoutingSection() {
         
         phases.forEach(p => {
             const statusColor = p.status === 'completed' ? '#22c55e' : 
-                               p.status === 'inProgress' ? '#f59e0b' : '#666';
+                               p.status === 'inProgress' || p.status === 'in_progress' ? '#f59e0b' : '#666';
             
             html += `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${p.phase_key}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${p.phase_label}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
-                        ${p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '-'}
+                        ${formatDateSafe(p.start_date)}
                     </td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
-                        ${p.end_date ? new Date(p.end_date).toLocaleDateString('en-GB') : '-'}
+                        ${formatDateSafe(p.end_date)}
                     </td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${p.team_members?.name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${p.assigned_name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
                         <span style="color: ${statusColor}; font-weight: bold;">${p.status || 'notStarted'}</span>
                     </td>
