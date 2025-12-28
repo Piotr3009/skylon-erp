@@ -722,16 +722,19 @@ async function autoSaveSnapshot() {
             await createDraftSheet();
         }
         
-        const partialSnapshot = {
+        // FULL snapshot - include all data to prevent overwriting
+        const fullSnapshot = {
             scopeDescription: scopeDescription,
             sprayDescription: sprayDescription,
-            editedNotes: editedNotes
+            editedNotes: editedNotes,
+            selectedPhotoIds: selectedPhotos.map(f => f.id),
+            selectedDrawingIds: selectedDrawings.map(f => f.id)
         };
         
         const { error } = await supabaseClient
             .from('production_sheets')
             .update({
-                snapshot_json: partialSnapshot,
+                snapshot_json: fullSnapshot,
                 updated_at: new Date().toISOString()
             })
             .eq('id', currentSheet.id);
@@ -1377,8 +1380,14 @@ async function generatePreview() {
     // PAGE: Materials
     pages.push(generateMaterialsPage());
     
-    // PAGE: Spraying
-    pages.push(generateSprayingPage());
+    // PAGE: Spraying (only if project has spray phase)
+    const hasSprayPhase = projectData.phases.some(p => 
+        (p.phase_key && p.phase_key.toLowerCase().includes('spray')) ||
+        (p.phase_name && p.phase_name.toLowerCase().includes('spray'))
+    );
+    if (hasSprayPhase) {
+        pages.push(generateSprayingPage());
+    }
     
     // PAGE: Phases / Timeline
     pages.push(generatePhasesPage());
@@ -3223,6 +3232,9 @@ function buildSnapshot(isForceCreated) {
         scopeDescription: scopeDescription,
         sprayDescription: sprayDescription,
         editedNotes: editedNotes,
+        // Selected files for PS
+        selectedPhotoIds: selectedPhotos.map(f => f.id),
+        selectedDrawingIds: selectedDrawings.map(f => f.id),
         // Original notes
         notes: {
             all: projectData.project?.notes || '',
