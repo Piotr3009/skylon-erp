@@ -171,9 +171,8 @@ async function checkFinalPSExists() {
             .maybeSingle();
         
         if (finalSheet?.pdf_url) {
-            // Store for download
-            if (!currentSheet) currentSheet = {};
-            currentSheet.pdf_url = finalSheet.pdf_url;
+            // Store pdf_url separately for download (don't overwrite currentSheet)
+            window.finalPdfUrl = finalSheet.pdf_url;
             
             // Enable buttons
             const btnPrint = document.getElementById('btnPrint');
@@ -689,13 +688,14 @@ function openPhotosSelectModal() {
         'production',
         'photos',
         selectedPhotos,
-        (files) => {
+        async (files) => {
             selectedPhotos = files;
             filesDirty = true;
             updateFilesDirtyBadge();
             checkAllItems();
             updateProgress();
             generatePreview();
+            await autoSaveSnapshot();
             showToast(`${selectedPhotos.length} photos selected for PS`, 'success');
         }
     );
@@ -711,13 +711,14 @@ function openDrawingsSelectModal() {
         'production',
         'drawings',
         selectedDrawings,
-        (files) => {
+        async (files) => {
             selectedDrawings = files;
             filesDirty = true;
             updateFilesDirtyBadge();
             checkAllItems();
             updateProgress();
             generatePreview();
+            await autoSaveSnapshot();
             showToast(`${selectedDrawings.length} drawings selected for PS`, 'success');
         }
     );
@@ -758,8 +759,8 @@ async function selectProjectFile(filePath, fileUrl, fileName) {
     showToast('Linking file...', 'info');
     
     try {
-        // Ensure we have a sheet
-        if (!currentSheet) {
+        // Ensure we have a sheet with valid id
+        if (!currentSheet?.id) {
             await createDraftSheet();
         }
         
@@ -831,8 +832,8 @@ async function saveDescription() {
 // Auto-save function for immediate persistence
 async function autoSaveSnapshot() {
     try {
-        // Ensure we have a sheet (create draft if not exists)
-        if (!currentSheet) {
+        // Ensure we have a sheet with valid id (create draft if not exists)
+        if (!currentSheet?.id) {
             await createDraftSheet();
         }
         
@@ -1280,8 +1281,8 @@ async function confirmUpload() {
     showToast('Uploading file...', 'info');
     
     try {
-        // Ensure we have a sheet
-        if (!currentSheet) {
+        // Ensure we have a sheet with valid id
+        if (!currentSheet?.id) {
             await createDraftSheet();
         }
         
@@ -1379,8 +1380,8 @@ async function saveAndClose() {
     showToast('Saving draft...', 'info');
     
     try {
-        // Ensure we have a sheet (create draft if not exists)
-        if (!currentSheet) {
+        // Ensure we have a sheet with valid id (create draft if not exists)
+        if (!currentSheet?.id) {
             await createDraftSheet();
         }
         
@@ -3576,8 +3577,8 @@ async function createProductionSheet() {
     showToast('Creating Production Sheet...', 'info');
     
     try {
-        // Ensure we have a sheet
-        if (!currentSheet) {
+        // Ensure we have a sheet with valid id
+        if (!currentSheet?.id) {
             await createDraftSheet();
         }
         
@@ -3777,8 +3778,9 @@ async function generateAndUploadPDF() {
 
 async function downloadPDF() {
     // Use final PDF from Supabase if available
-    if (currentSheet?.pdf_url) {
-        window.open(currentSheet.pdf_url, '_blank');
+    const pdfUrl = currentSheet?.pdf_url || window.finalPdfUrl;
+    if (pdfUrl) {
+        window.open(pdfUrl, '_blank');
         showToast('Opening PDF...', 'success');
         return;
     }
