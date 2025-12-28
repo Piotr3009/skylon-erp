@@ -25,6 +25,7 @@ let checklistStatus = {};
 let scopeDescription = ''; // Production manager's description
 let sprayDescription = ''; // Spray instructions
 let editedNotes = {}; // Edited copies of important notes (key = note index)
+let hiddenNotes = {}; // Hidden notes (key = note index, value = true)
 let originalImportantNotes = []; // Cache of original important notes for edit modal
 let selectedPhotos = []; // Selected photos for PS (multi-select)
 let selectedDrawings = []; // Selected drawings for PS (multi-select)
@@ -338,6 +339,10 @@ async function loadAllData() {
             // Load editedNotes from snapshot if exists
             if (existingSheet.snapshot_json?.editedNotes) {
                 editedNotes = existingSheet.snapshot_json.editedNotes;
+            }
+            // Load hiddenNotes from snapshot if exists
+            if (existingSheet.snapshot_json?.hiddenNotes) {
+                hiddenNotes = existingSheet.snapshot_json.hiddenNotes;
             }
             
             // Load selected photos from snapshot - validate against existing files
@@ -683,6 +688,22 @@ async function resetEditedNote() {
     showToast('Reset to original', 'info');
 }
 
+async function hideNote(idx) {
+    hiddenNotes[idx] = true;
+    checkAllItems();
+    generatePreview();
+    await autoSaveSnapshot();
+    showToast('Note hidden from PS', 'info');
+}
+
+async function restoreNote(idx) {
+    delete hiddenNotes[idx];
+    checkAllItems();
+    generatePreview();
+    await autoSaveSnapshot();
+    showToast('Note restored', 'success');
+}
+
 // ========== PHOTOS MULTI-SELECT ==========
 function openPhotosSelectModal() {
     
@@ -847,6 +868,7 @@ async function autoSaveSnapshot() {
             scopeDescription: scopeDescription,
             sprayDescription: sprayDescription,
             editedNotes: editedNotes,
+            hiddenNotes: hiddenNotes,
             selectedPhotoIds: selectedPhotos.map(f => f.id),
             selectedDrawingIds: selectedDrawings.map(f => f.id)
         };
@@ -1022,11 +1044,25 @@ async function checkItem(item) {
                 if (importantNotes.length > 0) {
                     contentEl.innerHTML = importantNotes.map((note, idx) => {
                         const isEdited = editedNotes[idx] !== undefined;
+                        const isHidden = hiddenNotes[idx] === true;
                         const displayText = isEdited ? editedNotes[idx] : (note.text || '');
+                        
+                        if (isHidden) {
+                            return `<div style="margin-bottom: 8px; padding: 10px; background: #1e1e1e; border-left: 3px solid #555; color: #666;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 11px; color: #666;">🚫 ${note.author || 'Unknown'} • Hidden from PS</span>
+                                    <button onclick="restoreNote(${idx})" style="background: #3e3e42; border: none; color: #22c55e; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">↩️ Restore</button>
+                                </div>
+                            </div>`;
+                        }
+                        
                         return `<div style="margin-bottom: 8px; padding: 10px; background: #2d2d30; border-left: 3px solid ${isEdited ? '#22c55e' : '#f59e0b'}; color: #e8e2d5;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-size: 11px; color: ${isEdited ? '#22c55e' : '#f59e0b'};">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '(edited for PS)' : ''}</span>
-                                <button onclick="openEditNoteModal(${idx})" style="background: #3e3e42; border: none; color: #888; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">✏️ Edit</button>
+                                <div style="display: flex; gap: 5px;">
+                                    <button onclick="openEditNoteModal(${idx})" style="background: #3e3e42; border: none; color: #888; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">✏️ Edit</button>
+                                    <button onclick="hideNote(${idx})" style="background: #3e3e42; border: none; color: #ef4444; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">🗑️</button>
+                                </div>
                             </div>
                             <div style="white-space: pre-wrap;">${displayText}</div>
                         </div>`;
@@ -1414,6 +1450,7 @@ async function saveAndClose() {
             scopeDescription: scopeDescription,
             sprayDescription: sprayDescription,
             editedNotes: editedNotes,
+            hiddenNotes: hiddenNotes,
             selectedPhotoIds: selectedPhotos.map(f => f.id),
             selectedDrawingIds: selectedDrawings.map(f => f.id)
         };
@@ -1682,8 +1719,12 @@ function generateScopePage() {
     const allNotes = parseProjectNotesPS(notesRaw);
     const importantNotes = allNotes.filter(n => n.important === true);
     
-    const importantNotesHtml = importantNotes.length > 0 
+    // Filter out hidden notes for PDF
+    const visibleNotes = importantNotes.filter((note, idx) => !hiddenNotes[idx]);
+    
+    const importantNotesHtml = visibleNotes.length > 0 
         ? importantNotes.map((note, idx) => {
+            if (hiddenNotes[idx]) return ''; // Skip hidden notes
             const isEdited = editedNotes[idx] !== undefined;
             const displayText = isEdited ? editedNotes[idx] : (note.text || '');
             return `<div style="margin-bottom: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; overflow: hidden;">
@@ -1697,23 +1738,14 @@ function generateScopePage() {
         <h1 class="ps-section-title">1. Scope & Notes</h1>
         
         <div style="display: flex; flex-direction: column; gap: 25px; overflow: hidden;">
-            <div style="display: grid; grid-template-columns: 160px 1fr; gap: 30px; overflow: hidden;">
-                <div>
-                    <h3 style="color: #333; margin-bottom: 12px; font-size: 12px;">Project Type</h3>
-                    <div style="font-size: 12px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                        ${project?.type || 'N/A'}
+            ${getTextFromHtml(scopeDescription).trim() ? `
+                <div style="overflow: hidden;">
+                    <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
+                    <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; overflow: hidden;">
+                        <div style="font-size: 16px; line-height: 1.6;">${scopeDescription}</div>
                     </div>
                 </div>
-                
-                <div style="overflow: hidden;">
-                    ${getTextFromHtml(scopeDescription).trim() ? `
-                        <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
-                        <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; overflow: hidden;">
-                            <div style="font-size: 16px; line-height: 1.6;">${scopeDescription}</div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
+            ` : ''}
             
             <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
                 <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes</h3>
@@ -3712,6 +3744,7 @@ function buildSnapshot(isForceCreated) {
         scopeDescription: scopeDescription,
         sprayDescription: sprayDescription,
         editedNotes: editedNotes,
+        hiddenNotes: hiddenNotes,
         // Selected files for PS
         selectedPhotoIds: selectedPhotos.map(f => f.id),
         selectedDrawingIds: selectedDrawings.map(f => f.id),
