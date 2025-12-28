@@ -1822,17 +1822,19 @@ function generateBOMPage() {
         },
         internalDoors: {
             label: 'Internal Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Fire', 'Intum', 'Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Type', 'Open', 'Fire', 'Intum', 'Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Notes'],
             render: (el, idx) => {
                 const locks = [el.lock_1, el.lock_2, el.lock_3].filter(Boolean).join(', ') || '-';
+                const openDir = el.door_handing === 'Left' ? 'LH' : (el.door_handing === 'Right' ? 'RH' : (el.door_handing || '-'));
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.depth || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.door_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${openDir}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.fire_rating || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.intumescent_set || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.self_closer || '-'}</td>
@@ -1846,8 +1848,9 @@ function generateBOMPage() {
         },
         externalDoors: {
             label: 'External Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Open', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Notes'],
             render: (el, idx) => {
+                const openDir = el.door_handing === 'Left' ? 'LH' : (el.door_handing === 'Right' ? 'RH' : (el.door_handing || '-'));
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1855,7 +1858,7 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.external_door_type || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${openDir}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.threshold || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.glazed || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
