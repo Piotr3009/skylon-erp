@@ -51,8 +51,9 @@ const BOM_FIELDS = {
         fields: [
             { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '826' },
             { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '2040' },
+            { row: 2, id: 'depth', label: 'Depth (mm)', type: 'number', placeholder: '44' },
             { row: 3, id: 'door_type', label: 'Door Type', type: 'select', options: ['Single', 'Double', 'Sliding', 'Pocket'] },
-            { row: 3, id: 'door_handing', label: 'Door Handing', type: 'select', options: ['Left', 'Right'] },
+            { row: 3, id: 'door_handing', label: 'Opening', type: 'select', options: ['LH', 'RH'] },
             { row: 3, id: 'fire_rating', label: 'Fire Rating', type: 'select', options: ['NFR', 'FD30', 'FD60'] },
             { row: 3, id: 'intumescent_set', label: 'Intumescent Set', type: 'select', options: ['Yes', 'No'], conditionalOn: 'fire_rating', showWhen: ['FD30', 'FD60'] },
             { row: 4, id: 'self_closer', label: 'Self Closer', type: 'select', options: ['Integrated', 'External', 'No Selfcloser'], conditionalOn: 'fire_rating', showWhen: ['FD30', 'FD60'] },
@@ -85,7 +86,7 @@ const BOM_FIELDS = {
             { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '900' },
             { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '2100' },
             { row: 3, id: 'external_door_type', label: 'Door Type', type: 'select', options: ['Single Door', 'French Doors', 'By-fold Doors'] },
-            { row: 3, id: 'door_handing', label: 'Door Handing', type: 'select', options: ['Left', 'Right'] },
+            { row: 3, id: 'door_handing', label: 'Opening', type: 'select', options: ['LH', 'RH'] },
             { row: 3, id: 'threshold', label: 'Threshold', type: 'select', options: ['Standard', 'Low', 'Flush'] },
             { row: 4, id: 'glazed', label: 'Glazed', type: 'select', options: ['Yes', 'No'] },
             { row: 4, id: 'glass_type', label: 'Glass Type', type: 'select', options: ['Clear', 'Frosted', 'Obscure'], conditionalOn: 'glazed', showWhen: ['Yes'] },
@@ -405,10 +406,12 @@ function renderSprayItemsTable() {
                 <th style="padding: 6px; border: 1px solid #3e3e42; width: 50px;"></th>
             </tr></thead>
             <tbody>${currentSprayItems.map((item, idx) => {
+                const projectNum = projectData.project?.project_number || '';
+                const shortProjectNum = projectNum.split('/')[0] || 'XXX';
                 const elementCode = document.getElementById('bomFieldId')?.value || 'X';
                 return `
                 <tr>
-                    <td style="padding: 4px; border: 1px solid #3e3e42; color: #4a9eff;">${elementCode}-${idx + 1}</td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42; color: #4a9eff;">${shortProjectNum}-${elementCode}-${idx + 1}</td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.name)}" onchange="updateSprayItem(${idx}, 'name', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="e.g. Drawer Front"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.width || ''}" onchange="updateSprayItem(${idx}, 'width', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.height || ''}" onchange="updateSprayItem(${idx}, 'height', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
