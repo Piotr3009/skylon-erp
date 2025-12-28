@@ -97,6 +97,22 @@
             margin-bottom: 14px;
         }
         
+        .ps-section.collapsed .ps-section-items {
+            display: none;
+        }
+        
+        .ps-section-arrow {
+            display: inline-block;
+            width: 12px;
+            font-size: 8px;
+            transition: transform 0.15s ease;
+            color: #888;
+        }
+        
+        .ps-section.open .ps-section-arrow {
+            transform: rotate(90deg);
+        }
+        
         .ps-section-header {
             display: flex;
             align-items: center;

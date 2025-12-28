@@ -122,6 +122,14 @@ const CHECKLIST_SECTIONS = [
         ]
     },
     {
+        key: 'DISPATCH',
+        title: 'Dispatch Check List',
+        icon: '🚚',
+        items: [
+            { key: 'DISPATCH_READY', label: 'Dispatch checklist included', source: 'AUTO', required: false }
+        ]
+    },
+    {
         key: 'QC',
         title: 'QC Checklist',
         icon: '✅',
@@ -371,14 +379,16 @@ function buildChecklist() {
         }
         
         const sectionEl = document.createElement('div');
-        sectionEl.className = 'ps-section';
+        sectionEl.className = 'ps-section collapsed';
         sectionEl.id = `section-${section.key}`;
         
         // Section header
         const headerEl = document.createElement('div');
         headerEl.className = 'ps-section-header';
+        headerEl.dataset.section = section.key;
         headerEl.innerHTML = `
             <div class="ps-section-title">
+                <span class="ps-section-arrow">▶</span>
                 <span>${section.icon}</span>
                 <span>${section.title}</span>
             </div>
@@ -398,6 +408,45 @@ function buildChecklist() {
         
         sectionEl.appendChild(itemsEl);
         container.appendChild(sectionEl);
+    });
+    
+    // Initialize collapse behavior
+    initSidebarCollapse();
+}
+
+// Mapowanie sekcji menu -> strony preview
+const SECTION_PAGE_MAP = {
+    'CORE': 'cover',
+    'SCOPE': 'scope',
+    'BOM': 'elements',
+    'DRAWINGS': 'drawings',
+    'MATERIALS': 'materials',
+    'SPRAY': 'spraying',
+    'ROUTING': 'phases',
+    'PHOTOS': 'photos',
+    'DISPATCH': 'dispatch',
+    'QC': 'qc'
+};
+
+function initSidebarCollapse() {
+    document.querySelectorAll('.ps-section').forEach(section => {
+        const header = section.querySelector('.ps-section-header');
+        
+        header?.addEventListener('click', () => {
+            const isCollapsed = section.classList.contains('collapsed');
+            
+            // Toggle collapse
+            section.classList.toggle('collapsed', !isCollapsed);
+            section.classList.toggle('open', isCollapsed);
+            
+            // Scroll preview to corresponding page
+            const sectionKey = header.dataset.section;
+            const pageId = SECTION_PAGE_MAP[sectionKey];
+            if (pageId) {
+                const targetPage = document.querySelector(`.ps-page[data-section="${pageId}"]`);
+                targetPage?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
     });
 }
 
@@ -985,6 +1034,12 @@ async function checkItem(item) {
                 phasesAssigned.length >= projectData.phases.length * 0.5;
             result.meta = `${phasesAssigned.length}/${projectData.phases.length} assigned`;
             break;
+        
+        // Dispatch
+        case 'DISPATCH_READY':
+            result.done = true; // Always included
+            result.meta = 'Will be included';
+            break;
             
         // QC
         case 'QC_TEMPLATE':
@@ -1374,20 +1429,22 @@ async function generatePreview() {
     let pages = [];
     
     // PAGE 1: Cover + Contents
-    pages.push(generateCoverPageNew(logoUrl));
+    pages.push({ section: 'cover', content: generateCoverPageNew(logoUrl) });
     
     // PAGE 2: Scope & Notes
-    pages.push(generateScopePage());
+    pages.push({ section: 'scope', content: generateScopePage() });
     
     // PAGE 3: Elements List
-    pages.push(generateBOMPage());
+    pages.push({ section: 'elements', content: generateBOMPage() });
     
     // PAGE 4+: Drawings (may be multiple pages)
     const drawingPages = await generateDrawingPages();
-    pages.push(...drawingPages);
+    drawingPages.forEach((content, i) => {
+        pages.push({ section: i === 0 ? 'drawings' : `drawings-${i+1}`, content });
+    });
     
     // PAGE: Materials
-    pages.push(generateMaterialsPage());
+    pages.push({ section: 'materials', content: generateMaterialsPage() });
     
     // PAGE: Spraying (only if project has spray phase)
     const hasSprayPhase = projectData.phases.some(p => 
@@ -1395,28 +1452,30 @@ async function generatePreview() {
         (p.phase_name && p.phase_name.toLowerCase().includes('spray'))
     );
     if (hasSprayPhase) {
-        pages.push(generateSprayingPage());
+        pages.push({ section: 'spraying', content: generateSprayingPage() });
     }
     
     // PAGE: Phases / Timeline
-    pages.push(generatePhasesPage());
+    pages.push({ section: 'phases', content: generatePhasesPage() });
     
     // PAGE: Reference Photos (if any)
     const photoPages = await generatePhotoPages();
-    pages.push(...photoPages);
+    photoPages.forEach((content, i) => {
+        pages.push({ section: i === 0 ? 'photos' : `photos-${i+1}`, content });
+    });
     
     // PAGE: Dispatch Check List
-    pages.push(generateDispatchCheckListPage());
+    pages.push({ section: 'dispatch', content: generateDispatchCheckListPage() });
     
     // PAGE: QC & Sign-off
-    pages.push(generateQCPage());
+    pages.push({ section: 'qc', content: generateQCPage() });
     
     // Build HTML with all pages
     const totalPages = pages.length;
-    let html = pages.map((pageContent, idx) => `
-        <div class="ps-page" data-page="${idx + 1}">
+    let html = pages.map((page, idx) => `
+        <div class="ps-page" data-page="${idx + 1}" data-section="${page.section}">
             <div class="ps-page-header">Page ${idx + 1} of ${totalPages}</div>
-            ${pageContent}
+            ${page.content}
         </div>
     `).join('');
     
