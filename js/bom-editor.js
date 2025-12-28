@@ -4,6 +4,17 @@ let lastElementValues = {};
 let editingElementId = null;
 let currentSprayItems = [];
 
+// Helper: escape HTML to prevent XSS
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 const BOM_FIELDS = {
     sash: {
         label: 'Sash Windows',
@@ -396,12 +407,12 @@ function renderSprayItemsTable() {
             <tbody>${currentSprayItems.map((item, idx) => `
                 <tr>
                     <td style="padding: 4px; border: 1px solid #3e3e42; color: #4a9eff;">${idx + 1}</td>
-                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${item.name || ''}" onchange="updateSprayItem(${idx}, 'name', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="e.g. Drawer Front"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.name)}" onchange="updateSprayItem(${idx}, 'name', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="e.g. Drawer Front"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.width || ''}" onchange="updateSprayItem(${idx}, 'width', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.height || ''}" onchange="updateSprayItem(${idx}, 'height', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.depth || ''}" onchange="updateSprayItem(${idx}, 'depth', this.value)" style="width: 50px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
-                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${item.colour || ''}" onchange="updateSprayItem(${idx}, 'colour', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="RAL 9016"></td>
-                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${item.notes || ''}" onchange="updateSprayItem(${idx}, 'notes', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="both sides"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.colour)}" onchange="updateSprayItem(${idx}, 'colour', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="RAL 9016"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.notes)}" onchange="updateSprayItem(${idx}, 'notes', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="both sides"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42; text-align: center;"><button onclick="removeSprayItem(${idx})" style="background: #ef4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button></td>
                 </tr>
             `).join('')}</tbody>
@@ -499,9 +510,23 @@ async function saveBomElement() {
 }
 
 async function saveSprayItems(elementId, elementCode) {
-    if (!elementId || currentSprayItems.length === 0) return;
-    try {
+    if (!elementId) return;
+    
+    // Jeśli brak spray items, tylko usuń stare
+    if (currentSprayItems.length === 0) {
         await supabaseClient.from('project_spray_items').delete().eq('element_id', elementId);
+        return;
+    }
+    
+    try {
+        // 1. Pobierz IDs starych rekordów PRZED insertem
+        const { data: oldItems } = await supabaseClient
+            .from('project_spray_items')
+            .select('id')
+            .eq('element_id', elementId);
+        const oldIds = (oldItems || []).map(i => i.id);
+        
+        // 2. Insert nowe rekordy
         const sprayItemsData = currentSprayItems.map((item, idx) => ({
             project_id: projectId,
             element_id: elementId,
@@ -516,6 +541,11 @@ async function saveSprayItems(elementId, elementCode) {
         }));
         const { error } = await supabaseClient.from('project_spray_items').insert(sprayItemsData);
         if (error) throw error;
+        
+        // 3. Dopiero po SUKCESIE insertu - usuń stare
+        if (oldIds.length > 0) {
+            await supabaseClient.from('project_spray_items').delete().in('id', oldIds);
+        }
     } catch (err) {
         console.error('Error saving spray items:', err);
         showToast('Warning: Spray items may not have saved', 'warning');
@@ -524,6 +554,13 @@ async function saveSprayItems(elementId, elementCode) {
 
 async function saveAdditionalAsSprayItem(elementId, elementData) {
     try {
+        // Sprawdź czy już istnieje spray item dla tego elementu
+        const { data: existing } = await supabaseClient
+            .from('project_spray_items')
+            .select('id')
+            .eq('element_id', elementId)
+            .limit(1);
+        
         const sprayItemData = {
             project_id: projectId,
             element_id: elementId,
@@ -536,8 +573,21 @@ async function saveAdditionalAsSprayItem(elementId, elementData) {
             notes: elementData.description,
             sort_order: 0
         };
-        const { error } = await supabaseClient.from('project_spray_items').insert(sprayItemData);
-        if (error) throw error;
+        
+        if (existing && existing.length > 0) {
+            // Update istniejącego
+            const { error } = await supabaseClient
+                .from('project_spray_items')
+                .update(sprayItemData)
+                .eq('id', existing[0].id);
+            if (error) throw error;
+        } else {
+            // Insert nowego
+            const { error } = await supabaseClient
+                .from('project_spray_items')
+                .insert(sprayItemData);
+            if (error) throw error;
+        }
     } catch (err) {
         console.error('Error saving additional as spray item:', err);
     }
@@ -627,12 +677,12 @@ function renderBomTable() {
         const isAdditional = config?.isAdditional;
         let sizeStr = '-';
         if (el.width && el.height) { sizeStr = `${el.width} x ${el.height}`; if (el.depth) sizeStr += ` x ${el.depth}`; }
-        let details = getElementDetails(el);
+        let details = escapeHtml(getElementDetails(el));
         return `
             <tr style="border-bottom: 1px solid #3e3e42; ${isAdditional ? 'background: #1a2a1a;' : ''}">
-                <td style="padding: 10px; color: ${isAdditional ? '#22c55e' : '#4a9eff'}; font-weight: 600;">${el.element_id || '-'}</td>
-                <td style="padding: 10px;"><span style="background: ${isAdditional ? '#22c55e' : '#3e3e42'}; color: ${isAdditional ? '#000' : '#fff'}; padding: 2px 8px; border-radius: 4px; font-size: 10px;">${typeLabel}</span></td>
-                <td style="padding: 10px;"><div style="color: #e8e2d5;">${el.name}</div>${el.description ? `<div style="font-size: 10px; color: #888; margin-top: 2px;">${el.description}</div>` : ''}</td>
+                <td style="padding: 10px; color: ${isAdditional ? '#22c55e' : '#4a9eff'}; font-weight: 600;">${escapeHtml(el.element_id) || '-'}</td>
+                <td style="padding: 10px;"><span style="background: ${isAdditional ? '#22c55e' : '#3e3e42'}; color: ${isAdditional ? '#000' : '#fff'}; padding: 2px 8px; border-radius: 4px; font-size: 10px;">${escapeHtml(typeLabel)}</span></td>
+                <td style="padding: 10px;"><div style="color: #e8e2d5;">${escapeHtml(el.name)}</div>${el.description ? `<div style="font-size: 10px; color: #888; margin-top: 2px;">${escapeHtml(el.description)}</div>` : ''}</td>
                 <td style="padding: 10px; text-align: center;">${sizeStr}</td>
                 <td style="padding: 10px; font-size: 11px; color: #888;">${details}</td>
                 <td style="padding: 10px; text-align: center;">
