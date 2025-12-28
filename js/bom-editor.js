@@ -423,7 +423,16 @@ function renderSprayItemsTable() {
 }
 
 function addSprayItem() {
-    currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: '', notes: '' });
+    // Kopiuj wartości z poprzedniego wiersza (colour, notes)
+    const lastItem = currentSprayItems.length > 0 ? currentSprayItems[currentSprayItems.length - 1] : null;
+    currentSprayItems.push({ 
+        name: '', 
+        width: null, 
+        height: null, 
+        depth: null, 
+        colour: lastItem?.colour || '', 
+        notes: lastItem?.notes || '' 
+    });
     renderSprayItemsTable();
 }
 
@@ -441,8 +450,17 @@ function removeSprayItem(index) {
 function addMultipleSprayItems() {
     const qty = parseInt(prompt('How many spray items to add?', '4'));
     if (qty && qty > 0 && qty <= 20) {
+        // Kopiuj wartości z ostatniego istniejącego wiersza
+        const lastItem = currentSprayItems.length > 0 ? currentSprayItems[currentSprayItems.length - 1] : null;
         for (let i = 0; i < qty; i++) {
-            currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: '', notes: '' });
+            currentSprayItems.push({ 
+                name: '', 
+                width: null, 
+                height: null, 
+                depth: null, 
+                colour: lastItem?.colour || '', 
+                notes: lastItem?.notes || '' 
+            });
         }
         renderSprayItemsTable();
     }
