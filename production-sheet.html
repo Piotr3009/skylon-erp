@@ -608,6 +608,12 @@
             width: 90%;
             max-width: 500px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        
+        .ps-modal.dragging {
+            position: fixed;
+            z-index: 10001;
         }
         
         .ps-modal-title {
@@ -615,6 +621,8 @@
             font-weight: 600;
             color: #fff;
             margin-bottom: 20px;
+            cursor: move;
+            user-select: none;
         }
         
         .ps-upload-zone {
@@ -1050,5 +1058,71 @@
     <script src="js/project-files.js"></script>
     <script src="js/bom-editor.js"></script>
     <script src="js/production-sheet-builder.js"></script>
+    
+    <script>
+    // ========== DRAGGABLE MODALS ==========
+    (function() {
+        let draggedModal = null;
+        let offsetX = 0, offsetY = 0;
+        
+        document.addEventListener('mousedown', function(e) {
+            const title = e.target.closest('.ps-modal-title');
+            if (!title) return;
+            
+            const modal = title.closest('.ps-modal');
+            if (!modal) return;
+            
+            draggedModal = modal;
+            const rect = modal.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            
+            modal.classList.add('dragging');
+            modal.style.left = rect.left + 'px';
+            modal.style.top = rect.top + 'px';
+            modal.style.margin = '0';
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!draggedModal) return;
+            
+            let newX = e.clientX - offsetX;
+            let newY = e.clientY - offsetY;
+            
+            // Keep within viewport
+            newX = Math.max(0, Math.min(newX, window.innerWidth - draggedModal.offsetWidth));
+            newY = Math.max(0, Math.min(newY, window.innerHeight - draggedModal.offsetHeight));
+            
+            draggedModal.style.left = newX + 'px';
+            draggedModal.style.top = newY + 'px';
+        });
+        
+        document.addEventListener('mouseup', function() {
+            if (draggedModal) {
+                draggedModal = null;
+            }
+        });
+        
+        // Reset modal position when closed
+        document.querySelectorAll('.ps-modal-overlay').forEach(overlay => {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'class') {
+                        const modal = overlay.querySelector('.ps-modal');
+                        if (modal && !overlay.classList.contains('active')) {
+                            modal.classList.remove('dragging');
+                            modal.style.left = '';
+                            modal.style.top = '';
+                            modal.style.margin = '';
+                        }
+                    }
+                });
+            });
+            observer.observe(overlay, { attributes: true });
+        });
+    })();
+    </script>
 </body>
 </html>
