@@ -2212,7 +2212,6 @@ function getAssignedName(p) {
 function generatePhasesPage() {
     const phases = Array.isArray(projectData.phases) ? projectData.phases : [];
     
-    
     if (phases.length === 0) {
         return `
             <h1 class="ps-section-title">6. Phases / Timeline</h1>
@@ -2220,67 +2219,159 @@ function generatePhasesPage() {
         `;
     }
     
-    const plannedRows = phases.map(p => `
-        <tr>
-            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500;">${p.phase_label}</td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${formatDateSafe(p.start_date)}</td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${formatDateSafe(p.end_date)}</td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${calcDays(p.start_date, p.end_date)}</td>
-            <td style="border: 1px solid #ccc; padding: 8px;">${getAssignedName(p)}</td>
-        </tr>
-    `).join('');
+    // Helper: Get phase color from productionPhases (data.js)
+    function getPhaseColor(phaseKey) {
+        const key = (phaseKey || '').toLowerCase().replace(/\s+/g, '').replace(/#\d+/g, '');
+        const colorMap = {
+            'timber': '#547d56',
+            'timberproduction': '#547d56',
+            'spray': '#e99f62',
+            'spraying': '#e99f62',
+            'glazing': '#485d68',
+            'dispatch': '#02802a',
+            'dispatchinstallation': '#02802a',
+            'sitesurvey': '#5e4e81',
+            'md': '#5a2cdb',
+            'manufacturingdrawings': '#5a2cdb',
+            'order': '#af72ba',
+            'ordermaterials': '#af72ba',
+            'orderglazing': '#79a4cf',
+            'orderspray': '#eb86d8',
+            'orderspraymaterials': '#eb86d8',
+            'qc': '#63a3ab',
+            'qcpacking': '#63a3ab'
+        };
+        return colorMap[key] || '#64748b';
+    }
     
-    const actualRows = phases.map(p => `
-        <tr>
-            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500; background: #f9f9f9;">${p.phase_label}</td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px;"></td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px;"></td>
-            <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 50px;"></td>
-            <td style="border: 1px solid #ccc; padding: 8px; min-width: 100px;"></td>
-            <td style="border: 1px solid #ccc; padding: 8px; min-width: 80px;"></td>
-        </tr>
-    `).join('');
+    // Helper: Render Δ Days checkboxes
+    function renderDeltaDays() {
+        const values = ['-3', '-2', '-1', '0', '+1', '+2', '+3', '+4+'];
+        return values.map(v => `
+            <div style="display: inline-flex; flex-direction: column; align-items: center; margin: 0 2px;">
+                <div style="width: 16px; height: 16px; border: 1.5px solid #333; background: #fff;"></div>
+                <span style="font-size: 8px; color: #666; margin-top: 1px;">${v}</span>
+            </div>
+        `).join('');
+    }
+    
+    // Generate rows
+    const rows = phases.map(p => {
+        const phaseKey = p.phase_key || p.phase_label || '';
+        const color = getPhaseColor(phaseKey);
+        const days = calcDays(p.start_date, p.end_date);
+        const assigned = getAssignedName(p);
+        const label = p.phase_label || phaseKey || 'N/A';
+        
+        return `
+            <tr>
+                <!-- Phase Name -->
+                <td style="border: 1px solid #ccc; padding: 6px 8px; font-weight: 600; width: 100px; vertical-align: middle;">
+                    ${label}
+                </td>
+                
+                <!-- Timeline Bars -->
+                <td style="border: 1px solid #ccc; padding: 8px; width: 280px; vertical-align: middle;">
+                    <!-- PLANNED Bar -->
+                    <div style="
+                        background: ${color};
+                        color: #fff;
+                        padding: 4px 10px;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 500;
+                        height: 20px;
+                        line-height: 12px;
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        margin-bottom: 6px;
+                        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                    ">
+                        📌 ${label} (${days}d) • ${assigned}
+                    </div>
+                    <!-- ACTUAL Bar (empty for manual fill) -->
+                    <div style="
+                        background: #e5e5e5;
+                        border: 1px dashed #999;
+                        padding: 4px 10px;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        color: #666;
+                        height: 20px;
+                        line-height: 12px;
+                    ">
+                        ✏️ Actual: ______ days
+                    </div>
+                </td>
+                
+                <!-- Planned Details -->
+                <td style="border: 1px solid #ccc; padding: 6px; width: 140px; font-size: 10px; vertical-align: middle;">
+                    <div><strong>Start:</strong> ${formatDateSafe(p.start_date)}</div>
+                    <div><strong>End:</strong> ${formatDateSafe(p.end_date)}</div>
+                    <div><strong>Days:</strong> ${days}</div>
+                    <div style="color: #555;"><strong>By:</strong> ${assigned}</div>
+                </td>
+                
+                <!-- Actual Fields (empty for manual fill) -->
+                <td style="border: 1px solid #ccc; padding: 6px; width: 180px; font-size: 10px; vertical-align: middle; background: #fafafa;">
+                    <div style="margin-bottom: 3px;">Start: ___/___/______</div>
+                    <div style="margin-bottom: 3px;">End: ___/___/______</div>
+                    <div style="margin-bottom: 3px;">Days: _______</div>
+                    <div>Who: _________________</div>
+                </td>
+                
+                <!-- Δ Days -->
+                <td style="border: 1px solid #ccc; padding: 6px; width: 150px; text-align: center; vertical-align: middle;">
+                    <div style="font-size: 9px; color: #666; margin-bottom: 4px; font-weight: 600;">Δ Days (vs plan)</div>
+                    ${renderDeltaDays()}
+                </td>
+                
+                <!-- Sign -->
+                <td style="border: 1px solid #ccc; padding: 6px; width: 80px; vertical-align: middle; background: #fafafa;">
+                    <div style="font-size: 9px; color: #666; margin-bottom: 8px;">Sign:</div>
+                    <div style="border-bottom: 1px solid #333; height: 30px;"></div>
+                </td>
+            </tr>
+        `;
+    }).join('');
     
     return `
         <h1 class="ps-section-title">6. Phases / Timeline</h1>
         
-        <div style="display: flex; flex-direction: column; height: calc(100% - 40px); gap: 20px;">
-            <div style="flex: 1;">
-                <h3 style="color: #333; margin-bottom: 10px; font-size: 14px; border-bottom: 2px solid #4a9eff; padding-bottom: 5px;">
-                    📋 PLANNED (from system)
-                </h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                    <thead>
-                        <tr style="background: #4a9eff; color: white;">
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Phase</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Start Date</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">End Date</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Days</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Assigned To</th>
-                        </tr>
-                    </thead>
-                    <tbody>${plannedRows}</tbody>
-                </table>
+        <div style="margin-bottom: 15px;">
+            <div style="display: flex; gap: 20px; font-size: 10px; color: #666;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 14px; height: 14px; background: #547d56; border-radius: 3px;"></div>
+                    <span>Planned (from system)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 14px; height: 14px; background: #e5e5e5; border: 1px dashed #999; border-radius: 3px;"></div>
+                    <span>Actual (fill manually)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 14px; height: 14px; border: 1.5px solid #333; background: #fff;"></div>
+                    <span>Δ Days = difference vs planned (mark one)</span>
+                </div>
             </div>
-            
-            <div style="flex: 1;">
-                <h3 style="color: #333; margin-bottom: 10px; font-size: 14px; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">
-                    ✏️ ACTUAL (to be filled by Production Manager / Joiner)
-                </h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                    <thead>
-                        <tr style="background: #f59e0b; color: white;">
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Phase</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Actual Start</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Actual End</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Days</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Who Worked</th>
-                            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Sign</th>
-                        </tr>
-                    </thead>
-                    <tbody>${actualRows}</tbody>
-                </table>
-            </div>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+                <tr style="background: #2d3748; color: white;">
+                    <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Phase</th>
+                    <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Timeline</th>
+                    <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Planned</th>
+                    <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Actual</th>
+                    <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Δ Days</th>
+                    <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Sign</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #3b82f6; font-size: 10px;">
+            <strong>📝 Instructions:</strong> Fill Actual dates after each phase completion. Mark Δ Days checkbox to indicate how many days ahead (-) or behind (+) schedule. Sign off each phase.
         </div>
     `;
 }
