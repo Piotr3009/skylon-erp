@@ -1781,9 +1781,8 @@ function generateBOMPage() {
     const typeColumns = {
         sash: {
             label: 'Sash Windows',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Box', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Box', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1797,16 +1796,14 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.trickle_vent || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         casement: {
             label: 'Casement Windows',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Opening', 'Bars', 'Glass', 'Thick.', 'Trickle', 'Ironmongery', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1819,17 +1816,15 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.trickle_vent || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         internalDoors: {
             label: 'Internal Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Fire', 'Intum', 'Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Fire', 'Intum', 'Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Notes'],
             render: (el, idx) => {
                 const locks = [el.lock_1, el.lock_2, el.lock_3].filter(Boolean).join(', ') || '-';
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1845,16 +1840,14 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_type || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${locks}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery_hinges || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         externalDoors: {
             label: 'External Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Hand', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1869,16 +1862,14 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.glass_thickness || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.locks || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.ironmongery_hinges || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         kitchen: {
             label: 'Kitchen Units',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Unit', 'Style', 'Front', 'Carcass', 'Handle', 'Soft', 'Worktop', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Unit', 'Style', 'Front', 'Carcass', 'Handle', 'Soft', 'Worktop', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1893,16 +1884,14 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.handle_type || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.soft_close || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${el.worktop || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         wardrobe: {
             label: 'Wardrobes',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Shape', 'Door', 'Style', 'Front', 'Carcass', 'Handle', 'Layout', 'Mirror', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Shape', 'Door', 'Style', 'Front', 'Carcass', 'Handle', 'Layout', 'Mirror', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1918,16 +1907,14 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.handle_type || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${el.internal_layout || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.mirror || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         partition: {
             label: 'Partitions',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Panel', 'Frame', 'Glass', 'Thick.', 'Door', 'Hand', 'Lock', 'Acoustic', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Panel', 'Frame', 'Glass', 'Thick.', 'Door', 'Hand', 'Lock', 'Acoustic', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1942,16 +1929,14 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.door_handing || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.door_lock || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.acoustic_rating || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         externalSpray: {
             label: 'External Spray',
-            cols: ['#', 'ID', 'Name', 'Qty', 'Item', 'Substrate', 'Paint', 'Sheen', 'Coats', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'Qty', 'Item', 'Substrate', 'Paint', 'Sheen', 'Coats', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1962,16 +1947,14 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.paint_system || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.sheen_level || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.num_coats || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         },
         other: {
             label: 'Other Items',
-            cols: ['#', 'ID', 'Name', 'Qty', 'W', 'H', 'D', 'Material', 'Custom 1', 'Custom 2', 'Custom 3', 'Colour', 'Notes'],
+            cols: ['#', 'ID', 'Name', 'Qty', 'W', 'H', 'D', 'Material', 'Custom 1', 'Custom 2', 'Custom 3', 'Notes'],
             render: (el, idx) => {
-                const colourStr = el.colour_type === 'Dual' ? `${el.colour} (Dual)` : (el.colour || '-');
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
@@ -1984,8 +1967,7 @@ function generateBOMPage() {
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_1 || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_2 || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.custom_field_3 || '-'}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 100px;">${colourStr}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 120px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 10px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 `;
             }
         }
