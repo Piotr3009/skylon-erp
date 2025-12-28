@@ -2497,12 +2497,12 @@ function generatePhasesPage() {
 
     const numberedLabels = getNumberedLabels(phases);
 
-    // Only phases with valid dates for gantt
+    // Only phases with valid dates for gantt - SORTED BY START DATE
     const phasesWithDates = phases.filter(p => {
         const s = toUtcDay(p.start_date);
         const e = toUtcDay(p.end_date);
         return Number.isFinite(s) && Number.isFinite(e) && e >= s;
-    });
+    }).sort((a, b) => toUtcDay(a.start_date) - toUtcDay(b.start_date));
 
     if (phasesWithDates.length === 0) {
         return `
