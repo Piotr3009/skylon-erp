@@ -1354,15 +1354,29 @@ async function confirmUpload() {
 }
 
 async function createDraftSheet() {
-    // Get next version number
-    const { data: existingSheets } = await supabaseClient
+    // Check if draft already exists
+    const { data: existingDraft } = await supabaseClient
+        .from('production_sheets')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('status', 'draft')
+        .maybeSingle();
+    
+    if (existingDraft) {
+        // Use existing draft
+        currentSheet = existingDraft;
+        return existingDraft;
+    }
+    
+    // No draft exists - create new one (version 1 or 2 max)
+    const { data: existingFinal } = await supabaseClient
         .from('production_sheets')
         .select('version')
         .eq('project_id', projectId)
-        .order('version', { ascending: false })
-        .limit(1);
+        .eq('status', 'final')
+        .maybeSingle();
     
-    const nextVersion = (existingSheets?.[0]?.version || 0) + 1;
+    const nextVersion = existingFinal ? 2 : 1;
     
     const { data: newSheet, error } = await supabaseClient
         .from('production_sheets')
@@ -3582,7 +3596,7 @@ async function createProductionSheet() {
     showToast('Creating Production Sheet...', 'info');
     
     try {
-        // Ensure we have a sheet with valid id
+        // Ensure we have a draft sheet
         if (!currentSheet?.id) {
             await createDraftSheet();
         }
@@ -3593,22 +3607,52 @@ async function createProductionSheet() {
         // Generate PDF
         const pdfUrl = await generateAndUploadPDF();
         
-        // Update sheet to FINAL
-        const { error } = await supabaseClient
+        // Check if final already exists
+        const { data: existingFinal } = await supabaseClient
             .from('production_sheets')
-            .update({
-                status: 'final',
-                snapshot_json: snapshot,
-                pdf_url: pdfUrl,
-                pdf_generated_at: new Date().toISOString(),
-                is_force_created: forceCreate,
-                missing_items: forceCreate ? getMissingItems() : [],
-                finalized_at: new Date().toISOString(),
-                checklist_progress: Math.round((requiredItems.filter(i => checklistStatus[i.key]?.done).length / requiredItems.length) * 100)
-            })
-            .eq('id', currentSheet.id);
+            .select('id')
+            .eq('project_id', projectId)
+            .eq('status', 'final')
+            .maybeSingle();
         
-        if (error) throw error;
+        const progress = Math.round((requiredItems.filter(i => checklistStatus[i.key]?.done).length / requiredItems.length) * 100);
+        
+        if (existingFinal) {
+            // UPDATE existing final
+            const { error } = await supabaseClient
+                .from('production_sheets')
+                .update({
+                    snapshot_json: snapshot,
+                    pdf_url: pdfUrl,
+                    pdf_generated_at: new Date().toISOString(),
+                    is_force_created: forceCreate,
+                    missing_items: forceCreate ? getMissingItems() : [],
+                    finalized_at: new Date().toISOString(),
+                    checklist_progress: progress,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', existingFinal.id);
+            
+            if (error) throw error;
+        } else {
+            // INSERT new final (version 1)
+            const { error } = await supabaseClient
+                .from('production_sheets')
+                .insert({
+                    project_id: projectId,
+                    version: 1,
+                    status: 'final',
+                    snapshot_json: snapshot,
+                    pdf_url: pdfUrl,
+                    pdf_generated_at: new Date().toISOString(),
+                    is_force_created: forceCreate,
+                    missing_items: forceCreate ? getMissingItems() : [],
+                    finalized_at: new Date().toISOString(),
+                    checklist_progress: progress
+                });
+            
+            if (error) throw error;
+        }
         
         // Enable Print and Download buttons
         const btnPrint = document.getElementById('btnPrint');
@@ -3626,6 +3670,7 @@ async function createProductionSheet() {
         
         // Store PDF URL for download
         currentSheet.pdf_url = pdfUrl;
+        window.finalPdfUrl = pdfUrl;
         
         showToast('Production Sheet created successfully!', 'success');
         
