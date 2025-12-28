@@ -2350,7 +2350,8 @@ function generatePhasesPage() {
         const startDay = toUtcDay(p.start_date);
         const endDay = toUtcDay(p.end_date);
         const startOffset = startDay - minDay;
-        const duration = daysInclusive(p.start_date, p.end_date);
+        const calendarDays = daysInclusive(p.start_date, p.end_date); // For bar WIDTH (visual)
+        const displayDays = p.work_days || calendarDays; // For LABEL (working days)
         const color = getPhaseColor(p.phase_key || p.phase_label);
         
         // Find original index for label
@@ -2360,9 +2361,9 @@ function generatePhasesPage() {
         const top = 4 + barIndex * (barH + gap);
         barIndex++;
         
-        // FIX 1: Use percentages
+        // FIX 1: Use percentages (calendar days for visual width)
         const leftPercent = (startOffset / totalDays) * 100;
-        const widthPercent = (duration / totalDays) * 100;
+        const widthPercent = (calendarDays / totalDays) * 100;
         
         return `
             <div style="
@@ -2387,19 +2388,19 @@ function generatePhasesPage() {
                 border: 1px solid rgba(255,255,255,0.2);
             ">
                 <div style="font-weight: 600; font-size: 11px; overflow: hidden; text-overflow: ellipsis;">${label}</div>
-                <div style="font-size: 10px; opacity: 0.9;">(${duration}d) ${assigned}</div>
+                <div style="font-size: 10px; opacity: 0.9;">(${displayDays}d) ${assigned}</div>
             </div>
         `;
     }).join('');
     
-    // Calculate max days for bar width in table
-    const maxDays = Math.max(1, ...phases.map(ph => daysInclusive(ph.start_date, ph.end_date)));
+    // Calculate max days for bar width in table (use work_days)
+    const maxDays = Math.max(1, ...phases.map(ph => ph.work_days || daysInclusive(ph.start_date, ph.end_date)));
     
     // Generate table rows (all phases, even without dates)
     const rows = phases.map((p, idx) => {
         const phaseKey = p.phase_key || p.phase_label || '';
         const color = getPhaseColor(phaseKey);
-        const daysNum = daysInclusive(p.start_date, p.end_date);
+        const daysNum = p.work_days || daysInclusive(p.start_date, p.end_date); // Use work_days!
         const daysDisplay = daysNum > 0 ? daysNum : '-';
         const assigned = getAssignedName(p);
         const label = numberedLabels[idx];
