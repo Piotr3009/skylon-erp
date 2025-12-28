@@ -2197,39 +2197,89 @@ function generateSprayingPage() {
 }
 
 // ========== PAGE: PHASES / TIMELINE ==========
+
 function formatDateSafe(dateStr) {
     if (!dateStr) return '-';
-    // Bezpieczne formatowanie bez timezone shift
     const parts = dateStr.split('T')[0].split('-');
-    if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
-    }
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
     return dateStr;
-}
-
-function calcDays(start, end) {
-    if (!start || !end) return '-';
-    const s = new Date(start);
-    const e = new Date(end);
-    const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? diff : '-';
 }
 
 function getAssignedName(p) {
     return (p?.assigned_name || '').trim() || '-';
 }
 
+// UTC-safe day number (days since epoch)
+function toUtcDay(dateStr) {
+    if (!dateStr) return null;
+    const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+    return Date.UTC(y, m - 1, d) / 86400000;
+}
+
+function utcDayToDate(dayNum) {
+    return new Date(dayNum * 86400000);
+}
+
+function daysInclusive(startStr, endStr) {
+    const s = toUtcDay(startStr);
+    const e = toUtcDay(endStr);
+    if (s == null || e == null) return 0;
+    const diff = (e - s) + 1;
+    return diff > 0 ? diff : 0;
+}
+
+// work_days: safe parse (handles string)
+function getWorkDays(p) {
+    const wd = Number(p?.work_days);
+    return Number.isFinite(wd) && wd > 0 ? wd : null;
+}
+
+// Working days excluding Sundays (UTC-safe)
+function workingDaysBetweenUtc(startStr, endStr) {
+    const s = toUtcDay(startStr);
+    const e = toUtcDay(endStr);
+    if (s == null || e == null || e < s) return 0;
+
+    let count = 0;
+    for (let day = s; day <= e; day++) {
+        const dt = utcDayToDate(day);
+        if (dt.getUTCDay() !== 0) count++; // exclude Sunday
+    }
+    return count;
+}
+
+// Helper: numbering for duplicate labels
+function getNumberedLabels(phases) {
+    const labelCounts = {};
+    const labelIndices = {};
+
+    phases.forEach(p => {
+        const base = (p.phase_label || p.phase_key || 'Phase').replace(/#\d+$/, '').trim();
+        labelCounts[base] = (labelCounts[base] || 0) + 1;
+    });
+
+    return phases.map(p => {
+        const base = (p.phase_label || p.phase_key || 'Phase').replace(/#\d+$/, '').trim();
+        if (labelCounts[base] > 1) {
+            labelIndices[base] = (labelIndices[base] || 0) + 1;
+            return `${base} #${labelIndices[base]}`;
+        }
+        return base;
+    });
+}
+
 function generatePhasesPage() {
     const phases = Array.isArray(projectData.phases) ? projectData.phases : [];
-    
+
     if (phases.length === 0) {
         return `
             <h1 class="ps-section-title">6. Phases / Timeline</h1>
             <div style="color: #666; font-style: italic; padding: 20px; font-size: 12px;">No phases defined for this project.</div>
         `;
     }
-    
-    // Helper: Get phase color from productionPhases (data.js)
+
+    // Phase colors
     function getPhaseColor(phaseKey) {
         const key = (phaseKey || '').toLowerCase().replace(/\s+/g, '').replace(/#\d+/g, '');
         const colorMap = {
@@ -2253,88 +2303,32 @@ function generatePhasesPage() {
         };
         return colorMap[key] || '#64748b';
     }
-    
-    // FIX 3: UTC-safe date math
-    function toUtcDay(dateStr) {
-        if (!dateStr) return null;
-        const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
-        return Date.UTC(y, m - 1, d) / 86400000;
-    }
-    
-    function daysInclusive(startStr, endStr) {
-        const s = toUtcDay(startStr), e = toUtcDay(endStr);
-        if (s == null || e == null) return 0;
-        const diff = (e - s) + 1;
-        return diff > 0 ? diff : 0;
-    }
-    
-    // Working days calculation (excluding Sundays) - same as gantt-office
-    function workingDaysBetween(startStr, endStr) {
-        if (!startStr || !endStr) return 0;
-        const start = new Date(startStr.split('T')[0]);
-        const end = new Date(endStr.split('T')[0]);
-        let count = 0;
-        let current = new Date(start);
-        while (current <= end) {
-            if (current.getDay() !== 0) { // nie niedziela
-                count++;
-            }
-            current.setDate(current.getDate() + 1);
-        }
-        return count;
-    }
-    
-    function utcDayToDate(dayNum) {
-        return new Date(dayNum * 86400000);
-    }
-    
-    // Helper: Add numbering for duplicate phase labels
-    function getNumberedLabels(phases) {
-        const labelCounts = {};
-        const labelIndices = {};
-        
-        phases.forEach(p => {
-            const baseLabel = (p.phase_label || p.phase_key || 'Phase').replace(/#\d+$/, '').trim();
-            labelCounts[baseLabel] = (labelCounts[baseLabel] || 0) + 1;
-        });
-        
-        return phases.map(p => {
-            const baseLabel = (p.phase_label || p.phase_key || 'Phase').replace(/#\d+$/, '').trim();
-            if (labelCounts[baseLabel] > 1) {
-                labelIndices[baseLabel] = (labelIndices[baseLabel] || 0) + 1;
-                return `${baseLabel} #${labelIndices[baseLabel]}`;
-            }
-            return baseLabel;
-        });
-    }
-    
+
     const numberedLabels = getNumberedLabels(phases);
-    
-    // FIX 2: Filter phases with valid dates for Gantt (with proper validation)
+
+    // Only phases with valid dates for gantt
     const phasesWithDates = phases.filter(p => {
         const s = toUtcDay(p.start_date);
         const e = toUtcDay(p.end_date);
         return Number.isFinite(s) && Number.isFinite(e) && e >= s;
     });
-    
+
     if (phasesWithDates.length === 0) {
         return `
             <h1 class="ps-section-title">6. Phases / Timeline</h1>
             <div style="color: #666; font-style: italic; padding: 20px; font-size: 12px;">No valid phase dates defined.</div>
         `;
     }
-    
-    // Calculate date range using UTC days
+
     const minDay = Math.min(...phasesWithDates.map(p => toUtcDay(p.start_date)));
     const maxDay = Math.max(...phasesWithDates.map(p => toUtcDay(p.end_date)));
     const totalDays = (maxDay - minDay) + 1;
-    
-    // FIX 2: Gantt bar heights based on phases WITH dates
+
     const barH = 28;
     const gap = 4;
     const barsH = phasesWithDates.length * (barH + gap) + 8;
-    
-    // Generate date axis - FIX 1: use percentages
+
+    // Date axis
     const dateAxisCells = [];
     for (let i = 0; i < totalDays; i++) {
         const date = utcDayToDate(minDay + i);
@@ -2343,7 +2337,7 @@ function generatePhasesPage() {
         const isSunday = date.getUTCDay() === 0;
         const isFirst = i === 0 || dayNum === 1;
         const widthPercent = 100 / totalDays;
-        
+
         dateAxisCells.push(`
             <div style="
                 width: ${widthPercent}%;
@@ -2360,33 +2354,30 @@ function generatePhasesPage() {
             </div>
         `);
     }
-    
-    // FIX 1 & 2: Generate Gantt bars with PERCENTAGES, only for phases with dates
+
+    // Gantt bars
     let barIndex = 0;
-    const ganttBars = phasesWithDates.map((p) => {
+    const ganttBars = phasesWithDates.map(p => {
         const startDay = toUtcDay(p.start_date);
         const endDay = toUtcDay(p.end_date);
         const startOffset = startDay - minDay;
-        const calendarDays = daysInclusive(p.start_date, p.end_date); // For bar WIDTH (visual)
-        const workDays = Number.isFinite(p.work_days) && p.work_days > 0 
-            ? p.work_days 
-            : workingDaysBetween(p.start_date, p.end_date);
+
+        const calendarDays = daysInclusive(p.start_date, p.end_date); // width uses calendar days
+        const workDays = getWorkDays(p) ?? workingDaysBetweenUtc(p.start_date, p.end_date);
+
         const color = getPhaseColor(p.phase_key || p.phase_label);
-        
-        // Label shows both: work days / calendar days
-        const labelDays = workDays !== calendarDays ? `${workDays}wd/${calendarDays}cd` : `${calendarDays}d`;
-        
-        // Find original index for label
         const origIdx = phases.indexOf(p);
-        const label = numberedLabels[origIdx];
+        const label = numberedLabels[origIdx] || (p.phase_label || p.phase_key || 'Phase');
         const assigned = getAssignedName(p);
+
+        const labelDays = `${workDays}wd / ${calendarDays}cd`;
+
         const top = 4 + barIndex * (barH + gap);
         barIndex++;
-        
-        // FIX 1: Use percentages (calendar days for visual width)
+
         const leftPercent = (startOffset / totalDays) * 100;
         const widthPercent = (calendarDays / totalDays) * 100;
-        
+
         return `
             <div style="
                 position: absolute;
@@ -2414,35 +2405,37 @@ function generatePhasesPage() {
             </div>
         `;
     }).join('');
-    
-    // Calculate max calendar days for bar width in table
-    const maxCalendarDays = Math.max(1, ...phases.map(ph => daysInclusive(ph.start_date, ph.end_date)));
-    
-    // Generate table rows (all phases, even without dates)
+
+    // Table bar scaling: use workDays if present else calendarDays
+    const maxDays = Math.max(
+        1,
+        ...phases.map(ph => {
+            const cd = daysInclusive(ph.start_date, ph.end_date);
+            const wd = getWorkDays(ph);
+            return wd ?? (cd || 0);
+        })
+    );
+
+    // Table rows (all phases)
     const rows = phases.map((p, idx) => {
-        const phaseKey = p.phase_key || p.phase_label || '';
-        const color = getPhaseColor(phaseKey);
+        const color = getPhaseColor(p.phase_key || p.phase_label || '');
         const calendarDays = daysInclusive(p.start_date, p.end_date);
-        const workDays = Number.isFinite(p.work_days) && p.work_days > 0 
-            ? p.work_days 
-            : workingDaysBetween(p.start_date, p.end_date);
-        
-        // Show both: work days / calendar days (or just calendar if same)
-        const daysDisplay = calendarDays > 0 
-            ? (workDays !== calendarDays ? `${workDays}wd/${calendarDays}cd` : `${calendarDays}d`)
-            : '-';
+
+        const workDays = getWorkDays(p) ?? (calendarDays > 0 ? workingDaysBetweenUtc(p.start_date, p.end_date) : 0);
+        const daysDisplay = calendarDays > 0 ? `${workDays}wd / ${calendarDays}cd` : '-';
+
+        const daysNumForBar = calendarDays > 0 ? (getWorkDays(p) ?? workDays ?? calendarDays) : 0;
+        const barWidthPercent = daysNumForBar > 0 ? Math.max(3, (daysNumForBar / maxDays) * 100) : 0;
+
         const assigned = getAssignedName(p);
         const label = numberedLabels[idx];
-        
-        // Min 5% so short phases are still visible
-        const barWidthPercent = calendarDays > 0 ? Math.max(5, (calendarDays / maxCalendarDays) * 100) : 5;
-        
+
         return `
             <tr>
                 <td style="border: 1px solid #ccc; padding: 6px; font-weight: 600; width: 90px; max-width: 90px; vertical-align: middle; font-size: 12px; white-space: normal; word-break: break-word;">
                     ${label}
                 </td>
-                
+
                 <td style="border: 1px solid #ccc; padding: 8px; width: 180px; vertical-align: middle;">
                     <div style="
                         background: ${color};
@@ -2476,19 +2469,19 @@ function generatePhasesPage() {
                         Actual: ___d
                     </div>
                 </td>
-                
+
                 <td style="border: 1px solid #ccc; padding: 6px; width: 120px; font-size: 12px; vertical-align: middle;">
                     <div><strong>Start:</strong> ${formatDateSafe(p.start_date)}</div>
                     <div><strong>End:</strong> ${formatDateSafe(p.end_date)}</div>
                     <div><strong>Days:</strong> ${daysDisplay}</div>
                 </td>
-                
+
                 <td style="border: 1px solid #ccc; padding: 6px; width: 130px; font-size: 12px; vertical-align: middle; background: #fafafa;">
                     <div style="margin-bottom: 2px;">Start: __/__/____</div>
                     <div style="margin-bottom: 2px;">End: __/__/____</div>
                     <div>Days: ____</div>
                 </td>
-                
+
                 <td style="border: 1px solid #ccc; padding: 6px; width: 80px; text-align: center; vertical-align: middle;">
                     <div style="display: flex; justify-content: center; gap: 8px;">
                         <div style="text-align: center;">
@@ -2501,7 +2494,7 @@ function generatePhasesPage() {
                         </div>
                     </div>
                 </td>
-                
+
                 <td style="border: 1px solid #ccc; padding: 6px; width: 100px; vertical-align: middle; background: #fafafa; font-size: 12px;">
                     <div style="margin-bottom: 4px; font-size: 11px;">Who: _________</div>
                     <div style="border-bottom: 1px solid #333; height: 18px;"></div>
@@ -2510,28 +2503,24 @@ function generatePhasesPage() {
             </tr>
         `;
     }).join('');
-    
+
     return `
         <h1 class="ps-section-title">6. Phases / Timeline</h1>
-        
-        <!-- GANTT CHART - FIX 1: width 100%, no overflow -->
+
         <div style="margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px; overflow: hidden;">
             <div style="background: #2d3748; color: #fff; padding: 8px 12px; font-size: 12px; font-weight: 600;">
                 📊 Project Timeline (Gantt View)
             </div>
-            
-            <!-- Date Axis - 100% width -->
+
             <div style="display: flex; border-bottom: 1px solid #ccc; background: #f9f9f9; width: 100%;">
                 ${dateAxisCells.join('')}
             </div>
-            
-            <!-- Gantt Bars - 100% width, no scroll -->
+
             <div style="position: relative; height: ${barsH}px; background: #fafafa; width: 100%;">
                 ${ganttBars}
             </div>
         </div>
-        
-        <!-- LEGEND -->
+
         <div style="margin-bottom: 12px;">
             <div style="display: flex; gap: 20px; font-size: 11px; color: #666; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 5px;">
@@ -2553,8 +2542,7 @@ function generatePhasesPage() {
                 </div>
             </div>
         </div>
-        
-        <!-- TABLE -->
+
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <thead>
                 <tr style="background: #2d3748; color: white;">
@@ -2568,7 +2556,7 @@ function generatePhasesPage() {
             </thead>
             <tbody>${rows}</tbody>
         </table>
-        
+
         <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border-left: 4px solid #3b82f6; font-size: 11px;">
             <strong>📝 Instructions:</strong> Fill Actual dates after each phase. Write days difference in − (ahead) or + (behind) box. Sign off each phase.
         </div>
