@@ -403,7 +403,7 @@ function createChecklistItem(item, sectionKey) {
         div.style.background = '#2d2d30';
         div.style.borderLeft = '3px solid #f59e0b';
         div.innerHTML = `
-            <div class="ps-item-icon">⚠️</div>
+            <div class="ps-item-icon" id="icon-${item.key}">⚠️</div>
             <div class="ps-item-content">
                 <div class="ps-item-label" style="color: #f59e0b;">${item.label}</div>
                 <div class="ps-item-meta" style="color: #888; font-size: 11px; line-height: 1.4; margin-top: 5px;">
@@ -947,13 +947,13 @@ function updateItemUI(key, status) {
     
     if (status.blocked) {
         itemEl.classList.add('blocked');
-        iconEl.textContent = '⚠️';
+        if (iconEl) iconEl.textContent = '⚠️';
     } else if (status.done) {
         itemEl.classList.add('done');
-        iconEl.textContent = '✅';
+        if (iconEl) iconEl.textContent = '✅';
     } else {
         itemEl.classList.add('missing');
-        iconEl.textContent = '⏳';
+        if (iconEl) iconEl.textContent = '⏳';
     }
     
     // Update meta
