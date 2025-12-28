@@ -211,13 +211,6 @@ async function loadAllData() {
             assigned_name: memberMap[p.assigned_to] || ''
         }));
         
-        // DEBUG: sprawdź work_days
-        console.log('[PS DEBUG] Phases with work_days:', projectData.phases.map(p => ({
-            label: p.phase_label,
-            work_days: p.work_days,
-            start: p.start_date,
-            end: p.end_date
-        })));
         
         
         // 4. Load materials
@@ -2275,6 +2268,22 @@ function generatePhasesPage() {
         return diff > 0 ? diff : 0;
     }
     
+    // Working days calculation (excluding Sundays) - same as gantt-office
+    function workingDaysBetween(startStr, endStr) {
+        if (!startStr || !endStr) return 0;
+        const start = new Date(startStr.split('T')[0]);
+        const end = new Date(endStr.split('T')[0]);
+        let count = 0;
+        let current = new Date(start);
+        while (current <= end) {
+            if (current.getDay() !== 0) { // nie niedziela
+                count++;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        return count;
+    }
+    
     function utcDayToDate(dayNum) {
         return new Date(dayNum * 86400000);
     }
@@ -2359,7 +2368,7 @@ function generatePhasesPage() {
         const endDay = toUtcDay(p.end_date);
         const startOffset = startDay - minDay;
         const calendarDays = daysInclusive(p.start_date, p.end_date); // For bar WIDTH (visual)
-        const displayDays = p.work_days || calendarDays; // For LABEL (working days)
+        const displayDays = p.work_days || workingDaysBetween(p.start_date, p.end_date); // For LABEL (working days)
         const color = getPhaseColor(p.phase_key || p.phase_label);
         
         // Find original index for label
@@ -2401,14 +2410,14 @@ function generatePhasesPage() {
         `;
     }).join('');
     
-    // Calculate max days for bar width in table (use work_days)
-    const maxDays = Math.max(1, ...phases.map(ph => ph.work_days || daysInclusive(ph.start_date, ph.end_date)));
+    // Calculate max days for bar width in table (use work_days or calculate working days)
+    const maxDays = Math.max(1, ...phases.map(ph => ph.work_days || workingDaysBetween(ph.start_date, ph.end_date)));
     
     // Generate table rows (all phases, even without dates)
     const rows = phases.map((p, idx) => {
         const phaseKey = p.phase_key || p.phase_label || '';
         const color = getPhaseColor(phaseKey);
-        const daysNum = p.work_days || daysInclusive(p.start_date, p.end_date); // Use work_days!
+        const daysNum = p.work_days || workingDaysBetween(p.start_date, p.end_date); // Use work_days!
         const daysDisplay = daysNum > 0 ? daysNum : '-';
         const assigned = getAssignedName(p);
         const label = numberedLabels[idx];
