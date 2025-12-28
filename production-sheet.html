@@ -859,7 +859,7 @@
 
     <!-- BOM Modal - NEW with dynamic forms per element type -->
     <div class="ps-modal-overlay" id="psBomModal">
-        <div class="ps-modal" style="max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="ps-modal" style="max-width: 1100px; max-height: 95vh; display: flex; flex-direction: column;">
             <div class="ps-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <span>📋 Elements List</span>
                 <button onclick="closeBomModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
@@ -895,22 +895,23 @@
                     <div style="font-weight: 600; color: #e8e2d5;" id="bomFormTitle">➕ Add New Element</div>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <label style="font-size: 11px; color: #888;">Element Type:</label>
-                        <select id="bomElementType" onchange="onElementTypeChange()" style="padding: 8px 12px; background: #1e1e1e; border: 1px solid #4a9eff; border-radius: 4px; color: #4a9eff; font-weight: 600; min-width: 180px;">
+                        <select id="bomElementType" onchange="onElementTypeChange()" style="padding: 8px 12px; background: #1e1e1e; border: 1px solid #4a9eff; border-radius: 4px; color: #4a9eff; font-weight: 600; min-width: 200px;">
                             <option value="">-- Select Type --</option>
                             <option value="sash">🪟 Sash Windows</option>
                             <option value="casement">🪟 Casement Windows</option>
-                            <option value="windowAdditional" style="color: #22c55e;">  ↳ + Window Additional</option>
+                            <option value="windowAdditional" style="color: #888; font-size: 11px;">      ↳ Window Additional</option>
                             <option value="internalDoors">🚪 Internal Doors</option>
+                            <option value="internalDoorsAdditional" style="color: #888; font-size: 11px;">      ↳ Internal Door Additional</option>
                             <option value="externalDoors">🚪 External Doors</option>
-                            <option value="doorAdditional" style="color: #22c55e;">  ↳ + Door Additional</option>
+                            <option value="doorAdditional" style="color: #888; font-size: 11px;">      ↳ External Door Additional</option>
                             <option value="kitchen">🍳 Kitchen</option>
-                            <option value="kitchenAdditional" style="color: #22c55e;">  ↳ + Kitchen Additional</option>
+                            <option value="kitchenAdditional" style="color: #888; font-size: 11px;">      ↳ Kitchen Additional</option>
                             <option value="wardrobe">🗄️ Wardrobe</option>
-                            <option value="wardrobeAdditional" style="color: #22c55e;">  ↳ + Wardrobe Additional</option>
-                            <option value="partition">🧱 Partition</option>
+                            <option value="wardrobeAdditional" style="color: #888; font-size: 11px;">      ↳ Wardrobe Additional</option>
+                            <option value="partition">🧱 Partition Wall</option>
                             <option value="externalSpray">🎨 External Spray</option>
                             <option value="other">📦 Other</option>
-                            <option value="additionalProject" style="color: #22c55e;">➕ Additional Project Items</option>
+                            <option value="additionalProject" style="color: #888; font-size: 11px;">      ↳ Additional Project Items</option>
                         </select>
                     </div>
                 </div>

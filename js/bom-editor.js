@@ -54,6 +54,19 @@ const BOM_FIELDS = {
             { row: 5, id: 'lock_3', label: 'Lock 3', type: 'select', options: ['Latch', 'Bathroom', 'Eurocylinder', 'Nightlatch', 'Deadlock', 'Magnetic Lock', 'Electric Lock'], conditionalOn: 'locks_qty', showWhen: ['3'] },
         ]
     },
+    internalDoorsAdditional: {
+        label: 'Internal Door Additional',
+        prefix: 'IDA',
+        isAdditional: true,
+        hasQty: true,
+        fields: [
+            { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '70' },
+            { row: 2, id: 'height', label: 'Height (mm)', type: 'number', placeholder: '2100' },
+            { row: 2, id: 'depth', label: 'Depth (mm)', type: 'number', placeholder: '18' },
+            { row: 3, id: 'item_type', label: 'Item Type', type: 'select', options: ['Architrave', 'Door Lining', 'Casing', 'Fanlight Frame', 'Sidelight Frame', 'Other'] },
+            { row: 3, id: 'material', label: 'Material', type: 'text', placeholder: 'e.g. Softwood, MDF' },
+        ]
+    },
     externalDoors: {
         label: 'External Doors',
         prefix: 'ED',
@@ -131,7 +144,7 @@ const BOM_FIELDS = {
         ]
     },
     partition: {
-        label: 'Partition',
+        label: 'Partition Wall',
         prefix: 'P',
         fields: [
             { row: 2, id: 'width', label: 'Width (mm)', type: 'number', placeholder: '3000' },
@@ -262,22 +275,37 @@ function renderBomForm(type) {
     if (spraySection) spraySection.style.display = 'none';
     currentSprayItems = [];
     
+    // Check if type has dimensions in row 2
+    const hasDimensions = config.fields.some(f => f.row === 2 && ['width', 'height', 'depth'].includes(f.id));
+    
     const row1 = document.getElementById('bomFormRow1');
-    row1.style.gridTemplateColumns = config.hasQty ? '100px 1fr 80px' : '100px 1fr';
-    row1.innerHTML = `
-        <div>
-            <label style="${labelStyle}">ID</label>
-            <input type="text" id="bomFieldId" placeholder="${config.prefix}-001" style="${inputStyle}">
-        </div>
-        <div>
-            <label style="${labelStyle}">Name *</label>
-            <input type="text" id="bomFieldName" placeholder="e.g. Living Room" style="${inputStyle}">
-        </div>
-        ${config.hasQty ? `<div><label style="${labelStyle}">Qty</label><input type="number" id="bomFieldQty" value="1" min="1" style="${inputStyle}"></div>` : ''}
-    `;
+    if (hasDimensions) {
+        // Compact layout: ID | Name | W | H | D | Qty (all in one row)
+        row1.style.gridTemplateColumns = config.hasQty ? '70px 1fr 70px 70px 70px 50px' : '70px 1fr 70px 70px 70px';
+        row1.innerHTML = `
+            <div><label style="${labelStyle}">ID</label><input type="text" id="bomFieldId" placeholder="${config.prefix}-001" style="${inputStyle}"></div>
+            <div><label style="${labelStyle}">Name *</label><input type="text" id="bomFieldName" placeholder="e.g. Living Room" style="${inputStyle}"></div>
+            <div><label style="${labelStyle}">W (mm)</label><input type="number" id="bomField_width" placeholder="600" style="${inputStyle}"></div>
+            <div><label style="${labelStyle}">H (mm)</label><input type="number" id="bomField_height" placeholder="720" style="${inputStyle}"></div>
+            <div><label style="${labelStyle}">D (mm)</label><input type="number" id="bomField_depth" placeholder="560" style="${inputStyle}"></div>
+            ${config.hasQty ? `<div><label style="${labelStyle}">Qty</label><input type="number" id="bomFieldQty" value="1" min="1" style="${inputStyle}"></div>` : ''}
+        `;
+    } else {
+        // Standard layout without dimensions
+        row1.style.gridTemplateColumns = config.hasQty ? '80px 1fr 60px' : '80px 1fr';
+        row1.innerHTML = `
+            <div><label style="${labelStyle}">ID</label><input type="text" id="bomFieldId" placeholder="${config.prefix}-001" style="${inputStyle}"></div>
+            <div><label style="${labelStyle}">Name *</label><input type="text" id="bomFieldName" placeholder="e.g. Living Room" style="${inputStyle}"></div>
+            ${config.hasQty ? `<div><label style="${labelStyle}">Qty</label><input type="number" id="bomFieldQty" value="1" min="1" style="${inputStyle}"></div>` : ''}
+        `;
+    }
     
     const rows = { 2: [], 3: [], 4: [], 5: [] };
-    config.fields.forEach(field => { if (rows[field.row]) rows[field.row].push(field); });
+    config.fields.forEach(field => { 
+        // Skip width/height/depth from row 2 if we moved them to row 1
+        if (hasDimensions && field.row === 2 && ['width', 'height', 'depth'].includes(field.id)) return;
+        if (rows[field.row]) rows[field.row].push(field); 
+    });
     
     [2, 3, 4, 5].forEach(rowNum => {
         const rowEl = document.getElementById(`bomFormRow${rowNum}`);
@@ -646,7 +674,7 @@ function getElementDetails(el) {
         case 'internalDoors': if (el.door_type) parts.push(el.door_type); if (el.fire_rating && el.fire_rating !== 'NFR') parts.push(el.fire_rating); if (el.door_handing) parts.push(el.door_handing); if (el.lock_1) parts.push(el.lock_1); if (el.lock_2) parts.push(el.lock_2); if (el.lock_3) parts.push(el.lock_3); if (el.self_closer && el.self_closer !== 'No Selfcloser') parts.push('Closer: ' + el.self_closer); break;
         case 'externalDoors': if (el.external_door_type) parts.push(el.external_door_type); if (el.threshold) parts.push(el.threshold); break;
         case 'kitchen': if (el.unit_type) parts.push(el.unit_type); if (el.front_style) parts.push(el.front_style); if (el.handle_type) parts.push(el.handle_type); break;
-        case 'kitchenAdditional': case 'wardrobeAdditional': case 'doorAdditional': case 'windowAdditional': case 'additionalProject': if (el.item_type) parts.push(el.item_type); if (el.material) parts.push(el.material); if (el.qty > 1) parts.push(`Qty: ${el.qty}`); break;
+        case 'kitchenAdditional': case 'wardrobeAdditional': case 'doorAdditional': case 'windowAdditional': case 'internalDoorsAdditional': case 'additionalProject': if (el.item_type) parts.push(el.item_type); if (el.material) parts.push(el.material); if (el.qty > 1) parts.push(`Qty: ${el.qty}`); break;
         case 'wardrobe': if (el.wardrobe_shape) parts.push(el.wardrobe_shape); if (el.door_style) parts.push(el.door_style); break;
         case 'partition': if (el.panel_type) parts.push(el.panel_type); if (el.door_included === 'Yes') parts.push('With Door'); break;
         case 'externalSpray': if (el.qty > 1) parts.push(`Qty: ${el.qty}`); if (el.item_type) parts.push(el.item_type); if (el.sheen_level) parts.push(el.sheen_level); break;
