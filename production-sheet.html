@@ -827,19 +827,60 @@
         </div>
     </div>
     
-    <!-- Spray Instructions Modal -->
+    <!-- Spray Settings Modal -->
     <div class="ps-modal-overlay" id="psSprayModal">
-        <div class="ps-modal" style="max-width: 600px;">
-            <div class="ps-modal-title">🎨 Spray Instructions</div>
+        <div class="ps-modal" style="max-width: 650px;">
+            <div class="ps-modal-title">🎨 Spray Settings</div>
             <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
-                Provide detailed spray/finish instructions for the spray team.
+                Configure spray settings for this project. Define colours first, then add spray items in BOM section.
             </p>
-            <textarea id="sprayModalText" 
-                placeholder="Enter spray instructions here...&#10;&#10;Example:&#10;- External: RAL 7016 Anthracite Grey&#10;- Internal: White primer only&#10;- 2 coats required&#10;- Sand between coats"
-                style="width: 100%; min-height: 200px; padding: 12px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 13px; resize: vertical; line-height: 1.5;"></textarea>
+            
+            <!-- Colour Type -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 11px; margin-bottom: 5px;">Colour Type</label>
+                <select id="sprayColourType" style="width: 100%; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 13px;">
+                    <option value="single">Single Colour (one colour per element)</option>
+                    <option value="dual">Dual Colour (element has 2 colours, e.g. front/back)</option>
+                </select>
+            </div>
+            
+            <!-- Sheen Level -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 11px; margin-bottom: 5px;">Sheen Level</label>
+                <select id="spraySheenLevel" style="width: 100%; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 13px;">
+                    <option value="">-- Select --</option>
+                    <option value="Matt">Matt (0-10%)</option>
+                    <option value="Eggshell">Eggshell (10-25%)</option>
+                    <option value="Satin">Satin (25-35%)</option>
+                    <option value="Semi-Gloss">Semi-Gloss (35-70%)</option>
+                    <option value="Gloss">Gloss (70-100%)</option>
+                </select>
+            </div>
+            
+            <!-- Colours List -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 11px; margin-bottom: 5px;">Project Colours</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <input type="text" id="sprayNewColour" placeholder="e.g. RAL 7016 Anthracite Grey" 
+                        style="flex: 1; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 13px;">
+                    <button onclick="addSprayColour()" style="padding: 10px 15px; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">+ Add</button>
+                </div>
+                <div id="sprayColoursList" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px;">
+                    <span style="color: #666; font-size: 12px; font-style: italic;">No colours added yet</span>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 11px; margin-bottom: 5px;">Additional Instructions (optional)</label>
+                <textarea id="sprayModalText" 
+                    placeholder="Any special instructions for spray team...&#10;&#10;Example:&#10;- 2 coats required&#10;- Sand between coats&#10;- Check colour sample before spraying"
+                    style="width: 100%; min-height: 120px; padding: 12px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; color: #e8e2d5; font-size: 13px; resize: vertical; line-height: 1.5;"></textarea>
+            </div>
+            
             <div class="ps-modal-actions">
                 <button class="ps-modal-btn cancel" onclick="closeSprayModal()">Cancel</button>
-                <button class="ps-modal-btn confirm" onclick="saveSprayDescription()">✓ Save Instructions</button>
+                <button class="ps-modal-btn confirm" onclick="saveSpraySettings()">✓ Save Settings</button>
             </div>
         </div>
     </div>
@@ -1003,9 +1044,6 @@
                         <button onclick="cancelBomEdit()" id="bomCancelBtn" style="padding: 8px 20px; background: #3e3e42; color: #888; border: none; border-radius: 4px; cursor: pointer; display: none;">
                             Cancel
                         </button>
-                        <button onclick="saveBomElement()" id="bomSaveBtn" style="padding: 8px 20px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                            + Add Element
-                        </button>
                     </div>
                 </div>
                 
@@ -1015,7 +1053,10 @@
                 </div>
             </div>
             
-            <div class="ps-modal-actions">
+            <div class="ps-modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
+                <button onclick="saveBomElement()" id="bomSaveBtn" style="padding: 10px 25px; background: #16a34a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                    + Add Element
+                </button>
                 <button class="ps-modal-btn cancel" onclick="closeBomModal()">Close</button>
             </div>
         </div>

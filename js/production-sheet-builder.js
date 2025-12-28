@@ -24,6 +24,9 @@ let checklistItems = [];
 let checklistStatus = {};
 let scopeDescription = ''; // Production manager's description
 let sprayDescription = ''; // Spray instructions
+let sprayColourType = 'single'; // 'single' or 'dual'
+let sprayColours = []; // Array of colour names
+let spraySheenLevel = ''; // Sheen level for project
 let editedNotes = {}; // Edited copies of important notes (key = note index)
 let hiddenNotes = {}; // Hidden notes (key = note index, value = true)
 let originalImportantNotes = []; // Cache of original important notes for edit modal
@@ -297,6 +300,9 @@ async function loadAllData() {
             .order('sort_order');
         if (sprayItemsError) console.error('Spray items load error:', sprayItemsError);
         projectData.sprayItems = sprayItems || [];
+        
+        // 5c. Load spray settings
+        await loadSpraySettings();
         
         // 6. Load blockers
         const { data: blockers } = await supabaseClient
@@ -898,9 +904,12 @@ async function autoSaveSnapshot() {
     }
 }
 
-// ========== SPRAY MODAL ==========
+// ========== SPRAY SETTINGS MODAL ==========
 function openSprayModal() {
-    document.getElementById('sprayModalText').value = sprayDescription;
+    document.getElementById('sprayColourType').value = sprayColourType || 'single';
+    document.getElementById('spraySheenLevel').value = spraySheenLevel || '';
+    document.getElementById('sprayModalText').value = sprayDescription || '';
+    renderSprayColoursList();
     document.getElementById('psSprayModal').classList.add('active');
 }
 
@@ -908,9 +917,78 @@ function closeSprayModal() {
     document.getElementById('psSprayModal').classList.remove('active');
 }
 
-async function saveSprayDescription() {
+function renderSprayColoursList() {
+    const container = document.getElementById('sprayColoursList');
+    if (sprayColours.length === 0) {
+        container.innerHTML = '<span style="color: #666; font-size: 12px; font-style: italic;">No colours added yet</span>';
+        return;
+    }
+    container.innerHTML = sprayColours.map((colour, idx) => `
+        <div style="display: flex; align-items: center; gap: 6px; background: #3e3e42; padding: 6px 10px; border-radius: 4px;">
+            <span style="color: #e8e2d5; font-size: 12px;">${colour}</span>
+            <button onclick="removeSprayColour(${idx})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; padding: 0;">&times;</button>
+        </div>
+    `).join('');
+}
+
+function addSprayColour() {
+    const input = document.getElementById('sprayNewColour');
+    const colour = input.value.trim();
+    if (!colour) return;
+    if (sprayColours.includes(colour)) {
+        showToast('This colour already exists', 'error');
+        return;
+    }
+    sprayColours.push(colour);
+    input.value = '';
+    renderSprayColoursList();
+}
+
+function removeSprayColour(idx) {
+    sprayColours.splice(idx, 1);
+    renderSprayColoursList();
+}
+
+async function saveSpraySettings() {
+    sprayColourType = document.getElementById('sprayColourType').value;
+    spraySheenLevel = document.getElementById('spraySheenLevel').value;
     sprayDescription = document.getElementById('sprayModalText').value;
+    
     closeSprayModal();
+    
+    // Save to database
+    try {
+        const { data: existing } = await supabaseClient
+            .from('project_spray_settings')
+            .select('id')
+            .eq('project_id', projectId)
+            .single();
+        
+        const settingsData = {
+            project_id: projectId,
+            colour_type: sprayColourType,
+            colours: sprayColours,
+            sheen_level: spraySheenLevel,
+            description: sprayDescription,
+            updated_at: new Date().toISOString()
+        };
+        
+        if (existing) {
+            await supabaseClient
+                .from('project_spray_settings')
+                .update(settingsData)
+                .eq('project_id', projectId);
+        } else {
+            await supabaseClient
+                .from('project_spray_settings')
+                .insert(settingsData);
+        }
+        
+        showToast('Spray settings saved!', 'success');
+    } catch (err) {
+        console.error('Error saving spray settings:', err);
+        showToast('Error saving spray settings', 'error');
+    }
     
     // Update UI
     updateSprayUI();
@@ -918,10 +996,28 @@ async function saveSprayDescription() {
     updateProgress();
     generatePreview();
     
-    // Auto-save to database
+    // Auto-save to snapshot
     await autoSaveSnapshot();
-    
-    showToast('Spray instructions saved!', 'success');
+}
+
+async function loadSpraySettings() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('project_spray_settings')
+            .select('*')
+            .eq('project_id', projectId)
+            .single();
+        
+        if (data) {
+            sprayColourType = data.colour_type || 'single';
+            sprayColours = data.colours || [];
+            spraySheenLevel = data.sheen_level || '';
+            sprayDescription = data.description || '';
+        }
+    } catch (err) {
+        // No settings yet - that's OK
+        console.log('No spray settings found');
+    }
 }
 
 function updateSprayUI() {
@@ -931,12 +1027,19 @@ function updateSprayUI() {
     
     if (!metaEl || !btnEl || !iconEl) return; // May not exist if no spray phase
     
-    if (sprayDescription.trim()) {
-        metaEl.textContent = `${sprayDescription.trim().length} characters`;
+    const hasColours = sprayColours.length > 0;
+    const hasSettings = hasColours || spraySheenLevel || sprayDescription.trim();
+    
+    if (hasSettings) {
+        let metaText = [];
+        if (hasColours) metaText.push(`${sprayColours.length} colour(s)`);
+        if (spraySheenLevel) metaText.push(spraySheenLevel);
+        if (sprayColourType === 'dual') metaText.push('Dual');
+        metaEl.textContent = metaText.join(' • ') || 'Configured';
         btnEl.textContent = '✎ Edit';
         iconEl.textContent = '✅';
     } else {
-        metaEl.textContent = 'Click to add • Optional';
+        metaEl.textContent = 'Click to configure • Required';
         btnEl.textContent = '+ Add';
         iconEl.textContent = '✏️';
     }
