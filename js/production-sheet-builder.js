@@ -2227,28 +2227,28 @@ async function generatePhotoPages() {
         return pages; // No photos selected - skip section
     }
     
-    // Create page with photos (max 4 per page in grid 2x2)
-    const photosPerPage = 4;
+    // Create page with photos (max 8 per page in grid 4x2 for A3)
+    const photosPerPage = 8;
     for (let i = 0; i < selectedPhotos.length; i += photosPerPage) {
         const pagePhotos = selectedPhotos.slice(i, i + photosPerPage);
         const pageNum = Math.floor(i / photosPerPage) + 1;
         const totalPhotoPages = Math.ceil(selectedPhotos.length / photosPerPage);
         
         let html = `<h1 class="ps-section-title">8. Reference Photos ${totalPhotoPages > 1 ? `(${pageNum}/${totalPhotoPages})` : ''}</h1>`;
-        html += `<div style="display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 15px; height: calc(297mm - 80mm);">`;
+        html += `<div style="display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 10px; height: calc(297mm - 80mm);">`;
         
         for (const photo of pagePhotos) {
             const isImage = photo.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i);
-            html += `<div style="text-align: center; border: 1px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow: hidden;">
-                <div style="font-size: 10px; color: #666; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📷 ${photo.name}</div>
+            html += `<div style="text-align: center; border: 1px solid #ddd; padding: 8px; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="font-size: 9px; color: #666; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📷 ${photo.name}</div>
                 ${isImage 
                     ? `<img src="${photo.url}" style="flex: 1; width: 100%; height: 100%; object-fit: contain;" crossorigin="anonymous" />`
-                    : `<a href="${photo.url}" target="_blank" style="color: #4a9eff;">View file</a>`
+                    : `<a href="${photo.url}" target="_blank" style="color: #4a9eff; font-size: 10px;">View file</a>`
                 }
             </div>`;
         }
         
-        // Fill empty cells if less than 4 photos
+        // Fill empty cells if less than 8 photos
         const emptySlots = photosPerPage - pagePhotos.length;
         for (let j = 0; j < emptySlots; j++) {
             html += `<div style="border: 1px dashed #ddd;"></div>`;
