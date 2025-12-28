@@ -323,28 +323,15 @@ function renderBomForm(type) {
         }).join('');
     });
     
+    // Row 5 - hide if no fields (colour removed - now in spray items)
     const row5 = document.getElementById('bomFormRow5');
     if (rows[5].length === 0) {
-        row5.style.display = 'grid';
-        row5.style.gridTemplateColumns = '150px 1fr';
-        row5.innerHTML = `
-            <div><label style="${labelStyle}">Colour Type</label><select id="bomField_colour_type" style="${selectStyle}"><option value="">-- Select --</option><option value="Single">Single</option><option value="Dual">Dual</option></select></div>
-            <div><label style="${labelStyle}">Colour</label><input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}"></div>
-        `;
+        row5.style.display = 'none';
     }
     
+    // Row 6 - Only Description (colour removed - now in spray items)
     const row6 = document.getElementById('bomFormRow6');
-    if (rows[5].length > 0) {
-        row6.innerHTML = `
-            <div style="display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin-bottom: 10px;">
-                <div><label style="${labelStyle}">Colour Type</label><select id="bomField_colour_type" style="${selectStyle}"><option value="">-- Select --</option><option value="Single">Single</option><option value="Dual">Dual</option></select></div>
-                <div><label style="${labelStyle}">Colour</label><input type="text" id="bomField_colour" placeholder="e.g. RAL 9016 or RAL 9016 / RAL 9010 ext" style="${inputStyle}"></div>
-            </div>
-            <div><label style="${labelStyle}">Description (optional)</label><input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}"></div>
-        `;
-    } else {
-        row6.innerHTML = `<div><label style="${labelStyle}">Description (optional)</label><input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}"></div>`;
-    }
+    row6.innerHTML = `<div><label style="${labelStyle}">Description (optional)</label><input type="text" id="bomField_description" placeholder="Additional notes or specifications" style="${inputStyle}"></div>`;
     
     if (!config.isAdditional && spraySection) {
         spraySection.style.display = 'block';
@@ -423,8 +410,7 @@ function renderSprayItemsTable() {
 }
 
 function addSprayItem() {
-    const defaultColour = document.getElementById('bomField_colour')?.value || '';
-    currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: defaultColour, notes: '' });
+    currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: '', notes: '' });
     renderSprayItemsTable();
 }
 
@@ -442,9 +428,8 @@ function removeSprayItem(index) {
 function addMultipleSprayItems() {
     const qty = parseInt(prompt('How many spray items to add?', '4'));
     if (qty && qty > 0 && qty <= 20) {
-        const defaultColour = document.getElementById('bomField_colour')?.value || '';
         for (let i = 0; i < qty; i++) {
-            currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: defaultColour, notes: '' });
+            currentSprayItems.push({ name: '', width: null, height: null, depth: null, colour: '', notes: '' });
         }
         renderSprayItemsTable();
     }
@@ -460,8 +445,6 @@ function collectFormData() {
         element_id: document.getElementById('bomFieldId')?.value.trim() || null,
         name: document.getElementById('bomFieldName')?.value.trim() || null,
         qty: config.hasQty ? (parseInt(document.getElementById('bomFieldQty')?.value) || 1) : 1,
-        colour_type: document.getElementById('bomField_colour_type')?.value || null,
-        colour: document.getElementById('bomField_colour')?.value.trim() || null,
         description: document.getElementById('bomField_description')?.value.trim() || null,
         sort_order: editingElementId ? undefined : projectData.elements.length
     };
@@ -600,11 +583,7 @@ async function editBomElement(elementId) {
                 if (fieldEl && element[field.id] !== undefined) fieldEl.value = element[field.id] || '';
             });
         }
-        const colourType = document.getElementById('bomField_colour_type');
-        const colour = document.getElementById('bomField_colour');
         const description = document.getElementById('bomField_description');
-        if (colourType) colourType.value = element.colour_type || '';
-        if (colour) colour.value = element.colour || '';
         if (description) description.value = element.description || '';
         updateConditionalFields();
         document.getElementById('bomFormTitle').textContent = '✏️ Edit Element';
@@ -655,7 +634,6 @@ function renderBomTable() {
                 <td style="padding: 10px;"><span style="background: ${isAdditional ? '#22c55e' : '#3e3e42'}; color: ${isAdditional ? '#000' : '#fff'}; padding: 2px 8px; border-radius: 4px; font-size: 10px;">${typeLabel}</span></td>
                 <td style="padding: 10px;"><div style="color: #e8e2d5;">${el.name}</div>${el.description ? `<div style="font-size: 10px; color: #888; margin-top: 2px;">${el.description}</div>` : ''}</td>
                 <td style="padding: 10px; text-align: center;">${sizeStr}</td>
-                <td style="padding: 10px;">${el.colour || '-'}</td>
                 <td style="padding: 10px; font-size: 11px; color: #888;">${details}</td>
                 <td style="padding: 10px; text-align: center;">
                     <button onclick="editBomElement('${el.id}')" style="background: #4a9eff; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 5px;">Edit</button>
