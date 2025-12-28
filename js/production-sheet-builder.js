@@ -2224,7 +2224,7 @@ function generatePhasesPage() {
     if (phases.length === 0) {
         return `
             <h1 class="ps-section-title">6. Phases / Timeline</h1>
-            <div style="color: #666; font-style: italic; padding: 20px;">No phases defined for this project.</div>
+            <div style="color: #666; font-style: italic; padding: 20px; font-size: 12px;">No phases defined for this project.</div>
         `;
     }
     
@@ -2253,93 +2253,228 @@ function generatePhasesPage() {
         return colorMap[key] || '#64748b';
     }
     
-    // Helper: Render Δ Days checkboxes
-    function renderDeltaDays() {
-        const values = ['-3', '-2', '-1', '0', '+1', '+2', '+3', '+4+'];
-        return values.map(v => `
-            <div style="display: inline-flex; flex-direction: column; align-items: center; margin: 0 2px;">
-                <div style="width: 16px; height: 16px; border: 1.5px solid #333; background: #fff;"></div>
-                <span style="font-size: 8px; color: #666; margin-top: 1px;">${v}</span>
-            </div>
-        `).join('');
+    // FIX 3: UTC-safe date math
+    function toUtcDay(dateStr) {
+        if (!dateStr) return null;
+        const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+        return Date.UTC(y, m - 1, d) / 86400000;
     }
     
-    // Generate rows
-    const rows = phases.map(p => {
+    function daysInclusive(startStr, endStr) {
+        const s = toUtcDay(startStr), e = toUtcDay(endStr);
+        if (s == null || e == null) return 0;
+        const diff = (e - s) + 1;
+        return diff > 0 ? diff : 0;
+    }
+    
+    function utcDayToDate(dayNum) {
+        return new Date(dayNum * 86400000);
+    }
+    
+    // Helper: Add numbering for duplicate phase labels
+    function getNumberedLabels(phases) {
+        const labelCounts = {};
+        const labelIndices = {};
+        
+        phases.forEach(p => {
+            const baseLabel = (p.phase_label || p.phase_key || 'Phase').replace(/#\d+$/, '').trim();
+            labelCounts[baseLabel] = (labelCounts[baseLabel] || 0) + 1;
+        });
+        
+        return phases.map(p => {
+            const baseLabel = (p.phase_label || p.phase_key || 'Phase').replace(/#\d+$/, '').trim();
+            if (labelCounts[baseLabel] > 1) {
+                labelIndices[baseLabel] = (labelIndices[baseLabel] || 0) + 1;
+                return `${baseLabel} #${labelIndices[baseLabel]}`;
+            }
+            return baseLabel;
+        });
+    }
+    
+    const numberedLabels = getNumberedLabels(phases);
+    
+    // FIX 2: Filter phases with valid dates for Gantt (with proper validation)
+    const phasesWithDates = phases.filter(p => {
+        const s = toUtcDay(p.start_date);
+        const e = toUtcDay(p.end_date);
+        return Number.isFinite(s) && Number.isFinite(e) && e >= s;
+    });
+    
+    if (phasesWithDates.length === 0) {
+        return `
+            <h1 class="ps-section-title">6. Phases / Timeline</h1>
+            <div style="color: #666; font-style: italic; padding: 20px; font-size: 12px;">No valid phase dates defined.</div>
+        `;
+    }
+    
+    // Calculate date range using UTC days
+    const minDay = Math.min(...phasesWithDates.map(p => toUtcDay(p.start_date)));
+    const maxDay = Math.max(...phasesWithDates.map(p => toUtcDay(p.end_date)));
+    const totalDays = (maxDay - minDay) + 1;
+    
+    // FIX 2: Gantt bar heights based on phases WITH dates
+    const barH = 28;
+    const gap = 4;
+    const barsH = phasesWithDates.length * (barH + gap) + 8;
+    
+    // Generate date axis - FIX 1: use percentages
+    const dateAxisCells = [];
+    for (let i = 0; i < totalDays; i++) {
+        const date = utcDayToDate(minDay + i);
+        const dayNum = date.getUTCDate();
+        const monthShort = date.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' });
+        const isSunday = date.getUTCDay() === 0;
+        const isFirst = i === 0 || dayNum === 1;
+        const widthPercent = 100 / totalDays;
+        
+        dateAxisCells.push(`
+            <div style="
+                width: ${widthPercent}%;
+                flex-shrink: 0;
+                text-align: center;
+                border-right: 1px solid ${isSunday ? '#ef4444' : '#ddd'};
+                padding: 2px 0;
+                background: ${isSunday ? '#fef2f2' : '#fff'};
+                font-size: 11px;
+                box-sizing: border-box;
+            ">
+                <div style="font-weight: ${isSunday ? 'bold' : 'normal'}; color: ${isSunday ? '#ef4444' : '#333'};">${dayNum}</div>
+                ${isFirst ? `<div style="font-size: 9px; color: #666;">${monthShort}</div>` : ''}
+            </div>
+        `);
+    }
+    
+    // FIX 1 & 2: Generate Gantt bars with PERCENTAGES, only for phases with dates
+    let barIndex = 0;
+    const ganttBars = phasesWithDates.map((p) => {
+        const startDay = toUtcDay(p.start_date);
+        const endDay = toUtcDay(p.end_date);
+        const startOffset = startDay - minDay;
+        const duration = daysInclusive(p.start_date, p.end_date);
+        const color = getPhaseColor(p.phase_key || p.phase_label);
+        
+        // Find original index for label
+        const origIdx = phases.indexOf(p);
+        const label = numberedLabels[origIdx];
+        const assigned = getAssignedName(p);
+        const top = 4 + barIndex * (barH + gap);
+        barIndex++;
+        
+        // FIX 1: Use percentages
+        const leftPercent = (startOffset / totalDays) * 100;
+        const widthPercent = (duration / totalDays) * 100;
+        
+        return `
+            <div style="
+                position: absolute;
+                top: ${top}px;
+                left: ${leftPercent}%;
+                width: ${widthPercent}%;
+                height: ${barH}px;
+                background: ${color};
+                border-radius: 4px;
+                color: #fff;
+                font-size: 11px;
+                padding: 2px 6px;
+                box-sizing: border-box;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                border: 1px solid rgba(255,255,255,0.2);
+            ">
+                <div style="font-weight: 600; font-size: 11px; overflow: hidden; text-overflow: ellipsis;">${label}</div>
+                <div style="font-size: 10px; opacity: 0.9;">(${duration}d) ${assigned}</div>
+            </div>
+        `;
+    }).join('');
+    
+    // Calculate max days for bar width in table
+    const maxDays = Math.max(1, ...phases.map(ph => daysInclusive(ph.start_date, ph.end_date)));
+    
+    // Generate table rows (all phases, even without dates)
+    const rows = phases.map((p, idx) => {
         const phaseKey = p.phase_key || p.phase_label || '';
         const color = getPhaseColor(phaseKey);
-        const days = calcDays(p.start_date, p.end_date);
+        const daysNum = daysInclusive(p.start_date, p.end_date);
+        const daysDisplay = daysNum > 0 ? daysNum : '-';
         const assigned = getAssignedName(p);
-        const label = p.phase_label || phaseKey || 'N/A';
+        const label = numberedLabels[idx];
+        
+        const barWidthPercent = daysNum > 0 ? Math.max(25, (daysNum / maxDays) * 100) : 25;
         
         return `
             <tr>
-                <!-- Phase Name -->
-                <td style="border: 1px solid #ccc; padding: 6px 8px; font-weight: 600; width: 100px; vertical-align: middle;">
+                <td style="border: 1px solid #ccc; padding: 6px; font-weight: 600; width: 90px; max-width: 90px; vertical-align: middle; font-size: 12px; white-space: normal; word-break: break-word;">
                     ${label}
                 </td>
                 
-                <!-- Timeline Bars -->
-                <td style="border: 1px solid #ccc; padding: 8px; width: 280px; vertical-align: middle;">
-                    <!-- PLANNED Bar -->
+                <td style="border: 1px solid #ccc; padding: 8px; width: 180px; vertical-align: middle;">
                     <div style="
                         background: ${color};
                         color: #fff;
-                        padding: 4px 10px;
+                        padding: 4px 8px;
                         border-radius: 4px;
-                        font-size: 10px;
+                        font-size: 11px;
                         font-weight: 500;
-                        height: 20px;
-                        line-height: 12px;
+                        height: 22px;
+                        line-height: 14px;
                         overflow: hidden;
                         white-space: nowrap;
                         text-overflow: ellipsis;
                         margin-bottom: 6px;
                         box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                        width: ${barWidthPercent}%;
                     ">
-                        📌 ${label} (${days}d) • ${assigned}
+                        ${daysDisplay}d • ${assigned}
                     </div>
-                    <!-- ACTUAL Bar (empty for manual fill) -->
                     <div style="
                         background: #e5e5e5;
                         border: 1px dashed #999;
-                        padding: 4px 10px;
+                        padding: 4px 8px;
                         border-radius: 4px;
-                        font-size: 10px;
+                        font-size: 11px;
                         color: #666;
-                        height: 20px;
-                        line-height: 12px;
+                        height: 22px;
+                        line-height: 14px;
+                        width: ${barWidthPercent}%;
                     ">
-                        ✏️ Actual: ______ days
+                        Actual: ___d
                     </div>
                 </td>
                 
-                <!-- Planned Details -->
-                <td style="border: 1px solid #ccc; padding: 6px; width: 140px; font-size: 10px; vertical-align: middle;">
+                <td style="border: 1px solid #ccc; padding: 6px; width: 120px; font-size: 12px; vertical-align: middle;">
                     <div><strong>Start:</strong> ${formatDateSafe(p.start_date)}</div>
                     <div><strong>End:</strong> ${formatDateSafe(p.end_date)}</div>
-                    <div><strong>Days:</strong> ${days}</div>
-                    <div style="color: #555;"><strong>By:</strong> ${assigned}</div>
+                    <div><strong>Days:</strong> ${daysDisplay}</div>
                 </td>
                 
-                <!-- Actual Fields (empty for manual fill) -->
-                <td style="border: 1px solid #ccc; padding: 6px; width: 180px; font-size: 10px; vertical-align: middle; background: #fafafa;">
-                    <div style="margin-bottom: 3px;">Start: ___/___/______</div>
-                    <div style="margin-bottom: 3px;">End: ___/___/______</div>
-                    <div style="margin-bottom: 3px;">Days: _______</div>
-                    <div>Who: _________________</div>
+                <td style="border: 1px solid #ccc; padding: 6px; width: 130px; font-size: 12px; vertical-align: middle; background: #fafafa;">
+                    <div style="margin-bottom: 2px;">Start: __/__/____</div>
+                    <div style="margin-bottom: 2px;">End: __/__/____</div>
+                    <div>Days: ____</div>
                 </td>
                 
-                <!-- Δ Days -->
-                <td style="border: 1px solid #ccc; padding: 6px; width: 150px; text-align: center; vertical-align: middle;">
-                    <div style="font-size: 9px; color: #666; margin-bottom: 4px; font-weight: 600;">Δ Days (vs plan)</div>
-                    ${renderDeltaDays()}
+                <td style="border: 1px solid #ccc; padding: 6px; width: 80px; text-align: center; vertical-align: middle;">
+                    <div style="display: flex; justify-content: center; gap: 8px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 12px; font-weight: 600; color: #22c55e;">−</div>
+                            <div style="width: 26px; height: 18px; border: 1.5px solid #333; background: #fff;"></div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 12px; font-weight: 600; color: #ef4444;">+</div>
+                            <div style="width: 26px; height: 18px; border: 1.5px solid #333; background: #fff;"></div>
+                        </div>
+                    </div>
                 </td>
                 
-                <!-- Sign -->
-                <td style="border: 1px solid #ccc; padding: 6px; width: 80px; vertical-align: middle; background: #fafafa;">
-                    <div style="font-size: 9px; color: #666; margin-bottom: 8px;">Sign:</div>
-                    <div style="border-bottom: 1px solid #333; height: 30px;"></div>
+                <td style="border: 1px solid #ccc; padding: 6px; width: 100px; vertical-align: middle; background: #fafafa; font-size: 12px;">
+                    <div style="margin-bottom: 4px; font-size: 11px;">Who: _________</div>
+                    <div style="border-bottom: 1px solid #333; height: 18px;"></div>
+                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Sign</div>
                 </td>
             </tr>
         `;
@@ -2348,24 +2483,45 @@ function generatePhasesPage() {
     return `
         <h1 class="ps-section-title">6. Phases / Timeline</h1>
         
-        <div style="margin-bottom: 15px;">
-            <div style="display: flex; gap: 20px; font-size: 10px; color: #666;">
+        <!-- GANTT CHART - FIX 1: width 100%, no overflow -->
+        <div style="margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px; overflow: hidden;">
+            <div style="background: #2d3748; color: #fff; padding: 8px 12px; font-size: 12px; font-weight: 600;">
+                📊 Project Timeline (Gantt View)
+            </div>
+            
+            <!-- Date Axis - 100% width -->
+            <div style="display: flex; border-bottom: 1px solid #ccc; background: #f9f9f9; width: 100%;">
+                ${dateAxisCells.join('')}
+            </div>
+            
+            <!-- Gantt Bars - 100% width, no scroll -->
+            <div style="position: relative; height: ${barsH}px; background: #fafafa; width: 100%;">
+                ${ganttBars}
+            </div>
+        </div>
+        
+        <!-- LEGEND -->
+        <div style="margin-bottom: 12px;">
+            <div style="display: flex; gap: 20px; font-size: 11px; color: #666;">
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <div style="width: 14px; height: 14px; background: #547d56; border-radius: 3px;"></div>
-                    <span>Planned (from system)</span>
+                    <span>Planned</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <div style="width: 14px; height: 14px; background: #e5e5e5; border: 1px dashed #999; border-radius: 3px;"></div>
-                    <span>Actual (fill manually)</span>
+                    <span>Actual (fill)</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <div style="width: 14px; height: 14px; border: 1.5px solid #333; background: #fff;"></div>
-                    <span>Δ Days = difference vs planned (mark one)</span>
+                    <span style="color: #22c55e; font-weight: bold;">−</span>
+                    <span>Ahead</span>
+                    <span style="color: #ef4444; font-weight: bold; margin-left: 5px;">+</span>
+                    <span>Behind schedule</span>
                 </div>
             </div>
         </div>
         
-        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+        <!-- TABLE -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <thead>
                 <tr style="background: #2d3748; color: white;">
                     <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Phase</th>
@@ -2373,14 +2529,14 @@ function generatePhasesPage() {
                     <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Planned</th>
                     <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Actual</th>
                     <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Δ Days</th>
-                    <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Sign</th>
+                    <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Who / Sign</th>
                 </tr>
             </thead>
             <tbody>${rows}</tbody>
         </table>
         
-        <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #3b82f6; font-size: 10px;">
-            <strong>📝 Instructions:</strong> Fill Actual dates after each phase completion. Mark Δ Days checkbox to indicate how many days ahead (-) or behind (+) schedule. Sign off each phase.
+        <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border-left: 4px solid #3b82f6; font-size: 11px;">
+            <strong>📝 Instructions:</strong> Fill Actual dates after each phase. Write days difference in − (ahead) or + (behind) box. Sign off each phase.
         </div>
     `;
 }
