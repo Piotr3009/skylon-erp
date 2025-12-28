@@ -1777,6 +1777,13 @@ function generateBOMPage() {
         grouped[type].push(el);
     });
     
+    // Helper function for full element ID with project prefix
+    const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+    const getFullId = (el) => {
+        const elId = el.element_id || '-';
+        return projectPrefix ? `${projectPrefix}-${elId}` : elId;
+    };
+    
     // Define columns for each type
     const typeColumns = {
         sash: {
@@ -1785,7 +1792,7 @@ function generateBOMPage() {
             render: (el, idx) => {
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
@@ -1806,7 +1813,7 @@ function generateBOMPage() {
             render: (el, idx) => {
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
@@ -1828,7 +1835,7 @@ function generateBOMPage() {
                 const openDir = el.door_handing === 'Left' ? 'LH' : (el.door_handing === 'Right' ? 'RH' : (el.door_handing || '-'));
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
@@ -1853,7 +1860,7 @@ function generateBOMPage() {
                 const openDir = el.door_handing === 'Left' ? 'LH' : (el.door_handing === 'Right' ? 'RH' : (el.door_handing || '-'));
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
@@ -1875,7 +1882,7 @@ function generateBOMPage() {
             render: (el, idx) => {
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
@@ -1897,7 +1904,7 @@ function generateBOMPage() {
             render: (el, idx) => {
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
@@ -1920,7 +1927,7 @@ function generateBOMPage() {
             render: (el, idx) => {
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.height || '-'}</td>
@@ -1942,7 +1949,7 @@ function generateBOMPage() {
             render: (el, idx) => {
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty || 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.item_type || '-'}</td>
@@ -1960,7 +1967,7 @@ function generateBOMPage() {
             render: (el, idx) => {
                 return `
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; color: #4a9eff;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty || 1}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.width || '-'}</td>
@@ -2792,7 +2799,7 @@ function generateDispatchCheckListPage() {
                         <tbody>${elements.map(el => `
                             <tr>
                                 <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
-                                <td style="border: 1px solid #ddd; padding: 5px; color: #4a9eff; font-weight: 600;">${el.element_id || '-'}</td>
+                                <td style="border: 1px solid #ddd; padding: 5px; color: #4a9eff; font-weight: 600;">${getFullId(el)}</td>
                                 <td style="border: 1px solid #ddd; padding: 5px;">${el.name || '-'}</td>
                                 <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${el.qty || 1}</td>
                             </tr>
@@ -3055,7 +3062,7 @@ function generateBOMSection() {
             
             html += `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.element_id || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${getFullId(el)}</td>
                     <td style="border: 1px solid #ddd; padding: 8px;">${el.name}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${dims}</td>
@@ -3105,7 +3112,7 @@ function generateCutListSection() {
         elementsWithDims.forEach(el => {
             html += `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${el.element_id || ''} ${el.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${el.element_id ? ((projectData.project?.project_number || '').split('/')[0] || '') + '-' + el.element_id : ''} ${el.name}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${el.qty}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${el.width}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${el.height}</td>

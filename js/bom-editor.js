@@ -293,9 +293,10 @@ function renderBomForm(type) {
     const row1 = document.getElementById('bomFormRow1');
     if (hasDimensions) {
         // Compact layout: ID | Name | W | H | D | Qty (all in one row)
-        row1.style.gridTemplateColumns = config.hasQty ? '70px 1fr 70px 70px 70px 50px' : '70px 1fr 70px 70px 70px';
+        const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || 'XXX';
+        row1.style.gridTemplateColumns = config.hasQty ? '100px 1fr 70px 70px 70px 50px' : '100px 1fr 70px 70px 70px';
         row1.innerHTML = `
-            <div><label style="${labelStyle}">ID</label><input type="text" id="bomFieldId" placeholder="${config.prefix}-001" style="${inputStyle}"></div>
+            <div><label style="${labelStyle}">ID</label><div style="display: flex; align-items: center; gap: 2px;"><span style="color: #4a9eff; font-size: 12px;">${projectPrefix}-</span><input type="text" id="bomFieldId" placeholder="${config.prefix}-001" style="${inputStyle}; flex: 1;"></div></div>
             <div><label style="${labelStyle}">Name *</label><input type="text" id="bomFieldName" placeholder="e.g. Living Room" style="${inputStyle}"></div>
             <div><label style="${labelStyle}">W (mm)</label><input type="number" id="bomField_width" placeholder="600" style="${inputStyle}"></div>
             <div><label style="${labelStyle}">H (mm)</label><input type="number" id="bomField_height" placeholder="720" style="${inputStyle}"></div>
@@ -304,9 +305,10 @@ function renderBomForm(type) {
         `;
     } else {
         // Standard layout without dimensions
-        row1.style.gridTemplateColumns = config.hasQty ? '80px 1fr 60px' : '80px 1fr';
+        const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || 'XXX';
+        row1.style.gridTemplateColumns = config.hasQty ? '100px 1fr 60px' : '100px 1fr';
         row1.innerHTML = `
-            <div><label style="${labelStyle}">ID</label><input type="text" id="bomFieldId" placeholder="${config.prefix}-001" style="${inputStyle}"></div>
+            <div><label style="${labelStyle}">ID</label><div style="display: flex; align-items: center; gap: 2px;"><span style="color: #4a9eff; font-size: 12px;">${projectPrefix}-</span><input type="text" id="bomFieldId" placeholder="${config.prefix}-001" style="${inputStyle}; flex: 1;"></div></div>
             <div><label style="${labelStyle}">Name *</label><input type="text" id="bomFieldName" placeholder="e.g. Living Room" style="${inputStyle}"></div>
             ${config.hasQty ? `<div><label style="${labelStyle}">Qty</label><input type="number" id="bomFieldQty" value="1" min="1" style="${inputStyle}"></div>` : ''}
         `;
@@ -701,9 +703,11 @@ function renderBomTable() {
         let sizeStr = '-';
         if (el.width && el.height) { sizeStr = `${el.width} x ${el.height}`; if (el.depth) sizeStr += ` x ${el.depth}`; }
         let details = escapeHtml(getElementDetails(el));
+        const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+        const fullElementId = projectPrefix ? `${projectPrefix}-${el.element_id || '-'}` : (el.element_id || '-');
         return `
             <tr style="border-bottom: 1px solid #3e3e42; ${isAdditional ? 'background: #1a2a1a;' : ''}">
-                <td style="padding: 10px; color: ${isAdditional ? '#22c55e' : '#4a9eff'}; font-weight: 600;">${escapeHtml(el.element_id) || '-'}</td>
+                <td style="padding: 10px; color: ${isAdditional ? '#22c55e' : '#4a9eff'}; font-weight: 600;">${escapeHtml(fullElementId)}</td>
                 <td style="padding: 10px;"><span style="background: ${isAdditional ? '#22c55e' : '#3e3e42'}; color: ${isAdditional ? '#000' : '#fff'}; padding: 2px 8px; border-radius: 4px; font-size: 10px;">${escapeHtml(typeLabel)}</span></td>
                 <td style="padding: 10px;"><div style="color: #e8e2d5;">${escapeHtml(el.name)}</div>${el.description ? `<div style="font-size: 10px; color: #888; margin-top: 2px;">${escapeHtml(el.description)}</div>` : ''}</td>
                 <td style="padding: 10px; text-align: center;">${sizeStr}</td>
