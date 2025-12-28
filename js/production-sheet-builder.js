@@ -2368,8 +2368,13 @@ function generatePhasesPage() {
         const endDay = toUtcDay(p.end_date);
         const startOffset = startDay - minDay;
         const calendarDays = daysInclusive(p.start_date, p.end_date); // For bar WIDTH (visual)
-        const displayDays = p.work_days || workingDaysBetween(p.start_date, p.end_date); // For LABEL (working days)
+        const workDays = Number.isFinite(p.work_days) && p.work_days > 0 
+            ? p.work_days 
+            : workingDaysBetween(p.start_date, p.end_date);
         const color = getPhaseColor(p.phase_key || p.phase_label);
+        
+        // Label shows both: work days / calendar days
+        const labelDays = workDays !== calendarDays ? `${workDays}wd/${calendarDays}cd` : `${calendarDays}d`;
         
         // Find original index for label
         const origIdx = phases.indexOf(p);
@@ -2405,24 +2410,32 @@ function generatePhasesPage() {
                 border: 1px solid rgba(255,255,255,0.2);
             ">
                 <div style="font-weight: 600; font-size: 11px; overflow: hidden; text-overflow: ellipsis;">${label}</div>
-                <div style="font-size: 10px; opacity: 0.9;">(${displayDays}d) ${assigned}</div>
+                <div style="font-size: 10px; opacity: 0.9;">(${labelDays}) ${assigned}</div>
             </div>
         `;
     }).join('');
     
-    // Calculate max days for bar width in table (use work_days or calculate working days)
-    const maxDays = Math.max(1, ...phases.map(ph => ph.work_days || workingDaysBetween(ph.start_date, ph.end_date)));
+    // Calculate max calendar days for bar width in table
+    const maxCalendarDays = Math.max(1, ...phases.map(ph => daysInclusive(ph.start_date, ph.end_date)));
     
     // Generate table rows (all phases, even without dates)
     const rows = phases.map((p, idx) => {
         const phaseKey = p.phase_key || p.phase_label || '';
         const color = getPhaseColor(phaseKey);
-        const daysNum = p.work_days || workingDaysBetween(p.start_date, p.end_date); // Use work_days!
-        const daysDisplay = daysNum > 0 ? daysNum : '-';
+        const calendarDays = daysInclusive(p.start_date, p.end_date);
+        const workDays = Number.isFinite(p.work_days) && p.work_days > 0 
+            ? p.work_days 
+            : workingDaysBetween(p.start_date, p.end_date);
+        
+        // Show both: work days / calendar days (or just calendar if same)
+        const daysDisplay = calendarDays > 0 
+            ? (workDays !== calendarDays ? `${workDays}wd/${calendarDays}cd` : `${calendarDays}d`)
+            : '-';
         const assigned = getAssignedName(p);
         const label = numberedLabels[idx];
         
-        const barWidthPercent = daysNum > 0 ? Math.max(25, (daysNum / maxDays) * 100) : 25;
+        // Min 5% so short phases are still visible
+        const barWidthPercent = calendarDays > 0 ? Math.max(5, (calendarDays / maxCalendarDays) * 100) : 5;
         
         return `
             <tr>
@@ -2447,7 +2460,7 @@ function generatePhasesPage() {
                         box-shadow: 0 1px 2px rgba(0,0,0,0.2);
                         width: ${barWidthPercent}%;
                     ">
-                        ${daysDisplay}d • ${assigned}
+                        ${daysDisplay} • ${assigned}
                     </div>
                     <div style="
                         background: #e5e5e5;
@@ -2520,7 +2533,7 @@ function generatePhasesPage() {
         
         <!-- LEGEND -->
         <div style="margin-bottom: 12px;">
-            <div style="display: flex; gap: 20px; font-size: 11px; color: #666;">
+            <div style="display: flex; gap: 20px; font-size: 11px; color: #666; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <div style="width: 14px; height: 14px; background: #547d56; border-radius: 3px;"></div>
                     <span>Planned</span>
@@ -2534,6 +2547,9 @@ function generatePhasesPage() {
                     <span>Ahead</span>
                     <span style="color: #ef4444; font-weight: bold; margin-left: 5px;">+</span>
                     <span>Behind schedule</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px; border-left: 1px solid #ccc; padding-left: 10px;">
+                    <span><strong>wd</strong> = work days, <strong>cd</strong> = calendar days</span>
                 </div>
             </div>
         </div>
