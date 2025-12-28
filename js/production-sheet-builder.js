@@ -212,7 +212,6 @@ async function loadAllData() {
         }));
         
         
-        
         // 4. Load materials
         const { data: materials, error: materialsError } = await supabaseClient
             .from('project_materials')
@@ -2355,28 +2354,25 @@ function generatePhasesPage() {
         `);
     }
 
-    // Gantt bars
+    // Gantt bars - WIDTH based on work_days (like main Gantt uses computeEnd)
     let barIndex = 0;
     const ganttBars = phasesWithDates.map(p => {
         const startDay = toUtcDay(p.start_date);
-        const endDay = toUtcDay(p.end_date);
-        const startOffset = startDay - minDay;
-
-        const calendarDays = daysInclusive(p.start_date, p.end_date); // width uses calendar days
         const workDays = getWorkDays(p) ?? workingDaysBetweenUtc(p.start_date, p.end_date);
+        
+        // Width = work_days (same as main Gantt which uses computeEnd)
+        const startOffset = startDay - minDay;
 
         const color = getPhaseColor(p.phase_key || p.phase_label);
         const origIdx = phases.indexOf(p);
         const label = numberedLabels[origIdx] || (p.phase_label || p.phase_key || 'Phase');
         const assigned = getAssignedName(p);
 
-        const labelDays = `${workDays}wd / ${calendarDays}cd`;
-
         const top = 4 + barIndex * (barH + gap);
         barIndex++;
 
         const leftPercent = (startOffset / totalDays) * 100;
-        const widthPercent = (calendarDays / totalDays) * 100;
+        const widthPercent = (workDays / totalDays) * 100;
 
         return `
             <div style="
@@ -2384,6 +2380,7 @@ function generatePhasesPage() {
                 top: ${top}px;
                 left: ${leftPercent}%;
                 width: ${widthPercent}%;
+                min-width: 30px;
                 height: ${barH}px;
                 background: ${color};
                 border-radius: 4px;
@@ -2401,31 +2398,24 @@ function generatePhasesPage() {
                 border: 1px solid rgba(255,255,255,0.2);
             ">
                 <div style="font-weight: 600; font-size: 11px; overflow: hidden; text-overflow: ellipsis;">${label}</div>
-                <div style="font-size: 10px; opacity: 0.9;">(${labelDays}) ${assigned}</div>
+                <div style="font-size: 10px; opacity: 0.9;">(${workDays}d) ${assigned}</div>
             </div>
         `;
     }).join('');
 
-    // Table bar scaling: use workDays if present else calendarDays
+    // Table bar scaling: use workDays
     const maxDays = Math.max(
         1,
-        ...phases.map(ph => {
-            const cd = daysInclusive(ph.start_date, ph.end_date);
-            const wd = getWorkDays(ph);
-            return wd ?? (cd || 0);
-        })
+        ...phases.map(ph => getWorkDays(ph) ?? workingDaysBetweenUtc(ph.start_date, ph.end_date) ?? 1)
     );
 
     // Table rows (all phases)
     const rows = phases.map((p, idx) => {
         const color = getPhaseColor(p.phase_key || p.phase_label || '');
-        const calendarDays = daysInclusive(p.start_date, p.end_date);
+        const workDays = getWorkDays(p) ?? workingDaysBetweenUtc(p.start_date, p.end_date);
+        const daysDisplay = workDays > 0 ? `${workDays}` : '-';
 
-        const workDays = getWorkDays(p) ?? (calendarDays > 0 ? workingDaysBetweenUtc(p.start_date, p.end_date) : 0);
-        const daysDisplay = calendarDays > 0 ? `${workDays}wd / ${calendarDays}cd` : '-';
-
-        const daysNumForBar = calendarDays > 0 ? (getWorkDays(p) ?? workDays ?? calendarDays) : 0;
-        const barWidthPercent = daysNumForBar > 0 ? Math.max(3, (daysNumForBar / maxDays) * 100) : 0;
+        const barWidthPercent = workDays > 0 ? Math.max(10, (workDays / maxDays) * 100) : 0;
 
         const assigned = getAssignedName(p);
         const label = numberedLabels[idx];
@@ -2452,8 +2442,9 @@ function generatePhasesPage() {
                         margin-bottom: 6px;
                         box-shadow: 0 1px 2px rgba(0,0,0,0.2);
                         width: ${barWidthPercent}%;
+                        min-width: 60px;
                     ">
-                        ${daysDisplay} • ${assigned}
+                        ${daysDisplay}d • ${assigned}
                     </div>
                     <div style="
                         background: #e5e5e5;
@@ -2465,6 +2456,7 @@ function generatePhasesPage() {
                         height: 22px;
                         line-height: 14px;
                         width: ${barWidthPercent}%;
+                        min-width: 60px;
                     ">
                         Actual: ___d
                     </div>
@@ -2536,9 +2528,6 @@ function generatePhasesPage() {
                     <span>Ahead</span>
                     <span style="color: #ef4444; font-weight: bold; margin-left: 5px;">+</span>
                     <span>Behind schedule</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 5px; border-left: 1px solid #ccc; padding-left: 10px;">
-                    <span><strong>wd</strong> = work days, <strong>cd</strong> = calendar days</span>
                 </div>
             </div>
         </div>
