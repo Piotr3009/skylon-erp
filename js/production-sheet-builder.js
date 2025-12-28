@@ -41,6 +41,13 @@ let projectData = {
     attachments: []
 };
 
+// Helper function for full element ID with project prefix
+function getFullId(el) {
+    const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+    const elId = el.element_id || '-';
+    return projectPrefix ? `${projectPrefix}-${elId}` : elId;
+}
+
 // URL params
 const urlParams = new URLSearchParams(window.location.search);
 const projectId = urlParams.get('project_id');
@@ -1776,13 +1783,6 @@ function generateBOMPage() {
         if (!grouped[type]) grouped[type] = [];
         grouped[type].push(el);
     });
-    
-    // Helper function for full element ID with project prefix
-    const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
-    const getFullId = (el) => {
-        const elId = el.element_id || '-';
-        return projectPrefix ? `${projectPrefix}-${elId}` : elId;
-    };
     
     // Define columns for each type
     const typeColumns = {
