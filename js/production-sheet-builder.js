@@ -590,10 +590,35 @@ function createChecklistItem(item, sectionKey) {
     return div;
 }
 
-// ========== DESCRIPTION MODAL ==========
+// ========== DESCRIPTION MODAL (WYSIWYG) ==========
 function openDescriptionModal() {
-    document.getElementById('descriptionModalText').value = scopeDescription;
+    const editor = document.getElementById('descriptionEditor');
+    editor.innerHTML = scopeDescription || '<p>Enter production description here...</p>';
+    updateDescriptionPreview();
     document.getElementById('psDescriptionModal').classList.add('active');
+    editor.focus();
+}
+
+function closeDescriptionModal() {
+    document.getElementById('psDescriptionModal').classList.remove('active');
+}
+
+function formatText(command, value = null) {
+    document.execCommand(command, false, value);
+    document.getElementById('descriptionEditor').focus();
+    updateDescriptionPreview();
+}
+
+function clearFormatting() {
+    document.execCommand('removeFormat', false, null);
+    document.getElementById('descriptionEditor').focus();
+    updateDescriptionPreview();
+}
+
+function updateDescriptionPreview() {
+    const editor = document.getElementById('descriptionEditor');
+    const preview = document.getElementById('descriptionPreview');
+    preview.innerHTML = editor.innerHTML;
 }
 
 // ========== EDIT NOTE MODAL ==========
@@ -652,11 +677,6 @@ async function resetEditedNote() {
     await autoSaveSnapshot();
     
     showToast('Reset to original', 'info');
-}
-
-// ========== PRODUCTION DESCRIPTION MODAL ==========
-function closeDescriptionModal() {
-    document.getElementById('psDescriptionModal').classList.remove('active');
 }
 
 // ========== PHOTOS MULTI-SELECT ==========
@@ -793,7 +813,7 @@ async function selectProjectFile(filePath, fileUrl, fileName) {
 // File upload is now handled by project-files.js
 
 async function saveDescription() {
-    scopeDescription = document.getElementById('descriptionModalText').value;
+    scopeDescription = document.getElementById('descriptionEditor').innerHTML;
     closeDescriptionModal();
     
     // Update UI
@@ -892,8 +912,11 @@ function updateDescriptionUI() {
     const btnEl = document.getElementById('btn-SCOPE_DESCRIPTION');
     const iconEl = document.getElementById('icon-SCOPE_DESCRIPTION');
     
-    if (scopeDescription.trim()) {
-        metaEl.textContent = `${scopeDescription.trim().length} characters`;
+    // Extract text from HTML for display
+    const textContent = getTextFromHtml(scopeDescription);
+    
+    if (textContent.trim()) {
+        metaEl.textContent = `${textContent.trim().length} characters`;
         btnEl.textContent = '✎ Edit';
         btnEl.classList.remove('upload');
         iconEl.textContent = '✅';
@@ -904,12 +927,21 @@ function updateDescriptionUI() {
     }
 }
 
+// Helper to get plain text from HTML
+function getTextFromHtml(html) {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+}
+
 // Handle scope description change (legacy - keeping for compatibility)
 function handleScopeDescriptionChange(value) {
     scopeDescription = value;
+    const textContent = getTextFromHtml(value);
     checklistStatus['SCOPE_DESCRIPTION'] = {
-        done: value.trim().length > 0,
-        meta: value.trim().length > 0 ? `${value.trim().length} characters` : 'Optional'
+        done: textContent.trim().length > 0,
+        meta: textContent.trim().length > 0 ? `${textContent.trim().length} characters` : 'Optional'
     };
     updateProgress();
 }
@@ -962,8 +994,9 @@ async function checkItem(item) {
             break;
         
         case 'SCOPE_DESCRIPTION':
-            result.done = scopeDescription.trim().length > 0;
-            result.meta = scopeDescription.trim().length > 0 ? `${scopeDescription.trim().length} characters` : 'Optional';
+            const descText = getTextFromHtml(scopeDescription);
+            result.done = descText.trim().length > 0;
+            result.meta = descText.trim().length > 0 ? `${descText.trim().length} characters` : 'Optional';
             break;
             
         case 'SCOPE_URGENT_NOTES':
@@ -1653,10 +1686,10 @@ function generateScopePage() {
                 </div>
                 
                 <div style="overflow: hidden;">
-                    ${scopeDescription.trim() ? `
+                    ${getTextFromHtml(scopeDescription).trim() ? `
                         <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
                         <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; overflow: hidden;">
-                            <div style="white-space: pre-wrap; font-size: 16px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-all;">${scopeDescription}</div>
+                            <div style="font-size: 16px; line-height: 1.6;">${scopeDescription}</div>
                         </div>
                     ` : ''}
                 </div>
@@ -2932,10 +2965,10 @@ function generateScopeSection() {
                 <strong>Project Type:</strong> ${project?.type || 'N/A'}
             </div>
             
-            ${scopeDescription.trim() ? `
+            ${getTextFromHtml(scopeDescription).trim() ? `
                 <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-bottom: 15px;">
                     <strong style="color: #1565c0;">📋 Production Description:</strong>
-                    <div style="white-space: pre-wrap; margin-top: 10px;">${scopeDescription}</div>
+                    <div style="margin-top: 10px; line-height: 1.6;">${scopeDescription}</div>
                 </div>
             ` : ''}
             
