@@ -592,8 +592,7 @@ function createChecklistItem(item, sectionKey) {
 // ========== DESCRIPTION MODAL (WYSIWYG) ==========
 function openDescriptionModal() {
     const editor = document.getElementById('descriptionEditor');
-    editor.innerHTML = scopeDescription || '<p>Enter production description here...</p>';
-    updateDescriptionPreview();
+    editor.innerHTML = scopeDescription || '';
     document.getElementById('psDescriptionModal').classList.add('active');
     editor.focus();
 }
@@ -605,19 +604,13 @@ function closeDescriptionModal() {
 function formatText(command, value = null) {
     document.execCommand(command, false, value);
     document.getElementById('descriptionEditor').focus();
-    updateDescriptionPreview();
 }
 
-function clearFormatting() {
-    document.execCommand('removeFormat', false, null);
-    document.getElementById('descriptionEditor').focus();
-    updateDescriptionPreview();
-}
-
-function updateDescriptionPreview() {
-    const editor = document.getElementById('descriptionEditor');
-    const preview = document.getElementById('descriptionPreview');
-    preview.innerHTML = editor.innerHTML;
+function applyColor(color) {
+    if (color) {
+        document.execCommand('foreColor', false, color);
+        document.getElementById('descriptionEditor').focus();
+    }
 }
 
 // ========== EDIT NOTE MODAL ==========
