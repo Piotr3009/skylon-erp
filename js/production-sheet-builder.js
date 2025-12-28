@@ -181,12 +181,36 @@ async function loadAllData() {
         const phasesTable = projectStage === 'pipeline' ? 'pipeline_phases' : 'project_phases';
         const phasesFK = projectStage === 'pipeline' ? 'pipeline_project_id' : 'project_id';
         
-        const { data: phases } = await supabaseClient
+        const { data: phases, error: phasesError } = await supabaseClient
             .from(phasesTable)
-            .select('*, team_members(name)')
+            .select('*')
             .eq(phasesFK, projectId)
             .order('order_position', { ascending: true });
-        projectData.phases = phases || [];
+        
+        if (phasesError) console.error('[PS] phasesError:', phasesError);
+        
+        const safePhases = phases || [];
+        const assignedIds = [...new Set(safePhases.map(p => p.assigned_to).filter(Boolean))];
+        
+        let memberMap = {};
+        if (assignedIds.length > 0) {
+            const { data: members, error: membersError } = await supabaseClient
+                .from('team_members')
+                .select('id, name')
+                .in('id', assignedIds);
+            
+            if (membersError) console.error('[PS] membersError:', membersError);
+            
+            (members || []).forEach(m => memberMap[m.id] = m.name);
+        }
+        
+        projectData.phases = safePhases.map(p => ({
+            ...p,
+            assigned_name: memberMap[p.assigned_to] || ''
+        }));
+        
+        console.log('[PS] phases loaded:', projectData.phases);
+        console.log('[PHASE SAMPLE]', projectData.phases?.[0]);
         
         // 4. Load materials
         const { data: materials, error: materialsError } = await supabaseClient
@@ -547,7 +571,7 @@ function openSelectFilesModal(key, folder) {
     // Open Project Files modal directly with project data
     openProjectFilesModalDirect(
         currentProject.id,
-        currentProject.projectNumber,
+        currentProject.project_number,
         currentProject.name,
         'production'
     );
@@ -2064,8 +2088,14 @@ function generateSprayingPage() {
 }
 
 // ========== PAGE: PHASES / TIMELINE ==========
+// ========== PAGE: PHASES / TIMELINE ==========
+function getAssignedName(p) {
+    return (p?.assigned_name || '').trim() || '-';
+}
+
 function generatePhasesPage() {
-    const phases = projectData.phases;
+    const phases = Array.isArray(projectData.phases) ? projectData.phases : [];
+    console.log('generatePhasesPage - phases:', phases);
     
     if (phases.length === 0) {
         return `
@@ -2074,18 +2104,16 @@ function generatePhasesPage() {
         `;
     }
     
-    // PLANNED section - data from system
-    let plannedRows = phases.map(p => `
+    const plannedRows = phases.map(p => `
         <tr>
             <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500;">${p.phase_name || p.phase_key || 'N/A'}</td>
             <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : '-'}</td>
             <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${p.end_date ? new Date(p.end_date).toLocaleDateString('en-GB') : '-'}</td>
-            <td style="border: 1px solid #ccc; padding: 8px;">${p.team_members?.name || p.assigned_to || '-'}</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">${getAssignedName(p)}</td>
         </tr>
     `).join('');
     
-    // ACTUAL section - empty rows for manual entry
-    let actualRows = phases.map(p => `
+    const actualRows = phases.map(p => `
         <tr>
             <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500; background: #f9f9f9;">${p.phase_name || p.phase_key || 'N/A'}</td>
             <td style="border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px;"></td>
@@ -2100,8 +2128,6 @@ function generatePhasesPage() {
         <h1 class="ps-section-title">6. Phases / Timeline</h1>
         
         <div style="display: flex; flex-direction: column; height: calc(100% - 40px); gap: 20px;">
-            
-            <!-- PLANNED - from system -->
             <div style="flex: 1;">
                 <h3 style="color: #333; margin-bottom: 10px; font-size: 14px; border-bottom: 2px solid #4a9eff; padding-bottom: 5px;">
                     📋 PLANNED (from system)
@@ -2115,13 +2141,10 @@ function generatePhasesPage() {
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Assigned To</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${plannedRows}
-                    </tbody>
+                    <tbody>${plannedRows}</tbody>
                 </table>
             </div>
             
-            <!-- ACTUAL - for manual entry -->
             <div style="flex: 1;">
                 <h3 style="color: #333; margin-bottom: 10px; font-size: 14px; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">
                     ✏️ ACTUAL (to be filled by Production Manager / Joiner)
@@ -2137,12 +2160,9 @@ function generatePhasesPage() {
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Sign</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${actualRows}
-                    </tbody>
+                    <tbody>${actualRows}</tbody>
                 </table>
             </div>
-            
         </div>
     `;
 }
