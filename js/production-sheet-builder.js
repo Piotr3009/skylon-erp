@@ -28,6 +28,7 @@ let editedNotes = {}; // Edited copies of important notes (key = note index)
 let originalImportantNotes = []; // Cache of original important notes for edit modal
 let selectedPhotos = []; // Selected photos for PS (multi-select)
 let selectedDrawings = []; // Selected drawings for PS (multi-select)
+let filesDirty = false; // Flag for unsaved photos/drawings selection
 let projectData = {
     project: null,
     client: null,
@@ -286,6 +287,54 @@ async function loadAllData() {
             if (existingSheet.snapshot_json?.editedNotes) {
                 editedNotes = existingSheet.snapshot_json.editedNotes;
             }
+            
+            // Load selected photos from snapshot - validate against existing files
+            if (existingSheet.snapshot_json?.selectedPhotoIds?.length > 0) {
+                const savedPhotoIds = existingSheet.snapshot_json.selectedPhotoIds;
+                const validFiles = projectData.files.filter(f => savedPhotoIds.includes(f.id));
+                const missingCount = savedPhotoIds.length - validFiles.length;
+                
+                // Map to format expected by preview (name, url)
+                selectedPhotos = validFiles.map(f => {
+                    const { data: urlData } = supabaseClient.storage.from('project-documents').getPublicUrl(f.file_path);
+                    return {
+                        id: f.id,
+                        name: f.file_name,
+                        url: urlData.publicUrl,
+                        path: f.file_path,
+                        type: f.file_type
+                    };
+                });
+                
+                if (missingCount > 0) {
+                    console.warn(`${missingCount} photo(s) no longer available`);
+                    showToast(`${missingCount} photo(s) no longer available`, 'warning');
+                }
+            }
+            
+            // Load selected drawings from snapshot - validate against existing files
+            if (existingSheet.snapshot_json?.selectedDrawingIds?.length > 0) {
+                const savedDrawingIds = existingSheet.snapshot_json.selectedDrawingIds;
+                const validFiles = projectData.files.filter(f => savedDrawingIds.includes(f.id));
+                const missingCount = savedDrawingIds.length - validFiles.length;
+                
+                // Map to format expected by preview (name, url)
+                selectedDrawings = validFiles.map(f => {
+                    const { data: urlData } = supabaseClient.storage.from('project-documents').getPublicUrl(f.file_path);
+                    return {
+                        id: f.id,
+                        name: f.file_name,
+                        url: urlData.publicUrl,
+                        path: f.file_path,
+                        type: f.file_type
+                    };
+                });
+                
+                if (missingCount > 0) {
+                    console.warn(`${missingCount} drawing(s) no longer available`);
+                    showToast(`${missingCount} drawing(s) no longer available`, 'warning');
+                }
+            }
         }
         
     } catch (err) {
@@ -528,6 +577,8 @@ function openPhotosSelectModal() {
         selectedPhotos,
         (files) => {
             selectedPhotos = files;
+            filesDirty = true;
+            updateFilesDirtyBadge();
             checkAllItems();
             updateProgress();
             generatePreview();
@@ -548,6 +599,8 @@ function openDrawingsSelectModal() {
         selectedDrawings,
         (files) => {
             selectedDrawings = files;
+            filesDirty = true;
+            updateFilesDirtyBadge();
             checkAllItems();
             updateProgress();
             generatePreview();
@@ -685,9 +738,11 @@ async function autoSaveSnapshot() {
         
         if (error) {
             console.error('Auto-save error:', error);
+            showToast('⚠ Autosave failed - changes may not be saved', 'warning');
         }
     } catch (err) {
         console.error('Auto-save failed:', err);
+        showToast('⚠ Autosave failed - changes may not be saved', 'warning');
     }
 }
 
@@ -1200,7 +1255,9 @@ async function saveAndClose() {
         const partialSnapshot = {
             scopeDescription: scopeDescription,
             sprayDescription: sprayDescription,
-            editedNotes: editedNotes
+            editedNotes: editedNotes,
+            selectedPhotoIds: selectedPhotos.map(f => f.id),
+            selectedDrawingIds: selectedDrawings.map(f => f.id)
         };
         
         // Save current state to sheet
@@ -1217,6 +1274,10 @@ async function saveAndClose() {
         
         if (error) throw error;
         
+        // Reset dirty flag after successful save
+        filesDirty = false;
+        updateFilesDirtyBadge();
+        
         showToast('Draft saved!', 'success');
         
         // Navigate back after short delay
@@ -1229,6 +1290,37 @@ async function saveAndClose() {
         showToast('Error saving: ' + err.message, 'error');
     }
 }
+
+// ========== FILES DIRTY BADGE ==========
+function updateFilesDirtyBadge() {
+    let badge = document.getElementById('filesDirtyBadge');
+    
+    if (filesDirty) {
+        if (!badge) {
+            // Create badge next to Save & Close button
+            const saveBtn = document.querySelector('button[onclick="saveAndClose()"]');
+            if (saveBtn) {
+                badge = document.createElement('span');
+                badge.id = 'filesDirtyBadge';
+                badge.style.cssText = 'background: #f59e0b; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 10px;';
+                badge.textContent = '⚠ Not saved';
+                saveBtn.parentNode.insertBefore(badge, saveBtn.nextSibling);
+            }
+        }
+        if (badge) badge.style.display = 'inline';
+    } else {
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+// ========== BEFOREUNLOAD WARNING ==========
+window.addEventListener('beforeunload', (e) => {
+    if (filesDirty) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes in Photos/Drawings. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+});
 
 // ========== NAVIGATION ==========
 function goToSection(section) {
