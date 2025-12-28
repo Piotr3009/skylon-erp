@@ -211,7 +211,13 @@ async function loadAllData() {
             assigned_name: memberMap[p.assigned_to] || ''
         }));
         
-        
+        // DEBUG: sprawdź work_days
+        console.log('[PS DEBUG] Phases with work_days:', projectData.phases.map(p => ({
+            label: p.phase_label,
+            work_days: p.work_days,
+            start: p.start_date,
+            end: p.end_date
+        })));
         
         
         // 4. Load materials
@@ -1017,7 +1023,9 @@ function updateItemUI(key, status) {
     // Update meta
     if (metaEl && status.meta) {
         const item = checklistItems.find(i => i.key === key);
-        metaEl.textContent = status.meta + (item && !item.required ? ' • Optional' : '');
+        // Only add "Optional" if not already present and item is optional
+        const needsOptional = item && !item.required && !status.meta.includes('Optional');
+        metaEl.textContent = status.meta + (needsOptional ? ' • Optional' : '');
     }
 }
 
