@@ -109,8 +109,7 @@ const CHECKLIST_SECTIONS = [
         icon: '🎨',
         conditional: true, // tylko jeśli projekt ma fazę spray
         items: [
-            { key: 'SPRAY_DESCRIPTION', label: 'Spray Instructions', source: 'MANUAL', required: false, isSprayText: true },
-            { key: 'SPRAY_DISCLAIMER', label: 'Spraying Manager Notice', source: 'INFO', required: false, isDisclaimer: true }
+            { key: 'SPRAY_DESCRIPTION', label: 'Spray Instructions', source: 'MANUAL', required: false, isSprayText: true }
         ]
     },
     {
@@ -1219,11 +1218,6 @@ async function checkItem(item) {
         case 'SPRAY_DESCRIPTION':
             result.done = sprayDescription.trim().length > 0;
             result.meta = sprayDescription.trim().length > 0 ? `${sprayDescription.trim().length} characters` : 'Optional';
-            break;
-            
-        case 'SPRAY_DISCLAIMER':
-            result.done = true; // Always shown as info
-            result.meta = 'Information';
             break;
             
         // ROUTING
@@ -2414,6 +2408,14 @@ function generateSprayingPage() {
     return `
         <h1 class="ps-section-title">5. Spraying</h1>
         
+        <!-- Disclaimer -->
+        <div style="margin-bottom: 15px; padding: 12px 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 0 6px 6px 0;">
+            <strong style="color: #92400e;">⚠️ Important:</strong>
+            <span style="font-size: 12px; color: #78350f; margin-left: 8px;">
+                Please review ALL project documentation. If any information is unclear, contact Production Manager before proceeding.
+            </span>
+        </div>
+        
         <!-- Spray Settings Summary -->
         <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border: 1px solid #3b82f6; border-radius: 6px;">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
@@ -2472,13 +2474,6 @@ function generateSprayingPage() {
                         </table>
                     </div>
                 `).join('') : '<div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No spray items defined. Add spray items in Element List.</div>'}
-                
-                <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b;">
-                    <strong style="color: #92400e;">⚠️ Spray Manager Notice</strong>
-                    <div style="font-size: 11px; margin-top: 8px; color: #78350f;">
-                        Review BOM section for complete specifications. Check Notes section for special instructions.
-                    </div>
-                </div>
             </div>
             
             <div>
@@ -3306,10 +3301,10 @@ function generateSprayPackSection() {
             
             <!-- DISCLAIMER -->
             <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                <strong style="color: #856404;">⚠️ SPRAYING MANAGER NOTICE:</strong>
-                <p style="margin: 10px 0 0 0; color: #856404; font-size: 12px;">
-                    Please review ALL project documentation - there may be important information for spraying in other sections (Scope, Notes, BOM, etc).
-                </p>
+                <strong style="color: #856404;">⚠️ Important:</strong>
+                <span style="color: #856404; font-size: 12px; margin-left: 8px;">
+                    Please review ALL project documentation. If any information is unclear, contact Production Manager before proceeding.
+                </span>
             </div>
             
             ${sprayDescription.trim() ? `
