@@ -2440,42 +2440,48 @@ function generateSprayingPage() {
             ` : ''}
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-            <div>
-                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Spray Items List (${totalItems} items)</h3>
-                ${colours.length > 0 ? colours.map(colour => `
-                    <div style="margin-bottom: 15px;">
-                        <div style="background: #e99f62; color: white; padding: 8px 12px; font-weight: 600; font-size: 12px; border-radius: 4px 4px 0 0;">
-                            ${colour} (${colourGroups[colour].length} items)
-                        </div>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                            <thead>
-                                <tr style="background: #f5f5f5;">
-                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
-                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
-                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Size (mm)</th>
-                                    <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${colourGroups[colour].map((item, idx) => `
-                                    <tr>
-                                        <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">
-                                            <div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div>
-                                        </td>
-                                        <td style="border: 1px solid #ddd; padding: 6px;">${getSprayItemDisplay(item, idx)}</td>
-                                        <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px;">
-                                            ${item.width || '-'} x ${item.height || '-'}${item.depth ? ` x ${item.depth}` : ''}
-                                        </td>
-                                        <td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; color: #666;">${item.notes || '-'}</td>
+        <!-- Spray Items List -->
+        <div style="margin-bottom: 25px;">
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Spray Items List (${totalItems} items)</h3>
+            ${colours.length > 0 ? `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    ${colours.map(colour => `
+                        <div style="margin-bottom: 15px;">
+                            <div style="background: #e99f62; color: white; padding: 8px 12px; font-weight: 600; font-size: 12px; border-radius: 4px 4px 0 0;">
+                                ${colour} (${colourGroups[colour].length} items)
+                            </div>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <thead>
+                                    <tr style="background: #f5f5f5;">
+                                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
+                                        <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Size (mm)</th>
+                                        <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Notes</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `).join('') : '<div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No spray items defined. Add spray items in Element List.</div>'}
-            </div>
-            
+                                </thead>
+                                <tbody>
+                                    ${colourGroups[colour].map((item, idx) => `
+                                        <tr>
+                                            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">
+                                                <div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div>
+                                            </td>
+                                            <td style="border: 1px solid #ddd; padding: 6px;">${getSprayItemDisplay(item, idx)}</td>
+                                            <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px;">
+                                                ${item.width || '-'} x ${item.height || '-'}${item.depth ? ` x ${item.depth}` : ''}
+                                            </td>
+                                            <td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; color: #666;">${item.notes || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No spray items defined. Add spray items in Element List.</div>'}
+        </div>
+        
+        <!-- Spray Checklist - full width below -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
             <div>
                 <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Spray Checklist</h3>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
@@ -2500,11 +2506,11 @@ function generateSprayingPage() {
                         `).join('')}
                     </tbody>
                 </table>
-                
-                <div style="margin-top: 20px;">
-                    <h4 style="font-size: 12px; margin-bottom: 10px;">Notes:</h4>
-                    <div style="border: 1px solid #ddd; min-height: 100px; padding: 10px;"></div>
-                </div>
+            </div>
+            
+            <div>
+                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Notes:</h3>
+                <div style="border: 1px solid #ddd; min-height: 150px; padding: 10px; background: #fafafa;"></div>
             </div>
         </div>
     `;
