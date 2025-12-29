@@ -2377,6 +2377,13 @@ async function generatePhotoPages() {
 function generateSprayingPage() {
     const sprayItems = projectData.sprayItems || [];
     const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
+    const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+    
+    // Build element lookup map for full ID
+    const elementMap = {};
+    (projectData.elements || []).forEach(el => {
+        if (el.id) elementMap[el.id] = el.element_id || '';
+    });
     
     // Group by colour
     const colourGroups = {};
@@ -2401,18 +2408,44 @@ function generateSprayingPage() {
         'Items ready for assembly'
     ];
     
+    // Build spray item display name with full number
+    const getSprayItemDisplay = (item, idxInGroup) => {
+        const elementCode = elementMap[item.element_id] || '';
+        const itemName = item.item_type || item.name || 'Item';
+        if (projectPrefix && elementCode) {
+            return `${projectPrefix}-${elementCode}-${(item.sort_order || 0) + 1} ${itemName}`;
+        }
+        return item.name || itemName;
+    };
+    
+    // Colour type label
+    const colourTypeLabel = sprayColourType === 'dual' ? 'Dual Colour' : 'Single Colour';
+    
     return `
         <h1 class="ps-section-title">5. Spraying</h1>
         
-        <!-- Sheen Level Input -->
+        <!-- Spray Settings Summary -->
         <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border: 1px solid #3b82f6; border-radius: 6px;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <strong style="color: #1e40af;">Project Sheen Level:</strong>
-                <div style="border: 1px solid #333; padding: 8px 15px; min-width: 150px; background: white;">
-                    _______%
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div>
+                    <strong style="color: #1e40af; font-size: 11px;">Colour Type:</strong>
+                    <div style="font-size: 14px; font-weight: 600; color: #333; margin-top: 3px;">${colourTypeLabel}</div>
                 </div>
-                <span style="color: #666; font-size: 11px;">(e.g. 10%, 20%, Matt, Satin)</span>
+                <div>
+                    <strong style="color: #1e40af; font-size: 11px;">Sheen Level:</strong>
+                    <div style="font-size: 14px; font-weight: 600; color: #333; margin-top: 3px;">${spraySheenLevel || '___________'}</div>
+                </div>
+                <div>
+                    <strong style="color: #1e40af; font-size: 11px;">Colours Defined:</strong>
+                    <div style="font-size: 14px; font-weight: 600; color: #333; margin-top: 3px;">${sprayColours.length > 0 ? sprayColours.join(', ') : 'None'}</div>
+                </div>
             </div>
+            ${sprayDescription ? `
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #3b82f6;">
+                    <strong style="color: #1e40af; font-size: 11px;">Instructions:</strong>
+                    <div style="font-size: 12px; color: #333; margin-top: 3px; white-space: pre-line;">${sprayDescription}</div>
+                </div>
+            ` : ''}
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
@@ -2433,12 +2466,12 @@ function generateSprayingPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${colourGroups[colour].map(item => `
+                                ${colourGroups[colour].map((item, idx) => `
                                     <tr>
                                         <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">
                                             <div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div>
                                         </td>
-                                        <td style="border: 1px solid #ddd; padding: 6px;">${item.name || item.item_type || '-'}</td>
+                                        <td style="border: 1px solid #ddd; padding: 6px;">${getSprayItemDisplay(item, idx)}</td>
                                         <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px;">
                                             ${item.width || '-'} x ${item.height || '-'}${item.depth ? ` x ${item.depth}` : ''}
                                         </td>

@@ -579,6 +579,10 @@ async function saveSprayItems(elementId, elementCode) {
         return;
     }
     
+    // Get project prefix
+    const projectNum = projectData.project?.project_number || '';
+    const projectPrefix = projectNum.split('/')[0] || '';
+    
     try {
         // 1. Pobierz IDs starych rekordów PRZED insertem
         const { data: oldItems } = await supabaseClient
@@ -587,12 +591,14 @@ async function saveSprayItems(elementId, elementCode) {
             .eq('element_id', elementId);
         const oldIds = (oldItems || []).map(i => i.id);
         
-        // 2. Insert nowe rekordy
+        // 2. Insert nowe rekordy - z pełnym numerem projektu
         const sprayItemsData = currentSprayItems.map((item, idx) => ({
             project_id: projectId,
             element_id: elementId,
             item_type: item.name || 'Item',
-            name: `${elementCode || 'EL'} - ${item.name || 'Item ' + (idx + 1)}`,
+            name: projectPrefix && elementCode 
+                ? `${projectPrefix}-${elementCode}-${idx + 1} ${item.name || 'Item'}` 
+                : `${elementCode || 'EL'} - ${item.name || 'Item ' + (idx + 1)}`,
             width: item.width,
             height: item.height,
             depth: item.depth,
