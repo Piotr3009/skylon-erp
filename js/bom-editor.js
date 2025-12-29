@@ -534,6 +534,11 @@ async function saveBomElement() {
     if (!data.name) { showToast('Name is required', 'warning'); return; }
     Object.keys(data).forEach(key => { if (data[key] === undefined) delete data[key]; });
     
+    // Wyczyść lock_2/lock_3 jeśli locks_qty jest mniejsze
+    const locksQty = parseInt(data.locks_qty) || 0;
+    if (locksQty < 2) data.lock_2 = null;
+    if (locksQty < 3) data.lock_3 = null;
+    
     try {
         let elementId = editingElementId;
         if (editingElementId) {
