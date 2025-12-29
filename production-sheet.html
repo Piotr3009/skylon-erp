@@ -259,58 +259,12 @@
         
         /* ========== FOOTER - ACTIONS ========== */
         .ps-sidebar-footer {
-            padding: 12px 15px;
+            padding: 15px;
             border-top: 1px solid #3e3e42;
             background: #252526;
             flex-shrink: 0;
-        }
-        
-        .ps-create-btn {
-            width: 100%;
-            padding: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .ps-create-btn.ready {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: white;
-        }
-        
-        .ps-create-btn.ready:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-        
-        .ps-create-btn.not-ready {
-            background: #3e3e42;
-            color: #888;
-            cursor: not-allowed;
-        }
-        
-        .ps-force-create {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 8px;
-            font-size: 11px;
-            color: #888;
-        }
-        
-        .ps-force-create input {
-            cursor: pointer;
-        }
-        
-        .ps-force-create label {
-            cursor: pointer;
+            gap: 10px;
         }
         
         /* ========== RIGHT PANEL - PREVIEW ========== */
@@ -781,6 +735,16 @@
                         <div>Loading checklist...</div>
                     </div>
                 </div>
+                
+                <!-- Footer Actions -->
+                <div class="ps-sidebar-footer">
+                    <button class="ps-preview-btn" onclick="saveAndClose()" style="background: #22c55e; flex: 1; padding: 12px;">
+                        💾 Save & Close
+                    </button>
+                    <button class="ps-preview-btn primary" onclick="downloadPDF()" style="flex: 1; padding: 12px;">
+                        📥 Download PDF
+                    </button>
+                </div>
             </div>
             
             <!-- Right Panel - Preview -->
@@ -791,13 +755,7 @@
                         <button class="ps-preview-btn" onclick="saveAndClose()" style="background: #22c55e;">
                             💾 Save & Close
                         </button>
-                        <button class="ps-preview-btn" onclick="regeneratePreview()">
-                            🔄 Refresh
-                        </button>
-                        <button class="ps-preview-btn" id="btnPrint" onclick="window.print()">
-                            🖨️ Print
-                        </button>
-                        <button class="ps-preview-btn primary" id="btnDownloadPDF" onclick="downloadPDF()">
+                        <button class="ps-preview-btn primary" onclick="downloadPDF()">
                             📥 Download PDF
                         </button>
                     </div>
