@@ -165,44 +165,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     await checkAllItems();
     updateProgress();
     generatePreview();
-    
-    // Check if final PS exists and enable buttons
-    await checkFinalPSExists();
 });
-
-async function checkFinalPSExists() {
-    try {
-        const { data: finalSheet } = await supabaseClient
-            .from('production_sheets')
-            .select('id, pdf_url, version')
-            .eq('project_id', projectId)
-            .eq('status', 'final')
-            .order('version', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        
-        if (finalSheet?.pdf_url) {
-            // Store pdf_url separately for download (don't overwrite currentSheet)
-            window.finalPdfUrl = finalSheet.pdf_url;
-            
-            // Enable buttons
-            const btnPrint = document.getElementById('btnPrint');
-            const btnDownload = document.getElementById('btnDownloadPDF');
-            if (btnPrint) {
-                btnPrint.disabled = false;
-                btnPrint.style.opacity = '1';
-                btnPrint.style.cursor = 'pointer';
-            }
-            if (btnDownload) {
-                btnDownload.disabled = false;
-                btnDownload.style.opacity = '1';
-                btnDownload.style.cursor = 'pointer';
-            }
-        }
-    } catch (err) {
-        console.log('No final PS found:', err);
-    }
-}
 
 // ========== DATA LOADING ==========
 async function loadAllData() {
@@ -323,12 +286,12 @@ async function loadAllData() {
             .eq(filesFK, projectId);
         projectData.files = files || [];
         
-        // 8. Check for existing production sheet (draft)
+        // 8. Check for existing production sheet (prefer final, then draft - newest first)
         const { data: existingSheet, error: sheetError } = await supabaseClient
             .from('production_sheets')
             .select('*')
             .eq('project_id', projectId)
-            .eq('status', 'draft')
+            .order('status', { ascending: false }) // 'final' before 'draft'
             .order('version', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -1670,34 +1633,6 @@ function updateProgress() {
     const fillEl = document.getElementById('psProgressFill');
     fillEl.style.width = `${percent}%`;
     fillEl.classList.toggle('incomplete', percent < 100);
-    
-    updateCreateButton();
-}
-
-function updateCreateButton() {
-    const requiredItems = checklistItems.filter(i => i.required);
-    const allDone = requiredItems.every(i => checklistStatus[i.key]?.done);
-    const forceCreate = document.getElementById('psForceCreate').checked;
-    
-    const btn = document.getElementById('psCreateBtn');
-    const btnText = document.getElementById('psCreateBtnText');
-    
-    if (allDone) {
-        btn.classList.remove('not-ready');
-        btn.classList.add('ready');
-        btn.disabled = false;
-        btnText.textContent = 'Create Production Sheet';
-    } else if (forceCreate) {
-        btn.classList.remove('not-ready');
-        btn.classList.add('ready');
-        btn.disabled = false;
-        btnText.textContent = 'Create (Incomplete)';
-    } else {
-        btn.classList.remove('ready');
-        btn.classList.add('not-ready');
-        btn.disabled = true;
-        btnText.textContent = 'Complete checklist first';
-    }
 }
 
 // ========== UPLOAD MODAL ==========
@@ -4448,111 +4383,6 @@ function generateQCSection() {
 }
 
 // ========== CREATE PRODUCTION SHEET ==========
-async function createProductionSheet() {
-    const forceCreate = document.getElementById('psForceCreate').checked;
-    const requiredItems = checklistItems.filter(i => i.required);
-    const allDone = requiredItems.every(i => checklistStatus[i.key]?.done);
-    
-    if (!allDone && !forceCreate) {
-        showToast('Complete all required items or check "Force create"', 'warning');
-        return;
-    }
-    
-    showToast('Creating Production Sheet...', 'info');
-    
-    try {
-        // Ensure we have a draft sheet
-        if (!currentSheet?.id) {
-            await createDraftSheet();
-        }
-        
-        // Build snapshot
-        const snapshot = buildSnapshot(forceCreate);
-        
-        // Ensure preview is generated before PDF
-        await generatePreview();
-        
-        // Generate PDF
-        const pdfUrl = await generateAndUploadPDF();
-        
-        // Check if final already exists
-        const { data: existingFinal } = await supabaseClient
-            .from('production_sheets')
-            .select('id')
-            .eq('project_id', projectId)
-            .eq('status', 'final')
-            .maybeSingle();
-        
-        const progress = Math.round((requiredItems.filter(i => checklistStatus[i.key]?.done).length / requiredItems.length) * 100);
-        
-        if (existingFinal) {
-            // UPDATE existing final
-            const { error } = await supabaseClient
-                .from('production_sheets')
-                .update({
-                    snapshot_json: snapshot,
-                    pdf_url: pdfUrl,
-                    pdf_generated_at: new Date().toISOString(),
-                    is_force_created: forceCreate,
-                    missing_items: forceCreate ? getMissingItems() : [],
-                    finalized_at: new Date().toISOString(),
-                    checklist_progress: progress,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', existingFinal.id);
-            
-            if (error) throw error;
-        } else {
-            // INSERT new final (version 1)
-            const { error } = await supabaseClient
-                .from('production_sheets')
-                .insert({
-                    project_id: projectId,
-                    version: 1,
-                    status: 'final',
-                    snapshot_json: snapshot,
-                    pdf_url: pdfUrl,
-                    pdf_generated_at: new Date().toISOString(),
-                    is_force_created: forceCreate,
-                    missing_items: forceCreate ? getMissingItems() : [],
-                    finalized_at: new Date().toISOString(),
-                    checklist_progress: progress
-                });
-            
-            if (error) throw error;
-        }
-        
-        // Enable Print and Download buttons
-        const btnPrint = document.getElementById('btnPrint');
-        const btnDownload = document.getElementById('btnDownloadPDF');
-        if (btnPrint) {
-            btnPrint.disabled = false;
-            btnPrint.style.opacity = '1';
-            btnPrint.style.cursor = 'pointer';
-        }
-        if (btnDownload) {
-            btnDownload.disabled = false;
-            btnDownload.style.opacity = '1';
-            btnDownload.style.cursor = 'pointer';
-        }
-        
-        // Store PDF URL for download
-        currentSheet.pdf_url = pdfUrl;
-        window.finalPdfUrl = pdfUrl;
-        
-        showToast('Production Sheet created successfully!', 'success');
-        
-        // Auto-download the PDF
-        if (pdfUrl) {
-            await downloadPDF();
-        }
-        
-    } catch (err) {
-        console.error('Error creating PS:', err);
-        showToast('Error: ' + err.message, 'error');
-    }
-}
-
 function buildSnapshot(isForceCreated) {
     return {
         meta: {
@@ -4618,131 +4448,89 @@ function extractImportantNotes(notesRaw) {
 }
 
 // ========== PDF GENERATION ==========
-async function generateAndUploadPDF() {
+// ========== PDF GENERATION ==========
+async function generatePDF() {
     const pages = document.querySelectorAll('.ps-page');
     
     if (pages.length === 0) {
         throw new Error('No pages to export');
     }
     
-    try {
-        const { jsPDF } = window.jspdf;
-        // A3 landscape: 420mm x 297mm
-        const pdf = new jsPDF('l', 'mm', 'a3');
-        const pdfWidth = 420;
-        const pdfHeight = 297;
+    const { jsPDF } = window.jspdf;
+    // A3 landscape: 420mm x 297mm
+    const pdf = new jsPDF('l', 'mm', 'a3');
+    const pdfWidth = 420;
+    const pdfHeight = 297;
+    
+    // A3 at 96 DPI: 420mm = 1587px, 297mm = 1123px
+    const A3_WIDTH_PX = 1587;
+    const A3_HEIGHT_PX = 1123;
+    
+    for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
         
-        // A3 at 96 DPI: 420mm = 1587px, 297mm = 1123px
-        const A3_WIDTH_PX = 1587;
-        const A3_HEIGHT_PX = 1123;
+        // Temporarily reset transform and set fixed A3 dimensions
+        const originalTransform = page.style.transform;
+        const originalMargin = page.style.marginBottom;
+        const originalWidth = page.style.width;
+        const originalMinHeight = page.style.minHeight;
         
-        for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-            
-            // Temporarily reset transform and set fixed A3 dimensions
-            const originalTransform = page.style.transform;
-            const originalMargin = page.style.marginBottom;
-            const originalWidth = page.style.width;
-            const originalMinHeight = page.style.minHeight;
-            
-            page.style.transform = 'none';
-            page.style.marginBottom = '0';
-            page.style.width = '420mm';
-            page.style.minHeight = '297mm';
-            
-            const canvas = await html2canvas(page, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                width: A3_WIDTH_PX,
-                height: A3_HEIGHT_PX
-            });
-            
-            // Restore original styles
-            page.style.transform = originalTransform;
-            page.style.marginBottom = originalMargin;
-            page.style.width = originalWidth;
-            page.style.minHeight = originalMinHeight;
-            
-            // Add page (not for first page)
-            if (i > 0) {
-                pdf.addPage();
-            }
-            
-            // Use full A3 dimensions
-            pdf.addImage(
-                canvas.toDataURL('image/jpeg', 0.95), 
-                'JPEG', 
-                0, 
-                0, 
-                pdfWidth, 
-                pdfHeight
-            );
+        page.style.transform = 'none';
+        page.style.marginBottom = '0';
+        page.style.width = '420mm';
+        page.style.minHeight = '297mm';
+        
+        const canvas = await html2canvas(page, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            width: A3_WIDTH_PX,
+            height: A3_HEIGHT_PX
+        });
+        
+        // Restore original styles
+        page.style.transform = originalTransform;
+        page.style.marginBottom = originalMargin;
+        page.style.width = originalWidth;
+        page.style.minHeight = originalMinHeight;
+        
+        // Add page (not for first page)
+        if (i > 0) {
+            pdf.addPage();
         }
         
-        // Upload to storage
-        const pdfBlob = pdf.output('blob');
-        const fileName = `PS_${projectData.project?.project_number || 'unknown'}_v${currentSheet?.version || 1}.pdf`;
-        const filePath = `production-sheets/${currentSheet.id}/${fileName}`;
-        
-        const { error: uploadError } = await supabaseClient.storage
-            .from('project-documents')
-            .upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: urlData } = supabaseClient.storage
-            .from('project-documents')
-            .getPublicUrl(filePath);
-        
-        return urlData.publicUrl;
-        
-    } catch (err) {
-        console.error('PDF generation error:', err);
-        throw err;
+        // Use full A3 dimensions
+        pdf.addImage(
+            canvas.toDataURL('image/jpeg', 0.95), 
+            'JPEG', 
+            0, 
+            0, 
+            pdfWidth, 
+            pdfHeight
+        );
     }
+    
+    return pdf;
 }
 
 async function downloadPDF() {
-    // Use final PDF from Supabase if available
-    const pdfUrl = currentSheet?.pdf_url || window.finalPdfUrl;
-    if (!pdfUrl) {
-        showToast('No PDF available. Create Production Sheet first.', 'warning');
-        return;
-    }
-    
-    showToast('Downloading PDF...', 'info');
+    showToast('Generating PDF...', 'info');
     
     try {
-        // Fetch the PDF as blob
-        const response = await fetch(pdfUrl);
-        if (!response.ok) throw new Error('Failed to fetch PDF');
-        
-        const blob = await response.blob();
-        
-        // Create download link
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
+        const pdf = await generatePDF();
         
         // Generate filename from project number
         const projectNumber = projectData.project?.project_number || 'PS';
         const cleanNumber = projectNumber.replace(/\//g, '-');
-        a.download = `Production-Sheet-${cleanNumber}.pdf`;
+        const fileName = `Production-Sheet-${cleanNumber}.pdf`;
         
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        // Clean up
-        window.URL.revokeObjectURL(downloadUrl);
+        // Download
+        pdf.save(fileName);
         
         showToast('PDF downloaded!', 'success');
     } catch (err) {
-        console.error('Download error:', err);
-        // Fallback - open in new tab
-        window.open(pdfUrl, '_blank');
-        showToast('Opening PDF in new tab...', 'info');
+        console.error('PDF generation error:', err);
+        showToast('Error generating PDF: ' + err.message, 'error');
     }
 }
 

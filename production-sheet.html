@@ -781,19 +781,6 @@
                         <div>Loading checklist...</div>
                     </div>
                 </div>
-                
-                <!-- Footer Actions -->
-                <div class="ps-sidebar-footer">
-                    <button class="ps-create-btn not-ready" id="psCreateBtn" onclick="createProductionSheet()" disabled>
-                        <span>📄</span>
-                        <span id="psCreateBtnText">Complete checklist first</span>
-                    </button>
-                    
-                    <div class="ps-force-create">
-                        <input type="checkbox" id="psForceCreate" onchange="updateCreateButton()">
-                        <label for="psForceCreate">Force create (mark as incomplete)</label>
-                    </div>
-                </div>
             </div>
             
             <!-- Right Panel - Preview -->
@@ -807,10 +794,10 @@
                         <button class="ps-preview-btn" onclick="regeneratePreview()">
                             🔄 Refresh
                         </button>
-                        <button class="ps-preview-btn" id="btnPrint" onclick="window.print()" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        <button class="ps-preview-btn" id="btnPrint" onclick="window.print()">
                             🖨️ Print
                         </button>
-                        <button class="ps-preview-btn primary" id="btnDownloadPDF" onclick="downloadPDF()" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        <button class="ps-preview-btn primary" id="btnDownloadPDF" onclick="downloadPDF()">
                             📥 Download PDF
                         </button>
                     </div>
