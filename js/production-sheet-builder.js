@@ -1092,7 +1092,8 @@ function buildDispatchItemsFromProject() {
             name: `${fullId} ${el.element_name || el.name || el.element_type || 'Element'}`,
             quantity: el.qty || 1,
             selected: true,
-            notes: ''
+            notes: '',
+            image_url: null
         });
     });
     
@@ -1104,20 +1105,25 @@ function buildDispatchItemsFromProject() {
             name: item.name || `Spray Item ${idx + 1}`,
             quantity: 1,
             selected: true,
-            notes: item.colour || ''
+            notes: item.colour || '',
+            image_url: null
         });
     });
     
-    // 3. Materials
+    // 3. Materials (with images)
     (projectData.materials || []).forEach((mat, idx) => {
         const itemName = mat.stock_items?.name || mat.item_name || mat.bespoke_description || 'Material';
+        const imageUrl = mat.stock_items?.image_url || mat.image_url || null;
+        const price = mat.stock_items?.price || mat.price || null;
         items.push({
             item_type: 'material',
             source_id: mat.id,
             name: itemName,
             quantity: mat.quantity_needed || 1,
             selected: false, // Materials not selected by default
-            notes: mat.unit || ''
+            notes: mat.unit || '',
+            image_url: imageUrl,
+            price: price
         });
     });
     
@@ -1134,30 +1140,73 @@ function renderDispatchModal() {
     const materials = tempDispatchItems.filter(i => i.item_type === 'material');
     const customItems = tempDispatchItems.filter(i => i.item_type === 'custom');
     
-    const renderSection = (title, items, type) => {
+    // Simple section for elements/spray (without images)
+    const renderSimpleSection = (title, icon, color, items, type) => {
         if (items.length === 0 && type !== 'custom') return '';
-        const startIdx = tempDispatchItems.indexOf(items[0]);
         return `
-            <div style="margin-bottom: 20px;">
-                <div style="background: #3e3e42; padding: 8px 12px; font-weight: 600; font-size: 12px; color: #4a9eff; border-radius: 4px 4px 0 0;">
-                    ${title} (${items.filter(i => i.selected).length}/${items.length})
-                    <button onclick="toggleAllDispatch('${type}', true)" style="float: right; background: #22c55e; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; margin-left: 5px;">All</button>
-                    <button onclick="toggleAllDispatch('${type}', false)" style="float: right; background: #666; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px;">None</button>
+            <div style="margin-bottom: 15px;">
+                <div style="background: ${color}; padding: 8px 12px; font-weight: 600; font-size: 12px; color: white; border-radius: 4px 4px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                    <span>${icon} ${title} (${items.filter(i => i.selected).length}/${items.length})</span>
+                    <div>
+                        <button onclick="toggleAllDispatch('${type}', false)" style="background: rgba(0,0,0,0.3); color: white; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 10px; margin-right: 5px;">None</button>
+                        <button onclick="toggleAllDispatch('${type}', true)" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;">All</button>
+                    </div>
                 </div>
-                <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 200px; overflow-y: auto;">
-                    ${items.map((item, idx) => {
+                <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 250px; overflow-y: auto;">
+                    ${items.length > 0 ? items.map((item) => {
                         const globalIdx = tempDispatchItems.indexOf(item);
                         return `
-                            <div style="display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid #2d2d30;">
+                            <div style="display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #2d2d30; ${item.selected ? 'background: rgba(74, 158, 255, 0.1);' : ''}">
                                 <input type="checkbox" ${item.selected ? 'checked' : ''} 
                                     onchange="toggleDispatchItem(${globalIdx})"
-                                    style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
+                                    style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer; accent-color: #4a9eff;">
                                 <div style="flex: 1;">
-                                    <div style="color: #e8e2d5; font-size: 12px;">${item.name}</div>
-                                    ${item.notes ? `<div style="color: #888; font-size: 10px;">${item.notes}</div>` : ''}
+                                    <div style="color: #e8e2d5; font-size: 13px; font-weight: 500;">${item.name}</div>
+                                    ${item.notes ? `<div style="color: #888; font-size: 11px; margin-top: 2px;">${item.notes}</div>` : ''}
                                 </div>
-                                <div style="color: #888; font-size: 11px; margin-right: 10px;">Qty: ${item.quantity}</div>
-                                ${type === 'custom' ? `<button onclick="removeCustomDispatchItem(${globalIdx})" style="background: #ef4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button>` : ''}
+                                <div style="color: #4a9eff; font-size: 12px; font-weight: 600; min-width: 60px; text-align: right;">× ${item.quantity}</div>
+                                ${type === 'custom' ? `<button onclick="removeCustomDispatchItem(${globalIdx})" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; margin-left: 10px;">✕</button>` : ''}
+                            </div>
+                        `;
+                    }).join('') : `<div style="padding: 15px; color: #666; text-align: center; font-style: italic;">No items</div>`}
+                </div>
+            </div>
+        `;
+    };
+    
+    // Materials section with images
+    const renderMaterialsSection = () => {
+        if (materials.length === 0) return '';
+        return `
+            <div style="margin-bottom: 15px;">
+                <div style="background: #22c55e; padding: 8px 12px; font-weight: 600; font-size: 12px; color: white; border-radius: 4px 4px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                    <span>🧱 Materials & Hardware (${materials.filter(i => i.selected).length}/${materials.length})</span>
+                    <div>
+                        <button onclick="toggleAllDispatch('material', false)" style="background: rgba(0,0,0,0.3); color: white; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 10px; margin-right: 5px;">None</button>
+                        <button onclick="toggleAllDispatch('material', true)" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;">All</button>
+                    </div>
+                </div>
+                <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 350px; overflow-y: auto;">
+                    ${materials.map((item) => {
+                        const globalIdx = tempDispatchItems.indexOf(item);
+                        const imgStyle = 'width: 50px; height: 50px; object-fit: cover; border-radius: 4px; background: #2d2d30;';
+                        return `
+                            <div style="display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #2d2d30; ${item.selected ? 'background: rgba(34, 197, 94, 0.1);' : ''}">
+                                <input type="checkbox" ${item.selected ? 'checked' : ''} 
+                                    onchange="toggleDispatchItem(${globalIdx})"
+                                    style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer; accent-color: #22c55e;">
+                                ${item.image_url 
+                                    ? `<img src="${item.image_url}" style="${imgStyle}" onerror="this.style.display='none'">`
+                                    : `<div style="${imgStyle} display: flex; align-items: center; justify-content: center; color: #666; font-size: 20px;">📦</div>`
+                                }
+                                <div style="flex: 1; margin-left: 12px;">
+                                    <div style="color: #e8e2d5; font-size: 13px; font-weight: 500;">${item.name}</div>
+                                    <div style="color: #888; font-size: 11px; margin-top: 2px;">
+                                        ${item.price ? `£${item.price}` : ''}
+                                        ${item.notes ? ` • ${item.notes}` : ''}
+                                    </div>
+                                </div>
+                                <div style="color: #22c55e; font-size: 12px; font-weight: 600; min-width: 60px; text-align: right;">× ${item.quantity}</div>
                             </div>
                         `;
                     }).join('')}
@@ -1167,19 +1216,25 @@ function renderDispatchModal() {
     };
     
     container.innerHTML = `
-        ${renderSection('📦 Elements (BOM)', elements, 'element')}
-        ${renderSection('🎨 Spray Items', sprayItems, 'spray')}
-        ${renderSection('🧱 Materials', materials, 'material')}
-        ${renderSection('➕ Custom Items', customItems, 'custom')}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                ${renderSimpleSection('Elements / Units', '📦', '#3b82f6', elements, 'element')}
+                ${renderSimpleSection('Spray Items', '🎨', '#e99f62', sprayItems, 'spray')}
+            </div>
+            <div>
+                ${renderMaterialsSection()}
+                ${renderSimpleSection('Custom Items', '➕', '#8b5cf6', customItems, 'custom')}
+            </div>
+        </div>
         
         <div style="margin-top: 15px; padding: 15px; background: #2d2d30; border-radius: 6px;">
-            <div style="font-size: 12px; color: #888; margin-bottom: 8px;">Add Custom Item:</div>
-            <div style="display: flex; gap: 8px;">
+            <div style="font-size: 12px; color: #888; margin-bottom: 8px;">➕ Add Custom Item (screws, beading, etc.):</div>
+            <div style="display: flex; gap: 10px;">
                 <input type="text" id="dispatchCustomName" placeholder="Item name" 
-                    style="flex: 2; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 12px;">
+                    style="flex: 2; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
                 <input type="number" id="dispatchCustomQty" placeholder="Qty" value="1"
-                    style="width: 60px; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 12px;">
-                <button onclick="addCustomDispatchItem()" style="padding: 8px 15px; background: #4a9eff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">+ Add</button>
+                    style="width: 80px; padding: 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px; text-align: center;">
+                <button onclick="addCustomDispatchItem()" style="padding: 10px 20px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">+ Add</button>
             </div>
         </div>
     `;
