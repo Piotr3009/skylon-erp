@@ -2837,8 +2837,7 @@ async function generateDrawingPages() {
             pages.push(`
                 <h1 class="ps-section-title">4. Drawings ${totalDrawings > 1 ? `(${drawingPageNum}/${totalDrawings})` : ''}</h1>
                 <div class="ps-drawing-full">
-                    <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${drawing.name}</div>
-                    <img src="${drawing.url}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" crossorigin="anonymous" />
+                    <img src="${drawing.url}" style="max-width: 100%; max-height: calc(297mm - 50mm); object-fit: contain;" crossorigin="anonymous" />
                 </div>
             `);
         } else if (isPdf) {
@@ -2847,14 +2846,10 @@ async function generateDrawingPages() {
                 if (images.length > 0) {
                     images.forEach((imgData, i) => {
                         drawingPageNum++;
-                        const pageLabel = images.length > 1 
-                            ? `${drawing.name} - Page ${i + 1}` 
-                            : drawing.name;
                         pages.push(`
                             <h1 class="ps-section-title">4. Drawings</h1>
                             <div class="ps-drawing-full">
-                                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">📄 ${pageLabel}</div>
-                                <img src="${imgData}" style="max-width: 100%; max-height: calc(297mm - 60mm); object-fit: contain;" />
+                                <img src="${imgData}" style="max-width: 100%; max-height: calc(297mm - 50mm); object-fit: contain;" />
                             </div>
                         `);
                     });
@@ -2884,7 +2879,6 @@ async function generateDrawingPages() {
             pages.push(`
                 <h1 class="ps-section-title">4. Drawings</h1>
                 <div style="padding: 40px; text-align: center;">
-                    <div style="font-size: 14px; color: #666;">File: ${drawing.name}</div>
                     <div style="margin-top: 15px;"><a href="${drawing.url}" target="_blank" style="color: #4a9eff;">Download file</a></div>
                 </div>
             `);
