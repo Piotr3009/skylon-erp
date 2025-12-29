@@ -635,28 +635,25 @@ function closeDescriptionModal() {
     document.getElementById('psDescriptionModal').classList.remove('active');
 }
 
-function formatText(command, value = null) {
+function execAndFocus(command, value = null) {
     document.execCommand(command, false, value);
     document.getElementById('descriptionEditor').focus();
 }
 
+function formatText(command, value = null) {
+    execAndFocus(command, value);
+}
+
 function applyColor(color) {
-    if (color) {
-        document.execCommand('foreColor', false, color);
-        document.getElementById('descriptionEditor').focus();
-    }
+    if (color) execAndFocus('foreColor', color);
 }
 
 function applyHighlight() {
-    document.execCommand('hiliteColor', false, '#fde047');
-    document.getElementById('descriptionEditor').focus();
+    execAndFocus('hiliteColor', '#fde047');
 }
 
 function applyFontSize(size) {
-    if (size) {
-        document.execCommand('fontSize', false, size);
-        document.getElementById('descriptionEditor').focus();
-    }
+    if (size) execAndFocus('fontSize', size);
 }
 
 // ========== EDIT NOTE MODAL ==========
@@ -734,49 +731,34 @@ async function restoreNote(idx) {
 }
 
 // ========== PHOTOS MULTI-SELECT ==========
-function openPhotosSelectModal() {
-    
+function openFilesSelectModal(folder, selectedArray, setSelected, label) {
     openFilesModalForSelection(
         currentProject.id,
         currentProject.project_number,
         currentProject.name,
         'production',
-        'photos',
-        selectedPhotos,
+        folder,
+        selectedArray,
         async (files) => {
-            selectedPhotos = files;
+            setSelected(files);
             filesDirty = true;
             updateFilesDirtyBadge();
             checkAllItems();
             updateProgress();
             generatePreview();
             await autoSaveSnapshot();
-            showToast(`${selectedPhotos.length} photos selected for PS`, 'success');
+            showToast(`${files.length} ${label} selected for PS`, 'success');
         }
     );
 }
 
+function openPhotosSelectModal() {
+    openFilesSelectModal('photos', selectedPhotos, (f) => { selectedPhotos = f; }, 'photos');
+}
+
 // ========== DRAWINGS MULTI-SELECT ==========
 function openDrawingsSelectModal() {
-    
-    openFilesModalForSelection(
-        currentProject.id,
-        currentProject.project_number,
-        currentProject.name,
-        'production',
-        'drawings',
-        selectedDrawings,
-        async (files) => {
-            selectedDrawings = files;
-            filesDirty = true;
-            updateFilesDirtyBadge();
-            checkAllItems();
-            updateProgress();
-            generatePreview();
-            await autoSaveSnapshot();
-            showToast(`${selectedDrawings.length} drawings selected for PS`, 'success');
-        }
-    );
+    openFilesSelectModal('drawings', selectedDrawings, (f) => { selectedDrawings = f; }, 'drawings');
 }
 
 // ========== SELECT FILES MODAL ==========
