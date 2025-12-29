@@ -1090,7 +1090,7 @@ function buildDispatchItemsFromProject() {
             item_type: 'element',
             source_id: el.id,
             name: `${fullId} ${el.element_name || el.name || el.element_type || 'Element'}`,
-            quantity: el.qty || 1,
+            quantity: Math.round(parseFloat(el.qty) || 1),
             selected: true,
             notes: '',
             image_url: null
@@ -1119,7 +1119,7 @@ function buildDispatchItemsFromProject() {
             item_type: 'material',
             source_id: mat.id,
             name: itemName,
-            quantity: mat.quantity_needed || 1,
+            quantity: Math.round(parseFloat(mat.quantity_needed) || 1),
             selected: false, // Materials not selected by default
             notes: mat.unit || '',
             image_url: imageUrl,
@@ -1333,9 +1333,9 @@ async function saveDispatchList() {
                 item_type: item.item_type,
                 source_id: item.source_id,
                 name: item.name,
-                quantity: item.quantity,
+                quantity: Math.round(parseFloat(item.quantity) || 1),
                 selected: item.selected,
-                notes: item.notes,
+                notes: item.notes || '',
                 sort_order: idx
             }));
             
