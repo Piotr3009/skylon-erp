@@ -1056,6 +1056,25 @@
         </div>
     </div>
     
+    <!-- Dispatch List Modal -->
+    <div class="ps-modal-overlay" id="psDispatchModal">
+        <div class="ps-modal" style="max-width: 700px;">
+            <div class="ps-modal-title">🚚 Create Dispatch List</div>
+            <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
+                Select items that need to be dispatched. The driver will use this list to ensure nothing is forgotten.
+            </p>
+            
+            <div id="dispatchItemsContainer" style="max-height: 500px; overflow-y: auto;">
+                <!-- Items will be rendered here -->
+            </div>
+            
+            <div class="ps-modal-actions">
+                <button class="ps-modal-btn cancel" onclick="closeDispatchModal()">Cancel</button>
+                <button class="ps-modal-btn confirm" onclick="saveDispatchList()">✓ Save Dispatch List</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Upload Modal -->
     <div class="ps-modal-overlay" id="psUploadModal">
         <div class="ps-modal">

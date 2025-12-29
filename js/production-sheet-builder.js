@@ -27,6 +27,7 @@ let sprayDescription = ''; // Spray instructions
 let sprayColourType = 'single'; // 'single' or 'dual'
 let sprayColours = []; // Array of colour names
 let spraySheenLevel = ''; // Sheen level for project
+let dispatchItems = []; // Dispatch list items
 let editedNotes = {}; // Edited copies of important notes (key = note index)
 let hiddenNotes = {}; // Hidden notes (key = note index, value = true)
 let originalImportantNotes = []; // Cache of original important notes for edit modal
@@ -132,10 +133,10 @@ const CHECKLIST_SECTIONS = [
     },
     {
         key: 'DISPATCH',
-        title: 'Dispatch Check List',
+        title: 'Dispatch List',
         icon: '🚚',
         items: [
-            { key: 'DISPATCH_READY', label: 'Dispatch checklist included', source: 'AUTO', required: false }
+            { key: 'DISPATCH_LIST', label: 'Dispatch List', source: 'MANUAL', required: false, isDispatchList: true }
         ]
     },
     {
@@ -160,6 +161,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     buildChecklist();
     updateDescriptionUI(); // Update description button if text exists
     updateSprayUI(); // Update spray button if text exists
+    updateDispatchUI(); // Update dispatch button if items exist
     await checkAllItems();
     updateProgress();
     generatePreview();
@@ -301,6 +303,9 @@ async function loadAllData() {
         
         // 5c. Load spray settings
         await loadSpraySettings();
+        
+        // 5d. Load dispatch items
+        await loadDispatchItems();
         
         // 6. Load blockers
         const { data: blockers } = await supabaseClient
@@ -552,6 +557,19 @@ function createChecklistItem(item, sectionKey) {
                 <div class="ps-item-meta" id="meta-${item.key}">Click to add • Optional</div>
             </div>
             <button class="ps-item-action go" id="btn-${item.key}" onclick="openSprayModal()">+ Add</button>
+        `;
+        return div;
+    }
+    
+    // Special handling for Dispatch List (opens modal)
+    if (item.isDispatchList) {
+        div.innerHTML = `
+            <div class="ps-item-icon" id="icon-${item.key}">📦</div>
+            <div class="ps-item-content">
+                <div class="ps-item-label">${item.label}</div>
+                <div class="ps-item-meta" id="meta-${item.key}">Click to configure • Optional</div>
+            </div>
+            <button class="ps-item-action go" id="btn-${item.key}" onclick="openDispatchModal()">+ Create</button>
         `;
         return div;
     }
@@ -1042,6 +1060,260 @@ function updateSprayUI() {
     }
 }
 
+// ========== DISPATCH LIST MODAL ==========
+let tempDispatchItems = []; // Temporary copy for modal editing
+
+function openDispatchModal() {
+    // Initialize temp items from all sources if no dispatch items exist
+    if (dispatchItems.length === 0) {
+        tempDispatchItems = buildDispatchItemsFromProject();
+    } else {
+        tempDispatchItems = JSON.parse(JSON.stringify(dispatchItems));
+    }
+    renderDispatchModal();
+    document.getElementById('psDispatchModal').classList.add('active');
+}
+
+function closeDispatchModal() {
+    document.getElementById('psDispatchModal').classList.remove('active');
+}
+
+function buildDispatchItemsFromProject() {
+    const items = [];
+    const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+    
+    // 1. Elements from BOM
+    (projectData.elements || []).forEach((el, idx) => {
+        const elId = el.element_id || `EL${idx + 1}`;
+        const fullId = projectPrefix ? `${projectPrefix}-${elId}` : elId;
+        items.push({
+            item_type: 'element',
+            source_id: el.id,
+            name: `${fullId} ${el.element_name || el.name || el.element_type || 'Element'}`,
+            quantity: el.qty || 1,
+            selected: true,
+            notes: ''
+        });
+    });
+    
+    // 2. Spray Items
+    (projectData.sprayItems || []).forEach((item, idx) => {
+        items.push({
+            item_type: 'spray',
+            source_id: item.id,
+            name: item.name || `Spray Item ${idx + 1}`,
+            quantity: 1,
+            selected: true,
+            notes: item.colour || ''
+        });
+    });
+    
+    // 3. Materials
+    (projectData.materials || []).forEach((mat, idx) => {
+        const itemName = mat.stock_items?.name || mat.item_name || mat.bespoke_description || 'Material';
+        items.push({
+            item_type: 'material',
+            source_id: mat.id,
+            name: itemName,
+            quantity: mat.quantity_needed || 1,
+            selected: false, // Materials not selected by default
+            notes: mat.unit || ''
+        });
+    });
+    
+    return items;
+}
+
+function renderDispatchModal() {
+    const container = document.getElementById('dispatchItemsContainer');
+    if (!container) return;
+    
+    // Group items by type
+    const elements = tempDispatchItems.filter(i => i.item_type === 'element');
+    const sprayItems = tempDispatchItems.filter(i => i.item_type === 'spray');
+    const materials = tempDispatchItems.filter(i => i.item_type === 'material');
+    const customItems = tempDispatchItems.filter(i => i.item_type === 'custom');
+    
+    const renderSection = (title, items, type) => {
+        if (items.length === 0 && type !== 'custom') return '';
+        const startIdx = tempDispatchItems.indexOf(items[0]);
+        return `
+            <div style="margin-bottom: 20px;">
+                <div style="background: #3e3e42; padding: 8px 12px; font-weight: 600; font-size: 12px; color: #4a9eff; border-radius: 4px 4px 0 0;">
+                    ${title} (${items.filter(i => i.selected).length}/${items.length})
+                    <button onclick="toggleAllDispatch('${type}', true)" style="float: right; background: #22c55e; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; margin-left: 5px;">All</button>
+                    <button onclick="toggleAllDispatch('${type}', false)" style="float: right; background: #666; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px;">None</button>
+                </div>
+                <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 200px; overflow-y: auto;">
+                    ${items.map((item, idx) => {
+                        const globalIdx = tempDispatchItems.indexOf(item);
+                        return `
+                            <div style="display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid #2d2d30;">
+                                <input type="checkbox" ${item.selected ? 'checked' : ''} 
+                                    onchange="toggleDispatchItem(${globalIdx})"
+                                    style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
+                                <div style="flex: 1;">
+                                    <div style="color: #e8e2d5; font-size: 12px;">${item.name}</div>
+                                    ${item.notes ? `<div style="color: #888; font-size: 10px;">${item.notes}</div>` : ''}
+                                </div>
+                                <div style="color: #888; font-size: 11px; margin-right: 10px;">Qty: ${item.quantity}</div>
+                                ${type === 'custom' ? `<button onclick="removeCustomDispatchItem(${globalIdx})" style="background: #ef4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button>` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    };
+    
+    container.innerHTML = `
+        ${renderSection('📦 Elements (BOM)', elements, 'element')}
+        ${renderSection('🎨 Spray Items', sprayItems, 'spray')}
+        ${renderSection('🧱 Materials', materials, 'material')}
+        ${renderSection('➕ Custom Items', customItems, 'custom')}
+        
+        <div style="margin-top: 15px; padding: 15px; background: #2d2d30; border-radius: 6px;">
+            <div style="font-size: 12px; color: #888; margin-bottom: 8px;">Add Custom Item:</div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="dispatchCustomName" placeholder="Item name" 
+                    style="flex: 2; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 12px;">
+                <input type="number" id="dispatchCustomQty" placeholder="Qty" value="1"
+                    style="width: 60px; padding: 8px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 12px;">
+                <button onclick="addCustomDispatchItem()" style="padding: 8px 15px; background: #4a9eff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">+ Add</button>
+            </div>
+        </div>
+    `;
+}
+
+function toggleDispatchItem(idx) {
+    if (tempDispatchItems[idx]) {
+        tempDispatchItems[idx].selected = !tempDispatchItems[idx].selected;
+    }
+    renderDispatchModal();
+}
+
+function toggleAllDispatch(type, selected) {
+    tempDispatchItems.forEach(item => {
+        if (item.item_type === type) {
+            item.selected = selected;
+        }
+    });
+    renderDispatchModal();
+}
+
+function addCustomDispatchItem() {
+    const nameInput = document.getElementById('dispatchCustomName');
+    const qtyInput = document.getElementById('dispatchCustomQty');
+    const name = nameInput.value.trim();
+    const qty = parseInt(qtyInput.value) || 1;
+    
+    if (!name) {
+        showToast('Enter item name', 'error');
+        return;
+    }
+    
+    tempDispatchItems.push({
+        item_type: 'custom',
+        source_id: null,
+        name: name,
+        quantity: qty,
+        selected: true,
+        notes: ''
+    });
+    
+    nameInput.value = '';
+    qtyInput.value = '1';
+    renderDispatchModal();
+}
+
+function removeCustomDispatchItem(idx) {
+    if (tempDispatchItems[idx]?.item_type === 'custom') {
+        tempDispatchItems.splice(idx, 1);
+        renderDispatchModal();
+    }
+}
+
+async function saveDispatchList() {
+    dispatchItems = JSON.parse(JSON.stringify(tempDispatchItems));
+    closeDispatchModal();
+    
+    // Save to database
+    try {
+        // Delete old items
+        await supabaseClient
+            .from('project_dispatch_items')
+            .delete()
+            .eq('project_id', projectId);
+        
+        // Insert new items
+        if (dispatchItems.length > 0) {
+            const itemsToSave = dispatchItems.map((item, idx) => ({
+                project_id: projectId,
+                item_type: item.item_type,
+                source_id: item.source_id,
+                name: item.name,
+                quantity: item.quantity,
+                selected: item.selected,
+                notes: item.notes,
+                sort_order: idx
+            }));
+            
+            const { error } = await supabaseClient
+                .from('project_dispatch_items')
+                .insert(itemsToSave);
+            
+            if (error) throw error;
+        }
+        
+        showToast('Dispatch list saved!', 'success');
+    } catch (err) {
+        console.error('Error saving dispatch list:', err);
+        showToast('Error saving dispatch list', 'error');
+    }
+    
+    // Update UI
+    updateDispatchUI();
+    checkAllItems();
+    updateProgress();
+    generatePreview();
+}
+
+async function loadDispatchItems() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('project_dispatch_items')
+            .select('*')
+            .eq('project_id', projectId)
+            .order('sort_order');
+        
+        if (data && data.length > 0) {
+            dispatchItems = data;
+        }
+    } catch (err) {
+        console.log('No dispatch items found');
+    }
+}
+
+function updateDispatchUI() {
+    const metaEl = document.getElementById('meta-DISPATCH_LIST');
+    const btnEl = document.getElementById('btn-DISPATCH_LIST');
+    const iconEl = document.getElementById('icon-DISPATCH_LIST');
+    
+    if (!metaEl || !btnEl || !iconEl) return;
+    
+    const selectedCount = dispatchItems.filter(i => i.selected).length;
+    
+    if (selectedCount > 0) {
+        metaEl.textContent = `${selectedCount} items selected`;
+        btnEl.textContent = '✎ Edit';
+        iconEl.textContent = '✅';
+    } else {
+        metaEl.textContent = 'Click to configure • Optional';
+        btnEl.textContent = '+ Create';
+        iconEl.textContent = '📦';
+    }
+}
+
 function updateDescriptionUI() {
     const metaEl = document.getElementById('meta-SCOPE_DESCRIPTION');
     const btnEl = document.getElementById('btn-SCOPE_DESCRIPTION');
@@ -1244,9 +1516,10 @@ async function checkItem(item) {
             break;
         
         // Dispatch
-        case 'DISPATCH_READY':
-            result.done = true; // Always included
-            result.meta = 'Will be included';
+        case 'DISPATCH_LIST':
+            const hasDispatchItems = dispatchItems.filter(i => i.selected).length > 0;
+            result.done = hasDispatchItems;
+            result.meta = hasDispatchItems ? `${dispatchItems.filter(i => i.selected).length} items` : 'Click to configure';
             break;
             
         // QC
@@ -2875,78 +3148,80 @@ function generatePhasesPage() {
 
 // ========== PAGE: DISPATCH CHECK LIST ==========
 function generateDispatchCheckListPage() {
-    const sprayItems = projectData.sprayItems || [];
-    const materials = projectData.materials || [];
-    const elements = projectData.elements || [];
-    const installMaterials = materials.filter(m => m.used_in_stage === 'Installation' || !m.used_in_stage);
+    // If no dispatch items configured, use all project items
+    let items = dispatchItems.length > 0 ? dispatchItems.filter(i => i.selected) : [];
+    
+    // If still empty, fall back to building from project data
+    if (items.length === 0) {
+        const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+        
+        // Elements
+        (projectData.elements || []).forEach((el, idx) => {
+            const elId = el.element_id || `EL${idx + 1}`;
+            const fullId = projectPrefix ? `${projectPrefix}-${elId}` : elId;
+            items.push({
+                item_type: 'element',
+                name: `${fullId} ${el.element_name || el.name || el.element_type || 'Element'}`,
+                quantity: el.qty || 1,
+                notes: ''
+            });
+        });
+        
+        // Spray items
+        (projectData.sprayItems || []).forEach((item, idx) => {
+            items.push({
+                item_type: 'spray',
+                name: item.name || `Spray Item ${idx + 1}`,
+                quantity: 1,
+                notes: item.colour || ''
+            });
+        });
+    }
+    
+    // Group by type
+    const elements = items.filter(i => i.item_type === 'element');
+    const sprayItems = items.filter(i => i.item_type === 'spray');
+    const materials = items.filter(i => i.item_type === 'material');
+    const customItems = items.filter(i => i.item_type === 'custom');
+    
+    const renderTable = (title, icon, color, tableItems) => {
+        if (tableItems.length === 0) return '';
+        return `
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #333; margin-bottom: 10px; font-size: 13px; border-bottom: 2px solid ${color}; padding-bottom: 5px;">${icon} ${title} (${tableItems.length})</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead><tr style="background: #f5f5f5;">
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 60px;">Qty</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Notes</th>
+                    </tr></thead>
+                    <tbody>${tableItems.map(item => `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                            <td style="border: 1px solid #ddd; padding: 5px;">${item.name || '-'}</td>
+                            <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${item.quantity || 1}</td>
+                            <td style="border: 1px solid #ddd; padding: 5px; font-size: 10px; color: #666;">${item.notes || '-'}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+            </div>
+        `;
+    };
     
     return `
-        <h1 class="ps-section-title">8. Dispatch Check List</h1>
+        <h1 class="ps-section-title">8. Dispatch List</h1>
         <div style="margin-bottom: 15px; padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b;">
             <strong>📦 Pre-Dispatch Checklist</strong> - Tick off each item before loading for delivery.
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
             <div>
-                <h3 style="color: #333; margin-bottom: 10px; font-size: 13px; border-bottom: 2px solid #e99f62; padding-bottom: 5px;">🎨 Sprayed Items (${sprayItems.length})</h3>
-                ${sprayItems.length > 0 ? `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                        <thead><tr style="background: #f5f5f5;">
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Size</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Colour</th>
-                        </tr></thead>
-                        <tbody>${sprayItems.map(item => `
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
-                                <td style="border: 1px solid #ddd; padding: 5px;">${item.name || item.item_type || '-'}</td>
-                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 10px;">${item.width || '-'} x ${item.height || '-'}</td>
-                                <td style="border: 1px solid #ddd; padding: 5px; font-size: 10px;">${item.colour || '-'}</td>
-                            </tr>
-                        `).join('')}</tbody>
-                    </table>
-                ` : '<div style="color: #666; font-style: italic; padding: 10px; background: #f5f5f5; font-size: 11px;">No spray items</div>'}
-                
-                <h3 style="color: #333; margin: 20px 0 10px 0; font-size: 13px; border-bottom: 2px solid #3b82f6; padding-bottom: 5px;">📦 Elements / Units (${elements.length})</h3>
-                ${elements.length > 0 ? `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                        <thead><tr style="background: #f5f5f5;">
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">ID</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Name</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Qty</th>
-                        </tr></thead>
-                        <tbody>${elements.map(el => `
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
-                                <td style="border: 1px solid #ddd; padding: 5px; color: #4a9eff; font-weight: 600;">${getFullId(el)}</td>
-                                <td style="border: 1px solid #ddd; padding: 5px;">${el.name || '-'}</td>
-                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${el.qty || 1}</td>
-                            </tr>
-                        `).join('')}</tbody>
-                    </table>
-                ` : '<div style="color: #666; font-style: italic; padding: 10px; background: #f5f5f5; font-size: 11px;">No elements</div>'}
+                ${renderTable('Elements / Units', '📦', '#3b82f6', elements)}
+                ${renderTable('Sprayed Items', '🎨', '#e99f62', sprayItems)}
             </div>
             <div>
-                <h3 style="color: #333; margin-bottom: 10px; font-size: 13px; border-bottom: 2px solid #22c55e; padding-bottom: 5px;">🔩 Materials & Hardware (${installMaterials.length})</h3>
-                ${installMaterials.length > 0 ? `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                        <thead><tr style="background: #f5f5f5;">
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Qty</th>
-                            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Notes</th>
-                        </tr></thead>
-                        <tbody>${installMaterials.map(mat => `
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
-                                <td style="border: 1px solid #ddd; padding: 5px;">${mat.stock_items?.name || mat.item_name || '-'}</td>
-                                <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${mat.quantity_needed || '-'} ${mat.unit || ''}</td>
-                                <td style="border: 1px solid #ddd; padding: 5px; font-size: 10px; color: #666;">${mat.item_notes || '-'}</td>
-                            </tr>
-                        `).join('')}</tbody>
-                    </table>
-                ` : '<div style="color: #666; font-style: italic; padding: 10px; background: #f5f5f5; font-size: 11px;">No materials</div>'}
+                ${renderTable('Materials & Hardware', '🔩', '#22c55e', materials)}
+                ${renderTable('Additional Items', '➕', '#8b5cf6', customItems)}
                 
                 <div style="margin-top: 30px; padding: 15px; border: 2px solid #333; background: #fafafa;">
                     <h4 style="margin: 0 0 15px 0; font-size: 12px;">Dispatch Sign-off</h4>
