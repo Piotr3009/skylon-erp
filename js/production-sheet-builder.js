@@ -2080,10 +2080,11 @@ function generateCoverPageNew(logoUrl) {
         'Elements List',
         'Drawings',
         'Materials',
-        'Spraying',
+        'Spray Pack',
         'Phases / Timeline',
-        'Reference Photos',
-        'QC Checklist & Sign-off'
+        'Photos',
+        'Dispatch List',
+        'QC Checklist'
     ];
     
     // Pre-construction checklist items
