@@ -4171,9 +4171,9 @@ async function createProductionSheet() {
         
         showToast('Production Sheet created successfully!', 'success');
         
-        // Offer to download
+        // Auto-download the PDF
         if (pdfUrl) {
-            window.open(pdfUrl, '_blank');
+            await downloadPDF();
         }
         
     } catch (err) {
@@ -4327,13 +4327,44 @@ async function generateAndUploadPDF() {
 async function downloadPDF() {
     // Use final PDF from Supabase if available
     const pdfUrl = currentSheet?.pdf_url || window.finalPdfUrl;
-    if (pdfUrl) {
-        window.open(pdfUrl, '_blank');
-        showToast('Opening PDF...', 'success');
+    if (!pdfUrl) {
+        showToast('No PDF available. Create Production Sheet first.', 'warning');
         return;
     }
     
-    showToast('No PDF available. Create Production Sheet first.', 'warning');
+    showToast('Downloading PDF...', 'info');
+    
+    try {
+        // Fetch the PDF as blob
+        const response = await fetch(pdfUrl);
+        if (!response.ok) throw new Error('Failed to fetch PDF');
+        
+        const blob = await response.blob();
+        
+        // Create download link
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        
+        // Generate filename from project number
+        const projectNumber = projectData.project?.project_number || 'PS';
+        const cleanNumber = projectNumber.replace(/\//g, '-');
+        a.download = `Production-Sheet-${cleanNumber}.pdf`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Clean up
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        showToast('PDF downloaded!', 'success');
+    } catch (err) {
+        console.error('Download error:', err);
+        // Fallback - open in new tab
+        window.open(pdfUrl, '_blank');
+        showToast('Opening PDF in new tab...', 'info');
+    }
 }
 
 // ========== UTILITIES ==========
