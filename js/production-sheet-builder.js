@@ -4098,6 +4098,9 @@ async function createProductionSheet() {
         // Build snapshot
         const snapshot = buildSnapshot(forceCreate);
         
+        // Ensure preview is generated before PDF
+        await generatePreview();
+        
         // Generate PDF
         const pdfUrl = await generateAndUploadPDF();
         
