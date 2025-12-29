@@ -3687,11 +3687,6 @@ function generateQCPage() {
     `;
 }
 
-function regeneratePreview() {
-    generatePreview();
-    showToast('Preview refreshed', 'success');
-}
-
 function generateCoverPage() {
     const project = projectData.project;
     const client = projectData.client;
@@ -4382,72 +4377,6 @@ function generateQCSection() {
     `;
 }
 
-// ========== CREATE PRODUCTION SHEET ==========
-function buildSnapshot(isForceCreated) {
-    return {
-        meta: {
-            sheet_id: currentSheet?.id,
-            version: currentSheet?.version || 1,
-            status: 'final',
-            created_at: new Date().toISOString(),
-            is_force_created: isForceCreated,
-            missing_items: isForceCreated ? getMissingItems() : []
-        },
-        project: {
-            project_id: projectData.project?.id,
-            project_number: projectData.project?.project_number,
-            project_name: projectData.project?.name,
-            project_type: projectData.project?.type,
-            deadline: projectData.project?.deadline,
-            client: projectData.client ? {
-                name: projectData.client.company_name,
-                contact: projectData.client.contact_person,
-                phone: projectData.client.phone,
-                email: projectData.client.email
-            } : null
-        },
-        // PM descriptions
-        scopeDescription: scopeDescription,
-        sprayDescription: sprayDescription,
-        editedNotes: editedNotes,
-        hiddenNotes: hiddenNotes,
-        // Selected files for PS
-        selectedPhotoIds: selectedPhotos.map(f => f.id),
-        selectedDrawingIds: selectedDrawings.map(f => f.id),
-        // Original notes
-        notes: {
-            all: projectData.project?.notes || '',
-            important: extractImportantNotes(projectData.project?.notes)
-        },
-        elements: projectData.elements,
-        materials: {
-            production: projectData.materials.filter(m => m.used_in_stage === 'Production'),
-            spraying: projectData.materials.filter(m => m.used_in_stage === 'Spraying'),
-            installation: projectData.materials.filter(m => m.used_in_stage === 'Installation')
-        },
-        phases: projectData.phases,
-        blockers: projectData.blockers,
-        attachments: projectData.attachments
-    };
-}
-
-function getMissingItems() {
-    return checklistItems
-        .filter(i => i.required && !checklistStatus[i.key]?.done)
-        .map(i => ({
-            key: i.key,
-            label: i.label,
-            section: i.sectionKey
-        }));
-}
-
-function extractImportantNotes(notesRaw) {
-    if (!notesRaw) return [];
-    const allNotes = parseProjectNotesPS(notesRaw);
-    return allNotes.filter(n => n.important === true);
-}
-
-// ========== PDF GENERATION ==========
 // ========== PDF GENERATION ==========
 async function generatePDF() {
     const pages = document.querySelectorAll('.ps-page');
