@@ -389,7 +389,7 @@
             color: black;
             width: 420mm;
             min-height: 297mm;
-            padding: 15mm;
+            padding: 8mm 10mm;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             box-sizing: border-box;
             position: relative;
@@ -404,7 +404,7 @@
             .ps-page {
                 transform: scale(0.85);
                 transform-origin: top center;
-                margin-bottom: -42mm; /* Compensate for scale */
+                margin-bottom: -35mm; /* Compensate for scale */
             }
         }
         
@@ -423,14 +423,15 @@
                 margin-bottom: 0;
                 box-shadow: none;
                 page-break-after: always;
+                padding: 5mm 8mm;
             }
         }
         
         /* Page header with page number */
         .ps-page-header {
             position: absolute;
-            top: 8mm;
-            right: 15mm;
+            top: 3mm;
+            right: 10mm;
             font-size: 9px;
             color: #999;
         }

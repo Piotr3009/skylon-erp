@@ -2011,8 +2011,11 @@ async function generatePreview() {
     // PAGE 2: Scope & Notes
     pages.push({ section: 'scope', content: generateScopePage() });
     
-    // PAGE 3: Elements List
-    pages.push({ section: 'elements', content: generateBOMPage() });
+    // PAGE 3: Elements List (may be multiple pages)
+    const bomPages = generateBOMPages();
+    bomPages.forEach((content, i) => {
+        pages.push({ section: i === 0 ? 'elements' : `elements-${i+1}`, content });
+    });
     
     // PAGE 4+: Drawings (may be multiple pages)
     const drawingPages = await generateDrawingPages();
@@ -2020,16 +2023,22 @@ async function generatePreview() {
         pages.push({ section: i === 0 ? 'drawings' : `drawings-${i+1}`, content });
     });
     
-    // PAGE: Materials
-    pages.push({ section: 'materials', content: generateMaterialsPage() });
+    // PAGE: Materials (may be multiple pages)
+    const materialPages = generateMaterialsPages();
+    materialPages.forEach((content, i) => {
+        pages.push({ section: i === 0 ? 'materials' : `materials-${i+1}`, content });
+    });
     
-    // PAGE: Spraying (only if project has spray phase)
+    // PAGE: Spraying (may be multiple pages)
     const hasSprayPhase = projectData.phases.some(p => 
         (p.phase_key && p.phase_key.toLowerCase().includes('spray')) ||
         (p.phase_name && p.phase_name.toLowerCase().includes('spray'))
     );
     if (hasSprayPhase) {
-        pages.push({ section: 'spraying', content: generateSprayingPage() });
+        const sprayPages = generateSprayingPages();
+        sprayPages.forEach((content, i) => {
+            pages.push({ section: i === 0 ? 'spraying' : `spraying-${i+1}`, content });
+        });
     }
     
     // PAGE: Phases / Timeline
@@ -2476,6 +2485,93 @@ function getTypeLabel(type) {
     return labels[type] || type || 'Other';
 }
 
+// ========== PAGE 3: BOM (MULTI-PAGE) ==========
+function generateBOMPages() {
+    const pages = [];
+    const elements = projectData.elements;
+    const ITEMS_PER_PAGE = 12;
+    
+    if (elements.length === 0) {
+        pages.push(`
+            <h1 class="ps-section-title">2. Elements List</h1>
+            <div style="padding: 40px; text-align: center; color: #666;">
+                No elements defined. Add elements in the checklist.
+            </div>
+        `);
+        return pages;
+    }
+    
+    // If few elements, use single page
+    if (elements.length <= ITEMS_PER_PAGE) {
+        pages.push(generateBOMPage());
+        return pages;
+    }
+    
+    // Split by type for multi-page
+    const grouped = {};
+    elements.forEach(el => {
+        const type = el.element_type || 'other';
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(el);
+    });
+    
+    const types = Object.keys(grouped);
+    let pageNum = 1;
+    const totalPages = Math.ceil(elements.length / ITEMS_PER_PAGE);
+    
+    // Process each type as separate page if needed
+    types.forEach(type => {
+        const typeElements = grouped[type];
+        const typeLabel = getTypeLabel(type);
+        
+        // Split type into chunks if too many
+        for (let i = 0; i < typeElements.length; i += ITEMS_PER_PAGE) {
+            const chunk = typeElements.slice(i, i + ITEMS_PER_PAGE);
+            const isMultiChunk = typeElements.length > ITEMS_PER_PAGE;
+            
+            let html = `<h1 class="ps-section-title">2. Elements List${totalPages > 1 ? ` (${pageNum}/${totalPages})` : ''}</h1>`;
+            html += `<h3 style="color: #333; margin-bottom: 10px; font-size: 14px;">${typeLabel}${isMultiChunk ? ` (${i/ITEMS_PER_PAGE + 1})` : ''} - ${chunk.length} items</h3>`;
+            
+            // Simplified table for multi-page
+            html += `<table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <thead><tr style="background: #f5f5f5;">
+                    <th style="border: 1px solid #ddd; padding: 6px; width: 30px;">#</th>
+                    <th style="border: 1px solid #ddd; padding: 6px; width: 80px;">ID</th>
+                    <th style="border: 1px solid #ddd; padding: 6px;">Name</th>
+                    <th style="border: 1px solid #ddd; padding: 6px; width: 60px;">W</th>
+                    <th style="border: 1px solid #ddd; padding: 6px; width: 60px;">H</th>
+                    <th style="border: 1px solid #ddd; padding: 6px; width: 60px;">D</th>
+                    <th style="border: 1px solid #ddd; padding: 6px;">Type/Opening</th>
+                    <th style="border: 1px solid #ddd; padding: 6px;">Glass</th>
+                    <th style="border: 1px solid #ddd; padding: 6px;">Notes</th>
+                    <th style="border: 1px solid #ddd; padding: 6px; width: 35px;">✓</th>
+                </tr></thead>
+                <tbody>`;
+            
+            chunk.forEach((el, idx) => {
+                html += `<tr>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${i + idx + 1}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${getFullId(el)}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.name || el.element_name || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.opening_type || el.door_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; font-size: 10px;">${el.description || '-'}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><div style="width: 16px; height: 16px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                </tr>`;
+            });
+            
+            html += `</tbody></table>`;
+            pages.push(html);
+            pageNum++;
+        }
+    });
+    
+    return pages;
+}
+
 // ========== CUT LIST - REMOVED ==========
 // Cut List functionality moved to Production Support Documents
 // Function generateCutListPage() removed
@@ -2579,6 +2675,112 @@ function generateMaterialsPage() {
     });
     
     return html;
+}
+
+// ========== PAGE 3: MATERIALS (MULTI-PAGE) ==========
+function generateMaterialsPages() {
+    const pages = [];
+    const materials = projectData.materials;
+    const ITEMS_PER_PAGE = 7; // Max items per page for good readability
+    
+    if (materials.length === 0) {
+        pages.push(`
+            <h1 class="ps-section-title">3. Materials</h1>
+            <div style="color: #666; font-style: italic; padding: 20px;">No materials assigned to this project.</div>
+        `);
+        return pages;
+    }
+    
+    // Flatten all materials with stage info
+    const allMaterials = [];
+    const stages = ['Production', 'Spraying', 'Installation'];
+    stages.forEach(stage => {
+        const stageMats = materials.filter(m => m.used_in_stage === stage);
+        stageMats.forEach((m, idx) => {
+            allMaterials.push({ ...m, stageName: stage, isFirstInStage: idx === 0 });
+        });
+    });
+    
+    // Split into pages
+    const totalPages = Math.ceil(allMaterials.length / ITEMS_PER_PAGE);
+    
+    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+        const startIdx = pageNum * ITEMS_PER_PAGE;
+        const pageMaterials = allMaterials.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+        
+        let html = `<h1 class="ps-section-title">3. Materials${totalPages > 1 ? ` (${pageNum + 1}/${totalPages})` : ''}</h1>`;
+        
+        let currentStage = null;
+        
+        pageMaterials.forEach((m) => {
+            // New stage header
+            if (m.stageName !== currentStage) {
+                if (currentStage !== null) {
+                    html += `</tbody></table></div>`;
+                }
+                currentStage = m.stageName;
+                const stageColor = currentStage === 'Production' ? '#4a9eff' : currentStage === 'Spraying' ? '#f59e0b' : '#22c55e';
+                
+                html += `
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: #333; font-size: 13px; margin-bottom: 8px; padding: 6px 10px; background: linear-gradient(90deg, ${stageColor}22, transparent); border-left: 4px solid ${stageColor};">
+                            ${currentStage.toUpperCase()} STAGE
+                        </h3>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #f5f5f5;">
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 90px;">Photo</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Material</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 90px;">Reserved</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 90px;">Stock Left</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 180px;">Notes</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 40px;">✓</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            }
+            
+            // Material row
+            const imageUrl = m.is_bespoke ? m.image_url : m.stock_items?.image_url;
+            const photoPlaceholder = m.is_bespoke ? 'Bespoke' : '-';
+            const photoHtml = imageUrl 
+                ? `<img src="${imageUrl}" style="width: 75px; height: 75px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'">`
+                : `<div style="width: 75px; height: 75px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">${photoPlaceholder}</div>`;
+            
+            let materialDesc = m.item_name || m.stock_items?.name || 'Unknown';
+            const size = m.stock_items?.size || '';
+            const thickness = m.stock_items?.thickness || '';
+            const sizeInfo = [size, thickness].filter(x => x).join(' / ');
+            if (sizeInfo) materialDesc += `<br><span style="color: #666; font-size: 11px;">${sizeInfo}</span>`;
+            if (m.item_notes) materialDesc += `<br><span style="color: #888; font-size: 10px; font-style: italic;">${m.item_notes}</span>`;
+            
+            const reserved = m.is_bespoke ? (m.quantity_needed || 0) : (m.quantity_reserved || 0);
+            const unit = m.unit || m.stock_items?.unit || 'pcs';
+            
+            let stockLeftHtml = '-';
+            if (!m.is_bespoke && m.stock_items) {
+                const stockLeft = (m.stock_items.current_quantity || 0) - (m.stock_items.reserved_quantity || 0);
+                stockLeftHtml = `${stockLeft.toFixed(2)} ${unit}`;
+                if (stockLeft < 0) stockLeftHtml += `<br><span style="color: #ef4444; font-size: 9px; font-weight: bold;">✗ LOW</span>`;
+            }
+            
+            html += `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${photoHtml}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${materialDesc}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${reserved.toFixed(2)} ${unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${stockLeftHtml}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;"><div style="width: 20px; height: 20px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                </tr>`;
+        });
+        
+        // Close last table
+        html += `</tbody></table></div>`;
+        pages.push(html);
+    }
+    
+    return pages;
 }
 
 // ========== PAGES: DRAWINGS ==========
@@ -2868,6 +3070,158 @@ function generateSprayingPage() {
             </div>
         </div>
     `;
+}
+
+// ========== PAGE 5: SPRAYING (MULTI-PAGE) ==========
+function generateSprayingPages() {
+    const pages = [];
+    const sprayItems = projectData.sprayItems || [];
+    const ITEMS_PER_PAGE = 20; // Max items per spray page
+    const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+    
+    // Build element lookup map
+    const elementMap = {};
+    (projectData.elements || []).forEach(el => {
+        if (el.id) elementMap[el.id] = el.element_id || '';
+    });
+    
+    const getSprayItemDisplay = (item) => {
+        const elementCode = elementMap[item.element_id] || '';
+        const itemName = item.item_type || item.name || 'Item';
+        if (projectPrefix && elementCode) {
+            return `${projectPrefix}-${elementCode}-${(item.sort_order || 0) + 1} ${itemName}`;
+        }
+        return item.name || itemName;
+    };
+    
+    // Group by colour
+    const colourGroups = {};
+    sprayItems.forEach(item => {
+        const colour = item.colour || 'No Colour Specified';
+        if (!colourGroups[colour]) colourGroups[colour] = [];
+        colourGroups[colour].push(item);
+    });
+    
+    const colours = Object.keys(colourGroups);
+    const totalItems = sprayItems.length;
+    
+    // Calculate total pages needed
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+    
+    // Spray settings header (only on first page)
+    const colourTypeLabel = sprayColourType === 'dual' ? 'Dual Colour' : 'Single Colour';
+    const settingsHtml = `
+        <div style="margin-bottom: 15px; padding: 12px 15px; background: #fef3c7; border-left: 4px solid #f59e0b;">
+            <strong style="color: #92400e;">⚠️ Important:</strong>
+            <span style="font-size: 12px; color: #78350f; margin-left: 8px;">
+                Review ALL documentation. Contact Production Manager if unclear.
+            </span>
+        </div>
+        <div style="margin-bottom: 15px; padding: 12px; background: #f0f9ff; border: 1px solid #3b82f6; border-radius: 4px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div><strong style="color: #1e40af; font-size: 10px;">Colour Type:</strong><div style="font-size: 13px; font-weight: 600;">${colourTypeLabel}</div></div>
+                <div><strong style="color: #1e40af; font-size: 10px;">Sheen:</strong><div style="font-size: 13px; font-weight: 600;">${spraySheenLevel || '___'}</div></div>
+                <div><strong style="color: #1e40af; font-size: 10px;">Colours:</strong><div style="font-size: 13px; font-weight: 600;">${sprayColours.length > 0 ? sprayColours.join(', ') : 'None'}</div></div>
+            </div>
+            ${sprayDescription ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #3b82f6; font-size: 11px;"><strong>Instructions:</strong> ${sprayDescription}</div>` : ''}
+        </div>`;
+    
+    // Spray checklist (only on last page)
+    const sprayChecklist = ['All items sanded', 'Primer applied', '1st coat', '2nd coat', 'Final inspection', 'Ready for assembly'];
+    const checklistHtml = `
+        <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h3 style="font-size: 13px; margin-bottom: 10px;">Spray Checklist</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <thead><tr style="background: #f5f5f5;">
+                        <th style="border: 1px solid #ddd; padding: 6px; width: 25px;">✓</th>
+                        <th style="border: 1px solid #ddd; padding: 6px;">Task</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; width: 70px;">Date</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; width: 70px;">By</th>
+                    </tr></thead>
+                    <tbody>${sprayChecklist.map(t => `<tr>
+                        <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><div style="width: 14px; height: 14px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                        <td style="border: 1px solid #ddd; padding: 6px;">${t}</td>
+                        <td style="border: 1px solid #ddd; padding: 6px;"></td>
+                        <td style="border: 1px solid #ddd; padding: 6px;"></td>
+                    </tr>`).join('')}</tbody>
+                </table>
+            </div>
+            <div>
+                <h3 style="font-size: 13px; margin-bottom: 10px;">Notes:</h3>
+                <div style="border: 1px solid #ddd; min-height: 120px; background: #fafafa;"></div>
+            </div>
+        </div>`;
+    
+    if (totalItems === 0) {
+        pages.push(`
+            <h1 class="ps-section-title">5. Spraying</h1>
+            ${settingsHtml}
+            <div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No spray items defined.</div>
+            ${checklistHtml}
+        `);
+        return pages;
+    }
+    
+    // Split items across pages
+    let currentItemIndex = 0;
+    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+        const isFirstPage = pageNum === 0;
+        const isLastPage = pageNum === totalPages - 1;
+        const pageItems = Math.min(ITEMS_PER_PAGE, totalItems - currentItemIndex);
+        
+        let html = `<h1 class="ps-section-title">5. Spraying${totalPages > 1 ? ` (${pageNum + 1}/${totalPages})` : ''}</h1>`;
+        
+        if (isFirstPage) html += settingsHtml;
+        
+        html += `<h3 style="font-size: 13px; margin-bottom: 10px;">Spray Items (${totalItems} total)</h3>`;
+        html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">`;
+        
+        // Render colour groups for this page
+        let itemsOnPage = 0;
+        for (const colour of colours) {
+            if (itemsOnPage >= pageItems) break;
+            
+            const groupItems = colourGroups[colour];
+            const startInGroup = Math.max(0, currentItemIndex - sprayItems.indexOf(groupItems[0]));
+            const itemsToShow = groupItems.slice(startInGroup, startInGroup + (pageItems - itemsOnPage));
+            
+            if (itemsToShow.length > 0) {
+                html += `
+                    <div style="margin-bottom: 10px;">
+                        <div style="background: #e99f62; color: white; padding: 6px 10px; font-weight: 600; font-size: 11px; border-radius: 4px 4px 0 0;">
+                            ${colour} (${groupItems.length})
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                            <thead><tr style="background: #f5f5f5;">
+                                <th style="border: 1px solid #ddd; padding: 5px; width: 25px;">✓</th>
+                                <th style="border: 1px solid #ddd; padding: 5px;">Item</th>
+                                <th style="border: 1px solid #ddd; padding: 5px; width: 80px;">Size</th>
+                                <th style="border: 1px solid #ddd; padding: 5px;">Notes</th>
+                            </tr></thead>
+                            <tbody>
+                                ${itemsToShow.map(item => `<tr>
+                                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 12px; height: 12px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                                    <td style="border: 1px solid #ddd; padding: 5px;">${getSprayItemDisplay(item)}</td>
+                                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 9px;">${item.width || '-'}x${item.height || '-'}</td>
+                                    <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px; color: #666;">${item.notes || '-'}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+                itemsOnPage += itemsToShow.length;
+            }
+        }
+        
+        html += `</div>`;
+        
+        if (isLastPage) html += checklistHtml;
+        
+        currentItemIndex += pageItems;
+        pages.push(html);
+    }
+    
+    return pages;
 }
 
 // ========== PAGE: PHASES / TIMELINE ==========
