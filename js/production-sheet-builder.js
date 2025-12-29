@@ -1152,7 +1152,7 @@ function renderDispatchModal() {
                         <button onclick="toggleAllDispatch('${type}', true)" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;">All</button>
                     </div>
                 </div>
-                <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 250px; overflow-y: auto;">
+                <div id="dispatch-scroll-${type}" class="dispatch-scroll-section" style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 400px; overflow-y: auto;">
                     ${items.length > 0 ? items.map((item) => {
                         const globalIdx = tempDispatchItems.indexOf(item);
                         return `
@@ -1186,7 +1186,7 @@ function renderDispatchModal() {
                         <button onclick="toggleAllDispatch('material', true)" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 10px;">All</button>
                     </div>
                 </div>
-                <div style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 350px; overflow-y: auto;">
+                <div id="dispatch-scroll-material" class="dispatch-scroll-section" style="background: #1e1e1e; border: 1px solid #3e3e42; border-top: none; max-height: 500px; overflow-y: auto;">
                     ${materials.map((item) => {
                         const globalIdx = tempDispatchItems.indexOf(item);
                         const imgStyle = 'width: 50px; height: 50px; object-fit: cover; border-radius: 4px; background: #2d2d30;';
@@ -1216,14 +1216,16 @@ function renderDispatchModal() {
     };
     
     container.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
             <div>
                 ${renderSimpleSection('Elements / Units', '📦', '#3b82f6', elements, 'element')}
+            </div>
+            <div>
                 ${renderSimpleSection('Spray Items', '🎨', '#e99f62', sprayItems, 'spray')}
+                ${renderSimpleSection('Custom Items', '➕', '#8b5cf6', customItems, 'custom')}
             </div>
             <div>
                 ${renderMaterialsSection()}
-                ${renderSimpleSection('Custom Items', '➕', '#8b5cf6', customItems, 'custom')}
             </div>
         </div>
         
@@ -1244,7 +1246,31 @@ function toggleDispatchItem(idx) {
     if (tempDispatchItems[idx]) {
         tempDispatchItems[idx].selected = !tempDispatchItems[idx].selected;
     }
+    
+    // Save scroll positions by section ID
+    const scrollPositions = {};
+    ['element', 'spray', 'material', 'custom'].forEach(type => {
+        const section = document.getElementById(`dispatch-scroll-${type}`);
+        if (section) {
+            scrollPositions[type] = section.scrollTop;
+        }
+    });
+    
     renderDispatchModal();
+    
+    // Restore scroll positions
+    requestAnimationFrame(() => {
+        ['element', 'spray', 'material', 'custom'].forEach(type => {
+            const section = document.getElementById(`dispatch-scroll-${type}`);
+            if (section && scrollPositions[type] !== undefined) {
+                section.scrollTop = scrollPositions[type];
+            }
+        });
+    });
+}
+
+function updateDispatchCounters() {
+    // Not used anymore - kept for compatibility
 }
 
 function toggleAllDispatch(type, selected) {
