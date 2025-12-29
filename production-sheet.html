@@ -488,16 +488,17 @@
         /* Full page drawing */
         .ps-drawing-full {
             width: 100%;
-            height: 100%;
+            height: calc(297mm - 35mm);
             display: flex;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
         .ps-drawing-full img {
-            flex: 1;
-            object-fit: contain;
             max-width: 100%;
-            max-height: calc(297mm - 50mm);
+            max-height: 100%;
+            object-fit: contain;
         }
         
         /* Incomplete banner */

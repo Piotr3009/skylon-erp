@@ -2107,9 +2107,26 @@ function generateScopePages() {
     const notesWithIndex = importantNotes.map((note, idx) => ({ note, idx }))
         .filter(item => !hiddenNotes[item.idx]);
     
-    // Estimate page capacity: ~4 notes per page after description, ~6 notes per page without description
     const hasDescription = getTextFromHtml(scopeDescription).trim().length > 0;
-    const NOTES_FIRST_PAGE = hasDescription ? 3 : 5; // Less on first page if description exists
+    const descriptionLength = getTextFromHtml(scopeDescription).length;
+    const totalNotes = notesWithIndex.length;
+    
+    // Estimate if description is long (needs its own page)
+    // ~1500 chars fills roughly half the page with our font size
+    const descriptionIsLong = descriptionLength > 1200;
+    const descriptionIsMedium = descriptionLength > 600;
+    
+    // Adjust notes per page based on description length
+    let NOTES_FIRST_PAGE;
+    if (!hasDescription) {
+        NOTES_FIRST_PAGE = 5;
+    } else if (descriptionIsLong) {
+        NOTES_FIRST_PAGE = 0; // Description gets its own page
+    } else if (descriptionIsMedium) {
+        NOTES_FIRST_PAGE = 1;
+    } else {
+        NOTES_FIRST_PAGE = 3;
+    }
     const NOTES_PER_PAGE = 5;
     
     // Generate note HTML
@@ -2124,8 +2141,7 @@ function generateScopePages() {
     }
     
     // Check if everything fits on one page
-    const totalNotes = notesWithIndex.length;
-    const fitsOnOnePage = totalNotes <= NOTES_FIRST_PAGE;
+    const fitsOnOnePage = totalNotes <= NOTES_FIRST_PAGE && !descriptionIsLong;
     
     if (fitsOnOnePage) {
         // Single page - use original logic
@@ -2155,16 +2171,17 @@ function generateScopePages() {
         `);
     } else {
         // Multiple pages needed
-        const totalPages = 1 + Math.ceil((totalNotes - NOTES_FIRST_PAGE) / NOTES_PER_PAGE);
+        const notesPages = totalNotes > 0 ? Math.ceil((totalNotes - NOTES_FIRST_PAGE) / NOTES_PER_PAGE) + (NOTES_FIRST_PAGE > 0 ? 0 : 0) : 0;
+        const totalPages = 1 + (totalNotes > NOTES_FIRST_PAGE ? Math.ceil((totalNotes - NOTES_FIRST_PAGE) / NOTES_PER_PAGE) : 0);
         let noteIndex = 0;
         
-        // First page - with description
+        // First page - with description (and maybe some notes)
         const firstPageNotes = notesWithIndex.slice(0, NOTES_FIRST_PAGE);
-        const firstPageNotesHtml = firstPageNotes.map(item => renderNote(item)).join('');
+        const firstPageNotesHtml = firstPageNotes.length > 0 ? firstPageNotes.map(item => renderNote(item)).join('') : '';
         noteIndex = NOTES_FIRST_PAGE;
         
         pages.push(`
-            <h1 class="ps-section-title">1. Scope & Notes (1/${totalPages})</h1>
+            <h1 class="ps-section-title">1. Scope & Notes ${totalPages > 1 ? `(1/${totalPages})` : ''}</h1>
             
             <div style="display: flex; flex-direction: column; gap: 25px; overflow: hidden;">
                 ${hasDescription ? `
@@ -2176,11 +2193,17 @@ function generateScopePages() {
                     </div>
                 ` : ''}
                 
-                <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
-                    <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes</h3>
-                    <div style="font-size: 11px; color: #888; margin-bottom: 15px; font-style: italic;">📌 Notes added during project preparation</div>
-                    ${firstPageNotesHtml}
-                </div>
+                ${firstPageNotesHtml || totalNotes === 0 ? `
+                    <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
+                        <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes</h3>
+                        <div style="font-size: 11px; color: #888; margin-bottom: 15px; font-style: italic;">📌 Notes added during project preparation</div>
+                        ${firstPageNotesHtml || '<div style="color: #666; font-style: italic; font-size: 14px;">No important notes flagged.</div>'}
+                    </div>
+                ` : `
+                    <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
+                        <div style="font-size: 11px; color: #888; font-style: italic;">📌 Important Notes continue on next page...</div>
+                    </div>
+                `}
             </div>
         `);
         
@@ -2195,7 +2218,7 @@ function generateScopePages() {
                 <h1 class="ps-section-title">1. Scope & Notes (${pageNum}/${totalPages})</h1>
                 
                 <div style="overflow: hidden;">
-                    <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes (continued)</h3>
+                    <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes ${pageNum > 2 ? '(continued)' : ''}</h3>
                     ${pageNotesHtml}
                 </div>
             `);
@@ -2772,7 +2795,7 @@ async function generateDrawingPages() {
             pages.push(`
                 <h1 class="ps-section-title">4. Drawings ${totalDrawings > 1 ? `(${drawingPageNum}/${totalDrawings})` : ''}</h1>
                 <div class="ps-drawing-full">
-                    <img src="${drawing.url}" style="max-width: 100%; max-height: calc(297mm - 50mm); object-fit: contain;" crossorigin="anonymous" />
+                    <img src="${drawing.url}" crossorigin="anonymous" />
                 </div>
             `);
         } else if (isPdf) {
@@ -2784,7 +2807,7 @@ async function generateDrawingPages() {
                         pages.push(`
                             <h1 class="ps-section-title">4. Drawings</h1>
                             <div class="ps-drawing-full">
-                                <img src="${imgData}" style="max-width: 100%; max-height: calc(297mm - 50mm); object-fit: contain;" />
+                                <img src="${imgData}" />
                             </div>
                         `);
                     });
@@ -4391,51 +4414,59 @@ async function generatePDF() {
     const pdfWidth = 420;
     const pdfHeight = 297;
     
-    // A3 at 96 DPI: 420mm = 1587px, 297mm = 1123px
-    const A3_WIDTH_PX = 1587;
-    const A3_HEIGHT_PX = 1123;
-    
     for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
         
-        // Temporarily reset transform and set fixed A3 dimensions
+        // Temporarily reset transform for accurate capture
         const originalTransform = page.style.transform;
         const originalMargin = page.style.marginBottom;
-        const originalWidth = page.style.width;
-        const originalMinHeight = page.style.minHeight;
         
         page.style.transform = 'none';
         page.style.marginBottom = '0';
-        page.style.width = '420mm';
-        page.style.minHeight = '297mm';
         
+        // Render at actual size with scale for quality
         const canvas = await html2canvas(page, {
             scale: 2,
             useCORS: true,
-            backgroundColor: '#ffffff',
-            width: A3_WIDTH_PX,
-            height: A3_HEIGHT_PX
+            backgroundColor: '#ffffff'
         });
         
         // Restore original styles
         page.style.transform = originalTransform;
         page.style.marginBottom = originalMargin;
-        page.style.width = originalWidth;
-        page.style.minHeight = originalMinHeight;
         
         // Add page (not for first page)
         if (i > 0) {
             pdf.addPage();
         }
         
-        // Use full A3 dimensions
+        // Calculate dimensions to fit A3 while maintaining aspect ratio
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const canvasRatio = canvasWidth / canvasHeight;
+        const pdfRatio = pdfWidth / pdfHeight;
+        
+        let imgWidth, imgHeight, offsetX = 0, offsetY = 0;
+        
+        if (canvasRatio > pdfRatio) {
+            // Canvas is wider - fit to width
+            imgWidth = pdfWidth;
+            imgHeight = pdfWidth / canvasRatio;
+            offsetY = (pdfHeight - imgHeight) / 2;
+        } else {
+            // Canvas is taller - fit to height
+            imgHeight = pdfHeight;
+            imgWidth = pdfHeight * canvasRatio;
+            offsetX = (pdfWidth - imgWidth) / 2;
+        }
+        
         pdf.addImage(
             canvas.toDataURL('image/jpeg', 0.95), 
             'JPEG', 
-            0, 
-            0, 
-            pdfWidth, 
-            pdfHeight
+            offsetX, 
+            offsetY, 
+            imgWidth, 
+            imgHeight
         );
     }
     

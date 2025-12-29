@@ -534,10 +534,43 @@ async function saveBomElement() {
     if (!data.name) { showToast('Name is required', 'warning'); return; }
     Object.keys(data).forEach(key => { if (data[key] === undefined) delete data[key]; });
     
-    // Wyczyść lock_2/lock_3 jeśli locks_qty jest mniejsze
-    const locksQty = parseInt(data.locks_qty) || 0;
-    if (locksQty < 2) data.lock_2 = null;
-    if (locksQty < 3) data.lock_3 = null;
+    // Wyczyść pola warunkowe gdy warunek nie jest spełniony
+    if (type === 'internalDoors') {
+        // Locks
+        const locksQty = parseInt(data.locks_qty) || 0;
+        if (locksQty < 2) data.lock_2 = null;
+        if (locksQty < 3) data.lock_3 = null;
+        // Fire rating
+        if (data.fire_rating !== 'FD30' && data.fire_rating !== 'FD60') {
+            data.intumescent_set = null;
+            data.self_closer = null;
+        }
+        // Glazed
+        if (data.glazed !== 'Yes') {
+            data.glass_type = null;
+        }
+    }
+    
+    if (type === 'externalDoors') {
+        // Glazed
+        if (data.glazed !== 'Yes') {
+            data.glass_type = null;
+            data.glass_thickness = null;
+        }
+    }
+    
+    if (type === 'partition') {
+        // Panel type
+        if (data.panel_type !== 'Glazed' && data.panel_type !== 'Mixed') {
+            data.glass_type = null;
+            data.glass_thickness = null;
+        }
+        // Door included
+        if (data.door_included !== 'Yes') {
+            data.door_handing = null;
+            data.door_lock = null;
+        }
+    }
     
     try {
         let elementId = editingElementId;
