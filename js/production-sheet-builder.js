@@ -110,7 +110,6 @@ const CHECKLIST_SECTIONS = [
         conditional: true, // tylko jeśli projekt ma fazę spray
         items: [
             { key: 'SPRAY_DESCRIPTION', label: 'Spray Instructions', source: 'MANUAL', required: false, isSprayText: true },
-            { key: 'SPRAY_COLORS', label: 'Colour Reference', source: 'SELECT_FILE', required: false, fileFolder: 'spray' },
             { key: 'SPRAY_DISCLAIMER', label: 'Spraying Manager Notice', source: 'INFO', required: false, isDisclaimer: true }
         ]
     },
@@ -804,11 +803,10 @@ async function selectProjectFile(filePath, fileUrl, fileName) {
         }
         
         const attachmentType = currentSelectFolder === 'drawings' ? 'DRAWINGS_MAIN' : 
-                              currentSelectFolder === 'photos' ? 'PHOTOS' :
-                              currentSelectFolder === 'spray' ? 'SPRAY_COLORS' : 'DRAWINGS_MAIN';
+                              currentSelectFolder === 'photos' ? 'PHOTOS' : 'DRAWINGS_MAIN';
         
         // Remove old attachment of this type (for single types)
-        if (['DRAWINGS_MAIN', 'SPRAY_COLORS'].includes(attachmentType)) {
+        if (['DRAWINGS_MAIN'].includes(attachmentType)) {
             const oldAttachments = projectData.attachments.filter(a => a.attachment_type === attachmentType);
             for (const old of oldAttachments) {
                 await supabaseClient
@@ -1223,13 +1221,6 @@ async function checkItem(item) {
             result.meta = sprayDescription.trim().length > 0 ? `${sprayDescription.trim().length} characters` : 'Optional';
             break;
             
-        case 'SPRAY_COLORS':
-            const hasSprayColors = projectData.attachments.some(a => a.attachment_type === 'SPRAY_COLORS') ||
-                                   projectData.files.some(f => f.folder_name?.toLowerCase().startsWith('spray'));
-            result.done = hasSprayColors;
-            result.meta = hasSprayColors ? 'Selected' : 'Optional';
-            break;
-            
         case 'SPRAY_DISCLAIMER':
             result.done = true; // Always shown as info
             result.meta = 'Information';
@@ -1438,7 +1429,7 @@ async function confirmUpload() {
         }
         
         // Single attachment types - usuń stare przed dodaniem nowego
-        const singleTypes = ['DRAWINGS_MAIN', 'SPRAY_COLORS', 'FINISH_SPECS'];
+        const singleTypes = ['DRAWINGS_MAIN', 'FINISH_SPECS'];
         if (singleTypes.includes(currentUploadType)) {
             // Znajdź i usuń stare załączniki tego typu
             const oldAttachments = projectData.attachments.filter(a => a.attachment_type === currentUploadType);
@@ -2376,7 +2367,6 @@ async function generatePhotoPages() {
 // ========== PAGE: SPRAY PACK ==========
 function generateSprayingPage() {
     const sprayItems = projectData.sprayItems || [];
-    const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
     const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
     
     // Build element lookup map for full ID
@@ -2482,13 +2472,6 @@ function generateSprayingPage() {
                         </table>
                     </div>
                 `).join('') : '<div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No spray items defined. Add spray items in Element List.</div>'}
-                
-                ${sprayAttachment ? `
-                    <div style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f0f9ff;">
-                        <strong style="color: #0369a1;">📎 Colour Reference:</strong>
-                        <div style="font-size: 11px; color: #666; margin-top: 5px;">${sprayAttachment.file_name}</div>
-                    </div>
-                ` : ''}
                 
                 <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b;">
                     <strong style="color: #92400e;">⚠️ Spray Manager Notice</strong>
@@ -3311,7 +3294,6 @@ function generateSprayPackSection() {
     
     const sectionNum = ++pdfSectionNumber;
     const sprayMaterials = projectData.materials.filter(m => m.used_in_stage === 'Spraying');
-    const sprayAttachment = projectData.attachments.find(a => a.attachment_type === 'SPRAY_COLORS');
     
     // Zbierz kolory z elementów
     const colours = [...new Set(projectData.elements
@@ -3358,13 +3340,6 @@ function generateSprayPackSection() {
                     </div>
                 </div>
             </div>
-            
-            ${sprayAttachment ? `
-                <div style="background: #e3f2fd; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                    <strong>📎 Colour Reference File:</strong> ${sprayAttachment.file_name}
-                    <span style="color: #666; font-size: 11px;">(see attached)</span>
-                </div>
-            ` : ''}
             
             ${sprayMaterials.length > 0 ? `
                 <h3 style="font-size: 14px; color: #333; margin-bottom: 10px;">Spray Materials</h3>
