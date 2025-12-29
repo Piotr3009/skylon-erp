@@ -1990,10 +1990,13 @@ async function generatePreview() {
     // PAGE 1: Cover + Contents
     pages.push({ section: 'cover', content: generateCoverPageNew(logoUrl) });
     
-    // PAGE 2: Scope & Notes
-    pages.push({ section: 'scope', content: generateScopePage() });
+    // PAGE 2+: Scope & Notes (may be multiple pages)
+    const scopePages = generateScopePages();
+    scopePages.forEach((content, i) => {
+        pages.push({ section: i === 0 ? 'scope' : `scope-${i+1}`, content });
+    });
     
-    // PAGE 3: Elements List (may be multiple pages)
+    // PAGE: Elements List (may be multiple pages)
     const bomPages = generateBOMPages();
     bomPages.forEach((content, i) => {
         pages.push({ section: i === 0 ? 'elements' : `elements-${i+1}`, content });
@@ -2154,7 +2157,9 @@ function generateCoverPageNew(logoUrl) {
 }
 
 // ========== PAGE 2: SCOPE & NOTES ==========
-function generateScopePage() {
+// ========== SCOPE & NOTES (MULTI-PAGE) ==========
+function generateScopePages() {
+    const pages = [];
     const project = projectData.project;
     const notesRaw = project?.notes || '';
     const allNotes = parseProjectNotesPS(notesRaw);
@@ -2163,38 +2168,113 @@ function generateScopePage() {
     // Filter out hidden notes for PDF
     const visibleNotes = importantNotes.filter((note, idx) => !hiddenNotes[idx]);
     
-    const importantNotesHtml = visibleNotes.length > 0 
-        ? importantNotes.map((note, idx) => {
-            if (hiddenNotes[idx]) return ''; // Skip hidden notes
-            const isEdited = editedNotes[idx] !== undefined;
-            const displayText = isEdited ? editedNotes[idx] : (note.text || '');
-            return `<div style="margin-bottom: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; overflow: hidden;">
-                <div style="font-size: 12px; color: #856404; margin-bottom: 8px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '<span style="color: #22c55e;">(edited for PS)</span>' : ''}</div>
-                <div style="white-space: pre-wrap; font-size: 14px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">${displayText}</div>
-            </div>`;
-        }).join('')
-        : '<div style="color: #666; font-style: italic; font-size: 14px;">No important notes flagged.</div>';
+    // Prepare visible notes with their original indices
+    const notesWithIndex = importantNotes.map((note, idx) => ({ note, idx }))
+        .filter(item => !hiddenNotes[item.idx]);
     
-    return `
-        <h1 class="ps-section-title">1. Scope & Notes</h1>
+    // Estimate page capacity: ~4 notes per page after description, ~6 notes per page without description
+    const hasDescription = getTextFromHtml(scopeDescription).trim().length > 0;
+    const NOTES_FIRST_PAGE = hasDescription ? 3 : 5; // Less on first page if description exists
+    const NOTES_PER_PAGE = 5;
+    
+    // Generate note HTML
+    function renderNote(item) {
+        const { note, idx } = item;
+        const isEdited = editedNotes[idx] !== undefined;
+        const displayText = isEdited ? editedNotes[idx] : (note.text || '');
+        return `<div style="margin-bottom: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; overflow: hidden;">
+            <div style="font-size: 12px; color: #856404; margin-bottom: 8px;">⚠️ ${note.author || 'Unknown'} • ${note.date || ''} ${isEdited ? '<span style="color: #22c55e;">(edited for PS)</span>' : ''}</div>
+            <div style="white-space: pre-wrap; font-size: 14px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">${displayText}</div>
+        </div>`;
+    }
+    
+    // Check if everything fits on one page
+    const totalNotes = notesWithIndex.length;
+    const fitsOnOnePage = totalNotes <= NOTES_FIRST_PAGE;
+    
+    if (fitsOnOnePage) {
+        // Single page - use original logic
+        const importantNotesHtml = notesWithIndex.length > 0 
+            ? notesWithIndex.map(item => renderNote(item)).join('')
+            : '<div style="color: #666; font-style: italic; font-size: 14px;">No important notes flagged.</div>';
         
-        <div style="display: flex; flex-direction: column; gap: 25px; overflow: hidden;">
-            ${getTextFromHtml(scopeDescription).trim() ? `
-                <div style="overflow: hidden;">
-                    <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
-                    <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; overflow: hidden;">
-                        <div style="font-size: 16px; line-height: 1.6;">${scopeDescription}</div>
-                    </div>
-                </div>
-            ` : ''}
+        pages.push(`
+            <h1 class="ps-section-title">1. Scope & Notes</h1>
             
-            <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
-                <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes</h3>
-                <div style="font-size: 11px; color: #888; margin-bottom: 15px; font-style: italic;">📌 Notes added during project preparation</div>
-                ${importantNotesHtml}
+            <div style="display: flex; flex-direction: column; gap: 25px; overflow: hidden;">
+                ${hasDescription ? `
+                    <div style="overflow: hidden;">
+                        <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
+                        <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; overflow: hidden;">
+                            <div style="font-size: 16px; line-height: 1.6;">${scopeDescription}</div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
+                    <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes</h3>
+                    <div style="font-size: 11px; color: #888; margin-bottom: 15px; font-style: italic;">📌 Notes added during project preparation</div>
+                    ${importantNotesHtml}
+                </div>
             </div>
-        </div>
-    `;
+        `);
+    } else {
+        // Multiple pages needed
+        const totalPages = 1 + Math.ceil((totalNotes - NOTES_FIRST_PAGE) / NOTES_PER_PAGE);
+        let noteIndex = 0;
+        
+        // First page - with description
+        const firstPageNotes = notesWithIndex.slice(0, NOTES_FIRST_PAGE);
+        const firstPageNotesHtml = firstPageNotes.map(item => renderNote(item)).join('');
+        noteIndex = NOTES_FIRST_PAGE;
+        
+        pages.push(`
+            <h1 class="ps-section-title">1. Scope & Notes (1/${totalPages})</h1>
+            
+            <div style="display: flex; flex-direction: column; gap: 25px; overflow: hidden;">
+                ${hasDescription ? `
+                    <div style="overflow: hidden;">
+                        <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">Production Description</h3>
+                        <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; overflow: hidden;">
+                            <div style="font-size: 16px; line-height: 1.6;">${scopeDescription}</div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div style="border-top: 2px solid #ddd; padding-top: 20px; overflow: hidden;">
+                    <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes</h3>
+                    <div style="font-size: 11px; color: #888; margin-bottom: 15px; font-style: italic;">📌 Notes added during project preparation</div>
+                    ${firstPageNotesHtml}
+                </div>
+            </div>
+        `);
+        
+        // Subsequent pages - only notes
+        let pageNum = 2;
+        while (noteIndex < totalNotes) {
+            const pageNotes = notesWithIndex.slice(noteIndex, noteIndex + NOTES_PER_PAGE);
+            const pageNotesHtml = pageNotes.map(item => renderNote(item)).join('');
+            noteIndex += NOTES_PER_PAGE;
+            
+            pages.push(`
+                <h1 class="ps-section-title">1. Scope & Notes (${pageNum}/${totalPages})</h1>
+                
+                <div style="overflow: hidden;">
+                    <h3 style="color: #333; margin-bottom: 8px; font-size: 16px;">Important Notes (continued)</h3>
+                    ${pageNotesHtml}
+                </div>
+            `);
+            pageNum++;
+        }
+    }
+    
+    return pages;
+}
+
+// Keep old function for compatibility
+function generateScopePage() {
+    const pages = generateScopePages();
+    return pages[0] || '';
 }
 
 
@@ -4558,43 +4638,51 @@ async function generateAndUploadPDF() {
         const pdfWidth = 420;
         const pdfHeight = 297;
         
+        // A3 at 96 DPI: 420mm = 1587px, 297mm = 1123px
+        const A3_WIDTH_PX = 1587;
+        const A3_HEIGHT_PX = 1123;
+        
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
             
-            // Temporarily reset transform for capture
+            // Temporarily reset transform and set fixed A3 dimensions
             const originalTransform = page.style.transform;
             const originalMargin = page.style.marginBottom;
+            const originalWidth = page.style.width;
+            const originalMinHeight = page.style.minHeight;
+            
             page.style.transform = 'none';
             page.style.marginBottom = '0';
+            page.style.width = '420mm';
+            page.style.minHeight = '297mm';
             
             const canvas = await html2canvas(page, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff',
-                width: page.scrollWidth,
-                height: page.scrollHeight
+                width: A3_WIDTH_PX,
+                height: A3_HEIGHT_PX
             });
             
-            // Restore transform
+            // Restore original styles
             page.style.transform = originalTransform;
             page.style.marginBottom = originalMargin;
+            page.style.width = originalWidth;
+            page.style.minHeight = originalMinHeight;
             
             // Add page (not for first page)
             if (i > 0) {
                 pdf.addPage();
             }
             
-            // Calculate dimensions to fit A3
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-            
+            // Use full A3 dimensions
             pdf.addImage(
                 canvas.toDataURL('image/jpeg', 0.95), 
                 'JPEG', 
                 0, 
                 0, 
-                imgWidth, 
-                Math.min(imgHeight, pdfHeight)
+                pdfWidth, 
+                pdfHeight
             );
         }
         
