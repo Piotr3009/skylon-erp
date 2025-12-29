@@ -391,10 +391,26 @@ function saveLastValues(type, data) { lastElementValues[type] = { ...data }; }
 function renderSprayItemsTable() {
     const container = document.getElementById('sprayItemsContainer');
     if (!container) return;
-    if (currentSprayItems.length === 0) {
-        container.innerHTML = `<div style="color: #666; font-size: 11px; padding: 10px; text-align: center;">No spray items. Click "+ Add Spray Item" to add.</div>`;
+    
+    // Check if colours are defined
+    const colours = typeof sprayColours !== 'undefined' ? sprayColours : [];
+    
+    if (colours.length === 0) {
+        container.innerHTML = `<div style="color: #f59e0b; font-size: 12px; padding: 15px; text-align: center; background: #3d3000; border-radius: 6px; border: 1px solid #f59e0b;">
+            ⚠️ <strong>Define colours first!</strong><br>
+            <span style="font-size: 11px;">Go to Spray Section in checklist and add colours before adding spray items.</span>
+        </div>`;
         return;
     }
+    
+    if (currentSprayItems.length === 0) {
+        container.innerHTML = `<div style="color: #666; font-size: 11px; padding: 10px; text-align: center;">No spray items. Click "+ Add Item" to add.</div>`;
+        return;
+    }
+    
+    // Build colour options
+    const colourOptions = colours.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    
     container.innerHTML = `
         <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
             <thead><tr style="background: #2a2a3a;">
@@ -411,6 +427,7 @@ function renderSprayItemsTable() {
                 const projectNum = projectData.project?.project_number || '';
                 const shortProjectNum = projectNum.split('/')[0] || 'XXX';
                 const elementCode = document.getElementById('bomFieldId')?.value || 'X';
+                const selectedColour = item.colour || '';
                 return `
                 <tr>
                     <td style="padding: 4px; border: 1px solid #3e3e42; color: #4a9eff;">${shortProjectNum}-${elementCode}-${idx + 1}</td>
@@ -418,7 +435,12 @@ function renderSprayItemsTable() {
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.width || ''}" onchange="updateSprayItem(${idx}, 'width', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.height || ''}" onchange="updateSprayItem(${idx}, 'height', this.value)" style="width: 60px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="number" value="${item.depth || ''}" onchange="updateSprayItem(${idx}, 'depth', this.value)" style="width: 50px; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;"></td>
-                    <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.colour)}" onchange="updateSprayItem(${idx}, 'colour', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="RAL 9016"></td>
+                    <td style="padding: 4px; border: 1px solid #3e3e42;">
+                        <select onchange="updateSprayItem(${idx}, 'colour', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;">
+                            <option value="">-- Select --</option>
+                            ${colours.map(c => `<option value="${escapeHtml(c)}" ${selectedColour === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+                        </select>
+                    </td>
                     <td style="padding: 4px; border: 1px solid #3e3e42;"><input type="text" value="${escapeHtml(item.notes)}" onchange="updateSprayItem(${idx}, 'notes', this.value)" style="width: 100%; padding: 4px; background: #1e1e1e; border: 1px solid #3e3e42; color: #e8e2d5; font-size: 11px;" placeholder="both sides"></td>
                     <td style="padding: 4px; border: 1px solid #3e3e42; text-align: center;"><button onclick="removeSprayItem(${idx})" style="background: #ef4444; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px;">✕</button></td>
                 </tr>
@@ -428,14 +450,21 @@ function renderSprayItemsTable() {
 }
 
 function addSprayItem() {
-    // Kopiuj wartości z poprzedniego wiersza (colour, notes)
+    // Check if colours are defined
+    const colours = typeof sprayColours !== 'undefined' ? sprayColours : [];
+    if (colours.length === 0) {
+        showToast('Define colours in Spray Section first!', 'error');
+        return;
+    }
+    
+    // Kopiuj wartości z poprzedniego wiersza (colour, notes) lub ustaw pierwszy kolor
     const lastItem = currentSprayItems.length > 0 ? currentSprayItems[currentSprayItems.length - 1] : null;
     currentSprayItems.push({ 
         name: '', 
         width: null, 
         height: null, 
         depth: null, 
-        colour: lastItem?.colour || '', 
+        colour: lastItem?.colour || colours[0] || '', 
         notes: lastItem?.notes || '' 
     });
     renderSprayItemsTable();
@@ -453,6 +482,13 @@ function removeSprayItem(index) {
 }
 
 function addMultipleSprayItems() {
+    // Check if colours are defined
+    const colours = typeof sprayColours !== 'undefined' ? sprayColours : [];
+    if (colours.length === 0) {
+        showToast('Define colours in Spray Section first!', 'error');
+        return;
+    }
+    
     const qty = parseInt(prompt('How many spray items to add?', '4'));
     if (qty && qty > 0 && qty <= 20) {
         // Kopiuj wartości z ostatniego istniejącego wiersza
@@ -463,7 +499,7 @@ function addMultipleSprayItems() {
                 width: null, 
                 height: null, 
                 depth: null, 
-                colour: lastItem?.colour || '', 
+                colour: lastItem?.colour || colours[0] || '', 
                 notes: lastItem?.notes || '' 
             });
         }
