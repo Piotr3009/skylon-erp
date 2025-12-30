@@ -1366,17 +1366,19 @@ async function executePasswordConfirm() {
             return;
         }
         
-        // Password correct - execute the pending action
+        // Password correct - save callback before closing (closePasswordConfirmModal sets it to null)
+        const callbackToExecute = pendingPasswordAction;
+        
         console.log('Password correct! Closing modal...');
         closePasswordConfirmModal();
         
-        console.log('Pending action:', pendingPasswordAction);
-        if (pendingPasswordAction && typeof pendingPasswordAction === 'function') {
-            console.log('Executing pending action...');
-            await pendingPasswordAction();
-            console.log('Pending action completed!');
+        console.log('Callback to execute:', callbackToExecute);
+        if (callbackToExecute && typeof callbackToExecute === 'function') {
+            console.log('Executing callback...');
+            await callbackToExecute();
+            console.log('Callback completed!');
         } else {
-            console.log('NO pending action to execute!');
+            console.log('NO callback to execute!');
         }
         
     } catch (err) {
