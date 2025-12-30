@@ -809,5 +809,29 @@
             document.getElementById('empColorHex').value = e.target.value;
         });
     </script>
+    
+    <!-- Password Confirmation Modal (uniwersalny) -->
+    <div class="modal" id="passwordConfirmModal">
+        <div class="modal-content" style="width: 400px;">
+            <div class="modal-header" style="background: #ef4444;">
+                <span id="passwordConfirmTitle">🔐 Confirm with Password</span>
+                <span class="close" onclick="closePasswordConfirmModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="passwordConfirmMessage" style="margin-bottom: 15px; color: #ccc;">Please enter your password to confirm this action.</p>
+                
+                <div class="form-group">
+                    <label>Your Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Enter your password..." autocomplete="current-password">
+                </div>
+                
+                <p id="passwordConfirmError" style="color: #ef4444; font-size: 12px; display: none; margin-top: 10px;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closePasswordConfirmModal()">Cancel</button>
+                <button class="modal-btn" onclick="executePasswordConfirm()" style="background: #ef4444;">Confirm</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
