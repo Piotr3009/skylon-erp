@@ -3051,7 +3051,8 @@ function generateSprayingPage() {
 function generateSprayingPages() {
     const pages = [];
     const sprayItems = projectData.sprayItems || [];
-    const ITEMS_PER_PAGE = 20; // Max items per spray page
+    const ITEMS_PER_PAGE = 30; // 15 per column x 2 columns
+    const ITEMS_PER_COLUMN = 15;
     const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
     
     // Build element lookup map
@@ -3069,18 +3070,7 @@ function generateSprayingPages() {
         return item.name || itemName;
     };
     
-    // Group by colour
-    const colourGroups = {};
-    sprayItems.forEach(item => {
-        const colour = item.colour || 'No Colour Specified';
-        if (!colourGroups[colour]) colourGroups[colour] = [];
-        colourGroups[colour].push(item);
-    });
-    
-    const colours = Object.keys(colourGroups);
     const totalItems = sprayItems.length;
-    
-    // Calculate total pages needed
     const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
     
     // Spray settings header (only on first page)
@@ -3138,61 +3128,55 @@ function generateSprayingPages() {
         return pages;
     }
     
-    // Split items across pages
-    let currentItemIndex = 0;
+    // Helper to render one column table
+    const renderColumn = (items, startNum) => {
+        if (items.length === 0) return '';
+        return `
+            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                <thead><tr style="background: #f5f5f5;">
+                    <th style="border: 1px solid #ddd; padding: 5px; width: 30px;">No</th>
+                    <th style="border: 1px solid #ddd; padding: 5px;">Item</th>
+                    <th style="border: 1px solid #ddd; padding: 5px; width: 70px;">Size</th>
+                    <th style="border: 1px solid #ddd; padding: 5px; width: 80px;">Colour</th>
+                    <th style="border: 1px solid #ddd; padding: 5px;">Notes</th>
+                </tr></thead>
+                <tbody>
+                    ${items.map((item, idx) => `<tr>
+                        <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight: bold;">${startNum + idx}</td>
+                        <td style="border: 1px solid #ddd; padding: 5px;">${getSprayItemDisplay(item)}</td>
+                        <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 9px;">${item.width || '-'}x${item.height || '-'}</td>
+                        <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px;">${item.colour || '-'}</td>
+                        <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px; color: #666;">${item.notes || ''}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>`;
+    };
+    
+    // Generate pages
     for (let pageNum = 0; pageNum < totalPages; pageNum++) {
         const isFirstPage = pageNum === 0;
         const isLastPage = pageNum === totalPages - 1;
-        const pageItems = Math.min(ITEMS_PER_PAGE, totalItems - currentItemIndex);
+        
+        const pageStartIdx = pageNum * ITEMS_PER_PAGE;
+        const pageItems = sprayItems.slice(pageStartIdx, pageStartIdx + ITEMS_PER_PAGE);
+        
+        // Split into left and right columns
+        const leftItems = pageItems.slice(0, ITEMS_PER_COLUMN);
+        const rightItems = pageItems.slice(ITEMS_PER_COLUMN);
         
         let html = `<h1 class="ps-section-title">5. Spraying${totalPages > 1 ? ` (${pageNum + 1}/${totalPages})` : ''}</h1>`;
         
         if (isFirstPage) html += settingsHtml;
         
-        html += `<h3 style="font-size: 13px; margin-bottom: 10px;">Spray Items (${totalItems} total)</h3>`;
+        html += `<h3 style="font-size: 13px; margin-bottom: 10px;">Spray Items (${totalItems} items)</h3>`;
+        
         html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">`;
-        
-        // Render colour groups for this page
-        let itemsOnPage = 0;
-        for (const colour of colours) {
-            if (itemsOnPage >= pageItems) break;
-            
-            const groupItems = colourGroups[colour];
-            const startInGroup = Math.max(0, currentItemIndex - sprayItems.indexOf(groupItems[0]));
-            const itemsToShow = groupItems.slice(startInGroup, startInGroup + (pageItems - itemsOnPage));
-            
-            if (itemsToShow.length > 0) {
-                html += `
-                    <div style="margin-bottom: 10px;">
-                        <div style="background: #e99f62; color: white; padding: 6px 10px; font-weight: 600; font-size: 11px; border-radius: 4px 4px 0 0;">
-                            ${colour} (${groupItems.length})
-                        </div>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                            <thead><tr style="background: #f5f5f5;">
-                                <th style="border: 1px solid #ddd; padding: 5px; width: 25px;">✓</th>
-                                <th style="border: 1px solid #ddd; padding: 5px;">Item</th>
-                                <th style="border: 1px solid #ddd; padding: 5px; width: 80px;">Size</th>
-                                <th style="border: 1px solid #ddd; padding: 5px;">Notes</th>
-                            </tr></thead>
-                            <tbody>
-                                ${itemsToShow.map(item => `<tr>
-                                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 12px; height: 12px; border: 2px solid #333; margin: 0 auto;"></div></td>
-                                    <td style="border: 1px solid #ddd; padding: 5px;">${getSprayItemDisplay(item)}</td>
-                                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 9px;">${item.width || '-'}x${item.height || '-'}</td>
-                                    <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px; color: #666;">${item.notes || '-'}</td>
-                                </tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>`;
-                itemsOnPage += itemsToShow.length;
-            }
-        }
-        
+        html += `<div>${renderColumn(leftItems, pageStartIdx + 1)}</div>`;
+        html += `<div>${renderColumn(rightItems, pageStartIdx + ITEMS_PER_COLUMN + 1)}</div>`;
         html += `</div>`;
         
         if (isLastPage) html += checklistHtml;
         
-        currentItemIndex += pageItems;
         pages.push(html);
     }
     
