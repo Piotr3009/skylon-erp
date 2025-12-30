@@ -2311,10 +2311,11 @@ function generateBOMPages() {
         },
         internalDoors: {
             label: 'Internal Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Type', 'Open', 'Fire', 'Intum', 'Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Notes', '✓'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Type', 'Open Way', 'Fire Rating', 'Intumescent Set', 'Self Closer', 'Glazed', 'Glass', 'Locks', 'Hinges', 'Notes', '✓'],
             render: (el, idx) => {
                 const locks = [el.lock_1, el.lock_2, el.lock_3].filter(Boolean).join(', ') || '-';
                 const openDir = el.door_handing === 'Left' ? 'LH' : (el.door_handing === 'Right' ? 'RH' : (el.door_handing || '-'));
+                const isFire = el.fire_rating === 'FD30' || el.fire_rating === 'FD60';
                 return `
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${getFullId(el)}</td>
@@ -2325,10 +2326,10 @@ function generateBOMPages() {
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.door_type || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${openDir}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.fire_rating || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.intumescent_set || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.self_closer || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${isFire ? (el.intumescent_set || '-') : '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${isFire ? (el.self_closer || '-') : '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.glazed || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${el.glazed === 'Yes' ? (el.glass_type || '-') : '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px; word-wrap: break-word; max-width: 100px;">${locks}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery_hinges || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
@@ -2338,7 +2339,7 @@ function generateBOMPages() {
         },
         externalDoors: {
             label: 'External Doors',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Open', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Notes', '✓'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'Type', 'Open Way', 'Threshold', 'Glazed', 'Glass', 'Thick.', 'Locks', 'Hinges', 'Notes', '✓'],
             render: (el, idx) => {
                 const openDir = el.door_handing === 'Left' ? 'LH' : (el.door_handing === 'Right' ? 'RH' : (el.door_handing || '-'));
                 return `
@@ -2351,8 +2352,8 @@ function generateBOMPages() {
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${openDir}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.threshold || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.glazed || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${el.glazed === 'Yes' ? (el.glass_type || '-') : '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${el.glazed === 'Yes' ? (el.glass_thickness || '-') : '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.locks || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.ironmongery_hinges || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
@@ -2406,7 +2407,10 @@ function generateBOMPages() {
         partition: {
             label: 'Partitions',
             cols: ['#', 'ID', 'Name', 'W', 'H', 'Panel', 'Frame', 'Glass', 'Thick.', 'Door', 'Hand', 'Lock', 'Acoustic', 'Notes', '✓'],
-            render: (el, idx) => `
+            render: (el, idx) => {
+                const isGlazed = el.panel_type === 'Glazed' || el.panel_type === 'Mixed';
+                const hasDoor = el.door_included === 'Yes';
+                return `
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${getFullId(el)}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; word-wrap: break-word; max-width: 80px;">${el.name || '-'}</td>
@@ -2414,15 +2418,16 @@ function generateBOMPages() {
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.panel_type || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.frame_material || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_thickness || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${isGlazed ? (el.glass_type || '-') : '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${isGlazed ? (el.glass_thickness || '-') : '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.door_included || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.door_handing || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.door_lock || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${hasDoor ? (el.door_handing || '-') : '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${hasDoor ? (el.door_lock || '-') : '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px;">${el.acoustic_rating || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><div style="width: 16px; height: 16px; border: 2px solid #333; margin: 0 auto;"></div></td>
-            `
+            `;
+            }
         },
         externalSpray: {
             label: 'External Spray',
@@ -2443,7 +2448,7 @@ function generateBOMPages() {
         },
         additionalProject: {
             label: 'Additional Project Items',
-            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Type/Opening', 'Glass', 'Notes', '✓'],
+            cols: ['#', 'ID', 'Name', 'W', 'H', 'D', 'Qty', 'Item Type', 'Material', 'Description', '✓'],
             render: (el, idx) => `
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; color: #4a9eff;">${getFullId(el)}</td>
@@ -2451,8 +2456,9 @@ function generateBOMPages() {
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.width || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.height || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.depth || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.opening_type || el.door_type || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 6px;">${el.glass_type || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${el.qty || 1}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${el.item_type || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;">${el.material || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px; word-wrap: break-word; max-width: 150px;">${el.description || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 6px; text-align: center;"><div style="width: 16px; height: 16px; border: 2px solid #333; margin: 0 auto;"></div></td>
             `
