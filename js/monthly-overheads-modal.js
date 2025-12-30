@@ -22,15 +22,26 @@ let categoryExpanded = {
 
 // Open modal
 function openMonthlySettingsModal() {
-    document.getElementById('monthlySettingsModal').style.display = 'block';
+    document.getElementById('monthlySettingsModal').classList.add('active');
+    
+    const input = document.getElementById('settingsMonth');
     const now = new Date();
-    document.getElementById('settingsMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    loadMonthOverheads();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Set value (Flatpickr will be initialized by MutationObserver in menu.js)
+    if (input._flatpickr) {
+        input._flatpickr.setDate(currentMonth);
+    } else {
+        input.value = currentMonth;
+    }
+    
+    // Small delay to let Flatpickr initialize
+    setTimeout(() => loadMonthOverheads(), 100);
 }
 
 // Close modal
 function closeMonthlySettingsModal() {
-    document.getElementById('monthlySettingsModal').style.display = 'none';
+    document.getElementById('monthlySettingsModal').classList.remove('active');
 }
 
 // Load overhead data for selected month

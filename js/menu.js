@@ -10,14 +10,26 @@
     css.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css';
     document.head.appendChild(css);
     
+    // Add monthSelect plugin CSS
+    const monthCss = document.createElement('link');
+    monthCss.rel = 'stylesheet';
+    monthCss.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css';
+    document.head.appendChild(monthCss);
+    
     // Add JS
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
     script.onload = function() {
-        initFlatpickr();
-        // Re-init when new content is added (for modals etc)
-        const observer = new MutationObserver(() => initFlatpickr());
-        observer.observe(document.body, { childList: true, subtree: true });
+        // Load monthSelect plugin
+        const monthPlugin = document.createElement('script');
+        monthPlugin.src = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js';
+        monthPlugin.onload = function() {
+            initFlatpickr();
+            // Re-init when new content is added (for modals etc)
+            const observer = new MutationObserver(() => initFlatpickr());
+            observer.observe(document.body, { childList: true, subtree: true });
+        };
+        document.head.appendChild(monthPlugin);
     };
     document.head.appendChild(script);
 })();
@@ -25,17 +37,36 @@
 function initFlatpickr() {
     if (typeof flatpickr === 'undefined') return;
     
+    // Regular date inputs
     document.querySelectorAll('input[type="date"]:not(.flatpickr-input)').forEach(el => {
-        // Get existing value
         const existingValue = el.value;
         
         flatpickr(el, {
-            dateFormat: 'Y-m-d', // Format for database
+            dateFormat: 'Y-m-d',
             altInput: true,
-            altFormat: 'd/m/Y', // Display format (British)
+            altFormat: 'd/m/Y',
             allowInput: true,
             defaultDate: existingValue || null
         });
+    });
+    
+    // Month picker inputs (marked with data-month-picker)
+    document.querySelectorAll('input[data-month-picker="true"]:not(.flatpickr-input)').forEach(el => {
+        const existingValue = el.value;
+        
+        if (typeof monthSelectPlugin !== 'undefined') {
+            flatpickr(el, {
+                plugins: [new monthSelectPlugin({
+                    shorthand: true,
+                    dateFormat: "Y-m",
+                    altFormat: "F Y"
+                })],
+                altInput: true,
+                altFormat: "F Y",
+                dateFormat: "Y-m",
+                defaultDate: existingValue || null
+            });
+        }
     });
 }
 
