@@ -379,39 +379,6 @@
 
         <!-- Main Content -->
         <div class="team-container">
-            <!-- Statistics -->
-            <div class="stats-cards">
-                <div class="stat-card">
-                    <div class="stat-number" id="totalEmployees">0</div>
-                    <div class="stat-label">Total Employees</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="activeEmployees">0</div>
-                    <div class="stat-label">Active</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="onHoliday">0</div>
-                    <div class="stat-label">On Holiday</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="weeklyCost">£0</div>
-                    <div class="stat-label">Weekly Cost</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="holidayDays">0</div>
-                    <div class="stat-label">Days Available</div>
-                </div>
-            </div>
-
-            <!-- Tabs -->
-            <div class="team-tabs">
-                <button class="team-tab active" onclick="showActiveTeam()" id="activeTab">
-                    👥 Active Employees <span class="tab-count" id="activeCount">0</span>
-                </button>
-                <button class="team-tab" onclick="showArchivedTeam()" id="archivedTab">
-                    📦 Archived <span class="tab-count" id="archivedCount">0</span>
-                </button>
-            </div>
 
             <!-- Active Section -->
             <div class="active-section" id="activeSection">
@@ -468,6 +435,7 @@
             <table class="team-table" id="teamTable">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">No</th>
                         <th>Color</th>
                         <th>Employee</th>
                         <th>Department</th>

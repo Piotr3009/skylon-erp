@@ -32,7 +32,7 @@ async function renderTeam(members) {
     tbody.innerHTML = '';
     
     if (members.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">No team members found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #999;">No team members found</td></tr>';
         return;
     }
     
@@ -50,7 +50,7 @@ async function renderTeam(members) {
         });
     }
     
-    members.forEach(member => {
+    members.forEach((member, index) => {
         const tr = document.createElement('tr');
         
         // Calculate holiday percentage (remaining/allowance)
@@ -79,6 +79,7 @@ async function renderTeam(members) {
             `<button class="action-btn" onclick="openChangeRoleModal('${member.id}', '${accountRole}')" title="Change Role" style="background: #3b82f6;">🔐</button>` : '';
         
         tr.innerHTML = `
+            <td style="text-align: center; font-weight: 600; color: #888;">${index + 1}</td>
             <td>
                 <span class="color-indicator" style="background: ${member.color_code || '#999'};"></span>
             </td>
