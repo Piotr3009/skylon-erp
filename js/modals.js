@@ -1280,11 +1280,7 @@ function closeModal(modalId) {
 let pendingPasswordAction = null;
 
 function confirmWithPassword(title, message, callback) {
-    console.log("=== confirmWithPassword CALLED ===" );
-    console.log("callback:", callback);
-    console.log("typeof callback:", typeof callback);
     pendingPasswordAction = callback;
-    console.log("pendingPasswordAction after set:", pendingPasswordAction);
     
     const titleEl = document.getElementById('passwordConfirmTitle');
     const messageEl = document.getElementById('passwordConfirmMessage');
@@ -1309,8 +1305,6 @@ function confirmWithPassword(title, message, callback) {
 }
 
 function closePasswordConfirmModal() {
-    console.log('=== closePasswordConfirmModal CALLED ===');
-    console.log('pendingPasswordAction before null:', pendingPasswordAction);
     const modal = document.getElementById('passwordConfirmModal');
     const passwordEl = document.getElementById('confirmPassword');
     const errorEl = document.getElementById('passwordConfirmError');
@@ -1319,17 +1313,12 @@ function closePasswordConfirmModal() {
     if (passwordEl) passwordEl.value = '';
     if (errorEl) errorEl.style.display = 'none';
     pendingPasswordAction = null;
-    console.log('pendingPasswordAction set to null');
 }
 
 async function executePasswordConfirm() {
-    console.log('=== executePasswordConfirm START ===');
-    console.log('pendingPasswordAction at start:', pendingPasswordAction);
-    console.trace('executePasswordConfirm stack trace');
     const password = document.getElementById('confirmPassword').value;
     const errorEl = document.getElementById('passwordConfirmError');
     
-    console.log('Password entered:', password ? 'YES' : 'NO');
     
     if (!password) {
         errorEl.textContent = 'Please enter your password';
@@ -1339,9 +1328,7 @@ async function executePasswordConfirm() {
     
     try {
         // Get current user email
-        console.log('Getting current user...');
         const { data: { user } } = await supabaseClient.auth.getUser();
-        console.log('User:', user?.email);
         
         if (!user || !user.email) {
             errorEl.textContent = 'Unable to verify user';
@@ -1350,13 +1337,11 @@ async function executePasswordConfirm() {
         }
         
         // Verify password by attempting to sign in
-        console.log('Verifying password...');
         const { error } = await supabaseClient.auth.signInWithPassword({
             email: user.email,
             password: password
         });
         
-        console.log('Sign in result - error:', error);
         
         if (error) {
             errorEl.textContent = 'Incorrect password';
@@ -1369,16 +1354,11 @@ async function executePasswordConfirm() {
         // Password correct - save callback before closing (closePasswordConfirmModal sets it to null)
         const callbackToExecute = pendingPasswordAction;
         
-        console.log('Password correct! Closing modal...');
         closePasswordConfirmModal();
         
-        console.log('Callback to execute:', callbackToExecute);
         if (callbackToExecute && typeof callbackToExecute === 'function') {
-            console.log('Executing callback...');
             await callbackToExecute();
-            console.log('Callback completed!');
         } else {
-            console.log('NO callback to execute!');
         }
         
     } catch (err) {
@@ -1386,15 +1366,12 @@ async function executePasswordConfirm() {
         errorEl.textContent = 'Verification failed: ' + err.message;
         errorEl.style.display = 'block';
     }
-    console.log('=== executePasswordConfirm END ===');
 }
 
 // Allow Enter key to submit password
 document.addEventListener('keydown', function(e) {
     const modal = document.getElementById('passwordConfirmModal');
     if (e.key === 'Enter' && modal && modal.classList.contains('active')) {
-        console.log('=== Enter key pressed in password modal ===');
-        console.log('pendingPasswordAction at Enter:', pendingPasswordAction);
         executePasswordConfirm();
     }
 });
