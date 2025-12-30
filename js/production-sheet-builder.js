@@ -3050,7 +3050,7 @@ function generateSprayingPage() {
 // ========== PAGE 5: SPRAYING (MULTI-PAGE) ==========
 function generateSprayingPages() {
     const pages = [];
-    const sprayItems = projectData.sprayItems || [];
+    const sprayItemsRaw = projectData.sprayItems || [];
     const ITEMS_PER_PAGE = 30; // 15 per column x 2 columns
     const ITEMS_PER_COLUMN = 15;
     const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
@@ -3059,6 +3059,25 @@ function generateSprayingPages() {
     const elementMap = {};
     (projectData.elements || []).forEach(el => {
         if (el.id) elementMap[el.id] = el.element_id || '';
+    });
+    
+    // Sort spray items: by element_id (D001, D002...), then by sort_order within element
+    // Items without proper element_id go to the end
+    const sprayItems = [...sprayItemsRaw].sort((a, b) => {
+        const aCode = elementMap[a.element_id] || '';
+        const bCode = elementMap[b.element_id] || '';
+        
+        // Extract number from element code (D001 -> 1, D002 -> 2)
+        const aMatch = aCode.match(/[A-Za-z]*(\d+)/);
+        const bMatch = bCode.match(/[A-Za-z]*(\d+)/);
+        const aNum = aMatch ? parseInt(aMatch[1]) : 99999;
+        const bNum = bMatch ? parseInt(bMatch[1]) : 99999;
+        
+        // First sort by element number
+        if (aNum !== bNum) return aNum - bNum;
+        
+        // Then by sort_order within element
+        return (a.sort_order || 0) - (b.sort_order || 0);
     });
     
     const getSprayItemDisplay = (item) => {
