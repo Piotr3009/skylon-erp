@@ -3251,7 +3251,6 @@ function generateSprayingPages() {
     // Add checklist to last page and close it
     currentPageHtml += checklistHtml;
     pages.push(currentPageHtml);
-    pages.push(html);
     
     return pages;
 }
