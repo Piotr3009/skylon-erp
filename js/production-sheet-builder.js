@@ -1975,7 +1975,7 @@ async function generatePreview() {
     });
     
     // PAGE: Dispatch Check List
-    pages.push({ section: 'dispatch', content: generateDispatchCheckListPage() });
+    generateDispatchPages().forEach(content => pages.push({ section: 'dispatch', content }));
     
     // PAGE: QC & Sign-off
     pages.push({ section: 'qc', content: generateQCPage() });
@@ -3612,8 +3612,11 @@ function generatePhasesPage() {
     `;
 }
 
-// ========== PAGE: DISPATCH CHECK LIST ==========
-function generateDispatchCheckListPage() {
+// ========== PAGE: DISPATCH CHECK LIST (MULTI-PAGE) ==========
+function generateDispatchPages() {
+    const pages = [];
+    const ITEMS_PER_PAGE = 20; // Max items per column per page
+    
     // If no dispatch items configured, use all project items
     let items = dispatchItems.length > 0 ? dispatchItems.filter(i => i.selected) : [];
     
@@ -3650,11 +3653,12 @@ function generateDispatchCheckListPage() {
     const materials = items.filter(i => i.item_type === 'material');
     const customItems = items.filter(i => i.item_type === 'custom');
     
-    const renderTable = (title, icon, color, tableItems) => {
+    // Helper to render table
+    const renderTable = (title, icon, color, tableItems, continued = false) => {
         if (tableItems.length === 0) return '';
         return `
             <div style="margin-bottom: 20px;">
-                <h3 style="color: #333; margin-bottom: 10px; font-size: 13px; border-bottom: 2px solid ${color}; padding-bottom: 5px;">${icon} ${title} (${tableItems.length})</h3>
+                <h3 style="color: #333; margin-bottom: 10px; font-size: 13px; border-bottom: 2px solid ${color}; padding-bottom: 5px;">${icon} ${title} (${tableItems.length})${continued ? ' - continued' : ''}</h3>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                     <thead><tr style="background: #f5f5f5;">
                         <th style="border: 1px solid #ddd; padding: 6px; text-align: center; width: 30px;">✓</th>
@@ -3675,33 +3679,123 @@ function generateDispatchCheckListPage() {
         `;
     };
     
-    return `
-        <h1 class="ps-section-title">8. Dispatch List</h1>
+    // Sign-off box (only on last page)
+    const signOffHtml = `
+        <div style="margin-top: 30px; padding: 15px; border: 2px solid #333; background: #fafafa;">
+            <h4 style="margin: 0 0 15px 0; font-size: 12px;">Dispatch Sign-off</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Packed by:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+                <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Date:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+                <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Checked by:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+                <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Vehicle Reg:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
+            </div>
+            <div style="margin-top: 15px;"><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Notes / Missing Items:</div><div style="border: 1px solid #333; min-height: 50px;"></div></div>
+        </div>
+    `;
+    
+    // Header (only on first page)
+    const headerHtml = `
         <div style="margin-bottom: 15px; padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b;">
             <strong>📦 Pre-Dispatch Checklist</strong> - Tick off each item before loading for delivery.
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-            <div>
-                ${renderTable('Elements / Units', '📦', '#3b82f6', elements)}
-                ${renderTable('Sprayed Items', '🎨', '#e99f62', sprayItems)}
-            </div>
-            <div>
-                ${renderTable('Materials & Hardware', '🔩', '#22c55e', materials)}
-                ${renderTable('Additional Items', '➕', '#8b5cf6', customItems)}
-                
-                <div style="margin-top: 30px; padding: 15px; border: 2px solid #333; background: #fafafa;">
-                    <h4 style="margin: 0 0 15px 0; font-size: 12px;">Dispatch Sign-off</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Packed by:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
-                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Date:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
-                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Checked by:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
-                        <div><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Vehicle Reg:</div><div style="border-bottom: 1px solid #333; height: 25px;"></div></div>
-                    </div>
-                    <div style="margin-top: 15px;"><div style="font-size: 11px; color: #666; margin-bottom: 5px;">Notes / Missing Items:</div><div style="border: 1px solid #333; min-height: 50px;"></div></div>
-                </div>
-            </div>
-        </div>
     `;
+    
+    // Build pages with pagination
+    // Left column: Elements, Sprayed Items
+    // Right column: Materials, Additional Items, Sign-off
+    
+    const leftGroups = [
+        { title: 'Elements / Units', icon: '📦', color: '#3b82f6', items: elements, totalCount: elements.length },
+        { title: 'Sprayed Items', icon: '🎨', color: '#e99f62', items: sprayItems, totalCount: sprayItems.length }
+    ];
+    
+    const rightGroups = [
+        { title: 'Materials & Hardware', icon: '🔩', color: '#22c55e', items: materials, totalCount: materials.length },
+        { title: 'Additional Items', icon: '➕', color: '#8b5cf6', items: customItems, totalCount: customItems.length }
+    ];
+    
+    // Track positions for each group
+    let leftPositions = leftGroups.map(() => 0);
+    let rightPositions = rightGroups.map(() => 0);
+    
+    const hasMoreLeft = () => leftGroups.some((g, i) => leftPositions[i] < g.items.length);
+    const hasMoreRight = () => rightGroups.some((g, i) => rightPositions[i] < g.items.length);
+    
+    let pageNum = 0;
+    
+    while (hasMoreLeft() || hasMoreRight()) {
+        pageNum++;
+        let leftHtml = '';
+        let rightHtml = '';
+        let leftCount = 0;
+        let rightCount = 0;
+        
+        // Render left column groups
+        for (let i = 0; i < leftGroups.length; i++) {
+            const group = leftGroups[i];
+            const startPos = leftPositions[i];
+            if (startPos >= group.items.length) continue;
+            
+            const remainingSpace = ITEMS_PER_PAGE - leftCount;
+            if (remainingSpace <= 0) break;
+            
+            const itemsToRender = group.items.slice(startPos, startPos + remainingSpace);
+            const continued = startPos > 0;
+            
+            leftHtml += renderTable(group.title, group.icon, group.color, itemsToRender, continued);
+            leftPositions[i] += itemsToRender.length;
+            leftCount += itemsToRender.length + 2; // +2 for header
+        }
+        
+        // Render right column groups
+        for (let i = 0; i < rightGroups.length; i++) {
+            const group = rightGroups[i];
+            const startPos = rightPositions[i];
+            if (startPos >= group.items.length) continue;
+            
+            const remainingSpace = ITEMS_PER_PAGE - rightCount;
+            if (remainingSpace <= 0) break;
+            
+            const itemsToRender = group.items.slice(startPos, startPos + remainingSpace);
+            const continued = startPos > 0;
+            
+            rightHtml += renderTable(group.title, group.icon, group.color, itemsToRender, continued);
+            rightPositions[i] += itemsToRender.length;
+            rightCount += itemsToRender.length + 2; // +2 for header
+        }
+        
+        // Check if this is the last page
+        const isLastPage = !hasMoreLeft() && !hasMoreRight();
+        
+        // Add sign-off to right column on last page
+        if (isLastPage) {
+            rightHtml += signOffHtml;
+        }
+        
+        let pageHtml = `<h1 class="ps-section-title">8. Dispatch List${pageNum > 1 ? ` (${pageNum})` : ''}</h1>`;
+        if (pageNum === 1) pageHtml += headerHtml;
+        
+        pageHtml += `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>${leftHtml}</div>
+                <div>${rightHtml}</div>
+            </div>
+        `;
+        
+        pages.push(pageHtml);
+    }
+    
+    // If no items at all, return single empty page
+    if (pages.length === 0) {
+        pages.push(`
+            <h1 class="ps-section-title">8. Dispatch List</h1>
+            ${headerHtml}
+            <div style="color: #666; font-style: italic; padding: 15px; background: #f5f5f5;">No dispatch items defined.</div>
+            ${signOffHtml}
+        `);
+    }
+    
+    return pages;
 }
 
 // ========== PAGE: QC & SIGN-OFF ==========
