@@ -474,14 +474,26 @@
                     </div>
                 </div>
                 
-                <!-- OFFICE - only Monday -->
-                <div class="today-section" id="sectionOfficeWrapper" style="display: none;">
+                <!-- OFFICE - Daily -->
+                <div class="today-section">
+                    <div class="today-section-header">
+                        <span class="today-section-icon">🗂️</span>
+                        <span class="today-section-title">OFFICE</span>
+                        <span class="today-section-badge badge-info" id="badgeOfficeDaily">0</span>
+                    </div>
+                    <div id="sectionOfficeDaily">
+                        <div class="today-empty">No office tasks today</div>
+                    </div>
+                </div>
+                
+                <!-- PIPELINE REVIEW - only Monday -->
+                <div class="today-section" id="sectionPipelineWrapper" style="display: none;">
                     <div class="today-section-header">
                         <span class="today-section-icon">📋</span>
-                        <span class="today-section-title">OFFICE - WEEKLY REVIEW</span>
+                        <span class="today-section-title">PIPELINE - WEEKLY REVIEW</span>
                         <span class="monday-only">Monday only</span>
                     </div>
-                    <div id="sectionOffice">
+                    <div id="sectionPipeline">
                         <div class="today-empty">No items to review</div>
                     </div>
                 </div>

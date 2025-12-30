@@ -12,7 +12,8 @@ let todayData = {
     holidays: [],
     stock: [],
     fleet: [],
-    office: [],
+    officeDaily: [],  // Daily office phases + alerts
+    pipeline: [],     // Monday only - pipeline review
     weekDeadlines: [],
     events: []
 };
@@ -66,7 +67,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // Show Monday-only section
     if (isMonday) {
-        document.getElementById('sectionOfficeWrapper').style.display = 'block';
+        document.getElementById('sectionPipelineWrapper').style.display = 'block';
     }
 });
 
@@ -260,7 +261,67 @@ async function loadAllData() {
             });
         }
         
-        // 8. Monday only - Pipeline projects > 8 weeks
+        // 8. DAILY - Office phases (order, office type) active today + alerts
+        // Load office phases from production projects
+        if (productionPhases) {
+            productionPhases.forEach(phase => {
+                const project = projectMap[phase.project_id];
+                if (!project) return;
+                
+                const isOffice = phase.phase_key?.toLowerCase().includes('order') || 
+                                phase.phase_key?.toLowerCase().includes('office') ||
+                                phase.phase_name?.toLowerCase().includes('order') ||
+                                phase.phase_name?.toLowerCase().includes('office');
+                
+                if (isOffice) {
+                    todayData.officeDaily.push({
+                        type: 'phase',
+                        projectNumber: project.project_number,
+                        projectName: project.name,
+                        phaseName: phase.phase_name || phase.phase_key,
+                        worker: workerMap[phase.assigned_to] || 'Unassigned',
+                        startDate: phase.start_date,
+                        endDate: phase.end_date,
+                        isDeadlineToday: phase.end_date === todayStr
+                    });
+                }
+            });
+        }
+        
+        // Load active alerts
+        const { data: alerts } = await supabaseClient
+            .from('project_alerts')
+            .select('*')
+            .eq('status', 'active');
+        
+        if (alerts && alerts.length > 0) {
+            // Get project info for alerts
+            const alertProjectIds = [...new Set(alerts.map(a => a.project_id).filter(Boolean))];
+            let alertProjects = {};
+            
+            if (alertProjectIds.length > 0) {
+                const { data: projData } = await supabaseClient
+                    .from('projects')
+                    .select('id, project_number, name')
+                    .in('id', alertProjectIds);
+                
+                projData?.forEach(p => alertProjects[p.id] = p);
+            }
+            
+            alerts.forEach(alert => {
+                const proj = alertProjects[alert.project_id];
+                todayData.officeDaily.push({
+                    type: 'alert',
+                    alertType: alert.alert_type,
+                    message: alert.message,
+                    projectNumber: proj?.project_number || '',
+                    projectName: proj?.name || '',
+                    createdAt: alert.created_at
+                });
+            });
+        }
+        
+        // 9. Monday only - Pipeline projects > 8 weeks
         if (isMonday) {
             const eightWeeksAgo = new Date(today.getTime() - 8*7*24*60*60*1000);
             const { data: pipelineOld } = await supabaseClient
@@ -271,7 +332,7 @@ async function loadAllData() {
             if (pipelineOld) {
                 pipelineOld.forEach(p => {
                     const weeks = Math.floor((today - new Date(p.created_at)) / (7*24*60*60*1000));
-                    todayData.office.push({
+                    todayData.pipeline.push({
                         type: 'pipeline_old',
                         projectNumber: p.project_number,
                         projectName: p.name,
@@ -293,7 +354,7 @@ async function loadAllData() {
                     const project = projectMap[p.project_id];
                     if (!project) return;
                     
-                    todayData.office.push({
+                    todayData.pipeline.push({
                         type: 'unassigned',
                         projectNumber: project.project_number,
                         projectName: project.name,
@@ -304,7 +365,7 @@ async function loadAllData() {
             }
         }
         
-        // 9. This week deadlines (use status='active')
+        // 10. This week deadlines (use status='active')
         if (productionProjects) {
             todayData.weekDeadlines = productionProjects
                 .filter(p => p.deadline && p.deadline >= todayStr && p.deadline <= weekEndStr)
@@ -331,7 +392,8 @@ function renderAll() {
     renderHolidays();
     renderStock();
     renderFleet();
-    renderOffice();
+    renderOfficeDaily();
+    renderPipeline();
     renderWeekDeadlines();
 }
 
@@ -524,10 +586,55 @@ function renderFleet() {
     container.innerHTML = html;
 }
 
-function renderOffice() {
-    const container = document.getElementById('sectionOffice');
+function renderOfficeDaily() {
+    const container = document.getElementById('sectionOfficeDaily');
+    const badge = document.getElementById('badgeOfficeDaily');
     
-    if (!isMonday || todayData.office.length === 0) {
+    if (todayData.officeDaily.length === 0) {
+        container.innerHTML = '<div class="today-empty">No office tasks today ✓</div>';
+        badge.textContent = '0';
+        badge.style.display = 'none';
+        return;
+    }
+    
+    badge.textContent = todayData.officeDaily.length;
+    badge.style.display = 'inline';
+    
+    let html = '';
+    
+    // Office phases
+    const phases = todayData.officeDaily.filter(o => o.type === 'phase');
+    if (phases.length > 0) {
+        html += '<div style="margin-bottom: 15px;"><strong style="color: #f97316;">📋 Office Tasks:</strong></div>';
+        phases.forEach(p => {
+            const urgentClass = p.isDeadlineToday ? 'urgent' : '';
+            const prefix = p.isDeadlineToday ? '🔴 DEADLINE - ' : '';
+            html += `<div class="today-item ${urgentClass}">
+                <div class="today-item-title">${prefix}<strong>${p.projectNumber}</strong> - ${p.phaseName}</div>
+                <div class="today-item-subtitle">${p.projectName} • ${p.worker}</div>
+            </div>`;
+        });
+    }
+    
+    // Alerts
+    const alerts = todayData.officeDaily.filter(o => o.type === 'alert');
+    if (alerts.length > 0) {
+        html += '<div style="margin-bottom: 15px; margin-top: 20px;"><strong style="color: #ef4444;">🔔 Active Alerts:</strong></div>';
+        alerts.forEach(a => {
+            html += `<div class="today-item warning">
+                <div class="today-item-title">${a.projectNumber ? `<strong>${a.projectNumber}</strong> - ` : ''}${a.alertType || 'Alert'}</div>
+                <div class="today-item-subtitle">${a.message || a.projectName}</div>
+            </div>`;
+        });
+    }
+    
+    container.innerHTML = html;
+}
+
+function renderPipeline() {
+    const container = document.getElementById('sectionPipeline');
+    
+    if (!isMonday || todayData.pipeline.length === 0) {
         container.innerHTML = '<div class="today-empty">No items to review ✓</div>';
         return;
     }
@@ -535,7 +642,7 @@ function renderOffice() {
     let html = '';
     
     // Pipeline old
-    const pipelineOld = todayData.office.filter(o => o.type === 'pipeline_old');
+    const pipelineOld = todayData.pipeline.filter(o => o.type === 'pipeline_old');
     if (pipelineOld.length > 0) {
         html += '<div style="margin-bottom: 15px;"><strong style="color: #f59e0b;">📋 Pipeline - Too Long:</strong></div>';
         pipelineOld.forEach(p => {
@@ -547,7 +654,7 @@ function renderOffice() {
     }
     
     // Unassigned
-    const unassigned = todayData.office.filter(o => o.type === 'unassigned');
+    const unassigned = todayData.pipeline.filter(o => o.type === 'unassigned');
     if (unassigned.length > 0) {
         html += '<div style="margin-bottom: 15px; margin-top: 20px;"><strong style="color: #4a9eff;">👤 Unassigned Phases This Week:</strong></div>';
         unassigned.forEach(p => {
