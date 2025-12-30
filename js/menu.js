@@ -1,6 +1,44 @@
 // ========== UNIFIED MENU SYSTEM ==========
 // One menu to rule them all - no more copy-paste nightmare
 
+// ========== FLATPICKR DATEPICKER ==========
+// Load Flatpickr globally for consistent date pickers
+(function loadFlatpickr() {
+    // Add CSS
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css';
+    document.head.appendChild(css);
+    
+    // Add JS
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
+    script.onload = function() {
+        initFlatpickr();
+        // Re-init when new content is added (for modals etc)
+        const observer = new MutationObserver(() => initFlatpickr());
+        observer.observe(document.body, { childList: true, subtree: true });
+    };
+    document.head.appendChild(script);
+})();
+
+function initFlatpickr() {
+    if (typeof flatpickr === 'undefined') return;
+    
+    document.querySelectorAll('input[type="date"]:not(.flatpickr-input)').forEach(el => {
+        // Get existing value
+        const existingValue = el.value;
+        
+        flatpickr(el, {
+            dateFormat: 'Y-m-d', // Format for database
+            altInput: true,
+            altFormat: 'd/m/Y', // Display format (British)
+            allowInput: true,
+            defaultDate: existingValue || null
+        });
+    });
+}
+
 // ========== GLOBAL LOADING SYSTEM ==========
 // Automatic loading indicator for all Supabase operations
 
