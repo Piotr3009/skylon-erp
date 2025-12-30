@@ -3133,12 +3133,12 @@ function generateSprayingPages() {
         if (items.length === 0) return '';
         return `
             <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                <thead><tr style="background: #f5f5f5;">
-                    <th style="border: 1px solid #ddd; padding: 5px; width: 30px;">No</th>
-                    <th style="border: 1px solid #ddd; padding: 5px;">Item</th>
-                    <th style="border: 1px solid #ddd; padding: 5px; width: 70px;">Size</th>
-                    <th style="border: 1px solid #ddd; padding: 5px; width: 80px;">Colour</th>
-                    <th style="border: 1px solid #ddd; padding: 5px;">Notes</th>
+                <thead><tr style="background: #f59e0b; color: white;">
+                    <th style="border: 1px solid #d97706; padding: 5px; width: 30px;">No</th>
+                    <th style="border: 1px solid #d97706; padding: 5px;">Item</th>
+                    <th style="border: 1px solid #d97706; padding: 5px; width: 70px;">Size</th>
+                    <th style="border: 1px solid #d97706; padding: 5px; width: 80px;">Colour</th>
+                    <th style="border: 1px solid #d97706; padding: 5px;">Notes</th>
                 </tr></thead>
                 <tbody>
                     ${items.map((item, idx) => `<tr>
