@@ -106,10 +106,10 @@ const CHECKLIST_SECTIONS = [
     },
     {
         key: 'DATA_SHEETS',
-        title: 'Data Sheets',
+        title: 'Material Docs & Manuals',
         icon: '📄',
         items: [
-            { key: 'DATA_SHEETS_DOCS', label: 'Fitting Instructions & Data Sheets', source: 'DATA_SHEETS', required: false }
+            { key: 'DATA_SHEETS_DOCS', label: 'Fitting Instructions & Manuals', source: 'DATA_SHEETS', required: false }
         ]
     },
     {
@@ -1973,7 +1973,7 @@ async function generatePreview() {
         pages.push({ section: i === 0 ? 'materials' : `materials-${i+1}`, content });
     });
     
-    // PAGE: Data Sheets / Instructions (if any)
+    // PAGE: Material Docs & Manuals (if any)
     const dataSheetPages = await generateDataSheetsPages();
     console.log('generatePreview - dataSheetPages:', dataSheetPages.length, dataSheetPages);
     dataSheetPages.forEach((content, i) => {
@@ -2032,7 +2032,7 @@ function generateCoverPageNew(logoUrl) {
         'Elements List',
         'Drawings',
         'Materials',
-        'Data Sheets',
+        'Material Docs & Manuals',
         'Spray Pack',
         'Phases / Timeline',
         'Photos',
@@ -3108,7 +3108,7 @@ async function generateDataSheetsPages() {
         if (isImage) {
             pageNum++;
             pages.push(`
-                <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions ${dataSheets.length > 1 ? `(${pageNum})` : ''}</h1>
+                <h1 class="ps-section-title">${sectionNum}. Material Docs & Manuals ${dataSheets.length > 1 ? `(${pageNum})` : ''}</h1>
                 <div class="ps-drawing-full">
                     <img src="${ds.file_url}" crossorigin="anonymous" />
                 </div>
@@ -3123,7 +3123,7 @@ async function generateDataSheetsPages() {
                     images.forEach((imgData, i) => {
                         pageNum++;
                         pages.push(`
-                            <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                            <h1 class="ps-section-title">${sectionNum}. Material Docs & Manuals</h1>
                             <div class="ps-drawing-full">
                                 <img src="${imgData}" />
                             </div>
@@ -3135,7 +3135,7 @@ async function generateDataSheetsPages() {
                 } else {
                     pageNum++;
                     pages.push(`
-                        <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                        <h1 class="ps-section-title">${sectionNum}. Material Docs & Manuals</h1>
                         <div style="padding: 40px; text-align: center; color: #f59e0b;">
                             <div style="font-size: 18px;">Could not render PDF: ${ds.file_name}</div>
                             <div style="margin-top: 15px;"><a href="${ds.file_url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
@@ -3146,7 +3146,7 @@ async function generateDataSheetsPages() {
                 console.error('PDF render error:', err);
                 pageNum++;
                 pages.push(`
-                    <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                    <h1 class="ps-section-title">${sectionNum}. Material Docs & Manuals</h1>
                     <div style="padding: 40px; text-align: center; color: #f59e0b;">
                         <div style="font-size: 18px;">Error loading PDF: ${ds.file_name}</div>
                         <div style="margin-top: 15px;"><a href="${ds.file_url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
@@ -3156,7 +3156,7 @@ async function generateDataSheetsPages() {
         } else {
             pageNum++;
             pages.push(`
-                <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                <h1 class="ps-section-title">${sectionNum}. Material Docs & Manuals</h1>
                 <div style="padding: 40px; text-align: center;">
                     <div style="font-size: 18px;">📄 ${ds.file_name}</div>
                     <div style="margin-top: 15px;"><a href="${ds.file_url}" target="_blank" style="color: #4a9eff;">Download file</a></div>
