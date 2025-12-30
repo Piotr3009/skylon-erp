@@ -2,7 +2,7 @@
 // TODAY - Daily Briefing
 // ========================================
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// supabaseClient is already declared in config.js
 
 // Global data
 let todayData = {
