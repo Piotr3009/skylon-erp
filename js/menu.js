@@ -477,15 +477,19 @@ function addUserDropdownToToolbar(profile) {
     if (document.getElementById('userDropdownContainer')) return;
     
     const displayName = profile.full_name ? profile.full_name.split(' ')[0] : (profile.email || 'User');
+    const year = new Date().getFullYear();
     
-    // Button w toolbar
+    // Program info + Button w toolbar
     const btnHTML = `
-        <div class="user-dropdown-container" id="userDropdownContainer" style="margin-left: auto; position: relative;">
-            <button class="user-dropdown-btn" id="userDropdownBtn" onclick="toggleUserDropdown(event)">
-                <span class="user-avatar">👤</span>
-                <span class="user-name">${displayName}</span>
-                <span class="dropdown-arrow">▼</span>
-            </button>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
+            <span style="font-size: 10px; color: #666; white-space: nowrap;">Joinery Core v1.0 · © ${year} Skylon Development LTD</span>
+            <div class="user-dropdown-container" id="userDropdownContainer" style="position: relative;">
+                <button class="user-dropdown-btn" id="userDropdownBtn" onclick="toggleUserDropdown(event)">
+                    <span class="user-avatar">👤</span>
+                    <span class="user-name">${displayName}</span>
+                    <span class="dropdown-arrow">▼</span>
+                </button>
+            </div>
         </div>
     `;
     
@@ -574,49 +578,11 @@ function applyMenuPermissions() {
     }
 }
 
-// Add copyright footer to page
-function addCopyrightFooter() {
-    // Nie dodawaj na login page
-    if (window.location.pathname.includes('login.html')) return;
-    
-    // Sprawdź czy footer już istnieje
-    if (document.getElementById('copyrightFooter')) return;
-    
-    const footer = document.createElement('div');
-    footer.id = 'copyrightFooter';
-    footer.style.cssText = `
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 6px 20px;
-        background: #1a1a1a;
-        border-top: 1px solid #333;
-        font-size: 10px;
-        color: #555;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        z-index: 50;
-        height: 24px;
-    `;
-    
-    const year = new Date().getFullYear();
-    footer.innerHTML = `
-        <span>© ${year} Skylon Development LTD. All rights reserved.</span>
-        <span style="color: #444;">Joinery Core v1.0</span>
-    `;
-    
-    document.body.appendChild(footer);
-}
-
 // Load menu when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         loadUnifiedMenu();
-        addCopyrightFooter();
     });
 } else {
     loadUnifiedMenu();
-    addCopyrightFooter();
 }
