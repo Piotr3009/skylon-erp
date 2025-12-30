@@ -96,11 +96,11 @@ async function loadAllData() {
             .or(`and(start_date.lte.${todayStr},end_date.gte.${todayStr}),start_date.eq.${tomorrowStr}`)
             .neq('status', 'Completed');
         
-        // Load projects separately
+        // Load projects separately (use status='active' not stage='production')
         const { data: productionProjects } = await supabaseClient
             .from('projects')
-            .select('id, project_number, name')
-            .eq('stage', 'production');
+            .select('id, project_number, name, deadline')
+            .eq('status', 'active');
         
         const projectMap = {};
         productionProjects?.forEach(p => projectMap[p.id] = p);
@@ -172,7 +172,7 @@ async function loadAllData() {
         // 5. Load stock alerts (negative quantity)
         const { data: stockItems } = await supabaseClient
             .from('stock_items')
-            .select('id, name, current_quantity, reserved_quantity, min_quantity, unit');
+            .select('*');
         
         if (stockItems) {
             stockItems.forEach(item => {
@@ -196,47 +196,64 @@ async function loadAllData() {
             });
         }
         
-        // 6. Load fleet alerts (MOT, Insurance within 7 days)
+        // 6. Load fleet alerts (MOT, Insurance within 7 days) - correct column names
         const { data: vans } = await supabaseClient
             .from('vans')
-            .select('id, registration, make, model, mot_due, insurance_due');
+            .select('*');
         
         if (vans) {
             vans.forEach(van => {
-                if (van.mot_due && van.mot_due <= sevenDaysLater && van.mot_due >= todayStr) {
-                    const daysUntil = Math.ceil((new Date(van.mot_due) - today) / (24*60*60*1000));
+                // MOT - use mot_due_date
+                if (van.mot_due_date && van.mot_due_date <= sevenDaysLater && van.mot_due_date >= todayStr) {
+                    const daysUntil = Math.ceil((new Date(van.mot_due_date) - today) / (24*60*60*1000));
                     todayData.fleet.push({
                         type: 'MOT',
-                        vehicle: `${van.registration} (${van.make || ''} ${van.model || ''})`.trim(),
-                        dueDate: van.mot_due,
+                        vehicle: `${van.registration || ''} (${van.make || ''} ${van.model || ''})`.trim(),
+                        dueDate: van.mot_due_date,
                         daysUntil: daysUntil
                     });
                 }
-                if (van.insurance_due && van.insurance_due <= sevenDaysLater && van.insurance_due >= todayStr) {
-                    const daysUntil = Math.ceil((new Date(van.insurance_due) - today) / (24*60*60*1000));
+                // Insurance - use insurance_due_date
+                if (van.insurance_due_date && van.insurance_due_date <= sevenDaysLater && van.insurance_due_date >= todayStr) {
+                    const daysUntil = Math.ceil((new Date(van.insurance_due_date) - today) / (24*60*60*1000));
                     todayData.fleet.push({
                         type: 'Insurance',
-                        vehicle: `${van.registration} (${van.make || ''} ${van.model || ''})`.trim(),
-                        dueDate: van.insurance_due,
+                        vehicle: `${van.registration || ''} (${van.make || ''} ${van.model || ''})`.trim(),
+                        dueDate: van.insurance_due_date,
                         daysUntil: daysUntil
                     });
                 }
             });
         }
         
-        // 7. Load machine service alerts
+        // 7. Load machine service alerts (next_service_date is from machine_service_history)
         const { data: machines } = await supabaseClient
             .from('machines')
-            .select('id, name, next_service_date');
+            .select('*');
+        
+        // Load service history to get next_service_date
+        const { data: serviceHistory } = await supabaseClient
+            .from('machine_service_history')
+            .select('machine_id, next_service_date')
+            .order('service_date', { ascending: false });
+        
+        // Map next_service_date to machines
+        const serviceMap = {};
+        serviceHistory?.forEach(s => {
+            if (!serviceMap[s.machine_id] && s.next_service_date) {
+                serviceMap[s.machine_id] = s.next_service_date;
+            }
+        });
         
         if (machines) {
             machines.forEach(m => {
-                if (m.next_service_date && m.next_service_date <= sevenDaysLater && m.next_service_date >= todayStr) {
-                    const daysUntil = Math.ceil((new Date(m.next_service_date) - today) / (24*60*60*1000));
+                const nextService = serviceMap[m.id];
+                if (nextService && nextService <= sevenDaysLater && nextService >= todayStr) {
+                    const daysUntil = Math.ceil((new Date(nextService) - today) / (24*60*60*1000));
                     todayData.fleet.push({
                         type: 'Service',
                         vehicle: m.name,
-                        dueDate: m.next_service_date,
+                        dueDate: nextService,
                         daysUntil: daysUntil
                     });
                 }
@@ -287,22 +304,17 @@ async function loadAllData() {
             }
         }
         
-        // 9. This week deadlines
-        const { data: weekProjects } = await supabaseClient
-            .from('projects')
-            .select('id, project_number, name, deadline')
-            .eq('stage', 'production')
-            .gte('deadline', todayStr)
-            .lte('deadline', weekEndStr)
-            .order('deadline');
-        
-        if (weekProjects) {
-            todayData.weekDeadlines = weekProjects.map(p => ({
-                projectNumber: p.project_number,
-                projectName: p.name,
-                deadline: p.deadline,
-                isToday: p.deadline === todayStr
-            }));
+        // 9. This week deadlines (use status='active')
+        if (productionProjects) {
+            todayData.weekDeadlines = productionProjects
+                .filter(p => p.deadline && p.deadline >= todayStr && p.deadline <= weekEndStr)
+                .sort((a, b) => a.deadline.localeCompare(b.deadline))
+                .map(p => ({
+                    projectNumber: p.project_number,
+                    projectName: p.name,
+                    deadline: p.deadline,
+                    isToday: p.deadline === todayStr
+                }));
         }
         
     } catch (err) {
