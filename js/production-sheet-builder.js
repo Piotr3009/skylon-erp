@@ -3057,8 +3057,6 @@ function generateSprayingPage() {
 function generateSprayingPages() {
     const pages = [];
     const sprayItemsRaw = projectData.sprayItems || [];
-    const ITEMS_PER_PAGE = 30; // 15 per column x 2 columns
-    const ITEMS_PER_COLUMN = 15;
     const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
     
     // Build element lookup map
@@ -3067,8 +3065,7 @@ function generateSprayingPages() {
         if (el.id) elementMap[el.id] = el.element_id || '';
     });
     
-    // Sort spray items: by element_id (D001, D002...), then by sort_order within element
-    // Items without proper element_id go to the end
+    // Group spray items by colour, then sort within each group by element_id
     const sprayItems = [...sprayItemsRaw].sort((a, b) => {
         const aCode = elementMap[a.element_id] || '';
         const bCode = elementMap[b.element_id] || '';
@@ -3086,6 +3083,15 @@ function generateSprayingPages() {
         return (a.sort_order || 0) - (b.sort_order || 0);
     });
     
+    // Group items by colour
+    const itemsByColour = {};
+    sprayItems.forEach(item => {
+        const colour = item.colour || 'No Colour';
+        if (!itemsByColour[colour]) itemsByColour[colour] = [];
+        itemsByColour[colour].push(item);
+    });
+    const colourGroups = Object.keys(itemsByColour).sort();
+    
     const getSprayItemDisplay = (item) => {
         const elementCode = elementMap[item.element_id] || '';
         const itemName = item.item_type || item.name || 'Item';
@@ -3096,7 +3102,6 @@ function generateSprayingPages() {
     };
     
     const totalItems = sprayItems.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
     
     // Spray settings header (only on first page)
     const colourTypeLabel = sprayColourType === 'dual' ? 'Dual Colour' : 'Single Colour';
@@ -3153,57 +3158,47 @@ function generateSprayingPages() {
         return pages;
     }
     
-    // Helper to render one column table
-    const renderColumn = (items, startNum) => {
+    // Helper to render table for one colour group
+    const renderColourTable = (colour, items) => {
         if (items.length === 0) return '';
         return `
-            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                <thead><tr style="background: #f59e0b; color: white;">
-                    <th style="border: 1px solid #d97706; padding: 5px; width: 30px;">No</th>
-                    <th style="border: 1px solid #d97706; padding: 5px;">Item</th>
-                    <th style="border: 1px solid #d97706; padding: 5px; width: 70px;">Size</th>
-                    <th style="border: 1px solid #d97706; padding: 5px; width: 80px;">Colour</th>
-                    <th style="border: 1px solid #d97706; padding: 5px;">Notes</th>
-                </tr></thead>
-                <tbody>
-                    ${items.map((item, idx) => `<tr>
-                        <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight: bold;">${startNum + idx}</td>
-                        <td style="border: 1px solid #ddd; padding: 5px;">${getSprayItemDisplay(item)}</td>
-                        <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 9px;">${item.width || '-'}x${item.height || '-'}</td>
-                        <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px;">${item.colour || '-'}</td>
-                        <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px; color: #666;">${item.notes || ''}</td>
-                    </tr>`).join('')}
-                </tbody>
-            </table>`;
+            <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f59e0b; color: white; border-radius: 4px;">
+                    ${colour} (${items.length} item${items.length !== 1 ? 's' : ''})
+                </h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                    <thead><tr style="background: #fef3c7;">
+                        <th style="border: 1px solid #d97706; padding: 5px; width: 30px;">No</th>
+                        <th style="border: 1px solid #d97706; padding: 5px;">Item</th>
+                        <th style="border: 1px solid #d97706; padding: 5px; width: 70px;">Size</th>
+                        <th style="border: 1px solid #d97706; padding: 5px; width: 80px;">Colour</th>
+                        <th style="border: 1px solid #d97706; padding: 5px;">Notes</th>
+                    </tr></thead>
+                    <tbody>
+                        ${items.map((item, idx) => `<tr>
+                            <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight: bold;">${idx + 1}</td>
+                            <td style="border: 1px solid #ddd; padding: 5px;">${getSprayItemDisplay(item)}</td>
+                            <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 9px;">${item.width || '-'}x${item.height || '-'}</td>
+                            <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px;">${item.colour || '-'}</td>
+                            <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px; color: #666;">${item.notes || ''}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
     };
     
-    // Generate pages
-    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-        const isFirstPage = pageNum === 0;
-        const isLastPage = pageNum === totalPages - 1;
-        
-        const pageStartIdx = pageNum * ITEMS_PER_PAGE;
-        const pageItems = sprayItems.slice(pageStartIdx, pageStartIdx + ITEMS_PER_PAGE);
-        
-        // Split into left and right columns
-        const leftItems = pageItems.slice(0, ITEMS_PER_COLUMN);
-        const rightItems = pageItems.slice(ITEMS_PER_COLUMN);
-        
-        let html = `<h1 class="ps-section-title">5. Spraying${totalPages > 1 ? ` (${pageNum + 1}/${totalPages})` : ''}</h1>`;
-        
-        if (isFirstPage) html += settingsHtml;
-        
-        html += `<h3 style="font-size: 13px; margin-bottom: 10px;">Spray Items (${totalItems} items)</h3>`;
-        
-        html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">`;
-        html += `<div>${renderColumn(leftItems, pageStartIdx + 1)}</div>`;
-        html += `<div>${renderColumn(rightItems, pageStartIdx + ITEMS_PER_COLUMN + 1)}</div>`;
-        html += `</div>`;
-        
-        if (isLastPage) html += checklistHtml;
-        
-        pages.push(html);
-    }
+    // Generate pages - render all colour groups
+    let html = `<h1 class="ps-section-title">5. Spraying</h1>`;
+    html += settingsHtml;
+    html += `<h3 style="font-size: 13px; margin-bottom: 15px;">Spray Items (${totalItems} items)</h3>`;
+    
+    // Render each colour group
+    colourGroups.forEach(colour => {
+        html += renderColourTable(colour, itemsByColour[colour]);
+    });
+    
+    html += checklistHtml;
+    pages.push(html);
     
     return pages;
 }
