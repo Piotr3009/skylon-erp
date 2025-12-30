@@ -339,11 +339,12 @@ async function loadAllData() {
             });
         }
         
-        // Load active alerts
+        // Load active alerts (excluding materials_warning - those are handled by the alerts system)
         const { data: alerts } = await supabaseClient
             .from('project_alerts')
             .select('*')
-            .eq('status', 'active');
+            .eq('status', 'active')
+            .neq('alert_type', 'materials_warning');
         
         if (alerts && alerts.length > 0) {
             // Get project info for alerts
