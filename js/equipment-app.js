@@ -347,11 +347,11 @@ function createMachineRow(machine) {
             </td>
             <td style="padding: 12px; text-align: center;">
                 <div style="display: flex; gap: 6px; justify-content: center;">
+                    <button onclick="openServiceModalForMachine('${machine.id}')" class="icon-btn" style="color: #f59e0b; border: 1px solid #f59e0b;" title="Add Service">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M.102 2.223A3.004 3.004 0 0 0 3.78 5.897l6.341 6.252A3.003 3.003 0 0 0 13 16a3 3 0 1 0-.851-5.878L5.897 3.781A3.004 3.004 0 0 0 2.223.1l2.141 2.142L4 4l-1.757.364L.102 2.223zm13.37 9.019.528.026.287.445.445.287.026.529L15 13l-.242.471-.026.529-.445.287-.287.445-.529.026L13 15l-.471-.242-.529-.026-.287-.445-.445-.287-.026-.529L11 13l.242-.471.026-.529.445-.287.287-.445.529-.026L13 11l.471.242z"/></svg>
+                    </button>
                     <button onclick="viewMachineDetails('${machine.id}')" class="icon-btn" style="color: #569cd6; border: 1px solid #569cd6;" title="Details">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5v8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 11.5v-8zM2.5 3a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-11z"/><path d="M3 5.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 8zm0 2.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"/></svg>
-                    </button>
-                    <button onclick="openServiceModalForMachine('${machine.id}')" class="icon-btn" style="color: #f59e0b; border: 1px solid #f59e0b;" title="Add Service">
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M0 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8zm1 3v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2H1zm14-1V8a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2h14zM2 8.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"/></svg>
                     </button>
                     <button onclick="editMachine('${machine.id}')" class="icon-btn" style="color: #4ec9b0; border: 1px solid #4ec9b0;" title="Edit">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
@@ -551,10 +551,10 @@ function updateStats() {
     if (currentView === 'machines') {
         const workingMachines = machines.filter(m => m.status === 'working').length;
         const totalValue = machines.reduce((sum, m) => sum + (m.current_value || 0), 0);
-        const warrantyExpiring = machines.filter(m => {
-            if (!m.warranty_end_date) return false;
-            const daysLeft = Math.floor((new Date(m.warranty_end_date) - new Date()) / (1000 * 60 * 60 * 24));
-            return daysLeft > 0 && daysLeft <= 90;
+        const servicesNeeded = machines.filter(m => {
+            if (!m.next_service_date) return false;
+            const daysLeft = Math.ceil((new Date(m.next_service_date) - new Date()) / (1000 * 60 * 60 * 24));
+            return daysLeft <= 30; // w ciągu 30 dni lub przeterminowane
         }).length;
         
         document.getElementById('stat1Value').textContent = machines.length;
@@ -566,8 +566,8 @@ function updateStats() {
         document.getElementById('stat3Value').textContent = `£${totalValue.toLocaleString()}`;
         document.getElementById('stat3Label').textContent = 'Total Value';
         
-        document.getElementById('stat4Value').textContent = warrantyExpiring;
-        document.getElementById('stat4Label').textContent = 'Warranty Expiring';
+        document.getElementById('stat4Value').textContent = servicesNeeded;
+        document.getElementById('stat4Label').textContent = 'Services Needed';
         
     } else if (currentView === 'vans') {
         const activeVans = vans.filter(v => v.status === 'active').length;
