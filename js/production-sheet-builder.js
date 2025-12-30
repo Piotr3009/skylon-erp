@@ -1974,7 +1974,7 @@ async function generatePreview() {
     });
     
     // PAGE: Data Sheets / Instructions (if any)
-    const dataSheetPages = generateDataSheetsPages();
+    const dataSheetPages = await generateDataSheetsPages();
     console.log('generatePreview - dataSheetPages:', dataSheetPages.length, dataSheetPages);
     dataSheetPages.forEach((content, i) => {
         pages.push({ section: i === 0 ? 'datasheets' : `datasheets-${i+1}`, content });
@@ -3087,84 +3087,82 @@ function generateSprayingPage() {
 }
 
 // ========== DATA SHEETS PAGES ==========
-function generateDataSheetsPages() {
+async function generateDataSheetsPages() {
     const pages = [];
     const dataSheets = projectData.attachments.filter(a => a.attachment_type === 'DATA_SHEET');
     
     console.log('generateDataSheetsPages - found:', dataSheets.length, 'attachments');
-    console.log('All attachments:', projectData.attachments);
     
     if (dataSheets.length === 0) {
         return pages; // No data sheets - return empty array (no pages)
     }
     
     const sectionNum = ++pdfSectionNumber;
-    const ITEMS_PER_PAGE = 8; // Max documents per page
-    const totalPages = Math.ceil(dataSheets.length / ITEMS_PER_PAGE);
+    let pageNum = 0;
     
-    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-        const startIdx = pageNum * ITEMS_PER_PAGE;
-        const pageItems = dataSheets.slice(startIdx, startIdx + ITEMS_PER_PAGE);
-        const isFirstPage = pageNum === 0;
-        const isLastPage = pageNum === totalPages - 1;
+    for (const ds of dataSheets) {
+        const fileName = ds.file_name.toLowerCase();
+        const isPdf = fileName.endsWith('.pdf');
+        const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
         
-        let html = `
-            <h1 class="ps-section-title">${sectionNum}. Data Sheets & Fitting Instructions${totalPages > 1 ? ` (${pageNum + 1}/${totalPages})` : ''}</h1>
-            
-            ${isFirstPage ? `
-                <p style="color: #666; margin-bottom: 20px; font-size: 13px;">
-                    The following fitting instructions and data sheets are attached to this Production Book. 
-                    Please review before starting work.
-                </p>
-            ` : ''}
-            
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                ${pageItems.map((ds, idx) => `
-                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; display: flex; align-items: center; gap: 15px;">
-                        <div style="font-size: 28px; color: #4a9eff;">📄</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 4px; font-size: 14px;">${ds.file_name}</div>
-                            <div style="font-size: 12px; color: #666;">${ds.file_type || 'Document'}</div>
+        if (isImage) {
+            pageNum++;
+            pages.push(`
+                <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions ${dataSheets.length > 1 ? `(${pageNum})` : ''}</h1>
+                <div class="ps-drawing-full">
+                    <img src="${ds.file_url}" crossorigin="anonymous" />
+                </div>
+                <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">
+                    📄 ${ds.file_name}
+                </div>
+            `);
+        } else if (isPdf) {
+            try {
+                const images = await renderPdfToImages(ds.file_url);
+                if (images.length > 0) {
+                    images.forEach((imgData, i) => {
+                        pageNum++;
+                        pages.push(`
+                            <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                            <div class="ps-drawing-full">
+                                <img src="${imgData}" />
+                            </div>
+                            <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">
+                                📄 ${ds.file_name} ${images.length > 1 ? `(page ${i + 1}/${images.length})` : ''}
+                            </div>
+                        `);
+                    });
+                } else {
+                    pageNum++;
+                    pages.push(`
+                        <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                        <div style="padding: 40px; text-align: center; color: #f59e0b;">
+                            <div style="font-size: 18px;">Could not render PDF: ${ds.file_name}</div>
+                            <div style="margin-top: 15px;"><a href="${ds.file_url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
                         </div>
-                        <div style="font-size: 12px; color: #999; background: #e9ecef; padding: 4px 10px; border-radius: 12px;">
-                            Doc ${startIdx + idx + 1}
-                        </div>
+                    `);
+                }
+            } catch (err) {
+                console.error('PDF render error:', err);
+                pageNum++;
+                pages.push(`
+                    <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                    <div style="padding: 40px; text-align: center; color: #f59e0b;">
+                        <div style="font-size: 18px;">Error loading PDF: ${ds.file_name}</div>
+                        <div style="margin-top: 15px;"><a href="${ds.file_url}" target="_blank" style="color: #4a9eff;">Open PDF in new tab</a></div>
                     </div>
-                `).join('')}
-            </div>
-        `;
-        
-        // Add warning and confirmation section only on last page
-        if (isLastPage) {
-            html += `
-                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
-                    <strong style="color: #856404;">⚠️ Important:</strong>
-                    <span style="color: #856404;"> Always follow manufacturer's fitting instructions. These documents are provided as reference.</span>
+                `);
+            }
+        } else {
+            pageNum++;
+            pages.push(`
+                <h1 class="ps-section-title">${sectionNum}. Data Sheets & Instructions</h1>
+                <div style="padding: 40px; text-align: center;">
+                    <div style="font-size: 18px;">📄 ${ds.file_name}</div>
+                    <div style="margin-top: 15px;"><a href="${ds.file_url}" target="_blank" style="color: #4a9eff;">Download file</a></div>
                 </div>
-                
-                <div style="margin-top: 25px;">
-                    <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Confirmation - Data Sheets Reviewed:</h3>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr>
-                            <td style="border: 1px solid #ddd; padding: 12px; width: 50%;">
-                                <strong>Read & Understood By:</strong>
-                                <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
-                            </td>
-                            <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
-                                <strong>Date:</strong>
-                                <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
-                            </td>
-                            <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
-                                <strong>Signature:</strong>
-                                <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            `;
+            `);
         }
-        
-        pages.push(html);
     }
     
     console.log('generateDataSheetsPages - returning', pages.length, 'pages');
