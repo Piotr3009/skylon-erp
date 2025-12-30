@@ -3088,65 +3088,82 @@ function generateDataSheetsPages() {
     const pages = [];
     const dataSheets = projectData.attachments.filter(a => a.attachment_type === 'DATA_SHEET');
     
+    console.log('generateDataSheetsPages - found:', dataSheets.length, 'attachments');
+    console.log('All attachments:', projectData.attachments);
+    
     if (dataSheets.length === 0) {
         return pages; // No data sheets - return empty array (no pages)
     }
     
     const sectionNum = ++pdfSectionNumber;
+    const ITEMS_PER_PAGE = 8; // Max documents per page
+    const totalPages = Math.ceil(dataSheets.length / ITEMS_PER_PAGE);
     
-    // Generate page with links to data sheets
-    const content = `
-        <div class="ps-page-content">
-            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px; margin-bottom: 20px;">
-                ${sectionNum}. Data Sheets & Fitting Instructions
-            </h2>
+    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+        const startIdx = pageNum * ITEMS_PER_PAGE;
+        const pageItems = dataSheets.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+        const isFirstPage = pageNum === 0;
+        const isLastPage = pageNum === totalPages - 1;
+        
+        let html = `
+            <h1 class="ps-section-title">${sectionNum}. Data Sheets & Fitting Instructions${totalPages > 1 ? ` (${pageNum + 1}/${totalPages})` : ''}</h1>
             
-            <p style="color: #666; margin-bottom: 20px; font-size: 13px;">
-                The following fitting instructions and data sheets are attached to this Production Book. 
-                Please review before starting work.
-            </p>
+            ${isFirstPage ? `
+                <p style="color: #666; margin-bottom: 20px; font-size: 13px;">
+                    The following fitting instructions and data sheets are attached to this Production Book. 
+                    Please review before starting work.
+                </p>
+            ` : ''}
             
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                ${dataSheets.map((ds, idx) => `
-                    <div style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 15px; display: flex; align-items: center; gap: 15px;">
-                        <div style="font-size: 24px;">📄</div>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                ${pageItems.map((ds, idx) => `
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 28px; color: #4a9eff;">📄</div>
                         <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${ds.file_name}</div>
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px; font-size: 14px;">${ds.file_name}</div>
                             <div style="font-size: 12px; color: #666;">${ds.file_type || 'Document'}</div>
                         </div>
-                        <div style="font-size: 12px; color: #999;">Document ${idx + 1}</div>
+                        <div style="font-size: 12px; color: #999; background: #e9ecef; padding: 4px 10px; border-radius: 12px;">
+                            Doc ${startIdx + idx + 1}
+                        </div>
                     </div>
                 `).join('')}
             </div>
-            
-            <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
-                <strong style="color: #856404;">⚠️ Important:</strong>
-                <span style="color: #856404;"> Always follow manufacturer's fitting instructions. These documents are provided as reference.</span>
-            </div>
-            
-            <div style="margin-top: 30px;">
-                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Confirmation:</h3>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px; width: 50%;">
-                            <strong>Read & Understood By:</strong>
-                            <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
-                        </td>
-                        <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
-                            <strong>Date:</strong>
-                            <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
-                        </td>
-                        <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
-                            <strong>Signature:</strong>
-                            <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    `;
+        `;
+        
+        // Add warning and confirmation section only on last page
+        if (isLastPage) {
+            html += `
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
+                    <strong style="color: #856404;">⚠️ Important:</strong>
+                    <span style="color: #856404;"> Always follow manufacturer's fitting instructions. These documents are provided as reference.</span>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Confirmation - Data Sheets Reviewed:</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 12px; width: 50%;">
+                                <strong>Read & Understood By:</strong>
+                                <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
+                            </td>
+                            <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
+                                <strong>Date:</strong>
+                                <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
+                            </td>
+                            <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
+                                <strong>Signature:</strong>
+                                <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+        }
+        
+        pages.push(html);
+    }
     
-    pages.push(content);
     return pages;
 }
 
@@ -4889,6 +4906,8 @@ async function saveSelectedDataSheets() {
         
         closeDataSheetsModal();
         showToast(`${checkboxes.length} data sheet(s) linked!`, 'success');
+        
+        console.log('Data sheets saved. Attachments now:', projectData.attachments);
         
         // Update UI
         await checkAllItems();
