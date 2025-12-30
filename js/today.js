@@ -90,12 +90,30 @@ async function loadAllData() {
         const workerMap = {};
         teamMembers?.forEach(m => workerMap[m.id] = m.name);
         
-        // 2. Load production phases (today's work) - simplified query
-        const { data: productionPhases } = await supabaseClient
+        // 2. Load production phases - only phases active TODAY
+        const { data: phasesToday } = await supabaseClient
             .from('project_phases')
             .select('*')
-            .or(`and(start_date.lte.${todayStr},end_date.gte.${todayStr}),start_date.eq.${tomorrowStr}`)
+            .lte('start_date', todayStr)
+            .gte('end_date', todayStr)
             .neq('status', 'Completed');
+        
+        // Load phases starting TOMORROW (separate query)
+        const { data: phasesTomorrow } = await supabaseClient
+            .from('project_phases')
+            .select('*')
+            .eq('start_date', tomorrowStr)
+            .neq('status', 'Completed');
+        
+        // Combine and deduplicate by phase ID
+        const phaseMap = new Map();
+        phasesToday?.forEach(p => phaseMap.set(p.id, { ...p, isToday: true }));
+        phasesTomorrow?.forEach(p => {
+            if (!phaseMap.has(p.id)) {
+                phaseMap.set(p.id, { ...p, isTomorrow: true });
+            }
+        });
+        const productionPhases = Array.from(phaseMap.values());
         
         // Load projects separately (use status='active' not stage='production')
         const { data: productionProjects } = await supabaseClient
@@ -107,6 +125,9 @@ async function loadAllData() {
         productionProjects?.forEach(p => projectMap[p.id] = p);
         
         // Process production - separate joinery and spraying
+        // Group by worker + project to combine phases
+        const workerProjectMap = new Map();
+        
         if (productionPhases) {
             productionPhases.forEach(phase => {
                 const project = projectMap[phase.project_id];
@@ -115,25 +136,55 @@ async function loadAllData() {
                 const isSpray = phase.phase_key?.toLowerCase().includes('spray') || 
                                phase.phase_name?.toLowerCase().includes('spray');
                 
-                const item = {
-                    projectNumber: project.project_number,
-                    projectName: project.name,
-                    phaseName: phase.phase_name || phase.phase_key,
-                    worker: workerMap[phase.assigned_to] || 'Unassigned',
-                    workerId: phase.assigned_to,
-                    startDate: phase.start_date,
-                    endDate: phase.end_date,
-                    isDeadlineToday: phase.end_date === todayStr,
-                    startsTomorrow: phase.start_date === tomorrowStr
-                };
+                const isOffice = phase.phase_key?.toLowerCase().includes('order') || 
+                                phase.phase_key?.toLowerCase().includes('office') ||
+                                phase.phase_name?.toLowerCase().includes('order') ||
+                                phase.phase_name?.toLowerCase().includes('office');
                 
-                if (isSpray) {
-                    todayData.spraying.push(item);
-                } else {
-                    todayData.production.push(item);
+                // Skip office phases here - they go to officeDaily
+                if (isOffice) return;
+                
+                const worker = workerMap[phase.assigned_to] || 'Unassigned';
+                const key = `${worker}|${project.project_number}|${isSpray ? 'spray' : 'prod'}`;
+                
+                if (!workerProjectMap.has(key)) {
+                    workerProjectMap.set(key, {
+                        projectNumber: project.project_number,
+                        projectName: project.name,
+                        phases: [],
+                        worker: worker,
+                        workerId: phase.assigned_to,
+                        isSpray: isSpray,
+                        isDeadlineToday: false,
+                        startsTomorrow: false
+                    });
                 }
+                
+                const entry = workerProjectMap.get(key);
+                entry.phases.push(phase.phase_name || phase.phase_key);
+                if (phase.end_date === todayStr) entry.isDeadlineToday = true;
+                if (phase.isTomorrow) entry.startsTomorrow = true;
             });
         }
+        
+        // Convert to arrays
+        workerProjectMap.forEach((item, key) => {
+            const entry = {
+                projectNumber: item.projectNumber,
+                projectName: item.projectName,
+                phaseName: [...new Set(item.phases)].join(', '), // Unique phases
+                worker: item.worker,
+                workerId: item.workerId,
+                isDeadlineToday: item.isDeadlineToday,
+                startsTomorrow: item.startsTomorrow
+            };
+            
+            if (item.isSpray) {
+                todayData.spraying.push(entry);
+            } else {
+                todayData.production.push(entry);
+            }
+        });
         
         // 3. Load recurring events for today
         const { data: events } = await supabaseClient
