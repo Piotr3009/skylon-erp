@@ -22,6 +22,23 @@ const subcategories = {
     other: []
 };
 
+// Helper function to get company logo HTML for reports
+async function getCompanyLogoHtml() {
+    try {
+        const { data: settings } = await supabaseClient
+            .from('company_settings')
+            .select('logo_url')
+            .single();
+        
+        if (settings?.logo_url) {
+            return `<img src="${settings.logo_url}" alt="Company Logo" style="max-height: 80px; max-width: 200px;" crossorigin="anonymous" />`;
+        }
+    } catch (e) {
+        console.log('Could not load company logo:', e);
+    }
+    return '<div style="width:150px;height:80px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;color:#999;font-size:11px;border:2px dashed #ddd;border-radius:4px;">No Logo</div>';
+}
+
 // Sortowanie stock items
 function sortStockItems(column) {
     // Jeśli kliknięto tę samą kolumnę - zmień kierunek
@@ -1772,6 +1789,9 @@ async function generateStockReport() {
 
 // Generate Stock IN Report
 async function generateStockInReport(dateFrom, dateTo, workerId, category) {
+    // Get company logo
+    const logoHtml = await getCompanyLogoHtml();
+    
     // Fetch transactions
     let query = supabaseClient
         .from('stock_transactions')
@@ -1890,7 +1910,7 @@ async function generateStockInReport(dateFrom, dateTo, workerId, category) {
         </head>
         <body>
             <div class="header">
-                <div class="logo-placeholder">LOGO HERE</div>
+                ${logoHtml}
                 <h1>📥 STOCK IN REPORT</h1>
                 <div>Joinery Core - Operational System</div>
                 <div style="margin-top: 10px; font-size: 14px; color: #666;">
@@ -1963,6 +1983,9 @@ async function generateStockInReport(dateFrom, dateTo, workerId, category) {
 
 // Generate Stock OUT Report
 async function generateStockOutReport(dateFrom, dateTo, workerId, category) {
+    // Get company logo
+    const logoHtml = await getCompanyLogoHtml();
+    
     // Fetch transactions
     let query = supabaseClient
         .from('stock_transactions')
@@ -2080,7 +2103,7 @@ async function generateStockOutReport(dateFrom, dateTo, workerId, category) {
         </head>
         <body>
             <div class="header">
-                <div class="logo-placeholder">LOGO HERE</div>
+                ${logoHtml}
                 <h1>📤 STOCK OUT REPORT</h1>
                 <div>Joinery Core - Operational System</div>
                 <div style="margin-top: 10px; font-size: 14px; color: #666;">
@@ -2145,6 +2168,9 @@ async function generateStockOutReport(dateFrom, dateTo, workerId, category) {
 
 // Generate Add Items Report
 async function generateAddItemsReport(dateFrom, dateTo, workerId, category) {
+    // Get company logo
+    const logoHtml = await getCompanyLogoHtml();
+    
     // Fetch stock items
     let query = supabaseClient
         .from('stock_items')
@@ -2254,7 +2280,7 @@ async function generateAddItemsReport(dateFrom, dateTo, workerId, category) {
         </head>
         <body>
             <div class="header">
-                <div class="logo-placeholder">LOGO HERE</div>
+                ${logoHtml}
                 <h1>➕ NEW ITEMS ADDED REPORT</h1>
                 <div>Joinery Core - Operational System</div>
                 <div style="margin-top: 10px; font-size: 14px; color: #666;">
@@ -2890,6 +2916,9 @@ function updateEditStockSupplierLink(index, link) {
 
 // Generate Ordered Items Report
 async function generateOrderedItemsReport(dateFrom, dateTo, workerId, category, orderStatus) {
+    // Get company logo
+    const logoHtml = await getCompanyLogoHtml();
+    
     // Fetch orders
     let query = supabaseClient
         .from('stock_orders')
@@ -2959,8 +2988,12 @@ async function generateOrderedItemsReport(dateFrom, dateTo, workerId, category, 
             </style>
         </head>
         <body>
-            <h1>📦 Materials Ordered Report</h1>
-            <p><strong>Period:</strong> ${periodText}</p>
+            <div style="text-align: center; margin-bottom: 30px;">
+                ${logoHtml}
+                <h1>📦 Materials Ordered Report</h1>
+                <div>Joinery Core - Operational System</div>
+                <div style="margin-top: 10px; font-size: 14px; color: #666;">${periodText}</div>
+            </div>
             
             <div class="summary">
                 <div class="summary-grid">
