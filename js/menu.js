@@ -333,6 +333,7 @@ function initFlatpickr() {
 function loadUnifiedMenu() {
     const menuHTML = `
         <div class="navigation-links">
+            <a href="today.html" class="nav-link nav-link-today" style="background: linear-gradient(135deg, #4a9eff, #22c55e); color: white; font-weight: 600;">📅 TODAY</a>
             <a href="index.html" class="nav-link nav-link-production">🏭 Production</a>
             <a href="office.html" class="nav-link nav-link-office">🗂️ Office</a>
             <a href="pipeline.html" class="nav-link nav-link-pipeline">📋 Pipeline</a>
