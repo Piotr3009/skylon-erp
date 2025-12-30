@@ -342,7 +342,7 @@ function loadUnifiedMenu() {
             <a href="clients.html" class="nav-link nav-link-clients" data-role-required="admin">👤 Clients</a>
             <a href="stock.html" class="nav-link nav-link-stock">📦 Stock</a>
             <a href="suppliers.html" class="nav-link nav-link-suppliers">🚚 Suppliers</a>
-            <a href="equipment.html" class="nav-link nav-link-equipment">🔧 Machines</a>
+            <a href="equipment.html" class="nav-link nav-link-equipment">🔧 Equipment</a>
         </div>
     `;
     
