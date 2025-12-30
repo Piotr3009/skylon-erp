@@ -450,6 +450,7 @@ const SECTION_PAGE_MAP = {
     'BOM': 'elements',
     'DRAWINGS': 'drawings',
     'MATERIALS': 'materials',
+    'DATA_SHEETS': 'datasheets',
     'SPRAY': 'spraying',
     'ROUTING': 'phases',
     'PHOTOS': 'photos',
