@@ -1685,17 +1685,17 @@ async function generateMachinesReport() {
     
     // Calculate service costs per machine
     const serviceCostsByMachine = {};
-    const sharpeningCostsByMachine = {};
+    const bladeCostsByMachine = {};
     const nextServicesByMachine = {};
     
     (allServices || []).forEach(service => {
         if (!serviceCostsByMachine[service.machine_id]) {
             serviceCostsByMachine[service.machine_id] = 0;
-            sharpeningCostsByMachine[service.machine_id] = 0;
+            bladeCostsByMachine[service.machine_id] = 0;
         }
         serviceCostsByMachine[service.machine_id] += service.total_cost || 0;
-        if (service.tool_sharpening && service.sharpening_cost) {
-            sharpeningCostsByMachine[service.machine_id] += service.sharpening_cost;
+        if (service.blade_replacement && service.blade_cost) {
+            bladeCostsByMachine[service.machine_id] += service.blade_cost;
         }
         
         // Track next service date
@@ -1789,7 +1789,7 @@ async function generateMachinesReport() {
                     <p><strong>Total Value:</strong> £${machines.reduce((sum, m) => sum + (m.current_value || 0), 0).toLocaleString()}</p>
                     <p><strong>Original Cost:</strong> £${machines.reduce((sum, m) => sum + (m.purchase_cost || 0), 0).toLocaleString()}</p>
                     <p><strong>Total Service Costs:</strong> £${Object.values(serviceCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
-                    <p><strong>Blade Replacement Costs:</strong> £${Object.values(sharpeningCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
+                    <p><strong>Blade Replacement Costs:</strong> £${Object.values(bladeCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
                 </div>
             </div>
 
@@ -1830,7 +1830,7 @@ async function generateMachinesReport() {
                                     ${warrantyExpired ? '<br><small>(EXPIRED)</small>' : ''}
                                 </td>
                                 <td style="text-align: right;">£${(serviceCostsByMachine[machine.id] || 0).toFixed(2)}</td>
-                                <td style="text-align: right;">£${(sharpeningCostsByMachine[machine.id] || 0).toFixed(2)}</td>
+                                <td style="text-align: right;">£${(bladeCostsByMachine[machine.id] || 0).toFixed(2)}</td>
                                 <td class="${serviceClass}">
                                     ${nextServiceDate ? 
                                         `${nextServiceDate.toLocaleDateString('en-GB')}<br><small>(${serviceDaysLeft < 0 ? 'OVERDUE' : serviceDaysLeft + ' days'})</small>` 
@@ -1851,7 +1851,7 @@ async function generateMachinesReport() {
                         <th>Major Services</th>
                         <th>Minor Services</th>
                         <th>Blade Replacements</th>
-                        <th>Times Sharpened</th>
+                        <th>Blades Changed</th>
                         <th>Last Service Date</th>
                     </tr>
                 </thead>
@@ -1860,8 +1860,8 @@ async function generateMachinesReport() {
                         const machineServices = (allServices || []).filter(s => s.machine_id === machine.id);
                         const majorServices = machineServices.filter(s => s.service_type === 'major_service').length;
                         const minorServices = machineServices.filter(s => s.service_type === 'minor_service').length;
-                        const bladeReplacements = machineServices.filter(s => s.service_type === 'blade_replacement').length;
-                        const sharpenings = machineServices.filter(s => s.tool_sharpening).length;
+                        const bladeReplacementServices = machineServices.filter(s => s.service_type === 'blade_replacement').length;
+                        const bladesChanged = machineServices.filter(s => s.blade_replacement).length;
                         const lastService = machineServices.length > 0 ? new Date(machineServices[0].service_date) : null;
                         
                         return `
@@ -1870,8 +1870,8 @@ async function generateMachinesReport() {
                                 <td style="text-align: center;">${machineServices.length}</td>
                                 <td style="text-align: center;">${majorServices}</td>
                                 <td style="text-align: center;">${minorServices}</td>
-                                <td style="text-align: center;">${bladeReplacements}</td>
-                                <td style="text-align: center;">${sharpenings}</td>
+                                <td style="text-align: center;">${bladeReplacementServices}</td>
+                                <td style="text-align: center;">${bladesChanged}</td>
                                 <td>${lastService ? lastService.toLocaleDateString('en-GB') : 'Never'}</td>
                             </tr>
                         `;
@@ -2318,11 +2318,11 @@ function renderServiceHistoryList() {
                             <div style="flex: 1;">
                                 <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 5px;">
                                     ${serviceDate.toLocaleDateString('en-GB')} - ${serviceTypeNames[service.service_type]}
-                                    ${service.tool_sharpening ? '<span style="background: #ff9800; color: #000; padding: 2px 6px; border-radius: 2px; font-size: 10px; margin-left: 8px;">🔪 BLADE REPLACED</span>' : ''}
+                                    ${service.blade_replacement ? '<span style="background: #ff9800; color: #000; padding: 2px 6px; border-radius: 2px; font-size: 10px; margin-left: 8px;">🔪 BLADE REPLACED</span>' : ''}
                                 </div>
                                 <div style="font-size: 12px; color: #999;">
                                     <strong>Cost:</strong> £${(service.total_cost || 0).toFixed(2)}
-                                    ${service.tool_sharpening && service.sharpening_cost ? ` (incl. £${service.sharpening_cost.toFixed(2)} blades)` : ''}
+                                    ${service.blade_replacement && service.blade_cost ? ` (incl. £${service.blade_cost.toFixed(2)} blades)` : ''}
                                     ${service.performed_by ? ` • <strong>By:</strong> ${service.performed_by}` : ''}
                                 </div>
                                 ${nextDate ? `
@@ -2440,8 +2440,8 @@ async function saveServiceRecord() {
             machine_id: machineId,
             service_date: serviceDate,
             service_type: serviceType,
-            tool_sharpening: bladeReplacement, // używamy starej kolumny w DB
-            sharpening_cost: bladeReplacement ? bladeCost : null, // używamy starej kolumny w DB
+            blade_replacement: bladeReplacement, // używamy starej kolumny w DB
+            blade_cost: bladeReplacement ? bladeCost : null, // używamy starej kolumny w DB
             total_cost: totalCost,
             performed_by: performedBy || null,
             next_service_date: nextDate || null,
