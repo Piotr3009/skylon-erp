@@ -1791,6 +1791,7 @@ async function generateMachinesReport() {
             <table>
                 <thead>
                     <tr>
+                        <th style="width: 60px;">Image</th>
                         <th>Name</th>
                         <th>Manufacturer</th>
                         <th>Status</th>
@@ -1814,6 +1815,11 @@ async function generateMachinesReport() {
                         
                         return `
                             <tr>
+                                <td style="text-align: center;">
+                                    ${machine.image_url ? 
+                                        `<img src="${machine.image_url}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 3px;">` 
+                                        : '<span style="color: #999;">-</span>'}
+                                </td>
                                 <td><strong>${machine.name}</strong></td>
                                 <td>${machine.manufacturer || '-'}</td>
                                 <td class="status-${machine.status}">${machine.status.toUpperCase()}</td>
@@ -2206,6 +2212,7 @@ function generateToolsReport() {
                 <thead>
                     <tr>
                         <th style="width: 40px;">✓</th>
+                        <th style="width: 60px;">Image</th>
                         <th>Item Name</th>
                         <th>Category</th>
                         <th>Location</th>
@@ -2223,11 +2230,16 @@ function generateToolsReport() {
                         }, {})
                     ).map(([category, tools]) => `
                         <tr class="category-header">
-                            <td colspan="7">${category.toUpperCase()}</td>
+                            <td colspan="8">${category.toUpperCase()}</td>
                         </tr>
                         ${tools.map(tool => `
                             <tr ${tool.quantity <= tool.min_quantity ? 'class="low-stock"' : ''}>
                                 <td><span class="checkbox"></span></td>
+                                <td style="text-align: center;">
+                                    ${tool.image_url ? 
+                                        `<img src="${tool.image_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 3px;">` 
+                                        : '<span style="color: #999;">-</span>'}
+                                </td>
                                 <td><strong>${tool.name}</strong></td>
                                 <td>${category}</td>
                                 <td>${tool.location || '-'}</td>
