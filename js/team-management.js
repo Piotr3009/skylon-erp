@@ -129,26 +129,8 @@ function getRoleColor(role) {
     }
 }
 
-// Update statistics cards
+// Update statistics - only tab counts now (stats cards removed)
 function updateStats() {
-    const active = teamMembers.filter(m => m.active && m.status === 'Active');
-    const onHoliday = teamMembers.filter(m => m.status === 'Holiday');
-    
-    document.getElementById('totalEmployees').textContent = teamMembers.length;
-    document.getElementById('activeEmployees').textContent = active.length;
-    document.getElementById('onHoliday').textContent = onHoliday.length;
-    
-    // Calculate weekly cost - bez szyfrowania
-    const weeklyCost = active.reduce((sum, m) => {
-        const hourly = m.hourly_rate || 0;
-        return sum + (hourly * 40); // 40 hours/week
-    }, 0);
-    document.getElementById('weeklyCost').textContent = `£${weeklyCost.toFixed(0)}`;
-    
-    // Total holiday days available
-    const totalHolidayDays = teamMembers.reduce((sum, m) => sum + (m.holiday_remaining || 0), 0);
-    document.getElementById('holidayDays').textContent = totalHolidayDays;
-    
     // Update tab counts
     updateActiveCount();
     updateArchivedCount();
