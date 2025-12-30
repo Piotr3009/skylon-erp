@@ -89,8 +89,10 @@
         monthPlugin.onload = function() {
             initFlatpickr();
             // Re-init when new content is added (for modals etc)
-            const observer = new MutationObserver(() => initFlatpickr());
-            observer.observe(document.body, { childList: true, subtree: true });
+            if (document.body) {
+                const observer = new MutationObserver(() => initFlatpickr());
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
         };
         document.head.appendChild(monthPlugin);
     };
