@@ -2662,7 +2662,7 @@ function generateMaterialsPage() {
 function generateMaterialsPages() {
     const pages = [];
     const materials = projectData.materials;
-    const ITEMS_PER_PAGE = 7; // Max items per page for good readability
+    const ITEMS_PER_PAGE = 10; // Max items per page
     
     if (materials.length === 0) {
         pages.push(`
@@ -2710,12 +2710,12 @@ function generateMaterialsPages() {
                         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                             <thead>
                                 <tr style="background: #f5f5f5;">
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 90px;">Photo</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Material</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 90px;">Reserved</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 90px;">Stock Left</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 180px;">Notes</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 40px;">✓</th>
+                                    <th style="border: 1px solid #ddd; padding: 5px; text-align: center; width: 80px;">Photo</th>
+                                    <th style="border: 1px solid #ddd; padding: 5px; text-align: left; width: 28%;">Material</th>
+                                    <th style="border: 1px solid #ddd; padding: 5px; text-align: center; width: 80px;">Reserved</th>
+                                    <th style="border: 1px solid #ddd; padding: 5px; text-align: center; width: 80px;">Stock Left</th>
+                                    <th style="border: 1px solid #ddd; padding: 5px; text-align: left;">Notes</th>
+                                    <th style="border: 1px solid #ddd; padding: 5px; text-align: center; width: 40px;">✓</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -2725,8 +2725,8 @@ function generateMaterialsPages() {
             const imageUrl = m.is_bespoke ? m.image_url : m.stock_items?.image_url;
             const photoPlaceholder = m.is_bespoke ? 'Bespoke' : '-';
             const photoHtml = imageUrl 
-                ? `<img src="${imageUrl}" style="width: 75px; height: 75px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'">`
-                : `<div style="width: 75px; height: 75px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">${photoPlaceholder}</div>`;
+                ? `<img src="${imageUrl}" style="width: 65px; height: 65px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'">`
+                : `<div style="width: 65px; height: 65px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">${photoPlaceholder}</div>`;
             
             let materialDesc = m.item_name || m.stock_items?.name || 'Unknown';
             const size = m.stock_items?.size || '';
@@ -2747,12 +2747,12 @@ function generateMaterialsPages() {
             
             html += `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${photoHtml}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${materialDesc}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${reserved.toFixed(2)} ${unit}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${stockLeftHtml}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;"></td>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;"><div style="width: 20px; height: 20px; border: 2px solid #333; margin: 0 auto;"></div></td>
+                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${photoHtml}</td>
+                    <td style="border: 1px solid #ddd; padding: 5px;">${materialDesc}</td>
+                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${reserved.toFixed(2)} ${unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">${stockLeftHtml}</td>
+                    <td style="border: 1px solid #ddd; padding: 5px;"></td>
+                    <td style="border: 1px solid #ddd; padding: 5px; text-align: center;"><div style="width: 20px; height: 20px; border: 2px solid #333; margin: 0 auto;"></div></td>
                 </tr>`;
         });
         
