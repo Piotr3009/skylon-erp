@@ -589,27 +589,25 @@ function addCopyrightFooter() {
         bottom: 0;
         left: 0;
         right: 0;
-        padding: 8px 20px;
+        padding: 6px 20px;
         background: #1a1a1a;
         border-top: 1px solid #333;
-        font-size: 11px;
-        color: #666;
+        font-size: 10px;
+        color: #555;
         display: flex;
         justify-content: space-between;
         align-items: center;
         z-index: 50;
+        height: 24px;
     `;
     
     const year = new Date().getFullYear();
     footer.innerHTML = `
         <span>© ${year} Skylon Development LTD. All rights reserved.</span>
-        <span style="color: #555;">Joinery Core v1.0</span>
+        <span style="color: #444;">Joinery Core v1.0</span>
     `;
     
     document.body.appendChild(footer);
-    
-    // Add padding-bottom to body to prevent content being hidden behind footer
-    document.body.style.paddingBottom = '40px';
 }
 
 // Load menu when DOM is ready
