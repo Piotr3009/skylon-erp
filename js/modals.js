@@ -1272,3 +1272,98 @@ function openModal(modalId) {
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
+
+// ========== PASSWORD CONFIRMATION SYSTEM ==========
+// Uniwersalny system wymagający hasła do potwierdzenia akcji
+// HTML modala musi być dodany do strony gdzie chcesz użyć
+
+let pendingPasswordAction = null;
+
+function confirmWithPassword(title, message, callback) {
+    pendingPasswordAction = callback;
+    
+    const titleEl = document.getElementById('passwordConfirmTitle');
+    const messageEl = document.getElementById('passwordConfirmMessage');
+    const passwordEl = document.getElementById('confirmPassword');
+    const errorEl = document.getElementById('passwordConfirmError');
+    const modal = document.getElementById('passwordConfirmModal');
+    
+    if (!modal) {
+        console.error('Password confirm modal not found in HTML. Add the modal HTML to this page.');
+        return;
+    }
+    
+    if (titleEl) titleEl.textContent = title || '🔐 Confirm with Password';
+    if (messageEl) messageEl.textContent = message || 'Please enter your password to confirm this action.';
+    if (passwordEl) passwordEl.value = '';
+    if (errorEl) errorEl.style.display = 'none';
+    
+    modal.classList.add('active');
+    if (passwordEl) passwordEl.focus();
+}
+
+function closePasswordConfirmModal() {
+    const modal = document.getElementById('passwordConfirmModal');
+    const passwordEl = document.getElementById('confirmPassword');
+    const errorEl = document.getElementById('passwordConfirmError');
+    
+    if (modal) modal.classList.remove('active');
+    if (passwordEl) passwordEl.value = '';
+    if (errorEl) errorEl.style.display = 'none';
+    pendingPasswordAction = null;
+}
+
+async function executePasswordConfirm() {
+    const password = document.getElementById('confirmPassword').value;
+    const errorEl = document.getElementById('passwordConfirmError');
+    
+    if (!password) {
+        errorEl.textContent = 'Please enter your password';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    try {
+        // Get current user email
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !user.email) {
+            errorEl.textContent = 'Unable to verify user';
+            errorEl.style.display = 'block';
+            return;
+        }
+        
+        // Verify password by attempting to sign in
+        const { error } = await supabaseClient.auth.signInWithPassword({
+            email: user.email,
+            password: password
+        });
+        
+        if (error) {
+            errorEl.textContent = 'Incorrect password';
+            errorEl.style.display = 'block';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('confirmPassword').focus();
+            return;
+        }
+        
+        // Password correct - execute the pending action
+        closePasswordConfirmModal();
+        
+        if (pendingPasswordAction && typeof pendingPasswordAction === 'function') {
+            await pendingPasswordAction();
+        }
+        
+    } catch (err) {
+        console.error('Password verification error:', err);
+        errorEl.textContent = 'Verification failed: ' + err.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+// Allow Enter key to submit password
+document.addEventListener('keydown', function(e) {
+    const modal = document.getElementById('passwordConfirmModal');
+    if (e.key === 'Enter' && modal && modal.classList.contains('active')) {
+        executePasswordConfirm();
+    }
+});
