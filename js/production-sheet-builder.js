@@ -1975,6 +1975,7 @@ async function generatePreview() {
     
     // PAGE: Data Sheets / Instructions (if any)
     const dataSheetPages = generateDataSheetsPages();
+    console.log('generatePreview - dataSheetPages:', dataSheetPages.length, dataSheetPages);
     dataSheetPages.forEach((content, i) => {
         pages.push({ section: i === 0 ? 'datasheets' : `datasheets-${i+1}`, content });
     });
@@ -2008,6 +2009,7 @@ async function generatePreview() {
     
     // Build HTML with all pages
     const totalPages = pages.length;
+    console.log('generatePreview - all pages:', pages.map(p => p.section));
     let html = pages.map((page, idx) => `
         <div class="ps-page" data-page="${idx + 1}" data-section="${page.section}">
             <div class="ps-page-header">Page ${idx + 1} of ${totalPages}</div>
@@ -3165,6 +3167,7 @@ function generateDataSheetsPages() {
         pages.push(html);
     }
     
+    console.log('generateDataSheetsPages - returning', pages.length, 'pages');
     return pages;
 }
 
