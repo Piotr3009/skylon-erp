@@ -1975,7 +1975,6 @@ async function generatePreview() {
     
     // PAGE: Material Docs & Manuals (if any)
     const dataSheetPages = await generateDataSheetsPages();
-    console.log('generatePreview - dataSheetPages:', dataSheetPages.length, dataSheetPages);
     dataSheetPages.forEach((content, i) => {
         pages.push({ section: i === 0 ? 'datasheets' : `datasheets-${i+1}`, content });
     });
@@ -2009,7 +2008,6 @@ async function generatePreview() {
     
     // Build HTML with all pages
     const totalPages = pages.length;
-    console.log('generatePreview - all pages:', pages.map(p => p.section));
     let html = pages.map((page, idx) => `
         <div class="ps-page" data-page="${idx + 1}" data-section="${page.section}">
             <div class="ps-page-header">Page ${idx + 1} of ${totalPages}</div>
@@ -3091,8 +3089,6 @@ async function generateDataSheetsPages() {
     const pages = [];
     const dataSheets = projectData.attachments.filter(a => a.attachment_type === 'DATA_SHEET');
     
-    console.log('generateDataSheetsPages - found:', dataSheets.length, 'attachments');
-    
     if (dataSheets.length === 0) {
         return pages; // No data sheets - return empty array (no pages)
     }
@@ -3165,7 +3161,6 @@ async function generateDataSheetsPages() {
         }
     }
     
-    console.log('generateDataSheetsPages - returning', pages.length, 'pages');
     return pages;
 }
 
@@ -4908,8 +4903,6 @@ async function saveSelectedDataSheets() {
         
         closeDataSheetsModal();
         showToast(`${checkboxes.length} data sheet(s) linked!`, 'success');
-        
-        console.log('Data sheets saved. Attachments now:', projectData.attachments);
         
         // Update UI
         await checkAllItems();
