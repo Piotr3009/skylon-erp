@@ -178,6 +178,17 @@ function openAddEmployeeModal() {
     document.getElementById('emergencyPhone').value = '';
     document.getElementById('emergencyRelation').value = '';
     
+    // Sensitive Information
+    document.getElementById('empNIN').value = '';
+    document.getElementById('empUTR').value = '';
+    
+    // Medical Information
+    document.getElementById('empBloodType').value = '';
+    document.getElementById('empAllergies').value = '';
+    document.getElementById('empMedicalNotes').value = '';
+    document.getElementById('empSpecialCare').value = '';
+    document.getElementById('empHolidayAllowance').value = 28;
+    
     openModal('employeeModal');
 }
 
@@ -204,6 +215,16 @@ function editEmployee(id) {
     document.getElementById('empColor').value = member.color_code || '#FFA500';
     document.getElementById('empColorHex').value = member.color_code || '#FFA500';
     document.getElementById('empNotes').value = member.notes || '';
+    
+    // Sensitive Information
+    document.getElementById('empNIN').value = member.nin_encrypted || '';
+    document.getElementById('empUTR').value = member.utr_encrypted || '';
+    
+    // Medical Information
+    document.getElementById('empBloodType').value = member.blood_type || '';
+    document.getElementById('empAllergies').value = member.allergies || '';
+    document.getElementById('empMedicalNotes').value = member.medical_notes || '';
+    document.getElementById('empSpecialCare').value = member.special_care_notes || '';
     
     // Emergency contact (if stored in JSON)
     if (member.emergency_contact) {
@@ -243,10 +264,17 @@ async function saveEmployee() {
         start_date: document.getElementById('empStartDate').value || null,
         holiday_allowance: parseInt(document.getElementById('empHolidayAllowance').value) || 28,
         color_code: document.getElementById('empColor').value,
-        color: document.getElementById('empColor').value,  // DODANE - ustaw też color!
+        color: document.getElementById('empColor').value,
         notes: document.getElementById('empNotes').value.trim() || null,
-        active: true
-        // USUNIĘTE: status: 'Active' - to jest wyliczane w VIEW!
+        active: true,
+        // Sensitive Information
+        nin_encrypted: document.getElementById('empNIN').value.trim() || null,
+        utr_encrypted: document.getElementById('empUTR').value.trim() || null,
+        // Medical Information
+        blood_type: document.getElementById('empBloodType').value || null,
+        allergies: document.getElementById('empAllergies').value.trim() || null,
+        medical_notes: document.getElementById('empMedicalNotes').value.trim() || null,
+        special_care_notes: document.getElementById('empSpecialCare').value.trim() || null
     };
 
     
@@ -344,6 +372,20 @@ function viewEmployee(id) {
         <div class="detail-section">
             <h3>Emergency Contact</h3>
             <p>${emergencyHTML}</p>
+        </div>
+        
+        <div class="detail-section" style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444;">
+            <h3 style="color: #ef4444;">🔒 Sensitive Information</h3>
+            <p><strong>NIN:</strong> ${member.nin_encrypted || 'Not provided'}</p>
+            <p><strong>UTR:</strong> ${member.utr_encrypted || 'Not provided'}</p>
+        </div>
+        
+        <div class="detail-section" style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6;">
+            <h3 style="color: #3b82f6;">🏥 Medical Information</h3>
+            <p><strong>Blood Type:</strong> ${member.blood_type || 'Not specified'}</p>
+            <p><strong>Allergies:</strong> ${member.allergies || 'None reported'}</p>
+            <p><strong>Medical Notes:</strong> ${member.medical_notes || 'None'}</p>
+            <p><strong>Special Care:</strong> ${member.special_care_notes || 'None'}</p>
         </div>
         
         <div class="detail-section">
