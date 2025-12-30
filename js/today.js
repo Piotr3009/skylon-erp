@@ -714,38 +714,74 @@ async function loadEventsList() {
         if (error) throw error;
         
         if (!events || events.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No recurring events yet</div>';
+            container.innerHTML = '<div style="text-align: center; color: #666; padding: 30px; font-style: italic;">No recurring events yet. Add your first event below!</div>';
             return;
         }
         
-        let html = '<table style="width: 100%; border-collapse: collapse;">';
-        html += `<thead>
-            <tr style="border-bottom: 1px solid #3e3e42;">
-                <th style="text-align: left; padding: 8px; color: #888;">Day</th>
-                <th style="text-align: left; padding: 8px; color: #888;">Time</th>
-                <th style="text-align: left; padding: 8px; color: #888;">Title</th>
-                <th style="text-align: left; padding: 8px; color: #888;">Section</th>
-                <th style="text-align: center; padding: 8px; color: #888;">Active</th>
-                <th style="text-align: center; padding: 8px; color: #888;">Actions</th>
-            </tr>
-        </thead><tbody>`;
+        const dayColors = {
+            1: '#3b82f6', // Monday - blue
+            2: '#8b5cf6', // Tuesday - purple
+            3: '#10b981', // Wednesday - green
+            4: '#f59e0b', // Thursday - amber
+            5: '#ef4444', // Friday - red
+            6: '#06b6d4'  // Saturday - cyan
+        };
+        
+        const sectionIcons = {
+            'general': '📋',
+            'production': '🪵',
+            'spraying': '🎨',
+            'office': '🗂️'
+        };
+        
+        let html = `
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #252526;">
+                        <th style="text-align: left; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Day</th>
+                        <th style="text-align: left; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Time</th>
+                        <th style="text-align: left; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Event</th>
+                        <th style="text-align: center; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Section</th>
+                        <th style="text-align: center; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Active</th>
+                        <th style="text-align: center; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
         
         events.forEach(e => {
-            html += `<tr style="border-bottom: 1px solid #2d2d30;">
-                <td style="padding: 10px;">${dayNames[e.day_of_week]}</td>
-                <td style="padding: 10px;">${e.time || '-'}</td>
-                <td style="padding: 10px;">
-                    ${e.title}
-                    ${e.description ? `<br><span style="color: #888; font-size: 11px;">${e.description}</span>` : ''}
-                </td>
-                <td style="padding: 10px;">${e.section}</td>
-                <td style="padding: 10px; text-align: center;">
-                    <input type="checkbox" ${e.active ? 'checked' : ''} onchange="toggleEventActive('${e.id}', this.checked)">
-                </td>
-                <td style="padding: 10px; text-align: center;">
-                    <button onclick="deleteEvent('${e.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
-                </td>
-            </tr>`;
+            const dayColor = dayColors[e.day_of_week] || '#888';
+            const sectionIcon = sectionIcons[e.section] || '📋';
+            const activeStyle = e.active ? '' : 'opacity: 0.5;';
+            
+            html += `
+                <tr style="border-bottom: 1px solid #2d2d30; transition: background 0.2s; ${activeStyle}" onmouseover="this.style.background='#252526'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 14px 15px;">
+                        <span style="display: inline-block; padding: 4px 12px; background: ${dayColor}22; color: ${dayColor}; border-radius: 4px; font-size: 12px; font-weight: 600;">
+                            ${dayNames[e.day_of_week]}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 15px; color: #e8e2d5; font-family: monospace; font-size: 13px;">
+                        ${e.time || '<span style="color: #666;">—</span>'}
+                    </td>
+                    <td style="padding: 14px 15px;">
+                        <div style="color: #e8e2d5; font-weight: 500; font-size: 13px;">${e.title}</div>
+                        ${e.description ? `<div style="color: #888; font-size: 11px; margin-top: 3px;">${e.description}</div>` : ''}
+                        ${e.show_day_before ? `<span style="display: inline-block; margin-top: 4px; padding: 2px 6px; background: #f59e0b22; color: #f59e0b; border-radius: 3px; font-size: 10px;">🔔 Reminds day before</span>` : ''}
+                    </td>
+                    <td style="padding: 14px 15px; text-align: center;">
+                        <span style="font-size: 16px;" title="${e.section}">${sectionIcon}</span>
+                    </td>
+                    <td style="padding: 14px 15px; text-align: center;">
+                        <label style="display: inline-flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" ${e.active ? 'checked' : ''} onchange="toggleEventActive('${e.id}', this.checked)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #22c55e;">
+                        </label>
+                    </td>
+                    <td style="padding: 14px 15px; text-align: center;">
+                        <button onclick="deleteEvent('${e.id}')" style="background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='#ef4444';">
+                            🗑️ Delete
+                        </button>
+                    </td>
+                </tr>`;
         });
         
         html += '</tbody></table>';

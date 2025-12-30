@@ -541,26 +541,33 @@
     
     <!-- Manage Events Modal -->
     <div class="modal" id="manageEventsModal">
-        <div class="modal-content" style="max-width: 700px;">
-            <div class="modal-header">
-                <h2>⚙️ Manage Recurring Events</h2>
-                <button class="modal-close" onclick="closeManageEvents()">×</button>
+        <div class="modal-content" style="max-width: 1000px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #3e3e42; margin-bottom: 20px;">
+                <span style="font-size: 18px; font-weight: 600; color: #4a9eff;">⚙️ Manage Recurring Events</span>
+                <span class="close" onclick="closeManageEvents()" style="cursor: pointer; font-size: 28px; color: #888; transition: color 0.2s;">&times;</span>
             </div>
+            
             <div class="modal-body">
-                <div id="eventsList" style="margin-bottom: 20px;">
-                    <!-- Events will be loaded here -->
+                <!-- Events Table -->
+                <div style="background: #1e1e1e; border-radius: 6px; padding: 20px; margin-bottom: 25px; border: 1px solid #3e3e42;">
+                    <h3 style="margin: 0 0 15px 0; color: #e8e2d5; font-size: 14px; font-weight: 600;">📅 Current Events</h3>
+                    <div id="eventsList">
+                        <!-- Events will be loaded here -->
+                    </div>
                 </div>
                 
-                <div style="border-top: 1px solid #3e3e42; padding-top: 20px;">
-                    <h3 style="margin-bottom: 15px; color: #e8e2d5;">Add New Event</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Title</label>
-                            <input type="text" id="eventTitle" class="form-input" placeholder="Event title">
+                <!-- Add New Event Form -->
+                <div style="background: #1e1e1e; border-radius: 6px; padding: 20px; border: 1px solid #3e3e42;">
+                    <h3 style="margin: 0 0 20px 0; color: #22c55e; font-size: 14px; font-weight: 600;">➕ Add New Event</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                        <div style="grid-column: span 2;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Title *</label>
+                            <input type="text" id="eventTitle" class="form-input" placeholder="e.g. Team Meeting" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Day of Week</label>
-                            <select id="eventDay" class="form-input">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Day of Week *</label>
+                            <select id="eventDay" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
                                 <option value="1">Monday</option>
                                 <option value="2">Tuesday</option>
                                 <option value="3">Wednesday</option>
@@ -570,30 +577,35 @@
                             </select>
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Time (optional)</label>
-                            <input type="time" id="eventTime" class="form-input">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Time</label>
+                            <input type="time" id="eventTime" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Description</label>
+                            <input type="text" id="eventDescription" class="form-input" placeholder="Additional details..." style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Section</label>
-                            <select id="eventSection" class="form-input">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Section</label>
+                            <select id="eventSection" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
                                 <option value="general">General</option>
                                 <option value="production">Production</option>
                                 <option value="spraying">Spraying</option>
                                 <option value="office">Office</option>
                             </select>
                         </div>
-                        <div style="grid-column: span 2;">
-                            <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Description (optional)</label>
-                            <input type="text" id="eventDescription" class="form-input" placeholder="Additional details">
-                        </div>
-                        <div style="grid-column: span 2;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" id="eventShowDayBefore">
-                                <span style="color: #888; font-size: 13px;">Show reminder day before</span>
+                        <div style="display: flex; align-items: flex-end;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 0;">
+                                <input type="checkbox" id="eventShowDayBefore" style="width: 16px; height: 16px; cursor: pointer;">
+                                <span style="color: #a1a1aa; font-size: 12px;">Remind day before</span>
                             </label>
                         </div>
                     </div>
-                    <button class="modal-btn primary" onclick="addEvent()" style="margin-top: 15px;">+ Add Event</button>
+                    
+                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                        <button onclick="addEvent()" style="padding: 10px 24px; background: #22c55e; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                            ➕ Add Event
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
