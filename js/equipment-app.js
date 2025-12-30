@@ -1298,10 +1298,6 @@ async function viewMachineDetails(id) {
     document.getElementById('detailsContent').innerHTML = renderMachineDetailsContent(machine);
     document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
     
-    // Show service history section (only for machines)
-    document.getElementById('serviceHistorySection').style.display = 'block';
-    document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
-    
     document.getElementById('detailsModal').classList.add('active');
 }
 
@@ -1318,9 +1314,6 @@ async function viewVanDetails(id) {
     document.getElementById('detailsModalTitle').textContent = van.name;
     document.getElementById('detailsContent').innerHTML = renderVanDetailsContent(van);
     document.getElementById('detailsDocuments').innerHTML = renderDocumentsList();
-    
-    // Hide service history for vans
-    document.getElementById('serviceHistorySection').style.display = 'none';
     
     document.getElementById('detailsModal').classList.add('active');
 }
@@ -1536,6 +1529,7 @@ function openUploadDocumentModal() {
             <option value="warranty">Warranty</option>
             <option value="invoice">Purchase Invoice</option>
             <option value="technical_sheet">Technical Sheet</option>
+            <option value="service_report">Service Report / Invoice</option>
             <option value="other">Other</option>
         `;
     } else if (currentDetailsItem.type === 'van') {
@@ -2458,14 +2452,9 @@ async function saveServiceRecord() {
         closeModal('addServiceModal');
         serviceMachineId = null;
         
-        // Reload service history if in details view
-        if (currentDetailsItem?.type === 'machine') {
-            await loadServiceHistory(currentDetailsItem.id);
-            document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
-        }
-        
         // Refresh main list to update next service date display
         await loadAllEquipment();
+        renderCurrentView();
         
     } catch (err) {
         console.error('Error saving service record:', err);
@@ -2484,12 +2473,11 @@ async function deleteServiceRecord(serviceId) {
         
         if (error) throw error;
         
+        showToast('Service record deleted', 'success');
         
-        // Reload service history
-        if (currentDetailsItem && currentDetailsItem.type === 'machine') {
-            await loadServiceHistory(currentDetailsItem.id);
-            document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
-        }
+        // Refresh main list
+        await loadAllEquipment();
+        renderCurrentView();
         
     } catch (err) {
         console.error('Error deleting service record:', err);
