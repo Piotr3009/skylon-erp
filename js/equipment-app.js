@@ -152,6 +152,27 @@ async function loadAllEquipment() {
         if (machinesError) throw machinesError;
         machines = machinesData || [];
         
+        // Load latest service info for each machine
+        const { data: servicesData } = await supabaseClient
+            .from('machine_service_history')
+            .select('machine_id, next_service_date, service_date')
+            .order('service_date', { ascending: false });
+        
+        // Map next_service_date to machines (use most recent service record)
+        if (servicesData) {
+            const serviceMap = {};
+            servicesData.forEach(s => {
+                if (!serviceMap[s.machine_id]) {
+                    serviceMap[s.machine_id] = s;
+                }
+            });
+            machines = machines.map(m => ({
+                ...m,
+                next_service_date: serviceMap[m.id]?.next_service_date || null,
+                last_service_date: serviceMap[m.id]?.service_date || null
+            }));
+        }
+        
         // Load vans
         const { data: vansData, error: vansError } = await supabaseClient
             .from('vans')
@@ -259,6 +280,7 @@ function renderMachinesTable(container) {
                     <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999;">STATUS</th>
                     <th style="padding: 12px; text-align: right; border-bottom: 2px solid #444; font-size: 12px; color: #999;">VALUE</th>
                     <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999;">WARRANTY</th>
+                    <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999;">NEXT SERVICE</th>
                     <th style="padding: 12px; text-align: center; border-bottom: 2px solid #444; font-size: 12px; color: #999;">ACTIONS</th>
                 </tr>
             </thead>
@@ -307,9 +329,29 @@ function createMachineRow(machine) {
                     : '<span style="color: #666;">-</span>'}
             </td>
             <td style="padding: 12px; text-align: center;">
+                ${(() => {
+                    const nextService = machine.next_service_date ? new Date(machine.next_service_date) : null;
+                    const now = new Date();
+                    const daysUntil = nextService ? Math.ceil((nextService - now) / (1000 * 60 * 60 * 24)) : null;
+                    const isOverdue = daysUntil !== null && daysUntil < 0;
+                    const isDueSoon = daysUntil !== null && daysUntil >= 0 && daysUntil <= 30;
+                    
+                    if (!nextService) return '<span style="color: #666;">-</span>';
+                    
+                    const color = isOverdue ? '#f44336' : (isDueSoon ? '#ff9800' : '#4CAF50');
+                    const label = isOverdue ? 'OVERDUE' : (isDueSoon ? `${daysUntil}d` : '');
+                    
+                    return `<span style="color: ${color};">${nextService.toLocaleDateString('en-GB')}</span>
+                            ${label ? `<div style="font-size: 10px; color: ${color}; font-weight: 600;">${label}</div>` : ''}`;
+                })()}
+            </td>
+            <td style="padding: 12px; text-align: center;">
                 <div style="display: flex; gap: 6px; justify-content: center;">
                     <button onclick="viewMachineDetails('${machine.id}')" class="icon-btn" style="color: #569cd6; border: 1px solid #569cd6;" title="Details">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5v8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 11.5v-8zM2.5 3a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-11z"/><path d="M3 5.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 8zm0 2.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"/></svg>
+                    </button>
+                    <button onclick="openServiceModalForMachine('${machine.id}')" class="icon-btn" style="color: #f59e0b; border: 1px solid #f59e0b;" title="Add Service">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M0 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8zm1 3v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2H1zm14-1V8a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v2h14zM2 8.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"/></svg>
                     </button>
                     <button onclick="editMachine('${machine.id}')" class="icon-btn" style="color: #4ec9b0; border: 1px solid #4ec9b0;" title="Edit">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
@@ -1747,7 +1789,7 @@ async function generateMachinesReport() {
                     <p><strong>Total Value:</strong> £${machines.reduce((sum, m) => sum + (m.current_value || 0), 0).toLocaleString()}</p>
                     <p><strong>Original Cost:</strong> £${machines.reduce((sum, m) => sum + (m.purchase_cost || 0), 0).toLocaleString()}</p>
                     <p><strong>Total Service Costs:</strong> £${Object.values(serviceCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
-                    <p><strong>Sharpening Costs:</strong> £${Object.values(sharpeningCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
+                    <p><strong>Blade Replacement Costs:</strong> £${Object.values(sharpeningCostsByMachine).reduce((sum, cost) => sum + cost, 0).toLocaleString()}</p>
                 </div>
             </div>
 
@@ -1762,7 +1804,7 @@ async function generateMachinesReport() {
                         <th>Value (£)</th>
                         <th>Warranty</th>
                         <th>Service Costs</th>
-                        <th>Sharpening</th>
+                        <th>Blades</th>
                         <th>Next Service</th>
                     </tr>
                 </thead>
@@ -2276,11 +2318,11 @@ function renderServiceHistoryList() {
                             <div style="flex: 1;">
                                 <div style="font-weight: 600; color: #e8e2d5; margin-bottom: 5px;">
                                     ${serviceDate.toLocaleDateString('en-GB')} - ${serviceTypeNames[service.service_type]}
-                                    ${service.tool_sharpening ? '<span style="background: #ff9800; color: #000; padding: 2px 6px; border-radius: 2px; font-size: 10px; margin-left: 8px;">🪚 SHARPENING</span>' : ''}
+                                    ${service.tool_sharpening ? '<span style="background: #ff9800; color: #000; padding: 2px 6px; border-radius: 2px; font-size: 10px; margin-left: 8px;">🔪 BLADE REPLACED</span>' : ''}
                                 </div>
                                 <div style="font-size: 12px; color: #999;">
                                     <strong>Cost:</strong> £${(service.total_cost || 0).toFixed(2)}
-                                    ${service.tool_sharpening && service.sharpening_cost ? ` (incl. £${service.sharpening_cost.toFixed(2)} sharpening)` : ''}
+                                    ${service.tool_sharpening && service.sharpening_cost ? ` (incl. £${service.sharpening_cost.toFixed(2)} blades)` : ''}
                                     ${service.performed_by ? ` • <strong>By:</strong> ${service.performed_by}` : ''}
                                 </div>
                                 ${nextDate ? `
@@ -2304,40 +2346,72 @@ function renderServiceHistoryList() {
     `;
 }
 
-function openAddServiceModal() {
-    if (!currentDetailsItem || currentDetailsItem.type !== 'machine') return;
+// Open service modal directly from machine list
+let serviceMachineId = null;
+
+function openServiceModalForMachine(machineId) {
+    serviceMachineId = machineId;
     
     // Set today's date as default
     document.getElementById('serviceDate').value = new Date().toISOString().split('T')[0];
     
+    // Set next service date = +1 year by default
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    document.getElementById('serviceNextDate').value = nextYear.toISOString().split('T')[0];
+    
     // Clear form
     document.getElementById('serviceType').value = 'minor_service';
-    document.getElementById('toolSharpening').checked = false;
-    document.getElementById('sharpeningCost').value = '';
-    document.getElementById('sharpeningCostGroup').style.display = 'none';
+    document.getElementById('bladeReplacement').checked = false;
+    document.getElementById('bladeCost').value = '';
+    document.getElementById('bladeCostGroup').style.display = 'none';
     document.getElementById('serviceCost').value = '';
     document.getElementById('servicePerformedBy').value = '';
-    document.getElementById('serviceNextDate').value = '';
     document.getElementById('serviceNotes').value = '';
     
     document.getElementById('addServiceModal').classList.add('active');
 }
 
-function toggleSharpeningCost() {
-    const checked = document.getElementById('toolSharpening').checked;
-    const costGroup = document.getElementById('sharpeningCostGroup');
+function openAddServiceModal() {
+    if (!currentDetailsItem || currentDetailsItem.type !== 'machine') return;
+    
+    serviceMachineId = currentDetailsItem.item.id;
+    
+    // Set today's date as default
+    document.getElementById('serviceDate').value = new Date().toISOString().split('T')[0];
+    
+    // Set next service date = +1 year by default
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    document.getElementById('serviceNextDate').value = nextYear.toISOString().split('T')[0];
+    
+    // Clear form
+    document.getElementById('serviceType').value = 'minor_service';
+    document.getElementById('bladeReplacement').checked = false;
+    document.getElementById('bladeCost').value = '';
+    document.getElementById('bladeCostGroup').style.display = 'none';
+    document.getElementById('serviceCost').value = '';
+    document.getElementById('servicePerformedBy').value = '';
+    document.getElementById('serviceNotes').value = '';
+    
+    document.getElementById('addServiceModal').classList.add('active');
+}
+
+function toggleBladeCost() {
+    const checked = document.getElementById('bladeReplacement').checked;
+    const costGroup = document.getElementById('bladeCostGroup');
     costGroup.style.display = checked ? 'block' : 'none';
     
     if (!checked) {
-        document.getElementById('sharpeningCost').value = '';
+        document.getElementById('bladeCost').value = '';
     }
 }
 
 async function saveServiceRecord() {
     const serviceDate = document.getElementById('serviceDate').value;
     const serviceType = document.getElementById('serviceType').value;
-    const toolSharpening = document.getElementById('toolSharpening').checked;
-    const sharpeningCost = parseFloat(document.getElementById('sharpeningCost').value) || null;
+    const bladeReplacement = document.getElementById('bladeReplacement').checked;
+    const bladeCost = parseFloat(document.getElementById('bladeCost').value) || null;
     const totalCost = parseFloat(document.getElementById('serviceCost').value);
     const performedBy = document.getElementById('servicePerformedBy').value.trim();
     const nextDate = document.getElementById('serviceNextDate').value;
@@ -2353,15 +2427,21 @@ async function saveServiceRecord() {
         return;
     }
     
-    if (!currentDetailsItem || currentDetailsItem.type !== 'machine') return;
+    // Get machine ID from either source
+    const machineId = serviceMachineId || (currentDetailsItem?.type === 'machine' ? currentDetailsItem.id : null);
+    
+    if (!machineId) {
+        showToast('No machine selected', 'error');
+        return;
+    }
     
     try {
         const serviceData = {
-            machine_id: currentDetailsItem.id,
+            machine_id: machineId,
             service_date: serviceDate,
             service_type: serviceType,
-            tool_sharpening: toolSharpening,
-            sharpening_cost: toolSharpening ? sharpeningCost : null,
+            tool_sharpening: bladeReplacement, // używamy starej kolumny w DB
+            sharpening_cost: bladeReplacement ? bladeCost : null, // używamy starej kolumny w DB
             total_cost: totalCost,
             performed_by: performedBy || null,
             next_service_date: nextDate || null,
@@ -2374,11 +2454,18 @@ async function saveServiceRecord() {
         
         if (error) throw error;
         
+        showToast('Service record saved!', 'success');
         closeModal('addServiceModal');
+        serviceMachineId = null;
         
-        // Reload service history
-        await loadServiceHistory(currentDetailsItem.id);
-        document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
+        // Reload service history if in details view
+        if (currentDetailsItem?.type === 'machine') {
+            await loadServiceHistory(currentDetailsItem.id);
+            document.getElementById('serviceHistoryList').innerHTML = renderServiceHistoryList();
+        }
+        
+        // Refresh main list to update next service date display
+        await loadEquipment();
         
     } catch (err) {
         console.error('Error saving service record:', err);
