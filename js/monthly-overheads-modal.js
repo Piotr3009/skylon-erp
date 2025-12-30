@@ -12,12 +12,12 @@ let currentOverheadItems = {
 };
 
 let categoryExpanded = {
-    property: true,
-    operations: true,
-    admin: true,
-    financial: true,
-    machinery: true,
-    other: true
+    property: false,
+    operations: false,
+    admin: false,
+    financial: false,
+    machinery: false,
+    other: false
 };
 
 // Open modal

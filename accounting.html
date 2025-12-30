@@ -151,7 +151,7 @@
 
     <!-- MODAL: Monthly Settings -->
     <div id="monthlySettingsModal" class="modal">
-        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 1800px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <span style="font-size: 16px; font-weight: bold;">Monthly Overheads Settings</span>
                 <span class="close" onclick="closeMonthlySettingsModal()" style="cursor: pointer; font-size: 24px;">&times;</span>
@@ -182,10 +182,10 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <span id="propertyTotal" style="font-size: 13px; font-weight: 600; color: #4ade80; font-family: monospace;">£0.00</span>
-                                <span id="propertyToggle" style="font-size: 10px; color: #888;">▼</span>
+                                <span id="propertyToggle" style="font-size: 10px; color: #888;">▶</span>
                             </div>
                         </div>
-                        <div id="propertyItems" class="category-items" style="padding: 10px 15px; background: rgba(59, 130, 246, 0.05); border-radius: 0 0 4px 4px;">
+                        <div id="propertyItems" class="category-items" style="padding: 10px 15px; background: rgba(59, 130, 246, 0.05); border-radius: 0 0 4px 4px; display: none;">
                             <button onclick="addOverheadItem('property')" class="add-item-btn" style="padding: 6px 12px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; cursor: pointer; font-size: 12px;">
                                 + Add Item
                             </button>
@@ -201,10 +201,10 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <span id="operationsTotal" style="font-size: 13px; font-weight: 600; color: #4ade80; font-family: monospace;">£0.00</span>
-                                <span id="operationsToggle" style="font-size: 10px; color: #888;">▼</span>
+                                <span id="operationsToggle" style="font-size: 10px; color: #888;">▶</span>
                             </div>
                         </div>
-                        <div id="operationsItems" class="category-items" style="padding: 10px 15px; background: rgba(139, 92, 246, 0.05); border-radius: 0 0 4px 4px;">
+                        <div id="operationsItems" class="category-items" style="padding: 10px 15px; background: rgba(139, 92, 246, 0.05); border-radius: 0 0 4px 4px; display: none;">
                             <button onclick="addOverheadItem('operations')" class="add-item-btn" style="padding: 6px 12px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; cursor: pointer; font-size: 12px;">
                                 + Add Item
                             </button>
@@ -220,10 +220,10 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <span id="adminTotal" style="font-size: 13px; font-weight: 600; color: #4ade80; font-family: monospace;">£0.00</span>
-                                <span id="adminToggle" style="font-size: 10px; color: #888;">▼</span>
+                                <span id="adminToggle" style="font-size: 10px; color: #888;">▶</span>
                             </div>
                         </div>
-                        <div id="adminItems" class="category-items" style="padding: 10px 15px; background: rgba(6, 182, 212, 0.05); border-radius: 0 0 4px 4px;">
+                        <div id="adminItems" class="category-items" style="padding: 10px 15px; background: rgba(6, 182, 212, 0.05); border-radius: 0 0 4px 4px; display: none;">
                             <button onclick="addOverheadItem('admin')" class="add-item-btn" style="padding: 6px 12px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; cursor: pointer; font-size: 12px;">
                                 + Add Item
                             </button>
@@ -239,10 +239,10 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <span id="financialTotal" style="font-size: 13px; font-weight: 600; color: #4ade80; font-family: monospace;">£0.00</span>
-                                <span id="financialToggle" style="font-size: 10px; color: #888;">▼</span>
+                                <span id="financialToggle" style="font-size: 10px; color: #888;">▶</span>
                             </div>
                         </div>
-                        <div id="financialItems" class="category-items" style="padding: 10px 15px; background: rgba(16, 185, 129, 0.05); border-radius: 0 0 4px 4px;">
+                        <div id="financialItems" class="category-items" style="padding: 10px 15px; background: rgba(16, 185, 129, 0.05); border-radius: 0 0 4px 4px; display: none;">
                             <button onclick="addOverheadItem('financial')" class="add-item-btn" style="padding: 6px 12px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; cursor: pointer; font-size: 12px;">
                                 + Add Item
                             </button>
@@ -258,10 +258,10 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <span id="machineryTotal" style="font-size: 13px; font-weight: 600; color: #4ade80; font-family: monospace;">£0.00</span>
-                                <span id="machineryToggle" style="font-size: 10px; color: #888;">▼</span>
+                                <span id="machineryToggle" style="font-size: 10px; color: #888;">▶</span>
                             </div>
                         </div>
-                        <div id="machineryItems" class="category-items" style="padding: 10px 15px; background: rgba(245, 158, 11, 0.05); border-radius: 0 0 4px 4px;">
+                        <div id="machineryItems" class="category-items" style="padding: 10px 15px; background: rgba(245, 158, 11, 0.05); border-radius: 0 0 4px 4px; display: none;">
                             <button onclick="addOverheadItem('machinery')" class="add-item-btn" style="padding: 6px 12px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; cursor: pointer; font-size: 12px;">
                                 + Add Item
                             </button>
@@ -277,10 +277,10 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <span id="otherTotal" style="font-size: 13px; font-weight: 600; color: #4ade80; font-family: monospace;">£0.00</span>
-                                <span id="otherToggle" style="font-size: 10px; color: #888;">▼</span>
+                                <span id="otherToggle" style="font-size: 10px; color: #888;">▶</span>
                             </div>
                         </div>
-                        <div id="otherItems" class="category-items" style="padding: 10px 15px; background: rgba(107, 114, 128, 0.05); border-radius: 0 0 4px 4px;">
+                        <div id="otherItems" class="category-items" style="padding: 10px 15px; background: rgba(107, 114, 128, 0.05); border-radius: 0 0 4px 4px; display: none;">
                             <button onclick="addOverheadItem('other')" class="add-item-btn" style="padding: 6px 12px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px; cursor: pointer; font-size: 12px;">
                                 + Add Item
                             </button>

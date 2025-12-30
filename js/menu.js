@@ -16,6 +16,69 @@
     monthCss.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css';
     document.head.appendChild(monthCss);
     
+    // Add custom CSS fixes for dark theme
+    const customCss = document.createElement('style');
+    customCss.textContent = `
+        .flatpickr-calendar {
+            background: #2d2d30 !important;
+            border: 1px solid #555 !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+        }
+        .flatpickr-months .flatpickr-month,
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            background: #2d2d30 !important;
+            color: #e8e2d5 !important;
+        }
+        .flatpickr-monthDropdown-months option {
+            background: #2d2d30 !important;
+            color: #e8e2d5 !important;
+        }
+        .flatpickr-weekdays {
+            background: #2d2d30 !important;
+        }
+        .flatpickr-weekday {
+            color: #888 !important;
+        }
+        .flatpickr-day {
+            color: #e8e2d5 !important;
+        }
+        .flatpickr-day:hover {
+            background: #3e3e42 !important;
+            border-color: #555 !important;
+        }
+        .flatpickr-day.selected {
+            background: #3b82f6 !important;
+            border-color: #3b82f6 !important;
+        }
+        .flatpickr-day.today {
+            border-color: #f59e0b !important;
+        }
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            color: #666 !important;
+        }
+        /* Month select plugin fixes */
+        .flatpickr-monthSelect-months {
+            background: #2d2d30 !important;
+        }
+        .flatpickr-monthSelect-month {
+            color: #e8e2d5 !important;
+            background: transparent !important;
+        }
+        .flatpickr-monthSelect-month:hover {
+            background: #3e3e42 !important;
+        }
+        .flatpickr-monthSelect-month.selected {
+            background: #3b82f6 !important;
+            color: white !important;
+        }
+        span.flatpickr-monthSelect-month {
+            color: #e8e2d5 !important;
+        }
+    `;
+    document.head.appendChild(customCss);
+    
     // Add JS
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
