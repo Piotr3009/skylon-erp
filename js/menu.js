@@ -475,6 +475,9 @@ function addCopyrightFooter() {
     `;
     
     document.body.appendChild(footer);
+    
+    // Add padding-bottom to body to prevent content being hidden behind footer
+    document.body.style.paddingBottom = '40px';
 }
 
 // Load menu when DOM is ready
