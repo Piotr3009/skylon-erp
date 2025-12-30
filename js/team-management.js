@@ -1176,6 +1176,9 @@ window.saveRoleChange = function() {
         return;
     }
     
+    // Zamknij modal zmiany roli przed pokazaniem modala z hasłem
+    closeChangeRoleModal();
+    
     // Wymagaj hasła przy zmianie roli
     confirmWithPassword(
         '🔐 Confirm Role Change',
@@ -1336,6 +1339,9 @@ window.saveRoleChangeForUser = function(userId) {
         closeChangeRoleModal();
         return;
     }
+    
+    // Zamknij modal zmiany roli przed pokazaniem modala z hasłem
+    closeChangeRoleModal();
     
     // Wymagaj hasła przy zmianie roli
     confirmWithPassword(
