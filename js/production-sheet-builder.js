@@ -1798,9 +1798,13 @@ async function createDraftSheet() {
 
 // ========== SAVE & CLOSE ==========
 async function saveAndClose() {
-    showToast('Saving draft...', 'info');
+    showToast('Refreshing data...', 'info');
     
     try {
+        // Refresh all data before saving to get latest changes
+        await loadAllData();
+        
+        showToast('Saving draft...', 'info');
         // Ensure we have a sheet with valid id (create draft if not exists)
         if (!currentSheet?.id) {
             await createDraftSheet();
@@ -3058,6 +3062,7 @@ function generateSprayingPages() {
     const pages = [];
     const sprayItemsRaw = projectData.sprayItems || [];
     const projectPrefix = (projectData.project?.project_number || '').split('/')[0] || '';
+    const ITEMS_PER_PAGE = 25; // Max items per page (leaving room for headers)
     
     // Build element lookup map
     const elementMap = {};
@@ -3158,13 +3163,23 @@ function generateSprayingPages() {
         return pages;
     }
     
-    // Helper to render table for one colour group
-    const renderColourTable = (colour, items) => {
-        if (items.length === 0) return '';
+    // Helper to render table rows for items
+    const renderTableRows = (items, startIdx) => {
+        return items.map((item, idx) => `<tr>
+            <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight: bold;">${startIdx + idx + 1}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">${getSprayItemDisplay(item)}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 9px;">${item.width || '-'}x${item.height || '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px;">${item.colour || '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px; color: #666;">${item.notes || ''}</td>
+        </tr>`).join('');
+    };
+    
+    // Helper to render colour table header
+    const renderColourHeader = (colour, totalInColour, continued = false) => {
         return `
-            <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 5px; margin-top: 15px;">
                 <h4 style="font-size: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f59e0b; color: white; border-radius: 4px;">
-                    ${colour} (${items.length} item${items.length !== 1 ? 's' : ''})
+                    ${colour} (${totalInColour} item${totalInColour !== 1 ? 's' : ''})${continued ? ' - continued' : ''}
                 </h4>
                 <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                     <thead><tr style="background: #fef3c7;">
@@ -3174,30 +3189,68 @@ function generateSprayingPages() {
                         <th style="border: 1px solid #d97706; padding: 5px; width: 80px;">Colour</th>
                         <th style="border: 1px solid #d97706; padding: 5px;">Notes</th>
                     </tr></thead>
-                    <tbody>
-                        ${items.map((item, idx) => `<tr>
-                            <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-weight: bold;">${idx + 1}</td>
-                            <td style="border: 1px solid #ddd; padding: 5px;">${getSprayItemDisplay(item)}</td>
-                            <td style="border: 1px solid #ddd; padding: 5px; text-align: center; font-size: 9px;">${item.width || '-'}x${item.height || '-'}</td>
-                            <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px;">${item.colour || '-'}</td>
-                            <td style="border: 1px solid #ddd; padding: 5px; font-size: 9px; color: #666;">${item.notes || ''}</td>
-                        </tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>`;
+                    <tbody>`;
     };
     
-    // Generate pages - render all colour groups
-    let html = `<h1 class="ps-section-title">5. Spraying</h1>`;
-    html += settingsHtml;
-    html += `<h3 style="font-size: 13px; margin-bottom: 15px;">Spray Items (${totalItems} items)</h3>`;
+    const renderTableClose = () => `</tbody></table></div>`;
     
-    // Render each colour group
+    // Build pages with pagination
+    let currentPageHtml = '';
+    let currentPageItems = 0;
+    let pageNum = 0;
+    let isFirstPage = true;
+    
+    const startNewPage = () => {
+        if (currentPageHtml) {
+            // Close any open content and add to pages
+            pages.push(currentPageHtml);
+        }
+        pageNum++;
+        currentPageHtml = `<h1 class="ps-section-title">5. Spraying${pageNum > 1 ? ` (${pageNum})` : ''}</h1>`;
+        if (isFirstPage) {
+            currentPageHtml += settingsHtml;
+            currentPageHtml += `<h3 style="font-size: 13px; margin-bottom: 15px;">Spray Items (${totalItems} items)</h3>`;
+            isFirstPage = false;
+        }
+        currentPageItems = 0;
+    };
+    
+    // Start first page
+    startNewPage();
+    
+    // Iterate through colour groups
     colourGroups.forEach(colour => {
-        html += renderColourTable(colour, itemsByColour[colour]);
+        const colourItems = itemsByColour[colour];
+        const totalInColour = colourItems.length;
+        let itemsRendered = 0;
+        
+        while (itemsRendered < totalInColour) {
+            const remainingOnPage = ITEMS_PER_PAGE - currentPageItems;
+            const itemsToRender = Math.min(remainingOnPage, totalInColour - itemsRendered);
+            
+            if (itemsToRender <= 0 || remainingOnPage < 3) {
+                // Not enough space, start new page
+                startNewPage();
+                continue;
+            }
+            
+            // Render colour header (with "continued" if not first batch)
+            const continued = itemsRendered > 0;
+            currentPageHtml += renderColourHeader(colour, totalInColour, continued);
+            
+            // Render items
+            const itemsBatch = colourItems.slice(itemsRendered, itemsRendered + itemsToRender);
+            currentPageHtml += renderTableRows(itemsBatch, itemsRendered);
+            currentPageHtml += renderTableClose();
+            
+            currentPageItems += itemsToRender + 2; // +2 for header
+            itemsRendered += itemsToRender;
+        }
     });
     
-    html += checklistHtml;
+    // Add checklist to last page and close it
+    currentPageHtml += checklistHtml;
+    pages.push(currentPageHtml);
     pages.push(html);
     
     return pages;
