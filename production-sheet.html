@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Production Sheet Builder - Joinery Core</title>
+    <title>Production Book Builder - Joinery Core</title>
     <link rel="stylesheet" href="css/styles.css?v=11">
     
     <!-- Supabase -->
@@ -703,7 +703,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="app-title">📋 Production Sheet Builder</div>
+            <div class="app-title">📋 Production Book Builder</div>
             <div class="navigation-links">
             </div>
         </div>
@@ -829,9 +829,9 @@
     <!-- Edit Note Modal -->
     <div class="ps-modal-overlay" id="psEditNoteModal">
         <div class="ps-modal" style="max-width: 600px;">
-            <div class="ps-modal-title">✏️ Edit Note for Production Sheet</div>
+            <div class="ps-modal-title">✏️ Edit Note for Production Book</div>
             <p style="color: #888; font-size: 12px; margin-bottom: 10px;">
-                Edit this note for the Production Sheet only. The original note in the project will remain unchanged.
+                Edit this note for the Production Book only. The original note in the project will remain unchanged.
             </p>
             <div style="font-size: 11px; color: #f59e0b; margin-bottom: 8px;" id="editNoteAuthor"></div>
             <textarea id="editNoteText" 
@@ -1051,6 +1051,26 @@
             <div class="ps-modal-actions">
                 <button class="ps-modal-btn cancel" onclick="closeUploadModal()">Cancel</button>
                 <button class="ps-modal-btn confirm" id="psUploadConfirm" onclick="confirmUpload()" disabled>Upload</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Sheets Selection Modal -->
+    <div class="ps-modal-overlay" id="psDataSheetsModal">
+        <div class="ps-modal" style="max-width: 800px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="ps-modal-title">📄 Select Data Sheets & Instructions</div>
+            <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
+                Select fitting instructions and data sheets from materials used in this project.
+            </p>
+            
+            <!-- Materials List with Documents -->
+            <div id="dataSheetsContent" style="flex: 1; overflow-y: auto; margin-bottom: 15px;">
+                <div style="text-align: center; padding: 40px; color: #888;">Loading materials...</div>
+            </div>
+            
+            <div class="ps-modal-actions">
+                <button class="ps-modal-btn cancel" onclick="closeDataSheetsModal()">Cancel</button>
+                <button class="ps-modal-btn confirm" onclick="saveSelectedDataSheets()">✓ Add Selected</button>
             </div>
         </div>
     </div>

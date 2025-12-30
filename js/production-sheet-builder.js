@@ -105,6 +105,14 @@ const CHECKLIST_SECTIONS = [
         ]
     },
     {
+        key: 'DATA_SHEETS',
+        title: 'Data Sheets',
+        icon: '📄',
+        items: [
+            { key: 'DATA_SHEETS_DOCS', label: 'Fitting Instructions & Data Sheets', source: 'DATA_SHEETS', required: false }
+        ]
+    },
+    {
         key: 'SPRAY',
         title: 'Spray Pack',
         icon: '🎨',
@@ -568,6 +576,8 @@ function createChecklistItem(item, sectionKey) {
         }
     } else if (item.goTo) {
         actionBtn = `<button class="ps-item-action go" onclick="goToSection('${item.goTo}')">→ Go</button>`;
+    } else if (item.source === 'DATA_SHEETS') {
+        actionBtn = `<button class="ps-item-action upload" id="btn-${item.key}" onclick="openDataSheetsModal()">📄 Select</button>`;
     }
     
     div.innerHTML = `
@@ -1511,6 +1521,15 @@ async function checkItem(item) {
             result.done = totalMats > 0;
             result.meta = `${totalMats} total (Prod: ${prodMats}, Spray: ${sprayMats}, Install: ${instMats})`;
             break;
+        
+        // DATA SHEETS
+        case 'DATA_SHEETS_DOCS':
+            const dataSheetAttachments = projectData.attachments.filter(a => a.attachment_type === 'DATA_SHEET');
+            result.done = dataSheetAttachments.length > 0;
+            result.meta = dataSheetAttachments.length > 0 
+                ? `${dataSheetAttachments.length} document(s) linked` 
+                : 'Optional - select from Stock';
+            break;
             
         // SPRAY
         case 'SPRAY_DESCRIPTION':
@@ -1953,6 +1972,12 @@ async function generatePreview() {
         pages.push({ section: i === 0 ? 'materials' : `materials-${i+1}`, content });
     });
     
+    // PAGE: Data Sheets / Instructions (if any)
+    const dataSheetPages = generateDataSheetsPages();
+    dataSheetPages.forEach((content, i) => {
+        pages.push({ section: i === 0 ? 'datasheets' : `datasheets-${i+1}`, content });
+    });
+    
     // PAGE: Spraying (may be multiple pages)
     const hasSprayPhase = projectData.phases.some(p => 
         (p.phase_key && p.phase_key.toLowerCase().includes('spray')) ||
@@ -2004,6 +2029,7 @@ function generateCoverPageNew(logoUrl) {
         'Elements List',
         'Drawings',
         'Materials',
+        'Data Sheets',
         'Spray Pack',
         'Phases / Timeline',
         'Photos',
@@ -3055,6 +3081,73 @@ function generateSprayingPage() {
             </div>
         </div>
     `;
+}
+
+// ========== DATA SHEETS PAGES ==========
+function generateDataSheetsPages() {
+    const pages = [];
+    const dataSheets = projectData.attachments.filter(a => a.attachment_type === 'DATA_SHEET');
+    
+    if (dataSheets.length === 0) {
+        return pages; // No data sheets - return empty array (no pages)
+    }
+    
+    const sectionNum = ++pdfSectionNumber;
+    
+    // Generate page with links to data sheets
+    const content = `
+        <div class="ps-page-content">
+            <h2 style="color: #333; border-bottom: 2px solid #4a9eff; padding-bottom: 10px; margin-bottom: 20px;">
+                ${sectionNum}. Data Sheets & Fitting Instructions
+            </h2>
+            
+            <p style="color: #666; margin-bottom: 20px; font-size: 13px;">
+                The following fitting instructions and data sheets are attached to this Production Book. 
+                Please review before starting work.
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                ${dataSheets.map((ds, idx) => `
+                    <div style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 15px; display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 24px;">📄</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${ds.file_name}</div>
+                            <div style="font-size: 12px; color: #666;">${ds.file_type || 'Document'}</div>
+                        </div>
+                        <div style="font-size: 12px; color: #999;">Document ${idx + 1}</div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
+                <strong style="color: #856404;">⚠️ Important:</strong>
+                <span style="color: #856404;"> Always follow manufacturer's fitting instructions. These documents are provided as reference.</span>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <h3 style="color: #333; margin-bottom: 15px; font-size: 14px;">Confirmation:</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 12px; width: 50%;">
+                            <strong>Read & Understood By:</strong>
+                            <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
+                        </td>
+                        <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
+                            <strong>Date:</strong>
+                            <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
+                        </td>
+                        <td style="border: 1px solid #ddd; padding: 12px; width: 25%;">
+                            <strong>Signature:</strong>
+                            <div style="height: 30px; border-bottom: 1px solid #999; margin-top: 15px;"></div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    pages.push(content);
+    return pages;
 }
 
 // ========== PAGE 5: SPRAYING (MULTI-PAGE) ==========
@@ -4649,6 +4742,163 @@ function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ========== DATA SHEETS MODAL ==========
+let selectedDataSheets = [];
+
+async function openDataSheetsModal() {
+    document.getElementById('psDataSheetsModal').classList.add('active');
+    
+    const container = document.getElementById('dataSheetsContent');
+    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #888;">Loading materials with documents...</div>';
+    
+    try {
+        // Get materials for this project with their stock_item_id
+        const materialsWithDocs = [];
+        
+        for (const mat of projectData.materials) {
+            if (!mat.stock_item_id) continue;
+            
+            // Get stock item with documents
+            const { data: stockItem, error } = await supabaseClient
+                .from('stock_items')
+                .select('id, name, documents')
+                .eq('id', mat.stock_item_id)
+                .single();
+            
+            if (error || !stockItem) continue;
+            
+            const docs = stockItem.documents || [];
+            if (docs.length > 0) {
+                materialsWithDocs.push({
+                    materialName: mat.item_name,
+                    stockItemId: stockItem.id,
+                    stockItemName: stockItem.name,
+                    documents: docs
+                });
+            }
+        }
+        
+        // Load already selected data sheets
+        const existingDataSheets = projectData.attachments.filter(a => a.attachment_type === 'DATA_SHEET');
+        selectedDataSheets = existingDataSheets.map(a => a.file_url);
+        
+        if (materialsWithDocs.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #888;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                    <div style="margin-bottom: 10px;">No materials with documents found.</div>
+                    <div style="font-size: 12px;">Upload data sheets and fitting instructions in Stock Management first.</div>
+                </div>
+            `;
+            return;
+        }
+        
+        // Render materials with their documents
+        container.innerHTML = materialsWithDocs.map(item => `
+            <div style="background: #2d2d30; border-radius: 6px; padding: 15px; margin-bottom: 12px;">
+                <div style="font-weight: 600; color: #4a9eff; margin-bottom: 10px; font-size: 14px;">
+                    🪵 ${item.materialName}
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${item.documents.map((doc, idx) => `
+                        <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #3e3e42; border-radius: 4px; cursor: pointer; transition: background 0.2s;"
+                               onmouseover="this.style.background='#4a4a4e'" onmouseout="this.style.background='#3e3e42'">
+                            <input type="checkbox" 
+                                   value="${doc.url}" 
+                                   data-name="${doc.name}"
+                                   data-type="${doc.type || 'Document'}"
+                                   ${selectedDataSheets.includes(doc.url) ? 'checked' : ''}
+                                   onchange="toggleDataSheet(this)"
+                                   style="width: 18px; height: 18px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <div style="color: #e8e2d5; font-size: 13px;">${doc.name}</div>
+                                <div style="color: #888; font-size: 11px;">${doc.type || 'Document'}</div>
+                            </div>
+                            <a href="${doc.url}" target="_blank" onclick="event.stopPropagation()" 
+                               style="color: #4a9eff; font-size: 12px; text-decoration: none;">
+                                Preview ↗
+                            </a>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (err) {
+        console.error('Error loading data sheets:', err);
+        container.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Error loading materials: ${err.message}</div>`;
+    }
+}
+
+function closeDataSheetsModal() {
+    document.getElementById('psDataSheetsModal').classList.remove('active');
+}
+
+function toggleDataSheet(checkbox) {
+    const url = checkbox.value;
+    if (checkbox.checked) {
+        if (!selectedDataSheets.includes(url)) {
+            selectedDataSheets.push(url);
+        }
+    } else {
+        selectedDataSheets = selectedDataSheets.filter(u => u !== url);
+    }
+}
+
+async function saveSelectedDataSheets() {
+    showToast('Saving data sheets...', 'info');
+    
+    try {
+        // Ensure we have a sheet
+        if (!currentSheet?.id) {
+            await createDraftSheet();
+        }
+        
+        // Remove old DATA_SHEET attachments
+        const oldDataSheets = projectData.attachments.filter(a => a.attachment_type === 'DATA_SHEET');
+        for (const old of oldDataSheets) {
+            await supabaseClient
+                .from('production_sheet_attachments')
+                .delete()
+                .eq('id', old.id);
+        }
+        projectData.attachments = projectData.attachments.filter(a => a.attachment_type !== 'DATA_SHEET');
+        
+        // Add new selected data sheets
+        const checkboxes = document.querySelectorAll('#dataSheetsContent input[type="checkbox"]:checked');
+        
+        for (const cb of checkboxes) {
+            const { data: attachment, error } = await supabaseClient
+                .from('production_sheet_attachments')
+                .insert({
+                    sheet_id: currentSheet.id,
+                    attachment_type: 'DATA_SHEET',
+                    file_name: cb.dataset.name,
+                    file_url: cb.value,
+                    file_size: 0,
+                    file_type: cb.dataset.type || 'Document'
+                })
+                .select()
+                .single();
+            
+            if (error) throw error;
+            projectData.attachments.push(attachment);
+        }
+        
+        closeDataSheetsModal();
+        showToast(`${checkboxes.length} data sheet(s) linked!`, 'success');
+        
+        // Update UI
+        await checkAllItems();
+        updateProgress();
+        generatePreview();
+        
+    } catch (err) {
+        console.error('Error saving data sheets:', err);
+        showToast('Error: ' + err.message, 'error');
+    }
 }
 
 // Drag and drop
