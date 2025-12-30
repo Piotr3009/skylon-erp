@@ -2465,7 +2465,7 @@ async function saveServiceRecord() {
         }
         
         // Refresh main list to update next service date display
-        await loadEquipment();
+        await loadAllEquipment();
         
     } catch (err) {
         console.error('Error saving service record:', err);
