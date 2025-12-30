@@ -86,30 +86,38 @@ async function loadAllData() {
             .select('id, name, role')
             .eq('active', true);
         
-        // 2. Load production phases (today's work)
+        const workerMap = {};
+        teamMembers?.forEach(m => workerMap[m.id] = m.name);
+        
+        // 2. Load production phases (today's work) - simplified query
         const { data: productionPhases } = await supabaseClient
             .from('project_phases')
-            .select(`
-                id, phase_name, phase_key, start_date, end_date, assigned_to, status,
-                projects!inner(id, project_number, name, stage)
-            `)
-            .eq('projects.stage', 'production')
-            .or(`start_date.lte.${todayStr},end_date.gte.${todayStr}`)
+            .select('*')
+            .or(`and(start_date.lte.${todayStr},end_date.gte.${todayStr}),start_date.eq.${tomorrowStr}`)
             .neq('status', 'Completed');
+        
+        // Load projects separately
+        const { data: productionProjects } = await supabaseClient
+            .from('projects')
+            .select('id, project_number, name')
+            .eq('stage', 'production');
+        
+        const projectMap = {};
+        productionProjects?.forEach(p => projectMap[p.id] = p);
         
         // Process production - separate joinery and spraying
         if (productionPhases) {
-            const workerMap = {};
-            teamMembers?.forEach(m => workerMap[m.id] = m.name);
-            
             productionPhases.forEach(phase => {
+                const project = projectMap[phase.project_id];
+                if (!project) return; // Skip if project not in production
+                
                 const isSpray = phase.phase_key?.toLowerCase().includes('spray') || 
                                phase.phase_name?.toLowerCase().includes('spray');
                 
                 const item = {
-                    projectNumber: phase.projects.project_number,
-                    projectName: phase.projects.name,
-                    phaseName: phase.phase_name,
+                    projectNumber: project.project_number,
+                    projectName: project.name,
+                    phaseName: phase.phase_name || phase.phase_key,
                     worker: workerMap[phase.assigned_to] || 'Unassigned',
                     workerId: phase.assigned_to,
                     startDate: phase.start_date,
@@ -130,40 +138,41 @@ async function loadAllData() {
         const { data: events } = await supabaseClient
             .from('today_events')
             .select('*')
-            .eq('active', true)
-            .or(`day_of_week.eq.${dayOfWeek},and(show_day_before.eq.true,day_of_week.eq.${(dayOfWeek + 1) % 7})`);
+            .eq('active', true);
         
         if (events) {
-            todayData.events = events.map(e => ({
+            const tomorrowDayOfWeek = (dayOfWeek + 1) % 7;
+            todayData.events = events.filter(e => 
+                e.day_of_week === dayOfWeek || 
+                (e.show_day_before && e.day_of_week === tomorrowDayOfWeek)
+            ).map(e => ({
                 ...e,
-                isReminder: e.day_of_week !== dayOfWeek // It's showing as day-before reminder
+                isReminder: e.day_of_week !== dayOfWeek
             }));
         }
         
-        // 4. Load holidays today
+        // 4. Load holidays today (using correct column names: date_from, date_to)
         const { data: holidays } = await supabaseClient
             .from('employee_holidays')
             .select(`
-                id, start_date, end_date, status,
+                id, date_from, date_to,
                 team_members(name)
             `)
-            .eq('status', 'approved')
-            .lte('start_date', todayStr)
-            .gte('end_date', todayStr);
+            .lte('date_from', todayStr)
+            .gte('date_to', todayStr);
         
         if (holidays) {
             todayData.holidays = holidays.map(h => ({
                 name: h.team_members?.name || 'Unknown',
-                startDate: h.start_date,
-                endDate: h.end_date
+                startDate: h.date_from,
+                endDate: h.date_to
             }));
         }
         
         // 5. Load stock alerts (negative quantity)
         const { data: stockItems } = await supabaseClient
             .from('stock_items')
-            .select('id, name, current_quantity, reserved_quantity, min_quantity, unit')
-            .eq('active', true);
+            .select('id, name, current_quantity, reserved_quantity, min_quantity, unit');
         
         if (stockItems) {
             stockItems.forEach(item => {
@@ -190,8 +199,7 @@ async function loadAllData() {
         // 6. Load fleet alerts (MOT, Insurance within 7 days)
         const { data: vans } = await supabaseClient
             .from('vans')
-            .select('id, registration, make, model, mot_due, insurance_due')
-            .eq('status', 'Active');
+            .select('id, registration, make, model, mot_due, insurance_due');
         
         if (vans) {
             vans.forEach(van => {
@@ -199,7 +207,7 @@ async function loadAllData() {
                     const daysUntil = Math.ceil((new Date(van.mot_due) - today) / (24*60*60*1000));
                     todayData.fleet.push({
                         type: 'MOT',
-                        vehicle: `${van.registration} (${van.make} ${van.model})`,
+                        vehicle: `${van.registration} (${van.make || ''} ${van.model || ''})`.trim(),
                         dueDate: van.mot_due,
                         daysUntil: daysUntil
                     });
@@ -208,7 +216,7 @@ async function loadAllData() {
                     const daysUntil = Math.ceil((new Date(van.insurance_due) - today) / (24*60*60*1000));
                     todayData.fleet.push({
                         type: 'Insurance',
-                        vehicle: `${van.registration} (${van.make} ${van.model})`,
+                        vehicle: `${van.registration} (${van.make || ''} ${van.model || ''})`.trim(),
                         dueDate: van.insurance_due,
                         daysUntil: daysUntil
                     });
@@ -219,8 +227,7 @@ async function loadAllData() {
         // 7. Load machine service alerts
         const { data: machines } = await supabaseClient
             .from('machines')
-            .select('id, name, next_service_date')
-            .eq('status', 'Active');
+            .select('id, name, next_service_date');
         
         if (machines) {
             machines.forEach(m => {
@@ -242,7 +249,6 @@ async function loadAllData() {
             const { data: pipelineOld } = await supabaseClient
                 .from('pipeline_projects')
                 .select('id, project_number, name, created_at')
-                .eq('stage', 'pipeline')
                 .lte('created_at', eightWeeksAgo.toISOString());
             
             if (pipelineOld) {
@@ -258,24 +264,23 @@ async function loadAllData() {
             }
             
             // Unassigned phases this week
-            const { data: unassigned } = await supabaseClient
+            const { data: unassignedPhases } = await supabaseClient
                 .from('project_phases')
-                .select(`
-                    id, phase_name, start_date,
-                    projects!inner(project_number, name, stage)
-                `)
-                .eq('projects.stage', 'production')
+                .select('*')
                 .is('assigned_to', null)
                 .gte('start_date', todayStr)
                 .lte('start_date', weekEndStr);
             
-            if (unassigned) {
-                unassigned.forEach(p => {
+            if (unassignedPhases && productionProjects) {
+                unassignedPhases.forEach(p => {
+                    const project = projectMap[p.project_id];
+                    if (!project) return;
+                    
                     todayData.office.push({
                         type: 'unassigned',
-                        projectNumber: p.projects.project_number,
-                        projectName: p.projects.name,
-                        phaseName: p.phase_name,
+                        projectNumber: project.project_number,
+                        projectName: project.name,
+                        phaseName: p.phase_name || p.phase_key,
                         startDate: p.start_date
                     });
                 });
