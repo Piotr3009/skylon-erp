@@ -1134,7 +1134,7 @@ window.openChangeRoleModal = function(teamMemberId, currentRole) {
                 </div>
                 <div class="form-group">
                     <label>New Role</label>
-                    <select id="newRoleSelect" style="width: 100%; padding: 10px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                    <select id="newRoleSelect" data-current-role="${currentRole}" style="width: 100%; padding: 10px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
                         <option value="viewer" ${currentRole === "viewer" ? "selected" : ""}>Viewer (Read Only)</option>
                         <option value="worker" ${currentRole === "worker" ? "selected" : ""}>Worker (Carpenter)</option>
                         <option value="manager" ${currentRole === "manager" ? "selected" : ""}>Manager</option>
@@ -1163,10 +1163,31 @@ window.closeChangeRoleModal = function() {
     currentRoleChangeTeamMemberId = null;
 }
 
-window.saveRoleChange = async function() {
+window.saveRoleChange = function() {
     if (!currentRoleChangeTeamMemberId) return;
     
-    const newRole = document.getElementById("newRoleSelect").value;
+    const selectEl = document.getElementById("newRoleSelect");
+    const newRole = selectEl.value;
+    const currentRole = selectEl.getAttribute('data-current-role') || '';
+    
+    // Jeśli rola się nie zmienia, nie wymagaj hasła
+    if (newRole === currentRole) {
+        closeChangeRoleModal();
+        return;
+    }
+    
+    // Wymagaj hasła przy zmianie roli
+    confirmWithPassword(
+        '🔐 Confirm Role Change',
+        `Changing user role to "${newRole.toUpperCase()}". This action requires password confirmation.`,
+        async function() {
+            await executeSaveRoleChange(newRole);
+        }
+    );
+}
+
+async function executeSaveRoleChange(newRole) {
+    if (!currentRoleChangeTeamMemberId) return;
     
     try {
         // Find user_profile by team_member_id
@@ -1284,7 +1305,7 @@ window.openChangeRoleModalForUser = function(userId, currentRole, email) {
                 </div>
                 <div class="form-group">
                     <label>New Role</label>
-                    <select id="newRoleSelect" style="width: 100%; padding: 10px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
+                    <select id="newRoleSelect" data-current-role="${currentRole}" style="width: 100%; padding: 10px; background: #3e3e42; border: 1px solid #555; color: #e8e2d5; border-radius: 3px;">
                         <option value="viewer" ${currentRole === "viewer" ? "selected" : ""}>Viewer (Read Only)</option>
                         <option value="worker" ${currentRole === "worker" ? "selected" : ""}>Worker (Carpenter)</option>
                         <option value="manager" ${currentRole === "manager" ? "selected" : ""}>Manager</option>
@@ -1305,9 +1326,28 @@ window.openChangeRoleModalForUser = function(userId, currentRole, email) {
     document.body.appendChild(modal);
 };
 
-window.saveRoleChangeForUser = async function(userId) {
-    const newRole = document.getElementById("newRoleSelect").value;
+window.saveRoleChangeForUser = function(userId) {
+    const selectEl = document.getElementById("newRoleSelect");
+    const newRole = selectEl.value;
+    const currentRole = selectEl.getAttribute('data-current-role') || '';
     
+    // Jeśli rola się nie zmienia, nie wymagaj hasła
+    if (newRole === currentRole) {
+        closeChangeRoleModal();
+        return;
+    }
+    
+    // Wymagaj hasła przy zmianie roli
+    confirmWithPassword(
+        '🔐 Confirm Role Change',
+        `Changing user role to "${newRole.toUpperCase()}". This action requires password confirmation.`,
+        async function() {
+            await executeSaveRoleChangeForUser(userId, newRole);
+        }
+    );
+};
+
+async function executeSaveRoleChangeForUser(userId, newRole) {
     try {
         const { error } = await supabaseClient
             .from("user_profiles")
@@ -1326,7 +1366,7 @@ window.saveRoleChangeForUser = async function(userId) {
         console.error("Error updating role:", err);
         showToast("Error: " + err.message, 'error');
     }
-};
+}
 
 // ========== ARCHIVED TEAM FUNCTIONS ==========
 let archivedTeamMembers = [];
@@ -1542,3 +1582,79 @@ async function updateActiveCount() {
         console.error('Error counting active:', err);
     }
 }
+
+// ========== PASSWORD CONFIRMATION SYSTEM ==========
+let pendingPasswordAction = null;
+
+function confirmWithPassword(title, message, callback) {
+    pendingPasswordAction = callback;
+    
+    document.getElementById('passwordConfirmTitle').textContent = title || '🔐 Confirm with Password';
+    document.getElementById('passwordConfirmMessage').textContent = message || 'Please enter your password to confirm this action.';
+    document.getElementById('confirmPassword').value = '';
+    document.getElementById('passwordConfirmError').style.display = 'none';
+    
+    document.getElementById('passwordConfirmModal').classList.add('active');
+    document.getElementById('confirmPassword').focus();
+}
+
+function closePasswordConfirmModal() {
+    document.getElementById('passwordConfirmModal').classList.remove('active');
+    document.getElementById('confirmPassword').value = '';
+    document.getElementById('passwordConfirmError').style.display = 'none';
+    pendingPasswordAction = null;
+}
+
+async function executePasswordConfirm() {
+    const password = document.getElementById('confirmPassword').value;
+    const errorEl = document.getElementById('passwordConfirmError');
+    
+    if (!password) {
+        errorEl.textContent = 'Please enter your password';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    try {
+        // Get current user email
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !user.email) {
+            errorEl.textContent = 'Unable to verify user';
+            errorEl.style.display = 'block';
+            return;
+        }
+        
+        // Verify password by attempting to sign in
+        const { error } = await supabaseClient.auth.signInWithPassword({
+            email: user.email,
+            password: password
+        });
+        
+        if (error) {
+            errorEl.textContent = 'Incorrect password';
+            errorEl.style.display = 'block';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('confirmPassword').focus();
+            return;
+        }
+        
+        // Password correct - execute the pending action
+        closePasswordConfirmModal();
+        
+        if (pendingPasswordAction && typeof pendingPasswordAction === 'function') {
+            await pendingPasswordAction();
+        }
+        
+    } catch (err) {
+        console.error('Password verification error:', err);
+        errorEl.textContent = 'Verification failed: ' + err.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+// Allow Enter key to submit password
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.getElementById('passwordConfirmModal').classList.contains('active')) {
+        executePasswordConfirm();
+    }
+});
