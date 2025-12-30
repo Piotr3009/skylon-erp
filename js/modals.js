@@ -1280,7 +1280,11 @@ function closeModal(modalId) {
 let pendingPasswordAction = null;
 
 function confirmWithPassword(title, message, callback) {
+    console.log("=== confirmWithPassword CALLED ===" );
+    console.log("callback:", callback);
+    console.log("typeof callback:", typeof callback);
     pendingPasswordAction = callback;
+    console.log("pendingPasswordAction after set:", pendingPasswordAction);
     
     const titleEl = document.getElementById('passwordConfirmTitle');
     const messageEl = document.getElementById('passwordConfirmMessage');
@@ -1305,6 +1309,8 @@ function confirmWithPassword(title, message, callback) {
 }
 
 function closePasswordConfirmModal() {
+    console.log('=== closePasswordConfirmModal CALLED ===');
+    console.log('pendingPasswordAction before null:', pendingPasswordAction);
     const modal = document.getElementById('passwordConfirmModal');
     const passwordEl = document.getElementById('confirmPassword');
     const errorEl = document.getElementById('passwordConfirmError');
@@ -1313,10 +1319,13 @@ function closePasswordConfirmModal() {
     if (passwordEl) passwordEl.value = '';
     if (errorEl) errorEl.style.display = 'none';
     pendingPasswordAction = null;
+    console.log('pendingPasswordAction set to null');
 }
 
 async function executePasswordConfirm() {
     console.log('=== executePasswordConfirm START ===');
+    console.log('pendingPasswordAction at start:', pendingPasswordAction);
+    console.trace('executePasswordConfirm stack trace');
     const password = document.getElementById('confirmPassword').value;
     const errorEl = document.getElementById('passwordConfirmError');
     
@@ -1382,6 +1391,8 @@ async function executePasswordConfirm() {
 document.addEventListener('keydown', function(e) {
     const modal = document.getElementById('passwordConfirmModal');
     if (e.key === 'Enter' && modal && modal.classList.contains('active')) {
+        console.log('=== Enter key pressed in password modal ===');
+        console.log('pendingPasswordAction at Enter:', pendingPasswordAction);
         executePasswordConfirm();
     }
 });

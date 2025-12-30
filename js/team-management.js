@@ -1164,11 +1164,14 @@ window.closeChangeRoleModal = function() {
 }
 
 window.saveRoleChange = function() {
+    console.log('=== saveRoleChange CALLED ===');
     if (!currentRoleChangeTeamMemberId) return;
     
     const selectEl = document.getElementById("newRoleSelect");
     const newRole = selectEl.value;
     const currentRole = selectEl.getAttribute('data-current-role') || '';
+    
+    console.log('newRole:', newRole, 'currentRole:', currentRole);
     
     // Jeśli rola się nie zmienia, nie wymagaj hasła
     if (newRole === currentRole) {
@@ -1178,18 +1181,25 @@ window.saveRoleChange = function() {
     
     // WAŻNE: Zapisz ID przed zamknięciem modala (closeChangeRoleModal resetuje do null)
     const teamMemberId = currentRoleChangeTeamMemberId;
+    console.log('teamMemberId saved:', teamMemberId);
     
     // Zamknij modal zmiany roli przed pokazaniem modala z hasłem
     closeChangeRoleModal();
+    
+    console.log('Calling confirmWithPassword...');
+    console.log('typeof confirmWithPassword:', typeof confirmWithPassword);
     
     // Wymagaj hasła przy zmianie roli
     confirmWithPassword(
         '🔐 Confirm Role Change',
         `Changing user role to "${newRole.toUpperCase()}". This action requires password confirmation.`,
         async function() {
+            console.log('=== CALLBACK EXECUTING ===');
             await executeSaveRoleChangeWithId(teamMemberId, newRole);
         }
     );
+    
+    console.log('=== saveRoleChange END ===');
 }
 
 async function executeSaveRoleChangeWithId(teamMemberId, newRole) {
