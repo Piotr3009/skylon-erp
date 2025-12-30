@@ -33,6 +33,26 @@ button {
     border-color: #3b82f6 !important;
 }
 
+/* TODAY button - wyróżniony */
+.nav-link-today {
+    padding: 8px 14px !important;
+    background: #1e3a5f !important;
+    color: #4a9eff !important;
+    text-decoration: none;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 1px solid #4a9eff;
+    letter-spacing: 0.2px;
+}
+
+.nav-link-today:hover {
+    background: #27272a !important;
+    border-color: #4a9eff !important;
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.3);
+}
+
 /* Production button - delikatny zielony */
 .nav-link-production {
     padding: 8px 14px !important;
