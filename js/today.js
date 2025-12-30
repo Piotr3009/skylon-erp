@@ -118,7 +118,7 @@ async function loadAllData() {
         // Load projects separately (use status='active' not stage='production')
         const { data: productionProjects } = await supabaseClient
             .from('projects')
-            .select('id, project_number, name, deadline')
+            .select('id, project_number, name, element, deadline')
             .eq('status', 'active');
         
         const projectMap = {};
@@ -329,6 +329,7 @@ async function loadAllData() {
                         type: 'phase',
                         projectNumber: project.project_number,
                         projectName: project.name,
+                        projectElement: project.element || '',
                         phaseName: phase.phase_name || phase.phase_key,
                         worker: workerMap[phase.assigned_to] || 'Unassigned',
                         startDate: phase.start_date,
@@ -657,12 +658,13 @@ function renderOfficeDaily() {
     // Office phases
     const phases = todayData.officeDaily.filter(o => o.type === 'phase');
     if (phases.length > 0) {
-        html += '<div style="margin-bottom: 15px;"><strong style="color: #f97316;">📋 Office Tasks:</strong></div>';
+        html += '<div style="margin-bottom: 10px;"><strong style="color: #f97316; font-size: 12px;">📋 Office Tasks:</strong></div>';
         phases.forEach(p => {
             const urgentClass = p.isDeadlineToday ? 'urgent' : '';
-            const prefix = p.isDeadlineToday ? '🔴 DEADLINE - ' : '';
+            const prefix = p.isDeadlineToday ? '🔴 ' : '';
+            const elementInfo = p.projectElement ? ` • ${p.projectElement}` : '';
             html += `<div class="today-item ${urgentClass}">
-                <div class="today-item-title">${prefix}<strong>${p.projectNumber}</strong> - ${p.phaseName}</div>
+                <div class="today-item-title">${prefix}<strong>${p.projectNumber}</strong> - ${p.phaseName}${elementInfo}</div>
                 <div class="today-item-subtitle">${p.projectName} • ${p.worker}</div>
             </div>`;
         });
@@ -671,7 +673,7 @@ function renderOfficeDaily() {
     // Alerts
     const alerts = todayData.officeDaily.filter(o => o.type === 'alert');
     if (alerts.length > 0) {
-        html += '<div style="margin-bottom: 15px; margin-top: 20px;"><strong style="color: #ef4444;">🔔 Active Alerts:</strong></div>';
+        html += '<div style="margin-bottom: 10px; margin-top: 15px;"><strong style="color: #ef4444; font-size: 12px;">🔔 Active Alerts:</strong></div>';
         alerts.forEach(a => {
             html += `<div class="today-item warning">
                 <div class="today-item-title">${a.projectNumber ? `<strong>${a.projectNumber}</strong> - ` : ''}${a.alertType || 'Alert'}</div>

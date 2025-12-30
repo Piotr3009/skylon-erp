@@ -28,40 +28,40 @@
         .today-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
         }
         
         .today-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #4a9eff;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4a9eff;
         }
         
         .today-title {
-            font-size: 32px;
+            font-size: 22px;
             font-weight: 700;
             color: #4a9eff;
         }
         
         .today-date {
-            font-size: 24px;
+            font-size: 18px;
             color: #888;
         }
         
         .today-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
         
         .today-btn {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             transition: all 0.2s;
         }
@@ -85,13 +85,13 @@
         .today-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            gap: 16px;
         }
         
         .today-section {
             background: #252526;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 6px;
+            padding: 16px;
             border: 1px solid #3e3e42;
         }
         
@@ -102,27 +102,29 @@
         .today-section-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #3e3e42;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #3e3e42;
         }
         
         .today-section-icon {
-            font-size: 24px;
+            font-size: 18px;
         }
         
         .today-section-title {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 600;
             color: #e8e2d5;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .today-section-badge {
             margin-left: auto;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
             font-weight: 600;
         }
         
@@ -148,11 +150,11 @@
         
         /* Content items */
         .today-item {
-            padding: 12px;
-            margin-bottom: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
             background: #1e1e1e;
-            border-radius: 6px;
-            border-left: 4px solid #3e3e42;
+            border-radius: 4px;
+            border-left: 3px solid #3e3e42;
         }
         
         .today-item.urgent {
@@ -175,42 +177,43 @@
         .today-item-title {
             font-weight: 600;
             color: #e8e2d5;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
+            font-size: 13px;
         }
         
         .today-item-subtitle {
-            font-size: 13px;
+            font-size: 11px;
             color: #888;
         }
         
         .today-item-meta {
-            font-size: 12px;
+            font-size: 10px;
             color: #666;
-            margin-top: 6px;
+            margin-top: 4px;
         }
         
         /* Worker section */
         .today-worker {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         .today-worker-name {
             font-weight: 600;
             color: #4a9eff;
-            margin-bottom: 8px;
-            font-size: 15px;
+            margin-bottom: 6px;
+            font-size: 13px;
         }
         
         .today-worker-tasks {
-            padding-left: 15px;
+            padding-left: 12px;
         }
         
         .today-task {
-            padding: 8px 12px;
-            margin-bottom: 6px;
+            padding: 6px 10px;
+            margin-bottom: 4px;
             background: #1e1e1e;
-            border-radius: 4px;
-            font-size: 13px;
+            border-radius: 3px;
+            font-size: 12px;
             color: #e8e2d5;
         }
         
@@ -228,50 +231,51 @@
         .today-checklist {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 8px;
         }
         
         .today-check-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px;
+            gap: 8px;
+            padding: 10px;
             background: #1e1e1e;
-            border-radius: 6px;
-            font-size: 14px;
+            border-radius: 4px;
+            font-size: 12px;
             color: #e8e2d5;
         }
         
         .today-checkbox {
-            width: 22px;
-            height: 22px;
+            width: 18px;
+            height: 18px;
             border: 2px solid #4a9eff;
-            border-radius: 4px;
+            border-radius: 3px;
             flex-shrink: 0;
         }
         
         /* Empty state */
         .today-empty {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             color: #666;
             font-style: italic;
+            font-size: 12px;
         }
         
         /* Monday only badge */
         .monday-only {
-            font-size: 10px;
+            font-size: 9px;
             background: #3e3e42;
             color: #888;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 8px;
         }
         
         /* Loading */
         .today-loading {
             text-align: center;
-            padding: 60px;
+            padding: 40px;
             color: #888;
         }
         
@@ -392,7 +396,7 @@
                 <div class="today-actions no-print">
                     <button class="today-btn secondary" onclick="window.location.href='index.html'">← Back</button>
                     <button class="today-btn secondary" onclick="openManageEvents()">⚙️ Manage Events</button>
-                    <button class="today-btn primary" onclick="window.print()">🖨️ Print</button>
+                    <button class="today-btn primary" onclick="window.print()">📥 Download PDF</button>
                 </div>
             </div>
             
@@ -612,6 +616,6 @@
     </div>
     
     <script src="js/menu.js"></script>
-    <script src="js/today.js?v=4"></script>
+    <script src="js/today.js?v=5"></script>
 </body>
 </html>
