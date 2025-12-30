@@ -1368,6 +1368,13 @@ function renderArchivedTeam(members) {
             'other': 'Other'
         }[reason] || reason;
         
+        const reasonColor = {
+            'resigned': '#f59e0b',
+            'fired': '#ef4444',
+            'contract_ended': '#3b82f6',
+            'other': '#6b7280'
+        }[reason] || '#6b7280';
+        
         const archivedDate = member.archived_date ? 
             new Date(member.archived_date).toLocaleDateString('en-GB') : '-';
         const startDate = member.start_date ? 
@@ -1390,82 +1397,62 @@ function renderArchivedTeam(members) {
             }
         }
         
-        // Holidays history
+        // Holidays history - compact table
         let holidaysHtml = '';
         if (member.holidays_history && member.holidays_history.length > 0) {
-            const holidaysItems = member.holidays_history.map(h => {
-                const fromDate = new Date(h.date_from).toLocaleDateString('en-GB');
-                const toDate = new Date(h.date_to).toLocaleDateString('en-GB');
+            const holidayRows = member.holidays_history.map(h => {
+                const fromDate = new Date(h.date_from).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
+                const toDate = new Date(h.date_to).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
                 const typeClass = h.holiday_type || 'annual';
+                const typeColor = {
+                    'annual': '#10b981',
+                    'sick': '#f59e0b',
+                    'unpaid': '#6b7280'
+                }[typeClass] || '#6b7280';
                 const typeText = {
                     'annual': 'Annual',
                     'sick': 'Sick',
                     'unpaid': 'Unpaid'
                 }[typeClass] || typeClass;
                 
-                return `
-                    <div class="holiday-item">
-                        <span>${fromDate} - ${toDate}</span>
-                        <span class="holiday-type ${typeClass}">${typeText}</span>
-                    </div>
-                `;
+                return `<tr style="font-size: 11px;">
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #3e3e42;">${fromDate} - ${toDate}</td>
+                    <td style="padding: 3px 8px; border-bottom: 1px solid #3e3e42; text-align: right;">
+                        <span style="background: ${typeColor}; color: white; padding: 1px 6px; border-radius: 3px; font-size: 10px;">${typeText}</span>
+                    </td>
+                </tr>`;
             }).join('');
             
             holidaysHtml = `
-                <div class="holidays-history">
-                    <h4>📅 Holiday History (${member.holidays_history.length} records)</h4>
-                    ${holidaysItems}
+                <div style="margin-top: 10px;">
+                    <div style="font-size: 11px; color: #888; margin-bottom: 5px;">📅 Holidays (${member.holidays_history.length})</div>
+                    <table style="width: auto; border-collapse: collapse; background: #252528; border-radius: 4px;">
+                        ${holidayRows}
+                    </table>
                 </div>
             `;
         }
         
         return `
-            <div class="archived-card reason-${reason}">
-                <div class="archived-header">
-                    <div>
-                        <div class="archived-name">${member.name}</div>
-                        <div class="archived-meta">${member.department || '-'} • ${member.role || '-'} • #${member.employee_number || '-'}</div>
-                    </div>
-                    <span class="archived-reason-badge reason-${reason}">${reasonText}</span>
+            <div style="background: #2d2d30; border: 1px solid #3e3e42; border-radius: 6px; padding: 15px; margin-bottom: 10px; position: relative;">
+                <span style="position: absolute; top: 10px; right: 10px; background: ${reasonColor}; color: white; padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;">${reasonText.toUpperCase()}</span>
+                
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 15px; font-weight: 600; color: #e8e2d5;">${member.name}</div>
+                    <div style="font-size: 12px; color: #888;">${member.department || '-'} • ${member.role || '-'} • #${member.employee_number || '-'}</div>
                 </div>
                 
-                <div class="archived-details">
-                    <div class="archived-detail-item">
-                        <div class="archived-detail-label">Email</div>
-                        <div class="archived-detail-value">${member.email || '-'}</div>
-                    </div>
-                    <div class="archived-detail-item">
-                        <div class="archived-detail-label">Phone</div>
-                        <div class="archived-detail-value">${member.phone || '-'}</div>
-                    </div>
-                    <div class="archived-detail-item">
-                        <div class="archived-detail-label">Start Date</div>
-                        <div class="archived-detail-value">${startDate}</div>
-                    </div>
-                    <div class="archived-detail-item">
-                        <div class="archived-detail-label">End Date</div>
-                        <div class="archived-detail-value">${endDate}</div>
-                    </div>
-                    <div class="archived-detail-item">
-                        <div class="archived-detail-label">Duration</div>
-                        <div class="archived-detail-value">${duration}</div>
-                    </div>
-                    <div class="archived-detail-item">
-                        <div class="archived-detail-label">Archived Date</div>
-                        <div class="archived-detail-value">${archivedDate}</div>
-                    </div>
-                    <div class="archived-detail-item">
-                        <div class="archived-detail-label">Holidays Used</div>
-                        <div class="archived-detail-value">${member.holiday_used || 0} / ${member.holiday_allowance || 28} days</div>
-                    </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 12px;">
+                    <div><span style="color: #666;">Email:</span> <span style="color: #aaa;">${member.email || '-'}</span></div>
+                    <div><span style="color: #666;">Phone:</span> <span style="color: #aaa;">${member.phone || '-'}</span></div>
+                    <div><span style="color: #666;">Start:</span> <span style="color: #aaa;">${startDate}</span></div>
+                    <div><span style="color: #666;">End:</span> <span style="color: #aaa;">${endDate}</span></div>
+                    <div><span style="color: #666;">Duration:</span> <span style="color: #aaa;">${duration}</span></div>
+                    <div><span style="color: #666;">Archived:</span> <span style="color: #aaa;">${archivedDate}</span></div>
+                    <div><span style="color: #666;">Holidays:</span> <span style="color: #aaa;">${member.holiday_used || 0}/${member.holiday_allowance || 28} days</span></div>
                 </div>
                 
-                ${member.departure_notes ? `
-                    <div class="archived-detail-item" style="margin-top: 10px;">
-                        <div class="archived-detail-label">Notes</div>
-                        <div class="archived-detail-value">${member.departure_notes}</div>
-                    </div>
-                ` : ''}
+                ${member.departure_notes ? `<div style="margin-top: 10px; font-size: 12px;"><span style="color: #666;">Notes:</span> <span style="color: #aaa;">${member.departure_notes}</span></div>` : ''}
                 
                 ${holidaysHtml}
             </div>
