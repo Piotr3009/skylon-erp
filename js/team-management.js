@@ -1176,6 +1176,9 @@ window.saveRoleChange = function() {
         return;
     }
     
+    // WAŻNE: Zapisz ID przed zamknięciem modala (closeChangeRoleModal resetuje do null)
+    const teamMemberId = currentRoleChangeTeamMemberId;
+    
     // Zamknij modal zmiany roli przed pokazaniem modala z hasłem
     closeChangeRoleModal();
     
@@ -1184,21 +1187,31 @@ window.saveRoleChange = function() {
         '🔐 Confirm Role Change',
         `Changing user role to "${newRole.toUpperCase()}". This action requires password confirmation.`,
         async function() {
-            await executeSaveRoleChange(newRole);
+            await executeSaveRoleChangeWithId(teamMemberId, newRole);
         }
     );
 }
 
-async function executeSaveRoleChange(newRole) {
-    if (!currentRoleChangeTeamMemberId) return;
+async function executeSaveRoleChangeWithId(teamMemberId, newRole) {
+    console.log('=== executeSaveRoleChangeWithId START ===');
+    console.log('teamMemberId:', teamMemberId);
+    console.log('newRole:', newRole);
+    
+    if (!teamMemberId) {
+        console.log('ERROR: teamMemberId is null!');
+        return;
+    }
     
     try {
         // Find user_profile by team_member_id
+        console.log('Finding user profile...');
         const { data: profile, error: fetchError } = await supabaseClient
             .from("user_profiles")
             .select("id")
-            .eq("team_member_id", currentRoleChangeTeamMemberId)
+            .eq("team_member_id", teamMemberId)
             .single();
+        
+        console.log('Profile result:', profile, 'Error:', fetchError);
         
         if (fetchError) {
             console.error("Error fetching profile:", fetchError);
@@ -1207,10 +1220,13 @@ async function executeSaveRoleChange(newRole) {
         }
         
         // Update role
+        console.log('Updating role to:', newRole);
         const { error: updateError } = await supabaseClient
             .from("user_profiles")
             .update({ role: newRole })
             .eq("id", profile.id);
+        
+        console.log('Update result - error:', updateError);
         
         if (updateError) {
             console.error("Error updating role:", updateError);
@@ -1219,8 +1235,7 @@ async function executeSaveRoleChange(newRole) {
         }
         
         showToast("Role updated successfully!", 'info');
-        
-        closeChangeRoleModal();
+        console.log('Role updated successfully!');
         
         // Reload team to show updated role
         await loadTeam();
@@ -1229,6 +1244,7 @@ async function executeSaveRoleChange(newRole) {
         console.error("Error:", err);
         showToast("Error updating role.", 'info');
     }
+    console.log('=== executeSaveRoleChangeWithId END ===');
 }
 
 // ========== SYSTEM ACCOUNTS MANAGEMENT ==========

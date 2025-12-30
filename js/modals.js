@@ -1293,7 +1293,9 @@ function confirmWithPassword(title, message, callback) {
         return;
     }
     
-    if (titleEl) titleEl.textContent = title || '🔐 Confirm with Password';
+    // Usuń emoji z tytułu jeśli jest (SVG ikona jest już w HTML)
+    const cleanTitle = (title || 'Confirm with Password').replace(/^🔐\s*/, '');
+    if (titleEl) titleEl.textContent = cleanTitle;
     if (messageEl) messageEl.textContent = message || 'Please enter your password to confirm this action.';
     if (passwordEl) passwordEl.value = '';
     if (errorEl) errorEl.style.display = 'none';
@@ -1314,8 +1316,11 @@ function closePasswordConfirmModal() {
 }
 
 async function executePasswordConfirm() {
+    console.log('=== executePasswordConfirm START ===');
     const password = document.getElementById('confirmPassword').value;
     const errorEl = document.getElementById('passwordConfirmError');
+    
+    console.log('Password entered:', password ? 'YES' : 'NO');
     
     if (!password) {
         errorEl.textContent = 'Please enter your password';
@@ -1325,7 +1330,10 @@ async function executePasswordConfirm() {
     
     try {
         // Get current user email
+        console.log('Getting current user...');
         const { data: { user } } = await supabaseClient.auth.getUser();
+        console.log('User:', user?.email);
+        
         if (!user || !user.email) {
             errorEl.textContent = 'Unable to verify user';
             errorEl.style.display = 'block';
@@ -1333,10 +1341,13 @@ async function executePasswordConfirm() {
         }
         
         // Verify password by attempting to sign in
+        console.log('Verifying password...');
         const { error } = await supabaseClient.auth.signInWithPassword({
             email: user.email,
             password: password
         });
+        
+        console.log('Sign in result - error:', error);
         
         if (error) {
             errorEl.textContent = 'Incorrect password';
@@ -1347,10 +1358,16 @@ async function executePasswordConfirm() {
         }
         
         // Password correct - execute the pending action
+        console.log('Password correct! Closing modal...');
         closePasswordConfirmModal();
         
+        console.log('Pending action:', pendingPasswordAction);
         if (pendingPasswordAction && typeof pendingPasswordAction === 'function') {
+            console.log('Executing pending action...');
             await pendingPasswordAction();
+            console.log('Pending action completed!');
+        } else {
+            console.log('NO pending action to execute!');
         }
         
     } catch (err) {
@@ -1358,6 +1375,7 @@ async function executePasswordConfirm() {
         errorEl.textContent = 'Verification failed: ' + err.message;
         errorEl.style.display = 'block';
     }
+    console.log('=== executePasswordConfirm END ===');
 }
 
 // Allow Enter key to submit password
