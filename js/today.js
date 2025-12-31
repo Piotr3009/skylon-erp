@@ -118,7 +118,7 @@ async function loadAllData() {
         // Load projects separately (use status='active' not stage='production')
         const { data: productionProjects } = await supabaseClient
             .from('projects')
-            .select('id, project_number, name, element, deadline')
+            .select('id, project_number, name, deadline')
             .eq('status', 'active');
         
         const projectMap = {};
@@ -334,7 +334,6 @@ async function loadAllData() {
                         type: 'phase',
                         projectNumber: project.project_number,
                         projectName: project.name,
-                        projectElement: project.element || '',
                         phaseName: fullPhaseName,
                         worker: workerMap[phase.assigned_to] || 'Unassigned',
                         startDate: phase.start_date,
@@ -929,5 +928,81 @@ async function deleteEvent(id) {
     } catch (err) {
         console.error('Error deleting event:', err);
         showToast('Error: ' + err.message, 'error');
+    }
+}
+
+// ========== DOWNLOAD PDF ==========
+async function downloadPDF() {
+    const btn = document.querySelector('.today-btn.primary');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Generating PDF...';
+    btn.disabled = true;
+    
+    try {
+        const grid = document.getElementById('todayGrid');
+        const header = document.querySelector('.today-header');
+        
+        // Hide buttons for PDF
+        const actions = document.querySelector('.today-actions');
+        actions.style.display = 'none';
+        
+        // Create container for PDF content
+        const pdfContent = document.createElement('div');
+        pdfContent.style.background = '#1e1e1e';
+        pdfContent.style.padding = '20px';
+        pdfContent.style.width = '1200px';
+        pdfContent.appendChild(header.cloneNode(true));
+        pdfContent.appendChild(grid.cloneNode(true));
+        document.body.appendChild(pdfContent);
+        
+        // Generate canvas
+        const canvas = await html2canvas(pdfContent, {
+            scale: 2,
+            backgroundColor: '#1e1e1e',
+            logging: false,
+            useCORS: true
+        });
+        
+        // Remove temp content
+        document.body.removeChild(pdfContent);
+        actions.style.display = 'flex';
+        
+        // Create PDF (A4)
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        const imgWidth = 210; // A4 width in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Add image to PDF
+        const imgData = canvas.toDataURL('image/png');
+        
+        // If content is longer than one page, split it
+        let heightLeft = imgHeight;
+        let position = 0;
+        const pageHeight = 297; // A4 height in mm
+        
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+        
+        // Get today's date for filename
+        const dateStr = new Date().toISOString().split('T')[0];
+        pdf.save(`Daily-Briefing-${dateStr}.pdf`);
+        
+        showToast('PDF downloaded!', 'success');
+        
+    } catch (err) {
+        console.error('Error generating PDF:', err);
+        showToast('Error generating PDF: ' + err.message, 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
