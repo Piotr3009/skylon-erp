@@ -574,6 +574,24 @@
                             <input type="text" id="eventTitle" class="form-input" placeholder="e.g. Team Meeting" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
                         </div>
                         <div>
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Frequency *</label>
+                            <select id="eventFrequency" class="form-input" onchange="updateFrequencyFields()" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                                <option value="weekly">Weekly</option>
+                                <option value="bi-weekly">Bi-weekly (every 2 weeks)</option>
+                                <option value="monthly-day">Monthly (specific day)</option>
+                                <option value="monthly-weekday">Monthly (e.g. 1st Monday)</option>
+                                <option value="quarterly">Quarterly</option>
+                                <option value="semi-annual">Semi-annual (twice a year)</option>
+                                <option value="annual">Annual</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Time</label>
+                            <input type="time" id="eventTime" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                        </div>
+                        
+                        <!-- Dynamic fields based on frequency -->
+                        <div id="fieldDayOfWeek">
                             <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Day of Week *</label>
                             <select id="eventDay" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
                                 <option value="1">Monday</option>
@@ -582,12 +600,78 @@
                                 <option value="4">Thursday</option>
                                 <option value="5">Friday</option>
                                 <option value="6">Saturday</option>
+                                <option value="0">Sunday</option>
                             </select>
                         </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Time</label>
-                            <input type="time" id="eventTime" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                        
+                        <div id="fieldWeekOfMonth" style="display: none;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Week of Month *</label>
+                            <select id="eventWeekOfMonth" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                                <option value="1">1st week</option>
+                                <option value="2">2nd week</option>
+                                <option value="3">3rd week</option>
+                                <option value="4">4th week</option>
+                                <option value="-1">Last week</option>
+                            </select>
                         </div>
+                        
+                        <div id="fieldDayOfMonth" style="display: none;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Day of Month *</label>
+                            <select id="eventDayOfMonth" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                                <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                                <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                                <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                                <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
+                                <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
+                                <option value="31">31</option>
+                            </select>
+                        </div>
+                        
+                        <div id="fieldMonths" style="display: none;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Months *</label>
+                            <select id="eventMonths" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                                <option value="1,4,7,10">Jan, Apr, Jul, Oct</option>
+                                <option value="2,5,8,11">Feb, May, Aug, Nov</option>
+                                <option value="3,6,9,12">Mar, Jun, Sep, Dec</option>
+                            </select>
+                        </div>
+                        
+                        <div id="fieldMonthsSemi" style="display: none;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Months *</label>
+                            <select id="eventMonthsSemi" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                                <option value="1,7">Jan & Jul</option>
+                                <option value="2,8">Feb & Aug</option>
+                                <option value="3,9">Mar & Sep</option>
+                                <option value="4,10">Apr & Oct</option>
+                                <option value="5,11">May & Nov</option>
+                                <option value="6,12">Jun & Dec</option>
+                            </select>
+                        </div>
+                        
+                        <div id="fieldMonthAnnual" style="display: none;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Month *</label>
+                            <select id="eventMonthAnnual" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        
+                        <div id="fieldStartDate" style="display: none;">
+                            <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Start Date *</label>
+                            <input type="date" id="eventStartDate" class="form-input" style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
+                        </div>
+                        
                         <div style="grid-column: span 2;">
                             <label style="display: block; margin-bottom: 6px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Description</label>
                             <input type="text" id="eventDescription" class="form-input" placeholder="Additional details..." style="width: 100%; padding: 10px 12px; background: #252526; border: 1px solid #3e3e42; border-radius: 4px; color: #e8e2d5; font-size: 13px;">
@@ -619,7 +703,22 @@
         </div>
     </div>
     
+    <script>
+        // Initialize day of month dropdown
+        document.addEventListener('DOMContentLoaded', function() {
+            const daySelect = document.getElementById('eventDayOfMonth');
+            if (daySelect && daySelect.options.length === 0) {
+                for (let i = 1; i <= 31; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = i;
+                    daySelect.appendChild(opt);
+                }
+            }
+        });
+    </script>
+    
     <script src="js/menu.js"></script>
-    <script src="js/today.js?v=11"></script>
+    <script src="js/today.js?v=12"></script>
 </body>
 </html>

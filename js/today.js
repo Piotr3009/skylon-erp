@@ -192,13 +192,18 @@ async function loadAllData() {
             .eq('active', true);
         
         if (events) {
-            const tomorrowDayOfWeek = (dayOfWeek + 1) % 7;
-            todayData.events = events.filter(e => 
-                e.day_of_week === dayOfWeek || 
-                (e.show_day_before && e.day_of_week === tomorrowDayOfWeek)
-            ).map(e => ({
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            todayData.events = events.filter(e => {
+                // Check if event should show today
+                if (shouldShowEventToday(e, today)) return true;
+                // Check if event is tomorrow and has "show day before" enabled
+                if (e.show_day_before && shouldShowEventToday(e, tomorrow)) return true;
+                return false;
+            }).map(e => ({
                 ...e,
-                isReminder: e.day_of_week !== dayOfWeek
+                isReminder: !shouldShowEventToday(e, today) && e.show_day_before && shouldShowEventToday(e, tomorrow)
             }));
         }
         
@@ -811,7 +816,7 @@ async function loadEventsList() {
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #252526;">
-                        <th style="text-align: left; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Day</th>
+                        <th style="text-align: left; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Frequency</th>
                         <th style="text-align: left; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Time</th>
                         <th style="text-align: left; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Event</th>
                         <th style="text-align: center; padding: 12px 15px; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Section</th>
@@ -825,12 +830,13 @@ async function loadEventsList() {
             const dayColor = dayColors[e.day_of_week] || '#888';
             const sectionIcon = sectionIcons[e.section] || '📋';
             const activeStyle = e.active ? '' : 'opacity: 0.5;';
+            const frequencyLabel = getFrequencyLabel(e);
             
             html += `
                 <tr style="border-bottom: 1px solid #2d2d30; transition: background 0.2s; ${activeStyle}" onmouseover="this.style.background='#252526'" onmouseout="this.style.background='transparent'">
                     <td style="padding: 14px 15px;">
-                        <span style="display: inline-block; padding: 4px 12px; background: ${dayColor}22; color: ${dayColor}; border-radius: 4px; font-size: 12px; font-weight: 600;">
-                            ${dayNames[e.day_of_week]}
+                        <span style="display: inline-block; padding: 4px 12px; background: ${dayColor}22; color: ${dayColor}; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                            ${frequencyLabel}
                         </span>
                     </td>
                     <td style="padding: 14px 15px; color: #e8e2d5; font-family: monospace; font-size: 13px;">
@@ -879,16 +885,58 @@ async function addEvent() {
         return;
     }
     
+    // Get frequency settings
+    const frequency = document.getElementById('eventFrequency').value;
+    let dayOfWeek = null;
+    let dayOfMonth = null;
+    let weekOfMonth = null;
+    let months = null;
+    let startDate = null;
+    
+    switch (frequency) {
+        case 'weekly':
+        case 'bi-weekly':
+            dayOfWeek = parseInt(document.getElementById('eventDay').value);
+            if (frequency === 'bi-weekly') {
+                startDate = document.getElementById('eventStartDate').value || new Date().toISOString().split('T')[0];
+            }
+            break;
+        case 'monthly-day':
+            dayOfMonth = parseInt(document.getElementById('eventDayOfMonth').value);
+            break;
+        case 'monthly-weekday':
+            dayOfWeek = parseInt(document.getElementById('eventDay').value);
+            weekOfMonth = parseInt(document.getElementById('eventWeekOfMonth').value);
+            break;
+        case 'quarterly':
+            dayOfMonth = parseInt(document.getElementById('eventDayOfMonth').value);
+            months = document.getElementById('eventMonths').value;
+            break;
+        case 'semi-annual':
+            dayOfMonth = parseInt(document.getElementById('eventDayOfMonth').value);
+            months = document.getElementById('eventMonthsSemi').value;
+            break;
+        case 'annual':
+            dayOfMonth = parseInt(document.getElementById('eventDayOfMonth').value);
+            months = document.getElementById('eventMonthAnnual').value;
+            break;
+    }
+    
     try {
         const { error } = await supabaseClient
             .from('today_events')
             .insert({
                 title,
-                day_of_week: day,
+                day_of_week: dayOfWeek,
                 time,
                 section,
                 description,
-                show_day_before: showDayBefore
+                show_day_before: showDayBefore,
+                frequency,
+                day_of_month: dayOfMonth,
+                week_of_month: weekOfMonth,
+                months,
+                start_date: startDate
             });
         
         if (error) throw error;
@@ -900,6 +948,8 @@ async function addEvent() {
         document.getElementById('eventTime').value = '';
         document.getElementById('eventDescription').value = '';
         document.getElementById('eventShowDayBefore').checked = false;
+        document.getElementById('eventFrequency').value = 'weekly';
+        updateFrequencyFields();
         
         // Reload list
         loadEventsList();
@@ -945,6 +995,132 @@ async function deleteEvent(id) {
         console.error('Error deleting event:', err);
         showToast('Error: ' + err.message, 'error');
     }
+}
+
+// ========== FREQUENCY FIELD MANAGEMENT ==========
+function updateFrequencyFields() {
+    const frequency = document.getElementById('eventFrequency').value;
+    
+    // Hide all optional fields
+    document.getElementById('fieldDayOfWeek').style.display = 'none';
+    document.getElementById('fieldWeekOfMonth').style.display = 'none';
+    document.getElementById('fieldDayOfMonth').style.display = 'none';
+    document.getElementById('fieldMonths').style.display = 'none';
+    document.getElementById('fieldMonthsSemi').style.display = 'none';
+    document.getElementById('fieldMonthAnnual').style.display = 'none';
+    document.getElementById('fieldStartDate').style.display = 'none';
+    
+    switch (frequency) {
+        case 'weekly':
+            document.getElementById('fieldDayOfWeek').style.display = 'block';
+            break;
+        case 'bi-weekly':
+            document.getElementById('fieldDayOfWeek').style.display = 'block';
+            document.getElementById('fieldStartDate').style.display = 'block';
+            // Set default start date to today
+            if (!document.getElementById('eventStartDate').value) {
+                document.getElementById('eventStartDate').value = new Date().toISOString().split('T')[0];
+            }
+            break;
+        case 'monthly-day':
+            document.getElementById('fieldDayOfMonth').style.display = 'block';
+            break;
+        case 'monthly-weekday':
+            document.getElementById('fieldDayOfWeek').style.display = 'block';
+            document.getElementById('fieldWeekOfMonth').style.display = 'block';
+            break;
+        case 'quarterly':
+            document.getElementById('fieldDayOfMonth').style.display = 'block';
+            document.getElementById('fieldMonths').style.display = 'block';
+            break;
+        case 'semi-annual':
+            document.getElementById('fieldDayOfMonth').style.display = 'block';
+            document.getElementById('fieldMonthsSemi').style.display = 'block';
+            break;
+        case 'annual':
+            document.getElementById('fieldDayOfMonth').style.display = 'block';
+            document.getElementById('fieldMonthAnnual').style.display = 'block';
+            break;
+    }
+}
+
+// Check if event should show today based on frequency
+function shouldShowEventToday(event, checkDate = new Date()) {
+    const dayOfWeek = checkDate.getDay(); // 0=Sunday, 1=Monday...
+    const dayOfMonth = checkDate.getDate();
+    const month = checkDate.getMonth() + 1; // 1-12
+    const frequency = event.frequency || 'weekly';
+    
+    switch (frequency) {
+        case 'weekly':
+            return event.day_of_week === dayOfWeek;
+            
+        case 'bi-weekly':
+            if (event.day_of_week !== dayOfWeek) return false;
+            // Check if it's the right week (every 2 weeks from start_date)
+            const startDate = event.start_date ? new Date(event.start_date) : new Date('2025-01-06'); // Default Monday
+            const diffTime = checkDate - startDate;
+            const diffWeeks = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000));
+            return diffWeeks % 2 === 0;
+            
+        case 'monthly-day':
+            return event.day_of_month === dayOfMonth;
+            
+        case 'monthly-weekday':
+            if (event.day_of_week !== dayOfWeek) return false;
+            // Check week of month
+            const weekNum = Math.ceil(dayOfMonth / 7);
+            if (event.week_of_month === -1) {
+                // Last week - check if next week would be in next month
+                const nextWeek = new Date(checkDate);
+                nextWeek.setDate(dayOfMonth + 7);
+                return nextWeek.getMonth() !== checkDate.getMonth();
+            }
+            return event.week_of_month === weekNum;
+            
+        case 'quarterly':
+        case 'semi-annual':
+        case 'annual':
+            if (event.day_of_month !== dayOfMonth) return false;
+            const eventMonths = event.months ? event.months.split(',').map(m => parseInt(m)) : [];
+            return eventMonths.includes(month);
+            
+        default:
+            return event.day_of_week === dayOfWeek;
+    }
+}
+
+// Get frequency display text
+function getFrequencyLabel(event) {
+    const frequency = event.frequency || 'weekly';
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
+    switch (frequency) {
+        case 'weekly':
+            return dayNames[event.day_of_week] || 'Weekly';
+        case 'bi-weekly':
+            return `Every 2 weeks (${dayNames[event.day_of_week]})`;
+        case 'monthly-day':
+            return `Monthly (${event.day_of_month}${getOrdinal(event.day_of_month)})`;
+        case 'monthly-weekday':
+            const weekLabels = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th', '-1': 'Last' };
+            return `${weekLabels[event.week_of_month] || ''} ${dayNames[event.day_of_week]} monthly`;
+        case 'quarterly':
+            return `Quarterly (${event.day_of_month}${getOrdinal(event.day_of_month)})`;
+        case 'semi-annual':
+            return `Twice yearly (${event.day_of_month}${getOrdinal(event.day_of_month)})`;
+        case 'annual':
+            const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `Annual (${monthNames[parseInt(event.months)]} ${event.day_of_month})`;
+        default:
+            return dayNames[event.day_of_week] || 'Weekly';
+    }
+}
+
+function getOrdinal(n) {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return s[(v - 20) % 10] || s[v] || s[0];
 }
 
 // ========== DOWNLOAD PDF (like print - white background) ==========
