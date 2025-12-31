@@ -155,14 +155,13 @@ async function loadAllData() {
                         worker: worker,
                         workerId: phase.assigned_to,
                         isSpray: isSpray,
-                        isDeadlineToday: false,
+                        isDeadlineToday: project.deadline === todayStr, // Use PROJECT deadline, not phase end_date
                         startsTomorrow: false
                     });
                 }
                 
                 const entry = workerProjectMap.get(key);
                 entry.phases.push(phase.phase_name || phase.phase_key);
-                if (phase.end_date === todayStr) entry.isDeadlineToday = true;
                 if (phase.isTomorrow) entry.startsTomorrow = true;
             });
         }
@@ -338,7 +337,7 @@ async function loadAllData() {
                         worker: workerMap[phase.assigned_to] || 'Unassigned',
                         startDate: phase.start_date,
                         endDate: phase.end_date,
-                        isDeadlineToday: phase.end_date === todayStr
+                        isDeadlineToday: project.deadline === todayStr // Use PROJECT deadline
                     });
                 }
             });
