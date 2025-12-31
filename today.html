@@ -12,10 +12,6 @@
     <script src="js/config.js"></script>
     <script src="js/toast.js"></script>
     
-    <!-- PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
     <style>
         /* ========== SCREEN STYLES ========== */
         html, body {
@@ -400,7 +396,7 @@
                 <div class="today-actions no-print">
                     <button class="today-btn secondary" onclick="window.location.href='index.html'">← Back</button>
                     <button class="today-btn secondary" onclick="openManageEvents()">⚙️ Manage Events</button>
-                    <button class="today-btn primary" onclick="downloadPDF()">📥 Download PDF</button>
+                    <button class="today-btn primary" onclick="window.print()">📥 Download PDF</button>
                 </div>
             </div>
             
@@ -719,6 +715,6 @@
     </script>
     
     <script src="js/menu.js"></script>
-    <script src="js/today.js?v=12"></script>
+    <script src="js/today.js?v=13"></script>
 </body>
 </html>
