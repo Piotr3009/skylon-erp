@@ -604,17 +604,34 @@ function renderStock() {
         html += `<div class="today-item urgent">
             <div class="today-item-title">🔴 ${negative.length} items NEGATIVE</div>
             <div class="today-item-subtitle">Check urgent orders needed!</div>
-            <div class="today-item-meta">${negative.map(s => s.name).join(', ')}</div>
         </div>`;
+        
+        // List in 2 columns
+        html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px;">';
+        negative.forEach(s => {
+            html += `<div style="padding: 4px 8px; background: #2d2d30; border-radius: 3px; font-size: 11px; color: #e8e2d5; border-left: 2px solid #ef4444;">
+                ${s.name}
+            </div>`;
+        });
+        html += '</div>';
+        
         badge.textContent = negative.length;
         badge.style.display = 'inline';
     }
     
     if (low.length > 0 && isMonday) {
-        html += `<div class="today-item warning">
+        html += `<div class="today-item warning" style="margin-top: 12px;">
             <div class="today-item-title">⚠️ ${low.length} items LOW STOCK</div>
-            <div class="today-item-meta">${low.map(s => s.name).join(', ')}</div>
         </div>`;
+        
+        // List in 2 columns
+        html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px;">';
+        low.forEach(s => {
+            html += `<div style="padding: 4px 8px; background: #2d2d30; border-radius: 3px; font-size: 11px; color: #e8e2d5; border-left: 2px solid #f59e0b;">
+                ${s.name}
+            </div>`;
+        });
+        html += '</div>';
     }
     
     container.innerHTML = html;
