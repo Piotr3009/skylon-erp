@@ -325,12 +325,17 @@ async function loadAllData() {
                                 phase.phase_name?.toLowerCase().includes('office');
                 
                 if (isOffice) {
+                    // Use phase_key for full name (e.g. "order_materials", "order_glazing")
+                    // Convert underscore to space and capitalize
+                    let fullPhaseName = phase.phase_key || phase.phase_name || 'order';
+                    fullPhaseName = fullPhaseName.replace(/_/g, ' ');
+                    
                     todayData.officeDaily.push({
                         type: 'phase',
                         projectNumber: project.project_number,
                         projectName: project.name,
                         projectElement: project.element || '',
-                        phaseName: phase.phase_name || phase.phase_key,
+                        phaseName: fullPhaseName,
                         worker: workerMap[phase.assigned_to] || 'Unassigned',
                         startDate: phase.start_date,
                         endDate: phase.end_date,
@@ -662,9 +667,8 @@ function renderOfficeDaily() {
         phases.forEach(p => {
             const urgentClass = p.isDeadlineToday ? 'urgent' : '';
             const prefix = p.isDeadlineToday ? '🔴 ' : '';
-            const elementInfo = p.projectElement ? ` • ${p.projectElement}` : '';
             html += `<div class="today-item ${urgentClass}">
-                <div class="today-item-title">${prefix}<strong>${p.projectNumber}</strong> - ${p.phaseName}${elementInfo}</div>
+                <div class="today-item-title">${prefix}<strong>${p.projectNumber}</strong> - ${p.phaseName}</div>
                 <div class="today-item-subtitle">${p.projectName} • ${p.worker}</div>
             </div>`;
         });
