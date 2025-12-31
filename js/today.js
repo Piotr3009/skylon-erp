@@ -1122,3 +1122,352 @@ function getOrdinal(n) {
     const v = n % 100;
     return s[(v - 20) % 10] || s[v] || s[0];
 }
+
+// ========== DOWNLOAD PDF (jsPDF) ==========
+function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('portrait', 'mm', 'a4');
+    
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 15;
+    const colWidth = (pageWidth - margin * 3) / 2; // 2 columns
+    let y = margin;
+    
+    // Colors
+    const colors = {
+        blue: [74, 158, 255],
+        orange: [249, 115, 22],
+        pink: [236, 72, 153],
+        yellow: [245, 158, 11],
+        red: [239, 68, 68],
+        green: [34, 197, 94],
+        gray: [136, 136, 136],
+        darkGray: [51, 51, 51],
+        lightGray: [245, 245, 245],
+        white: [255, 255, 255]
+    };
+    
+    // Helper: Draw section header
+    function drawSectionHeader(x, yPos, icon, title, badge, badgeColor) {
+        doc.setFillColor(...colors.lightGray);
+        doc.roundedRect(x, yPos, colWidth, 8, 1, 1, 'F');
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...colors.darkGray);
+        doc.text(`${icon} ${title}`, x + 3, yPos + 5.5);
+        
+        if (badge !== undefined && badge !== null) {
+            const badgeX = x + colWidth - 12;
+            doc.setFillColor(...(badgeColor || colors.blue));
+            doc.circle(badgeX + 4, yPos + 4, 3.5, 'F');
+            doc.setFontSize(8);
+            doc.setTextColor(...colors.white);
+            doc.text(String(badge), badgeX + 4, yPos + 5.5, { align: 'center' });
+        }
+        
+        return yPos + 10;
+    }
+    
+    // Helper: Draw item
+    function drawItem(x, yPos, text, subtitle, isUrgent, isWarning) {
+        const itemHeight = subtitle ? 10 : 7;
+        
+        // Left border
+        if (isUrgent) {
+            doc.setDrawColor(...colors.red);
+        } else if (isWarning) {
+            doc.setDrawColor(...colors.yellow);
+        } else {
+            doc.setDrawColor(...colors.gray);
+        }
+        doc.setLineWidth(0.8);
+        doc.line(x, yPos, x, yPos + itemHeight - 1);
+        
+        // Text
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...colors.darkGray);
+        
+        const maxWidth = colWidth - 8;
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines[0] || '', x + 3, yPos + 4);
+        
+        if (subtitle) {
+            doc.setFontSize(7);
+            doc.setTextColor(...colors.gray);
+            const subLines = doc.splitTextToSize(subtitle, maxWidth);
+            doc.text(subLines[0] || '', x + 3, yPos + 8);
+        }
+        
+        return yPos + itemHeight + 1;
+    }
+    
+    // Helper: Check page break
+    function checkPageBreak(yPos, needed) {
+        if (yPos + needed > pageHeight - margin) {
+            doc.addPage();
+            return margin;
+        }
+        return yPos;
+    }
+    
+    // ===== HEADER =====
+    doc.setFontSize(22);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(...colors.blue);
+    doc.text('TODAY', margin, y + 7);
+    
+    const dateStr = new Date().toLocaleDateString('en-GB', { 
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+    });
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(...colors.gray);
+    doc.text(dateStr, margin, y + 14);
+    
+    doc.setDrawColor(...colors.blue);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y + 18, pageWidth - margin, y + 18);
+    
+    y += 25;
+    
+    // ===== TWO COLUMN LAYOUT =====
+    const col1X = margin;
+    const col2X = margin + colWidth + margin/2;
+    let col1Y = y;
+    let col2Y = y;
+    
+    // ----- PRODUCTION (col1) -----
+    col1Y = drawSectionHeader(col1X, col1Y, '🔨', 'PRODUCTION', todayData.production.length, colors.orange);
+    
+    if (todayData.production.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('No production tasks today', col1X + 3, col1Y + 3);
+        col1Y += 8;
+    } else {
+        // Group by worker
+        const byWorker = {};
+        todayData.production.forEach(p => {
+            if (!byWorker[p.worker]) byWorker[p.worker] = [];
+            byWorker[p.worker].push(p);
+        });
+        
+        for (const [worker, tasks] of Object.entries(byWorker)) {
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...colors.blue);
+            doc.text(`👤 ${worker}`, col1X + 2, col1Y + 3);
+            col1Y += 5;
+            
+            tasks.forEach(task => {
+                const prefix = task.isDeadlineToday ? '🔴 DEADLINE - ' : (task.startsTomorrow ? '🟢 Tomorrow - ' : '');
+                const text = `${prefix}${task.projectNumber} ${task.projectName}`;
+                col1Y = drawItem(col1X + 2, col1Y, text, task.phaseName, task.isDeadlineToday, false);
+            });
+            col1Y += 2;
+        }
+    }
+    col1Y += 5;
+    
+    // ----- SPRAYING (col2) -----
+    col2Y = drawSectionHeader(col2X, col2Y, '🎨', 'SPRAYING', todayData.spraying.length, colors.pink);
+    
+    if (todayData.spraying.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('No spraying tasks today', col2X + 3, col2Y + 3);
+        col2Y += 8;
+    } else {
+        const byWorker = {};
+        todayData.spraying.forEach(p => {
+            if (!byWorker[p.worker]) byWorker[p.worker] = [];
+            byWorker[p.worker].push(p);
+        });
+        
+        for (const [worker, tasks] of Object.entries(byWorker)) {
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...colors.pink);
+            doc.text(`👤 ${worker}`, col2X + 2, col2Y + 3);
+            col2Y += 5;
+            
+            tasks.forEach(task => {
+                const prefix = task.isDeadlineToday ? '🔴 DEADLINE - ' : '';
+                const text = `${prefix}${task.projectNumber} ${task.projectName}`;
+                col2Y = drawItem(col2X + 2, col2Y, text, task.phaseName, task.isDeadlineToday, false);
+            });
+            col2Y += 2;
+        }
+    }
+    col2Y += 5;
+    
+    // ----- OFFICE (col1) -----
+    col1Y = checkPageBreak(col1Y, 20);
+    col1Y = drawSectionHeader(col1X, col1Y, '📁', 'OFFICE', todayData.officeDaily.length, colors.yellow);
+    
+    if (todayData.officeDaily.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('No office tasks today', col1X + 3, col1Y + 3);
+        col1Y += 8;
+    } else {
+        todayData.officeDaily.forEach(item => {
+            if (item.type === 'phase') {
+                const text = `${item.projectNumber} - ${item.phaseName}`;
+                col1Y = drawItem(col1X + 2, col1Y, text, `${item.projectName} • ${item.worker}`, item.isDeadlineToday, false);
+            } else if (item.type === 'alert') {
+                col1Y = drawItem(col1X + 2, col1Y, item.alertType || 'Alert', item.message, false, true);
+            }
+        });
+    }
+    col1Y += 5;
+    
+    // ----- MEETINGS & REMINDERS (col2) -----
+    col2Y = checkPageBreak(col2Y, 20);
+    col2Y = drawSectionHeader(col2X, col2Y, '📅', 'MEETINGS & REMINDERS', null, null);
+    
+    if (todayData.events.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('No meetings or reminders today', col2X + 3, col2Y + 3);
+        col2Y += 8;
+    } else {
+        todayData.events.forEach(evt => {
+            const timeStr = evt.time ? `${evt.time} - ` : '';
+            const reminder = evt.isReminder ? ' (tomorrow)' : '';
+            col2Y = drawItem(col2X + 2, col2Y, `${timeStr}${evt.title}${reminder}`, evt.description, false, evt.isReminder);
+        });
+    }
+    col2Y += 5;
+    
+    // ----- HOLIDAYS (col1) -----
+    col1Y = checkPageBreak(col1Y, 20);
+    col1Y = drawSectionHeader(col1X, col1Y, '🏖️', 'HOLIDAYS TODAY', null, null);
+    
+    if (todayData.holidays.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('No one on holiday', col1X + 3, col1Y + 3);
+        col1Y += 8;
+    } else {
+        todayData.holidays.forEach(h => {
+            const endDate = new Date(h.endDate).toLocaleDateString('en-GB');
+            col1Y = drawItem(col1X + 2, col1Y, `🏖️ ${h.name}`, `Off until ${endDate}`, false, false);
+        });
+    }
+    col1Y += 5;
+    
+    // ----- STOCK ALERTS (col2) -----
+    col2Y = checkPageBreak(col2Y, 30);
+    const negativeStock = todayData.stock.filter(s => s.type === 'negative');
+    col2Y = drawSectionHeader(col2X, col2Y, '📦', 'STOCK ALERTS', negativeStock.length || null, colors.red);
+    
+    if (negativeStock.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('Stock levels OK', col2X + 3, col2Y + 3);
+        col2Y += 8;
+    } else {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.red);
+        doc.text(`🔴 ${negativeStock.length} items NEGATIVE - Check urgent orders!`, col2X + 3, col2Y + 4);
+        col2Y += 7;
+        
+        // List items in 2 mini-columns
+        const itemsPerCol = Math.ceil(negativeStock.length / 2);
+        const miniColWidth = (colWidth - 4) / 2;
+        
+        doc.setFontSize(7);
+        doc.setTextColor(...colors.darkGray);
+        
+        negativeStock.forEach((item, i) => {
+            const col = i < itemsPerCol ? 0 : 1;
+            const row = i < itemsPerCol ? i : i - itemsPerCol;
+            const x = col2X + 2 + (col * miniColWidth);
+            const itemY = col2Y + (row * 4);
+            
+            const truncName = item.name.length > 28 ? item.name.substring(0, 26) + '...' : item.name;
+            doc.text(`• ${truncName}`, x, itemY + 3);
+        });
+        
+        col2Y += Math.ceil(negativeStock.length / 2) * 4 + 3;
+    }
+    col2Y += 5;
+    
+    // ----- FLEET & EQUIPMENT (col1) -----
+    col1Y = checkPageBreak(col1Y, 20);
+    col1Y = drawSectionHeader(col1X, col1Y, '🚗', 'FLEET & EQUIPMENT', null, null);
+    
+    if (todayData.fleet.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('No alerts', col1X + 3, col1Y + 3);
+        col1Y += 8;
+    } else {
+        todayData.fleet.forEach(item => {
+            const icon = item.type === 'MOT' ? '🔧' : item.type === 'Insurance' ? '📋' : '⚙️';
+            const text = `${icon} ${item.type} - ${item.vehicle}`;
+            const subtitle = `Due in ${item.daysUntil} days (${new Date(item.dueDate).toLocaleDateString('en-GB')})`;
+            col1Y = drawItem(col1X + 2, col1Y, text, subtitle, item.daysUntil <= 3, item.daysUntil <= 7);
+        });
+    }
+    col1Y += 5;
+    
+    // ----- THIS WEEK DEADLINES (col2) -----
+    col2Y = checkPageBreak(col2Y, 20);
+    col2Y = drawSectionHeader(col2X, col2Y, '📆', 'THIS WEEK DEADLINES', null, null);
+    
+    if (todayData.weekDeadlines.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...colors.gray);
+        doc.text('No deadlines this week', col2X + 3, col2Y + 3);
+        col2Y += 8;
+    } else {
+        todayData.weekDeadlines.forEach(d => {
+            const deadlineDate = new Date(d.deadline).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+            const text = `${d.projectNumber} ${d.name}`;
+            col2Y = drawItem(col2X + 2, col2Y, text, `Deadline: ${deadlineDate}`, d.daysUntil <= 1, d.daysUntil <= 3);
+        });
+    }
+    col2Y += 5;
+    
+    // ----- END OF DAY CHECKLIST (full width) -----
+    const finalY = Math.max(col1Y, col2Y);
+    let checkY = checkPageBreak(finalY, 25);
+    
+    doc.setFillColor(...colors.lightGray);
+    doc.roundedRect(margin, checkY, pageWidth - margin * 2, 8, 1, 1, 'F');
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(...colors.green);
+    doc.text('✅ END OF DAY CHECKLIST', margin + 3, checkY + 5.5);
+    checkY += 12;
+    
+    const checklist = ['Workshop cleaned', 'Dust bags emptied', 'All machines OFF', 'Alarm ON'];
+    const checkColWidth = (pageWidth - margin * 2) / 2;
+    
+    checklist.forEach((item, i) => {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const x = margin + (col * checkColWidth);
+        const itemY = checkY + (row * 7);
+        
+        doc.setDrawColor(...colors.gray);
+        doc.setLineWidth(0.3);
+        doc.rect(x + 2, itemY, 4, 4);
+        
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...colors.darkGray);
+        doc.text(item, x + 9, itemY + 3);
+    });
+    
+    // Save PDF
+    const dateFileName = new Date().toISOString().split('T')[0];
+    doc.save(`Daily-Briefing-${dateFileName}.pdf`);
+    
+    showToast('PDF downloaded!', 'success');
+}
