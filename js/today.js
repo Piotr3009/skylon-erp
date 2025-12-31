@@ -947,56 +947,172 @@ async function deleteEvent(id) {
     }
 }
 
-// ========== DOWNLOAD PDF ==========
+// ========== DOWNLOAD PDF (like print - white background) ==========
 async function downloadPDF() {
     const btn = document.querySelector('.today-btn.primary');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Generating PDF...';
+    btn.innerHTML = '⏳ Generating...';
     btn.disabled = true;
     
     try {
-        const grid = document.getElementById('todayGrid');
-        const header = document.querySelector('.today-header');
+        // Create print-style container
+        const pdfContainer = document.createElement('div');
+        pdfContainer.id = 'pdfContainer';
+        pdfContainer.style.cssText = `
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 1100px;
+            padding: 30px;
+            background: white;
+            font-family: Arial, sans-serif;
+        `;
         
-        // Hide buttons for PDF
-        const actions = document.querySelector('.today-actions');
-        actions.style.display = 'none';
-        
-        // Create container for PDF content
-        const pdfContent = document.createElement('div');
-        pdfContent.style.background = '#1e1e1e';
-        pdfContent.style.padding = '20px';
-        pdfContent.style.width = '1200px';
-        pdfContent.appendChild(header.cloneNode(true));
-        pdfContent.appendChild(grid.cloneNode(true));
-        document.body.appendChild(pdfContent);
-        
-        // Generate canvas
-        const canvas = await html2canvas(pdfContent, {
-            scale: 2,
-            backgroundColor: '#1e1e1e',
-            logging: false,
-            useCORS: true
+        // Header
+        const dateStr = new Date().toLocaleDateString('en-GB', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
         });
         
-        // Remove temp content
-        document.body.removeChild(pdfContent);
-        actions.style.display = 'flex';
+        pdfContainer.innerHTML = `
+            <div style="border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+                <div style="font-size: 28px; font-weight: bold; color: #333;">📅 TODAY</div>
+                <div style="font-size: 16px; color: #666;">${dateStr}</div>
+            </div>
+        `;
         
-        // Create PDF (A4)
+        // Grid container
+        const gridHtml = document.createElement('div');
+        gridHtml.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 15px;';
+        
+        // Get all sections
+        const sections = document.querySelectorAll('.today-section');
+        sections.forEach(section => {
+            const sectionDiv = document.createElement('div');
+            sectionDiv.style.cssText = `
+                background: #f9f9f9;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                padding: 12px;
+            `;
+            
+            // Section header
+            const header = section.querySelector('.today-section-header');
+            const title = section.querySelector('.today-section-title')?.textContent || '';
+            const icon = section.querySelector('.today-section-icon')?.textContent || '';
+            const badge = section.querySelector('.today-section-badge');
+            const badgeText = badge?.style.display !== 'none' ? badge?.textContent : '';
+            
+            sectionDiv.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 10px;">
+                    <span style="font-size: 16px;">${icon}</span>
+                    <span style="font-size: 13px; font-weight: 600; color: #333; text-transform: uppercase;">${title}</span>
+                    ${badgeText ? `<span style="margin-left: auto; background: #e0e0e0; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${badgeText}</span>` : ''}
+                </div>
+            `;
+            
+            // Section content
+            const content = section.querySelector('[id^="section"]');
+            if (content) {
+                const contentDiv = document.createElement('div');
+                contentDiv.style.cssText = 'font-size: 11px; color: #333;';
+                
+                // Clone and style content
+                const clone = content.cloneNode(true);
+                
+                // Style items
+                clone.querySelectorAll('.today-item, .today-task').forEach(item => {
+                    item.style.cssText = `
+                        background: white;
+                        border: 1px solid #ddd;
+                        border-left: 3px solid #666;
+                        padding: 8px;
+                        margin-bottom: 6px;
+                        border-radius: 3px;
+                    `;
+                    if (item.classList.contains('urgent')) {
+                        item.style.borderLeftColor = '#dc3545';
+                    } else if (item.classList.contains('warning')) {
+                        item.style.borderLeftColor = '#ffc107';
+                    }
+                });
+                
+                clone.querySelectorAll('.today-item-title, .today-worker-name, strong').forEach(el => {
+                    el.style.color = '#333';
+                });
+                
+                clone.querySelectorAll('.today-item-subtitle, .today-item-meta').forEach(el => {
+                    el.style.color = '#666';
+                });
+                
+                clone.querySelectorAll('.today-empty').forEach(el => {
+                    el.style.cssText = 'text-align: center; padding: 15px; color: #888; font-style: italic;';
+                });
+                
+                clone.querySelectorAll('.today-worker').forEach(el => {
+                    el.style.marginBottom = '10px';
+                });
+                
+                clone.querySelectorAll('.today-worker-name').forEach(el => {
+                    el.style.cssText = 'font-weight: 600; color: #0066cc; margin-bottom: 6px;';
+                });
+                
+                clone.querySelectorAll('.today-check-item').forEach(el => {
+                    el.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px; background: white; border: 1px solid #ddd; margin-bottom: 4px;';
+                });
+                
+                clone.querySelectorAll('.today-checkbox').forEach(el => {
+                    el.style.cssText = 'width: 14px; height: 14px; border: 2px solid #333; border-radius: 2px;';
+                });
+                
+                // Stock list items
+                clone.querySelectorAll('[style*="grid-template-columns: 1fr 1fr"]').forEach(grid => {
+                    grid.querySelectorAll('div').forEach(item => {
+                        if (item.style.background) {
+                            item.style.background = 'white';
+                            item.style.border = '1px solid #ddd';
+                        }
+                    });
+                });
+                
+                contentDiv.appendChild(clone);
+                sectionDiv.appendChild(contentDiv);
+            }
+            
+            // Check if full width
+            if (section.classList.contains('full-width')) {
+                sectionDiv.style.gridColumn = 'span 2';
+            }
+            
+            gridHtml.appendChild(sectionDiv);
+        });
+        
+        pdfContainer.appendChild(gridHtml);
+        document.body.appendChild(pdfContainer);
+        
+        // Generate canvas
+        const canvas = await html2canvas(pdfContainer, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+        
+        document.body.removeChild(pdfContainer);
+        
+        // Create PDF (A3)
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdf = new jsPDF('p', 'mm', 'a3');
         
-        const imgWidth = 210; // A4 width in mm
+        const imgWidth = 297; // A3 width
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const pageHeight = 420; // A3 height
         
-        // Add image to PDF
         const imgData = canvas.toDataURL('image/png');
         
-        // If content is longer than one page, split it
         let heightLeft = imgHeight;
         let position = 0;
-        const pageHeight = 297; // A4 height in mm
         
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
@@ -1008,15 +1124,14 @@ async function downloadPDF() {
             heightLeft -= pageHeight;
         }
         
-        // Get today's date for filename
-        const dateStr = new Date().toISOString().split('T')[0];
-        pdf.save(`Daily-Briefing-${dateStr}.pdf`);
+        const todayStr = new Date().toISOString().split('T')[0];
+        pdf.save(`Daily-Briefing-${todayStr}.pdf`);
         
         showToast('PDF downloaded!', 'success');
         
     } catch (err) {
         console.error('Error generating PDF:', err);
-        showToast('Error generating PDF: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
